@@ -2,7 +2,7 @@
 
 Клиент для Windows: VPN, Zapret, WARP и маршрутизация сервисов в одном приложении.
 
-[Скачать](https://github.com/vnenapravo7-source/mcrf/releases) · [Сообщить о проблеме](https://github.com/vnenapravo7-source/mcrf/issues)
+[Скачать](https://github.com/vnenapravo7-source/mcrf/releases) · [VirusTotal · 0.3.4](https://www.virustotal.com/gui/file/963a59819d18697e20682813a1eab6576e74595f175fa239b0e3ab91abe0d871) · [Сообщить о проблеме](https://github.com/vnenapravo7-source/mcrf/issues)
 
 ![Главный экран](docs/screenshots/home.png)
 
@@ -105,6 +105,12 @@ Instagram, ChatGPT и дополнительные сервисы — отдел
 4. Пройдите проверки, подтвердите работу сервисов и примените план.
 
 Основные компоненты встроены в EXE. OpenFlux, WDTT и CSQTT устанавливаются отдельно. Своего VPN-сервера или подписки приложение не предоставляет.
+
+## Проверка файла
+
+[Отчёт VirusTotal для MCRF 0.3.4](https://www.virustotal.com/gui/file/963a59819d18697e20682813a1eab6576e74595f175fa239b0e3ab91abe0d871) относится к конкретному EXE. Результаты сканирования могут меняться; ссылка не является гарантией безопасности или подтверждением ложных срабатываний.
+
+SHA-256: `963a59819d18697e20682813a1eab6576e74595f175fa239b0e3ab91abe0d871`. Контрольная сумма также опубликована в `SHA256SUMS.txt` рядом с EXE в релизе.
 
 ## Важно
 
