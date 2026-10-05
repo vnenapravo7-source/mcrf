@@ -1,0 +1,22 @@
+MCRF tunnel engines (separate processes; no third-party UI or branding reused)
+
+CSQTT core 2.1.9: copyright 2026 amurcanov; Windows portability by luminescq.
+Source: https://github.com/luminescq/focsq/tree/bfa176f/backend
+Protocol: https://github.com/amurcanov/csqtt
+License: PolyForm Noncommercial 1.0.0. Noncommercial use only.
+Only backend code is included. The FOCSQ UI, assets and brand are not included.
+The MCRF stdin/loopback bridge is in the accompanying source archive.
+
+WDTT-Plus: https://github.com/Ivan4537/WDTT-Plus/tree/68bc4af
+License: GNU GPL version 3. Source archive includes go_client, pathprobe,
+go.mod/go.sum, build instructions and the GPL license. Modified main.go adds
+CSQTT raw-IP mode and avoids DNS work before argument parsing; the added
+csqtt_raw_proxy.go connects a userspace network stack to loopback raw IP.
+No Windows routes, DNS, adapters or system proxy settings are changed by
+these sidecar processes. MCRF remains responsible for optional TUN routing.
+
+LLVM libunwind runtime: https://github.com/llvm/llvm-project/tree/main/libunwind
+Apache-2.0 WITH LLVM-exception. Original LLVM license included in archive.
+
+Dependencies retain their original licenses. Dependency source and license
+files, locked versions, and build scripts are included in the source archive.

@@ -1,0 +1,232 @@
+diff --git a/nfq/nfqws.c b/nfq/nfqws.c
+index d88350b..aad22ac 100644
+--- a/nfq/nfqws.c
++++ b/nfq/nfqws.c
+@@ -3,6 +3,9 @@
+ #include "nfqws.h"
+ #include "sec.h"
+ #include "desync.h"
++#ifdef __CYGWIN__
++#include "app_filter.h"
++#endif
+ #include "helpers.h"
+ #include "checksum.h"
+ #include "params.h"
+@@ -546,6 +549,7 @@ exiterr:
+ 
+ static int win_main(const char *windivert_filter)
+ {
++	if (!mcrf_apps_start()) { fprintf(stderr, "MCRF: process observer failed; Zapret not started\n"); return 1; }
+ 	size_t len;
+ 	unsigned int id;
+ 	uint8_t verdict;
+@@ -625,6 +629,7 @@ static int win_main(const char *windivert_filter)
+ 			}
+ 
+ 			ReloadCheck();
++			mcrf_apps_packet(packet, (unsigned)len, &wa);
+ 
+ 			*ifname = 0;
+ 			snprintf(ifname, sizeof(ifname), "%u.%u", wa.Network.IfIdx, wa.Network.SubIfIdx);
+@@ -1806,6 +1811,10 @@ static void exithelp(void)
+ 		" --filter-tcp=[~]port1[-port2]|*\t\t\t; TCP port filter. ~ means negation. setting tcp and not setting udp filter denies udp. comma separated list allowed.\n"
+ 		" --filter-udp=[~]port1[-port2]|*\t\t\t; UDP port filter. ~ means negation. setting udp and not setting tcp filter denies tcp. comma separated list allowed.\n"
+ 		" --filter-l7=[http|tls|quic|wireguard|dht|discord|stun|unknown] ; L6-L7 protocol filter. multiple comma separated values allowed.\n"
++#ifdef __CYGWIN__
++		" --mcrf-apps=<UTF8-file> ; MCRF live endpoint application allowlist v1\n"
++		" --mcrf-except-apps=<UTF8-file> ; MCRF known-owner application exclusions v1\n"
++#endif
+ #ifdef HAS_FILTER_SSID
+ 		" --filter-ssid=ssid1[,ssid2,ssid3,...]\t\t\t; per profile wifi SSID filter\n"
+ #endif
+@@ -2113,6 +2122,10 @@ enum opt_indices {
+ 	IDX_FILTER_TCP,
+ 	IDX_FILTER_UDP,
+ 	IDX_FILTER_L7,
++#ifdef __CYGWIN__
++	IDX_MCRF_APPS,
++	IDX_MCRF_EXCEPT_APPS,
++#endif
+ #ifdef HAS_FILTER_SSID
+ 	IDX_FILTER_SSID,
+ #endif
+@@ -2254,6 +2267,10 @@ static const struct option long_options[] = {
+ 	[IDX_FILTER_TCP] = {"filter-tcp", required_argument, 0, 0},
+ 	[IDX_FILTER_UDP] = {"filter-udp", required_argument, 0, 0},
+ 	[IDX_FILTER_L7] = {"filter-l7", required_argument, 0, 0},
++#ifdef __CYGWIN__
++	[IDX_MCRF_APPS] = {"mcrf-apps", required_argument, 0, 0},
++	[IDX_MCRF_EXCEPT_APPS] = {"mcrf-except-apps", required_argument, 0, 0},
++#endif
+ #ifdef HAS_FILTER_SSID
+ 	[IDX_FILTER_SSID] = {"filter-ssid", required_argument, 0, 0},
+ #endif
+@@ -3260,6 +3277,14 @@ int main(int argc, char **argv)
+ 				exit_clean(1);
+ 			break;
+ 		case IDX_FILTER_L7:
++#ifdef __CYGWIN__
++			goto parse_l7;
++		case IDX_MCRF_APPS:
++		case IDX_MCRF_EXCEPT_APPS:
++			if (dp->apps || !(dp->apps=mcrf_apps_load(optarg,option_index==IDX_MCRF_EXCEPT_APPS))) { DLOG_ERR("Invalid MCRF app filter\n"); exit_clean(1); }
++			break;
++		parse_l7:
++#endif
+ 			if (!parse_l7_list(optarg, &dp->filter_l7))
+ 			{
+ 				DLOG_ERR("Invalid l7 filter : %s\n", optarg);
+@@ -3629,6 +3654,9 @@ int main(int argc, char **argv)
+ #error unsupported OS
+ #endif
+ ex:
++#ifdef __CYGWIN__
++	mcrf_apps_stop();
++#endif
+ 	rawsend_cleanup();
+ 	cleanup_params(&params);
+ #ifdef __CYGWIN__
+diff --git a/nfq/params.h b/nfq/params.h
+index b1d5bbe..277f993 100644
+--- a/nfq/params.h
++++ b/nfq/params.h
+@@ -102,6 +102,9 @@ typedef enum {IPID_SEQ=0,IPID_SEQ_GROUP,IPID_RND,IPID_ZERO,IPID_SAME} t_ip_id_mo
+ 
+ struct desync_profile
+ {
++#ifdef __CYGWIN__
++	struct mcrf_app_filter *apps;
++#endif
+ 	int n;	// number of the profile
+ 
+ 	uint16_t wsize,wssize;
+diff --git a/nfq/params.c b/nfq/params.c
+index 8e0fbcc..7e599fa 100644
+--- a/nfq/params.c
++++ b/nfq/params.c
+@@ -1,4 +1,7 @@
+ #include "params.h"
++#ifdef __CYGWIN__
++#include "app_filter.h"
++#endif
+ 
+ #include <stdarg.h>
+ #include <syslog.h>
+@@ -302,6 +305,9 @@ struct desync_profile_list *dp_list_add(struct desync_profile_list_head *head)
+ }
+ static void dp_clear_dynamic(struct desync_profile *dp)
+ {
++#ifdef __CYGWIN__
++	mcrf_apps_free(dp->apps);dp->apps=NULL;
++#endif
+ 	free(dp->fsplit_pattern);
+ 
+ 	hostlist_collection_destroy(&dp->hl_collection);
+diff --git a/nfq/desync.c b/nfq/desync.c
+index 0fdccd1..06483a6 100644
+--- a/nfq/desync.c
++++ b/nfq/desync.c
+@@ -8,6 +8,9 @@
+ #include "params.h"
+ #include "helpers.h"
+ #include "hostlist.h"
++#ifdef __CYGWIN__
++#include "app_filter.h"
++#endif
+ #include "ipset.h"
+ #include "conntrack.h"
+ 
+@@ -231,6 +234,9 @@ static bool dp_match(
+ 	bool *bCheckDone, bool *bCheckResult, bool *bExcluded)
+ {
+ 	bool bHostlistsEmpty;
++#ifdef __CYGWIN__
++	if (!mcrf_apps_match(dp->apps)) return false;
++#endif
+ 
+ 	if (bCheckDone) *bCheckDone = false;
+ 
+@@ -1201,6 +1207,13 @@ static uint8_t dpi_desync_tcp_packet_play(bool replay, size_t reasm_offset, uint
+ 		if (ssid) DLOG("found ssid for %s : %s\n", ifname, ssid);
+ #endif
+ 		dp = ctrack_replay->dp;
++#ifdef __CYGWIN__
++		if (ctrack_replay->mcrf_endpoint!=mcrf_apps_endpoint() || (dp && !mcrf_apps_match(dp->apps))) return verdict;
++#endif
++#ifdef __CYGWIN__
++		if (dp && !mcrf_apps_match(dp->apps)) { dp=NULL;if(ctrack){ctrack->dp=NULL;ctrack->dp_search_complete=false;} }
++		if (!dp && ctrack && mcrf_apps_known()) ctrack->dp_search_complete=false;
++#endif
+ 		if (dp)
+ 			DLOG("using cached desync profile %d\n", dp->n);
+ 		else if (!ctrack_replay->dp_search_complete)
+@@ -1223,6 +1236,9 @@ static uint8_t dpi_desync_tcp_packet_play(bool replay, size_t reasm_offset, uint
+ 			ConntrackPoolPurge(&params.conntrack);
+ 			if (ConntrackPoolFeed(&params.conntrack, dis->ip, dis->ip6, dis->tcp, NULL, dis->len_payload, &ctrack, &bReverse))
+ 			{
++#ifdef __CYGWIN__
++				if(ctrack->mcrf_endpoint!=mcrf_apps_endpoint()){ctrack->dp=NULL;ctrack->dp_search_complete=false;ctrack->mcrf_endpoint=mcrf_apps_endpoint();}
++#endif
+ 				dp = ctrack->dp;
+ 				ctrack_replay = ctrack;
+ 			}
+@@ -1231,6 +1247,10 @@ static uint8_t dpi_desync_tcp_packet_play(bool replay, size_t reasm_offset, uint
+ #ifdef HAS_FILTER_SSID
+ 		ssid = wlan_ssid_search_ifname(ifname);
+ 		if (ssid) DLOG("found ssid for %s : %s\n", ifname, ssid);
++#endif
++#ifdef __CYGWIN__
++		if (dp && !mcrf_apps_match(dp->apps)) { dp=NULL;if(ctrack){ctrack->dp=NULL;ctrack->dp_search_complete=false;} }
++		if (!dp && ctrack && mcrf_apps_known()) ctrack->dp_search_complete=false;
+ #endif
+ 		if (dp)
+ 			DLOG("using cached desync profile %d\n", dp->n);
+@@ -2801,6 +2821,13 @@ static uint8_t dpi_desync_udp_packet_play(bool replay, size_t reasm_offset, uint
+ #endif
+ 
+ 		dp = ctrack_replay->dp;
++#ifdef __CYGWIN__
++		if (ctrack_replay->mcrf_endpoint!=mcrf_apps_endpoint() || (dp && !mcrf_apps_match(dp->apps))) return verdict;
++#endif
++#ifdef __CYGWIN__
++		if (dp && !mcrf_apps_match(dp->apps)) { dp=NULL;if(ctrack){ctrack->dp=NULL;ctrack->dp_search_complete=false;} }
++		if (!dp && ctrack && mcrf_apps_known()) ctrack->dp_search_complete=false;
++#endif
+ 		if (dp)
+ 			DLOG("using cached desync profile %d\n", dp->n);
+ 		else if (!ctrack_replay->dp_search_complete)
+@@ -2823,6 +2850,9 @@ static uint8_t dpi_desync_udp_packet_play(bool replay, size_t reasm_offset, uint
+ 			ConntrackPoolPurge(&params.conntrack);
+ 			if (ConntrackPoolFeed(&params.conntrack, dis->ip, dis->ip6, NULL, dis->udp, dis->len_payload, &ctrack, &bReverse))
+ 			{
++#ifdef __CYGWIN__
++				if(ctrack->mcrf_endpoint!=mcrf_apps_endpoint()){ctrack->dp=NULL;ctrack->dp_search_complete=false;ctrack->mcrf_endpoint=mcrf_apps_endpoint();}
++#endif
+ 				dp = ctrack->dp;
+ 				ctrack_replay = ctrack;
+ 			}
+@@ -2831,6 +2861,10 @@ static uint8_t dpi_desync_udp_packet_play(bool replay, size_t reasm_offset, uint
+ #ifdef HAS_FILTER_SSID
+ 		ssid = wlan_ssid_search_ifname(ifname);
+ 		if (ssid) DLOG("found ssid for %s : %s\n", ifname, ssid);
++#endif
++#ifdef __CYGWIN__
++		if (dp && !mcrf_apps_match(dp->apps)) { dp=NULL;if(ctrack){ctrack->dp=NULL;ctrack->dp_search_complete=false;} }
++		if (!dp && ctrack && mcrf_apps_known()) ctrack->dp_search_complete=false;
+ #endif
+ 		if (dp)
+ 			DLOG("using cached desync profile %d\n", dp->n);
+diff --git a/nfq/conntrack.h b/nfq/conntrack.h
+index f82a3fb..7ea9644 100644
+--- a/nfq/conntrack.h
++++ b/nfq/conntrack.h
+@@ -59,6 +59,9 @@ typedef struct
+ 
+ 	struct desync_profile *dp;		// desync profile cache
+ 	bool dp_search_complete;
++#ifdef __CYGWIN__
++	uint64_t mcrf_endpoint;
++#endif
+ 
+ 	// common state
+ 	time_t t_start, t_last;

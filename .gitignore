@@ -1,0 +1,9 @@
+/work/
+/outputs/
+/data/
+/.vs/
+*.user
+*.suo
+*.log
+*.previous
+**/target/

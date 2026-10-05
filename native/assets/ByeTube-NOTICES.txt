@@ -1,0 +1,7 @@
+ByeTube Windows adapter in MCRF
+Engine: ByeDPI v0.17.3, hufrea, MIT license (LICENSE.byedpi).
+https://github.com/hufrea/byedpi
+Strategy reference: StressOzz/Zapret-Manager, ByeTube section, retrieved 2026-10-04.
+https://github.com/StressOzz/Zapret-Manager
+The original OpenWrt service is not executed on Windows. MCRF uses its own sing-box TUN and a localhost-only ByeDPI SOCKS service. Linux-only -S strategies are excluded, not silently altered. UDP/QUIC for selected ByeTube routes is blocked so browsers may retry over TCP.
+Upstream archive SHA-256: 70d2c94147193cb915f9c6eb5144b8d404dacbcfa90bda2383b6b211afafa456
