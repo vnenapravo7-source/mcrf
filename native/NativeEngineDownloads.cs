@@ -11,6 +11,27 @@ namespace SplifyWin {
     protected override void OnPaint(PaintEventArgs e){e.Graphics.SmoothingMode=SmoothingMode.AntiAlias;using(var path=UiShape.Round(new Rectangle(0,4,Math.Max(1,Width),8),4))using(var brush=new SolidBrush(Color.FromArgb(55,133,164,218)))e.Graphics.FillPath(brush,path);int width=Width*Math.Max(0,Math.Min(100,Percent))/100;if(width>1)using(var path=UiShape.Round(new Rectangle(0,4,width,8),4))using(var brush=new SolidBrush(GlassInk.Cyan))e.Graphics.FillPath(brush,path);}
   }
   public sealed partial class MainForm {
+    Panel engineReturnOverlay,engineReturnContent;
+    string engineReturnPage;
+    string[] requestedEngines=new string[0];
+    async Task<bool> OfferEngineDownload(ServerNode[] nodes){
+      var missing=nodes.Where(n=>new[]{"openflux","csqtt","wdtt"}.Contains(n.Protocol)&&!core.HasEngine(n)).Select(n=>n.Protocol).Distinct().ToArray();
+      if(missing.Length==0)return false;
+      if(await ConfirmChange("Для этого подключения нужно скачать: "+String.Join(", ",missing.Select(x=>x.ToUpperInvariant()))+".\nПосле установки вернём вас к добавлению подключения. Введённые данные сохранятся.","Перейти к скачиванию","Нужен дополнительный движок"))OpenRequiredEngines(missing);
+      return true;
+    }
+    void OpenRequiredEngines(string[] ids){
+      if(engineReturnOverlay!=null||page=="engines")return;
+      requestedEngines=ids;engineReturnOverlay=popupOverlay;engineReturnContent=content;engineReturnPage=page;
+      popupOverlay=null;content=null;page="";ShowPage("engines");
+    }
+    void ReturnFromEngines(){
+      if(engineReturnOverlay==null){ShowPage("servers");return;}
+      if(popupOverlay!=null)popupOverlay.Dispose();
+      popupOverlay=engineReturnOverlay;content=engineReturnContent;page=engineReturnPage;
+      engineReturnOverlay=null;engineReturnContent=null;engineReturnPage=null;requestedEngines=new string[0];
+      popupOverlay.BringToFront();RefreshServers();if(page=="setup"&&setupServerRefresh!=null)setupServerRefresh();
+    }
     void EnginesBlue(){
       var body=Box();body.Dock=DockStyle.Fill;content.Controls.Add(body);
       var intro=L("Дополнительные движки скачиваются один раз. После установки профиль готов к подключению — перезапуск не нужен. Загрузка продолжится, если закрыть это окно.",10,false,Muted);intro.AutoSize=false;intro.SetBounds(22,14,body.Width-44,58);intro.Anchor=AnchorStyles.Top|AnchorStyles.Left|AnchorStyles.Right;body.Controls.Add(intro);
@@ -23,11 +44,11 @@ namespace SplifyWin {
         var size=L((p.Size/1000000d).ToString("0.0")+" МБ",9,false,Muted);size.SetBounds(body.Width-130,y+46,108,28);size.Anchor=AnchorStyles.Top|AnchorStyles.Right;body.Controls.Add(size);
         Action refresh=()=>{if(body.IsDisposed)return;var current=core.Engines.State(p.Id);bool installed=core.Engines.Installed(p.Id);status.Text=current.Text;status.ForeColor=current.Error?Red:installed?GlassInk.Mint:Muted;download.Text=current.Busy?"Отменить":installed?"Установлен":"Скачать";download.Enabled=current.Busy||!installed;bar.Percent=current.Percent;bar.Visible=current.Busy;bar.Invalidate();};timer.Tick+=(s,e)=>refresh();refresh();
       }
-      var back=B("Назад к серверам",(s,e)=>ShowPage("servers"));back.SetBounds(22,body.Height-48,195,38);back.Anchor=AnchorStyles.Bottom|AnchorStyles.Left;body.Controls.Add(back);
+      var back=B(engineReturnOverlay==null?"Назад к серверам":"Назад к подключению",(s,e)=>ReturnFromEngines());back.Name="engineReturn";back.SetBounds(22,body.Height-48,230,38);back.Anchor=AnchorStyles.Bottom|AnchorStyles.Left;body.Controls.Add(back);
       timer.Start();body.Disposed+=(s,e)=>timer.Dispose();
     }
-    async Task DownloadEngine(string id){try{var candidate=updates==null?null:updates.Items.FirstOrDefault(x=>x.Id=="engine:"+id);if(candidate!=null&&candidate.Package!=null&&AppUpdates.CompareVersion(candidate.Package.Version,core.Engines.Package(id).Version)>=0)await core.Engines.InstallUpdate(candidate.Package);else await core.Engines.Install(id);if(IsDisposed)return;WriteLog("Движок "+core.Engines.Package(id).Name+" скачан, проверен и установлен");RefreshServers();Toast("Движок установлен — можно подключаться");}catch(OperationCanceledException){if(!IsDisposed)WriteLog("Загрузка движка отменена");}catch(Exception ex){if(!IsDisposed){WriteLog("Ошибка загрузки движка: "+ex.Message);Toast(ex.Message);}}}
-    void OfferMissingEngines(){if(!IsDisposed&&state.Servers.Any(n=>new[]{"openflux","csqtt","wdtt"}.Contains(n.Protocol)&&!core.HasEngine(n))){ShowPage("engines");Toast("Профили сохранены. Скачайте нужный движок одним нажатием");}}
-    protected override void OnFormClosing(FormClosingEventArgs e){base.OnFormClosing(e);if(!e.Cancel)core.Engines.CancelAll();}
+    async Task DownloadEngine(string id){try{var candidate=updates==null?null:updates.Items.FirstOrDefault(x=>x.Id=="engine:"+id);if(candidate!=null&&candidate.Package!=null&&AppUpdates.CompareVersion(candidate.Package.Version,core.Engines.Package(id).Version)>=0)await core.Engines.InstallUpdate(candidate.Package);else await core.Engines.Install(id);if(IsDisposed)return;WriteLog("Движок "+core.Engines.Package(id).Name+" скачан, проверен и установлен");RefreshServers();Toast("Движок установлен — можно подключаться");if(page=="engines"&&engineReturnOverlay!=null&&requestedEngines.All(x=>core.Engines.Installed(x)))ReturnFromEngines();}catch(OperationCanceledException){if(!IsDisposed)WriteLog("Загрузка движка отменена");}catch(Exception ex){if(!IsDisposed){WriteLog("Ошибка загрузки движка: "+ex.Message);Toast(ex.Message);}}}
+    async void OfferMissingEngines(){if(!IsDisposed)await OfferEngineDownload(state.Servers.ToArray());}
+    protected override void OnFormClosing(FormClosingEventArgs e){base.OnFormClosing(e);if(!e.Cancel){core.Engines.CancelAll();if(engineReturnOverlay!=null){engineReturnOverlay.Dispose();engineReturnOverlay=null;engineReturnContent=null;}}}
   }
 }
