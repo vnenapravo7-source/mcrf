@@ -23,12 +23,18 @@ namespace SplifyWin {
     public List<string> CheckServices{get;set;} public List<string> CheckFamilies{get;set;} public bool DetailedLogs{get;set;}
 public bool DiscordVoiceEnabled{get;set;}public string DiscordInterfaceStrategy{get;set;}public string DiscordScopeText{get;set;}
     public List<HostsCandidate> Hosts{get;set;}
+    public bool GameFilter{get;set;}
+    public bool? GameFilterTcp{get;set;} public bool? GameFilterUdp{get;set;}
+    [System.Web.Script.Serialization.ScriptIgnore] public bool GameTcpEnabled{get{return GameFilterTcp??GameFilter;}}
+    [System.Web.Script.Serialization.ScriptIgnore] public bool GameUdpEnabled{get{return GameFilterUdp??GameFilter;}}
     [System.Web.Script.Serialization.ScriptIgnore]
     public List<RouteList> ScopeRules{get;set;}
     public ZapretSettings(){Family="Flowseal";Strategy="";MatchMode="addresses";ScopeText="youtube.com\ngooglevideo.com\nytimg.com\nyoutubei.googleapis.com";TestUrls="https://www.youtube.com/\nhttps://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg";}
   }
   public sealed class ZapretStrategy {
     public string Id,Name,Family,Tcp,Udp,VoiceUdp,UnavailableReason;
+    public string GameTcp,GameUdp,GameUnavailableReason;
+    public bool GameAvailable{get{return Available&&String.IsNullOrEmpty(GameUnavailableReason)&&(!String.IsNullOrEmpty(GameTcp)||!String.IsNullOrEmpty(GameUdp));}}
     public string ShortName{get{return CompactName(Name,Family);}}
     public static string CompactName(string name,string family){
       name=name??"";var number=Regex.Match(name,@"(?:Yv|v)(\d+)$",RegexOptions.IgnoreCase);
@@ -49,10 +55,10 @@ public bool DiscordVoiceEnabled{get;set;}public string DiscordInterfaceStrategy{
     static Stream Flowseal(string directory){string root=DataRoot(directory);if(root!=null){var prefs=AppUpdates.ReadPreferences(root);var candidates=new List<UpdateInstallation>();foreach(var id in new[]{"flowseal-config","zapret"}){UpdateInstallation item;if(prefs.Installed.TryGetValue(id,out item)&&AppUpdates.ActiveFile(root,id,null)!=null)candidates.Add(item);}var latest=candidates.OrderByDescending(p=>p.Version,Comparer<string>.Create(AppUpdates.CompareVersion)).FirstOrDefault();if(latest!=null)return File.OpenRead(Path.Combine(latest.Directory,latest.File));}return Assembly.GetExecutingAssembly().GetManifestResourceStream("SplifyWin.Zapret.flowseal.zip");}
     static string Config(string directory,string id,string resource){string root=DataRoot(directory),file=root==null?null:AppUpdates.ActiveFile(root,id,null);return file==null?Resource(resource):File.ReadAllText(file);}
     static string Resource(string name){using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("SplifyWin.Zapret."+name)){if(stream==null)throw new FileNotFoundException("Нет встроенного ресурса Zapret: "+name);using(var reader=new StreamReader(stream,Encoding.UTF8))return reader.ReadToEnd();}}
-    static string Options(string text,string directory,out string reason){
+    static string Options(string text,string directory,out string reason,bool game=false){
       reason=null;var result=new List<string>();
       foreach(Match match in Regex.Matches(text,@"--(?:dpi-desync[-a-z0-9]*|dup[-a-z0-9]*|ip-id)(?:=(?:""[^""]*""|[^\s]+)|\s+[0-9][^\s]*)?")){
-        var option=match.Value.Trim().TrimEnd('^').Replace("^!","!");if(option.Contains("any-protocol")||option.Contains("fake-syn")||option.Contains("skip-nosni")){reason="Стратегия содержит обработку без определённого адреса";return "";}
+        var option=match.Value.Trim().TrimEnd('^').Replace("^!","!");if((option.Contains("any-protocol")&&!game)||option.Contains("fake-syn")||option.Contains("skip-nosni")){reason="Стратегия содержит обработку без определённого адреса";return "";}
         option=Regex.Replace(option,@"(?:%BIN%|/opt/zapret/files/fake/)([a-zA-Z0-9_.-]+)",m=>Path.Combine(directory,m.Groups[1].Value=="4pda.bin"?"tls_clienthello_4pda_to.bin":m.Groups[1].Value));
         foreach(Match file in Regex.Matches(option,@"[a-zA-Z0-9_.-]+\.bin"))if(!File.Exists(Path.Combine(directory,file.Value)))reason="Нет встроенного payload: "+file.Value;
         // Cygwin getopt needs complete Windows arguments, including paths containing spaces.
@@ -72,8 +78,13 @@ public bool DiscordVoiceEnabled{get;set;}public string DiscordInterfaceStrategy{
           var udp=profiles.FirstOrDefault(x=>x.Contains("--filter-udp=443 ")&&x.Contains("list-general.txt"));
           var voice=profiles.FirstOrDefault(x=>x.Contains("--filter-l7=discord,stun"));string voiceReason;var voiceOptions=voice==null?"--dpi-desync=fake --dpi-desync-repeats=6":Options(voice,directory,out voiceReason);
           if(tcp==null)continue;string tcpReason,udpReason=null;var tcpOptions=Options(tcp,directory,out tcpReason);var udpOptions=udp==null?"":Options(udp,directory,out udpReason);
+          var gameTcp=profiles.FirstOrDefault(x=>Regex.IsMatch(x,@"--filter-tcp=%GameFilter(?:TCP)?%"));
+          var gameUdp=profiles.FirstOrDefault(x=>Regex.IsMatch(x,@"--filter-udp=%GameFilter(?:UDP)?%"));
+          string gameTcpReason=null,gameUdpReason=null;
+          var gameTcpOptions=gameTcp==null?"":Options(gameTcp,directory,out gameTcpReason,true);
+          var gameUdpOptions=gameUdp==null?"":Options(gameUdp,directory,out gameUdpReason,true);
           var name=Path.GetFileNameWithoutExtension(entry.FullName).Replace("general","Базовая");
-          result.Add(new ZapretStrategy{Family="Flowseal",Id="flowseal:"+Path.GetFileName(entry.FullName),Name="Flowseal · "+name,Tcp=tcpOptions,Udp=udpOptions,VoiceUdp=voiceOptions,UnavailableReason=tcpReason??udpReason});
+          result.Add(new ZapretStrategy{Family="Flowseal",Id="flowseal:"+Path.GetFileName(entry.FullName),Name="Flowseal · "+name,Tcp=tcpOptions,Udp=udpOptions,VoiceUdp=voiceOptions,UnavailableReason=tcpReason??udpReason,GameTcp=gameTcpOptions,GameUdp=gameUdpOptions,GameUnavailableReason=gameTcpReason??gameUdpReason});
         }
       }
       AddMarkdown(result,"V",Config(directory,"v-config","v.md"),directory);AddMarkdown(result,"YouTube",Config(directory,"youtube-config","youtube.md"),directory);return result;
@@ -123,30 +134,33 @@ public ZapretRuntime(NetworkCore core){hostsCore=core;root=core.DataRoot;curl=co
         string voiceApplications=voiceAddresses.Length>0?"":" --mcrf-apps="+Quote(appsFile);
         return args.Replace("--wf-udp=443 ","--wf-udp=443,1024-65535 ")+" --new --filter-udp=1024-65535 --filter-l7=discord,stun"+voiceScope+voiceApplications+" "+voiceOptions;
       }
-      if(settings.ScopeRules!=null){if(settings.ScopeRules.Count==0)throw new InvalidOperationException("Пустая область Zapret запрещена");var rules=new List<string>();int number=0;foreach(var rule in settings.ScopeRules){var part=new ZapretSettings{ScopeText=rule.Text,MatchMode=rule.MatchMode,DetailedLogs=settings.DetailedLogs};var arg=BuildArguments(part,strategy,Path.Combine(runDirectory,"rule-"+(++number)));rules.Add(arg.Substring(arg.IndexOf(" --filter-",StringComparison.Ordinal)+1));}return "--wf-tcp=80,443 --wf-udp=443 --debug="+(settings.DetailedLogs?"1":"0")+" "+String.Join(" --new ",rules);}
+      if(settings.ScopeRules!=null){if(settings.ScopeRules.Count==0)throw new InvalidOperationException("Пустая область Zapret запрещена");var rules=new List<string>();int number=0;foreach(var rule in settings.ScopeRules){var part=new ZapretSettings{ScopeText=rule.Text,MatchMode=rule.MatchMode,DetailedLogs=settings.DetailedLogs,GameFilterTcp=rule.GameTcpEnabled,GameFilterUdp=rule.GameUdpEnabled};var arg=BuildArguments(part,strategy,Path.Combine(runDirectory,"rule-"+(++number)));rules.Add(arg.Substring(arg.IndexOf(" --filter-",StringComparison.Ordinal)+1));}return CaptureHeader(settings.ScopeRules.Any(r=>r.GameTcpEnabled),settings.ScopeRules.Any(r=>r.GameUdpEnabled),false)+"--debug="+(settings.DetailedLogs?"1":"0")+" "+String.Join(" --new ",rules);}
       var fields=ZapretScope.Validate(new RouteList{Text=settings.ScopeText,MatchMode=settings.MatchMode});
       if(fields["ip_cidr"].Any(x=>x.EndsWith("/0")))throw new InvalidOperationException("Сеть /0 применяет Zapret глобально. Укажите конкретные адреса.");
       Directory.CreateDirectory(runDirectory);var profiles=new List<string>();
       string mode=settings.MatchMode??"any",apps="";bool hasApps=fields["process_name"].Count+fields["process_path"].Count>0;
       if(hasApps&&mode!="addresses"){string file=Path.Combine(runDirectory,"apps.txt");File.WriteAllLines(file,fields["process_name"].Select(x=>"app:"+x).Concat(fields["process_path"].Select(x=>"path:"+x)),new UTF8Encoding(false));apps=(mode=="except-apps"?"--mcrf-except-apps=":"--mcrf-apps=")+Quote(file);}
       var domains=fields["domain"].Select(x=>"^"+x).Concat(fields["domain_suffix"]).Distinct().ToArray();var ips=fields["ip_cidr"].ToArray();
-      string gate=mode=="in-apps"||mode=="except-apps"?" "+apps:"";
-      if(mode!="apps"&&domains.Length>0){var file=Path.Combine(runDirectory,"hosts.txt");File.WriteAllLines(file,domains,new UTF8Encoding(false));AddProfiles(profiles,"--hostlist="+Quote(file)+gate,strategy,true);}
-      if(mode!="apps"&&ips.Length>0){var file=Path.Combine(runDirectory,"ips.txt");File.WriteAllLines(file,ips,new UTF8Encoding(false));AddProfiles(profiles,"--ipset="+Quote(file)+gate,strategy,false);}
-      if(hasApps&&(mode=="apps"||mode=="any"))AddProfiles(profiles,apps,strategy,false);
+      string gate=mode=="in-apps"||mode=="except-apps"?" "+apps:""; if(settings.GameTcpEnabled||settings.GameUdpEnabled){if(!strategy.GameAvailable||(settings.GameTcpEnabled&&String.IsNullOrEmpty(strategy.GameTcp))||(settings.GameUdpEnabled&&String.IsNullOrEmpty(strategy.GameUdp)))throw new InvalidOperationException("В выбранной стратегии нет доступного Game Filter. Выберите Flowseal с игровой частью.");if(ips.Length==0&&(!hasApps||mode=="addresses"||mode=="in-apps"||mode=="except-apps"))throw new InvalidOperationException("Game Filter требует IP или процесс игры; одних доменов недостаточно.");}
+      if(mode!="apps"&&domains.Length>0){var file=Path.Combine(runDirectory,"hosts.txt");File.WriteAllLines(file,domains,new UTF8Encoding(false));AddProfiles(profiles,"--hostlist="+Quote(file)+gate,strategy,true,false,false);}
+      if(mode!="apps"&&ips.Length>0){var file=Path.Combine(runDirectory,"ips.txt");File.WriteAllLines(file,ips,new UTF8Encoding(false));AddProfiles(profiles,"--ipset="+Quote(file)+gate,strategy,false,settings.GameTcpEnabled,settings.GameUdpEnabled);}
+      if(hasApps&&(mode=="apps"||mode=="any"))AddProfiles(profiles,apps,strategy,false,settings.GameTcpEnabled,settings.GameUdpEnabled);
       if(profiles.Count==0)throw new InvalidOperationException("Пустая область Zapret запрещена");
       // Every profile is explicitly scoped. No auto-hostlist, catch-all, SYN fake or service installation.
-      return "--wf-tcp=80,443 --wf-udp=443 --debug="+(settings.DetailedLogs?"1":"0")+" "+String.Join(" --new ",profiles);
+      return CaptureHeader(settings.GameTcpEnabled,settings.GameUdpEnabled,false)+"--debug="+(settings.DetailedLogs?"1":"0")+" "+String.Join(" --new ",profiles);
     }
     public string BuildProfileArguments(IEnumerable<ZapretProfile> profiles,IEnumerable<ZapretStrategy> catalog,string runDirectory){
       var enabled=profiles.Where(x=>x!=null&&x.Enabled).ToArray();if(enabled.Length==0)throw new InvalidOperationException("Нет включённых профилей Zapret");
       var choices=catalog.ToArray();var arguments=new List<string>();int index=0;
       foreach(var profile in enabled){if(profile.Settings==null)throw new InvalidOperationException("Пустой профиль: "+profile.Name);var strategy=choices.FirstOrDefault(x=>x.Id==profile.Settings.Strategy&&x.Available);if(strategy==null)throw new InvalidOperationException("Выберите стратегию для профиля «"+profile.Name+"»");var arg=BuildArguments(profile.Settings,strategy,Path.Combine(runDirectory,"profile-"+(++index)));arguments.Add(arg.Substring(arg.IndexOf(" --filter-",StringComparison.Ordinal)+1));}
-      return "--wf-tcp=80,443 --wf-udp="+(enabled.Any(p=>p.Settings.DiscordVoiceEnabled)?"443,1024-65535":"443")+" --debug="+(enabled.Any(x=>x.Settings.DetailedLogs)?"1":"0")+" "+String.Join(" --new ",arguments);
+      return CaptureHeader(enabled.Any(p=>p.Settings.GameTcpEnabled||(p.Settings.ScopeRules!=null&&p.Settings.ScopeRules.Any(r=>r.GameTcpEnabled))),enabled.Any(p=>p.Settings.GameUdpEnabled||(p.Settings.ScopeRules!=null&&p.Settings.ScopeRules.Any(r=>r.GameUdpEnabled))),enabled.Any(p=>p.Settings.DiscordVoiceEnabled))+"--debug="+(enabled.Any(x=>x.Settings.DetailedLogs)?"1":"0")+" "+String.Join(" --new ",arguments);
     }
-    static void AddProfiles(List<string> profiles,string scope,ZapretStrategy strategy,bool hosts){
+    static string CaptureHeader(bool tcp,bool udp,bool voice){return "--wf-tcp=80,443"+(tcp?",1024-65535":"")+" --wf-udp=443"+(udp||voice?",1024-65535":"")+" ";}
+    static void AddProfiles(List<string> profiles,string scope,ZapretStrategy strategy,bool hosts,bool tcp,bool udp){
       profiles.Add("--filter-tcp=80,443 "+(hosts?"--filter-l7=http,tls ":"")+scope+" "+strategy.Tcp);
       if(!String.IsNullOrEmpty(strategy.Udp))profiles.Add("--filter-udp=443 "+(hosts?"--filter-l7=quic ":"")+scope+" "+strategy.Udp);
+      if(tcp)profiles.Add("--filter-tcp=1024-65535 "+scope+" "+strategy.GameTcp);
+      if(udp)profiles.Add("--filter-udp=1024-65535 "+scope+" "+strategy.GameUdp);
     }
     static bool Administrator(){using(var identity=WindowsIdentity.GetCurrent())return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);}
     void Record(string line){if(String.IsNullOrWhiteSpace(line))return;lock(logSync){pendingLog.AppendLine(ClientJournal.Stamp(line));if(pendingLog.Length>65536)FlushLog();}}

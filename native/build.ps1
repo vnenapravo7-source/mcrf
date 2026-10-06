@@ -119,6 +119,7 @@ $arguments += (Join-Path $PSScriptRoot 'ExitDns.cs')
 $arguments += (Join-Path $PSScriptRoot 'NeonServerMap.cs')
 $arguments += ('/resource:' + (Join-Path $PSScriptRoot 'assets\mcrf-dotted-atlas.png') + ',SplifyWin.UI.NeonGlobe.png')
 $arguments += (Join-Path $PSScriptRoot 'GameProfiles.cs')
+$arguments += (Join-Path $PSScriptRoot 'GameFlowObserver.cs')
 $arguments += (Join-Path $PSScriptRoot 'RouteInlineEditor.cs')
 if ($TestSources) {
   if (-not $TestEntryPoint) { throw 'Tests require an explicit entry point.' }

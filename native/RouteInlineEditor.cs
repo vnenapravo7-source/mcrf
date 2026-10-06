@@ -50,6 +50,23 @@ namespace SplifyWin {
    };
    grid.Scroll+=(s,e)=>arrange();grid.Resize+=(s,e)=>arrange();grid.ColumnWidthChanged+=(s,e)=>arrange();grid.Disposed+=(s,e)=>{foreach(var f in fields)f.Item3.Dispose();fields.Clear();if(routesGrid==grid)rebuildRouteFields=null;};
    grid.CellDoubleClick+=(s,e)=>{if(e.RowIndex>=0&&e.ColumnIndex==2&&!routeInlineBusy)EditRoute(grid.Rows[e.RowIndex].Tag as RouteList);};
+   grid.CellContentClick+=async(s,e)=>{
+    if(e.RowIndex<0||(e.ColumnIndex!=5&&e.ColumnIndex!=6)||routeInlineBusy)return;
+    bool tcp=e.ColumnIndex==5;
+    var route=grid.Rows[e.RowIndex].Tag as RouteList;if(route==null)return;
+    await ChangeInlineRoute(route.Id,r=>{
+     bool enabled=tcp?r.GameTcpEnabled:r.GameUdpEnabled;
+     if(!enabled){
+      if(r.Target!="zapret")throw new InvalidOperationException("Для Game Filter сначала выберите выход Zapret → профиль.");
+      var profile=state.ZapretProfiles.FirstOrDefault(p=>p.Id==r.ZapretProfileId);
+      zapret.Prepare();var strategy=profile==null?null:ZapretCatalog.Load(zapret.DirectoryPath).FirstOrDefault(p=>p.Id==profile.Settings.Strategy);
+      if(strategy==null||!strategy.GameAvailable)throw new InvalidOperationException("Выберите для этого профиля стратегию Flowseal с доступной игровой частью (например ALT12).");
+      var settings=new ZapretSettings{ScopeText=r.Text,MatchMode=r.MatchMode,GameFilterTcp=tcp,GameFilterUdp=!tcp};
+      zapret.BuildArguments(settings,strategy,System.IO.Path.Combine(core.DataRoot,"game-filter-validation"));
+     }
+     r.GameFilterTcp=tcp?!enabled:r.GameTcpEnabled;r.GameFilterUdp=tcp?r.GameUdpEnabled:!enabled;r.GameFilter=false;return Task.FromResult(r);
+    });
+   };
    rebuildRouteFields();
   }
   async Task ChangeInlineRoute(string id,Func<RouteList,Task<RouteList>> prepare){

@@ -12,8 +12,20 @@ license; the existing WinDivert distribution and its LGPL/GPL notices are retain
 `--mcrf-except-apps=<UTF8 file>` excludes those applications, but **never** treats
 an unknown process as an allowed process. Lines are `app:browser.exe` or
 `path:C:\Apps\Browser.exe`. Conditions remain separate for every routing list.
-Application-only rules are still limited to the strategy's TCP 80/443 and UDP 443
-ports. Address-only lists continue using the upstream binary unchanged.
+Normal rules use TCP 80/443 and UDP 443. Independent opt-in Game TCP and Game UDP
+checkboxes add the selected Flowseal strategy's respective game profiles on ports
+1024-65535. Legacy Game Filter=true remains TCP+UDP unless explicitly overridden.
+Every game profile
+retains the routing list's IP/application constraints; domain-only game scopes
+are rejected. Game Filter is off by default and saved per routing list.
+Address-only lists continue using the upstream binary unchanged.
+
+Process recording without VPN uses separate FLOW/SOCKET SNIFF|RECV_ONLY handles
+through GameFlowObserver.cs. It collects IPs of newly observed TCP/UDP connections
+for the selected executable, checks process birth against event time, and skips
+inaccessible owners. It neither intercepts nor reinjects packets, starts TUN, nor
+changes the existing Zapret profiles. Administrator rights are required. It does
+not infer domains from DNS or reconstruct already established connections.
 
 FLOW/SOCKET observers associate full IPv4/IPv6 5-tuples with endpoint IDs.
 The observer retains the live process handle, checks its birth against the event
