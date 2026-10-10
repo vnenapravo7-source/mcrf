@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 namespace SplifyWin {
   public sealed partial class MainForm {
-    async Task<bool> ChangeActiveProfiles(Action change,Action refresh){
+    async Task<bool> ChangeActiveProfiles(Action change,Action refresh,bool fullRestart=false){
       if(profileChangeBusy){Toast("Дождитесь сохранения профилей");return false;}profileChangeBusy=true;
       try{
       if(zapretCancellation!=null||setupCancellation!=null||discordVoiceChecking||connecting||warpCancellation!=null){Toast("Дождитесь завершения текущей операции");return false;}
@@ -15,13 +15,13 @@ namespace SplifyWin {
       var serializer=new System.Web.Script.Serialization.JavaScriptSerializer{MaxJsonLength=Int32.MaxValue};string backup=serializer.Serialize(state);Exception failure=null;
       var oldServices=state.ZapretProfiles.SelectMany(p=>p.Settings.Hosts??new List<HostsCandidate>()).Select(h=>h.Service).Distinct().ToArray();byte[] hostsBefore=null,hostsAfter=null;bool cleared=false;Task rollback=null;
       try{
-       if(running)await Task.Run(()=>zapret.Stop());change();var active=ZapretRoutes.Active(state);
+       if(running){await Task.Run(()=>zapret.Stop());if(fullRestart){WriteLog("Перезапуск Zapret целиком: прежний движок остановлен; применяем переключение профиля");await Task.Delay(300);}}change();var active=ZapretRoutes.Active(state);
        var newServices=state.ZapretProfiles.SelectMany(p=>p.Settings.Hosts??new List<HostsCandidate>()).Select(h=>h.Service).Distinct().ToArray();var removed=oldServices.Except(newServices).Where(id=>id=="instagram"||id=="chatgpt").ToArray();
        if(removed.Length>0){hostsBefore=await Task.Run(()=>HostsRepair.ReadHostsFile(HostsEditor.PathName));hostsAfter=hostsBefore;foreach(var id in removed)hostsAfter=HostsEditor.Compose(hostsAfter,"",id);if(!hostsBefore.SequenceEqual(hostsAfter)){if(!await ConfirmChange("Убрать из hosts записи отключённых комбинаций: "+String.Join(", ",removed)+"? Другие записи сохранятся; создадим бэкап.","Убрать записи hosts"))throw new OperationCanceledException();await HostsRepair.ApplyAsync(store.Root,HostsEditor.Managed(hostsAfter),hostsBefore);cleared=true;}}
        if(running&&active.Length>0){await StartSavedZapretProfiles(CancellationToken.None);if(cleared)foreach(var group in active.SelectMany(p=>p.Settings.Hosts??new List<HostsCandidate>()).GroupBy(h=>h.Service))hostsAfter=HostsEditor.Compose(hostsAfter,HostsCandidates.Entries(group),group.Key);}
        store.Save(state);Toast(running?"Изменения сохранены · Zapret автоматически перезапущен":"Профили сохранены");SyncTray();
       }
-      catch(Exception ex){zapret.Stop();state=serializer.Deserialize<ClientState>(backup);if(cleared)rollback=Task.Run(()=>HostsRepair.Apply(store.Root,HostsEditor.Managed(hostsBefore),hostsAfter,false));store.Save(state);failure=ex;}
+      catch(Exception ex){WriteLog("Перезапуск профилей Zapret не выполнен: "+ex.ToString());zapret.Stop();state=serializer.Deserialize<ClientState>(backup);if(cleared)rollback=Task.Run(()=>HostsRepair.Apply(store.Root,HostsEditor.Managed(hostsBefore),hostsAfter,false));store.Save(state);failure=ex;}
       if(rollback!=null)try{await rollback;}catch(Exception restore){WriteLog("Не удалось откатить hosts: "+restore.ToString());}
       if(failure!=null){if(running)try{await StartSavedZapretProfiles(CancellationToken.None);}catch(Exception ex){WriteLog("Не удалось восстановить профили: "+ex.Message);}if(!(failure is OperationCanceledException))GlassNotice.Show(this,failure.Message,"Профили Zapret");}
       refresh();blueDashboard.Invalidate();SyncProfileHotkeys();return failure==null;

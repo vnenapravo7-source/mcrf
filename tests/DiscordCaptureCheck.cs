@@ -1,0 +1,31 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Runtime.InteropServices;
+using System.Collections.Generic;
+using System.Web.Script.Serialization;
+using SplifyWin;
+class DiscordCaptureCheck {
+ [DllImport("kernel32.dll",CharSet=CharSet.Unicode)]static extern IntPtr LoadLibrary(string name);
+ [DllImport("kernel32.dll",CharSet=CharSet.Ansi)]static extern IntPtr GetProcAddress(IntPtr m,string name);
+ [DllImport("kernel32.dll")]static extern bool FreeLibrary(IntPtr m);
+ [UnmanagedFunctionPointer(CallingConvention.StdCall,CharSet=CharSet.Ansi)]delegate bool Compile(string filter,int layer,IntPtr output,uint size,out IntPtr error,out uint position);
+ [UnmanagedFunctionPointer(CallingConvention.StdCall,CharSet=CharSet.Ansi)]delegate bool Evaluate(string filter,byte[] packet,uint size,IntPtr address);
+ static void Check(bool ok,string label){if(!ok)throw new Exception(label);Console.WriteLine("PASS "+label);}
+ static byte[] Packet(string dst,int port,byte[] payload){var bytes=new byte[28+payload.Length];bytes[0]=0x45;bytes[2]=(byte)(bytes.Length>>8);bytes[3]=(byte)bytes.Length;bytes[8]=64;bytes[9]=17;Array.Copy(IPAddress.Parse("192.168.1.2").GetAddressBytes(),0,bytes,12,4);Array.Copy(IPAddress.Parse(dst).GetAddressBytes(),0,bytes,16,4);bytes[20]=0xc0;bytes[21]=0x00;bytes[22]=(byte)(port>>8);bytes[23]=(byte)port;bytes[24]=(byte)((payload.Length+8)>>8);bytes[25]=(byte)(payload.Length+8);Array.Copy(payload,0,bytes,28,payload.Length);return bytes;}
+ static int Main(string[] args){try{
+  string root=Path.GetFullPath(args[0]);Environment.SetEnvironmentVariable("MCRF_DATA_DIR",root);Environment.SetEnvironmentVariable("SPLIFY_WIN_DATA_DIR",root);var core=new NetworkCore(new StateStore());using(var runtime=new ZapretRuntime(core)){
+   runtime.Prepare();var catalog=ZapretCatalog.Load(runtime.DirectoryPath);var strategy=catalog.First(s=>s.Id=="flowseal:general (ALT12).bat");string filter=DiscordCaptureFilter.Build(new[]{"66.22.192.0/18"});var module=LoadLibrary(Path.Combine(runtime.DirectoryPath,"WinDivert.dll"));Check(module!=IntPtr.Zero,"load WinDivert helpers without opening driver");try{
+    var compile=(Compile)Marshal.GetDelegateForFunctionPointer(GetProcAddress(module,"WinDivertHelperCompileFilter"),typeof(Compile));var evaluate=(Evaluate)Marshal.GetDelegateForFunctionPointer(GetProcAddress(module,"WinDivertHelperEvalFilter"),typeof(Evaluate));IntPtr error;uint position;Check(compile(filter,0,IntPtr.Zero,0,out error,out position),"compile narrow IPv4 filter "+(error==IntPtr.Zero?"":Marshal.PtrToStringAnsi(error)));Check(compile(DiscordCaptureFilter.Build(new[]{"2606:4700::/32"}),0,IntPtr.Zero,0,out error,out position),"compile IPv6 network filter");
+    var address=Marshal.AllocHGlobal(80);try{Marshal.Copy(new byte[80],0,address,80);Marshal.WriteInt32(address,8,1<<17);var discovery=new byte[74];discovery[1]=1;discovery[3]=70;var stun=new byte[20];stun[1]=1;stun[4]=0x21;stun[5]=0x12;stun[6]=0xa4;stun[7]=0x42;
+     Func<string,int,byte[],bool> selected=(ip,port,payload)=>{var packet=Packet(ip,port,payload);return evaluate(filter,packet,(uint)packet.Length,address);};Check(selected("66.22.200.1",50020,discovery),"Discord IP discovery selected");Check(selected("66.22.200.1",25000,discovery),"discovery on changed voice port selected");Check(selected("66.22.200.1",3478,stun),"Discord STUN selected");Check(!selected("155.133.248.36",50020,discovery),"game IP outside voice networks bypasses even discovery signature");Check(!selected("54.115.12.3",3478,stun),"game STUN outside voice networks bypasses");Check(!selected("66.22.200.1",50020,new byte[120]),"ordinary UDP bypasses even inside Discord network");discovery[10]=1;Check(!selected("66.22.200.1",50020,discovery),"invalid discovery payload bypasses");Marshal.WriteInt32(address,8,0);Check(!selected("66.22.200.1",3478,stun),"inbound voice is not diverted");
+    }finally{Marshal.FreeHGlobal(address);}
+   }finally{FreeLibrary(module);}
+   var voice=new ZapretSettings{ScopeText="discord.com\n66.22.192.0/18",MatchMode="addresses",Strategy=strategy.Id,DiscordVoiceEnabled=true,DiscordScopeText="discord.com\n66.22.192.0/18"};string single=runtime.BuildArguments(voice,strategy,Path.Combine(root,"single"));Check(single.Contains("--wf-raw-part=")&&!single.Contains("--wf-udp=443,1024-65535"),"standalone voice automatically uses narrow capture");string profiles=runtime.BuildProfileArguments(new[]{new ZapretProfile{Settings=voice,Enabled=true}},catalog,Path.Combine(root,"profiles"));Check(profiles.Contains("--wf-raw-part=")&&!profiles.Contains("--wf-udp=443,1024-65535"),"multi-profile startup preserves narrow capture");
+   string compiledFile=Path.Combine(root,"combined.filter");using(var engine=System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(runtime.AppExecutable(),profiles+" --wf-save="+ZapretRuntime.Quote(compiledFile)){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,WorkingDirectory=runtime.DirectoryPath})){var output=engine.StandardOutput.ReadToEndAsync();var errorText=engine.StandardError.ReadToEndAsync();if(!engine.WaitForExit(10000)){engine.Kill();throw new Exception("wf-save timeout");}System.Threading.Tasks.Task.WaitAll(output,errorText);Check(engine.ExitCode==0&&File.Exists(compiledFile),"real engine accepts and exports combined filter without starting driver "+errorText.Result);}string combined=File.ReadAllText(compiledFile);Check(combined.Contains("udp.PayloadLength")&&!combined.Contains("udp.DstPort >= 1024"),"raw signature survives engine filter generation");
+   if(args.Length>1){string json=File.ReadLines(args[1]).First(l=>l.StartsWith("{\"ExitDns\""));var state=new JavaScriptSerializer{MaxJsonLength=Int32.MaxValue}.Deserialize<ClientState>(json);var actual=runtime.BuildProfileArguments(ZapretRoutes.Active(state),catalog,Path.Combine(root,"actual"));Check(actual.Contains("--wf-raw-part=")&&!actual.Contains("--wf-udp=443,1024-65535"),"existing user profile upgrades without any new setting");Console.WriteLine("CAPTURE "+actual.Substring(0,actual.IndexOf("--debug=")));}
+   Check(!runtime.Running&&!core.Running,"tests never open traffic capture or start network engines");
+  }return 0;
+ }catch(Exception ex){Console.Error.WriteLine(ex);return 1;}}
+}

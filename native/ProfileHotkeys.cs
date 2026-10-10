@@ -42,8 +42,8 @@ namespace SplifyWin {
   public void Dispose(){if(disposed)return;disposed=true;foreach(var b in bindings.Values)UnregisterHotKey(Handle,b.Id);bindings.Clear();DestroyHandle();}
  }
  public sealed partial class MainForm {
-  static readonly string[] GlobalHotkeyIds={"@telegram","@warp","@tun"};
-  static readonly string[] GlobalHotkeyNames={"Telegram WS прокси","WARP","TUN"};
+  static readonly string[] GlobalHotkeyIds={"@telegram","@warp","@tun","@zapret"};
+  static readonly string[] GlobalHotkeyNames={"Telegram WS прокси","WARP","TUN","Zapret целиком"};
   ProfileHotkeyWindow profileHotkeys;readonly Dictionary<string,string> hotkeyErrors=new Dictionary<string,string>();bool profileActionBusy,hotkeyEditorOpen,profileChangeBusy;
   string HotkeyValue(string id){if(!id.StartsWith("@")){var profile=state.ZapretProfiles.FirstOrDefault(p=>p.Id==id);return profile==null?null:profile.Hotkey;}string value;return state.GlobalHotkeys!=null&&state.GlobalHotkeys.TryGetValue(id,out value)?value:null;}
   string HotkeyName(string id){int index=Array.IndexOf(GlobalHotkeyIds,id);return index>=0?GlobalHotkeyNames[index]:state.ZapretProfiles.First(p=>p.Id==id).Name;}
@@ -62,6 +62,7 @@ namespace SplifyWin {
    if(HotkeyActionBlocked()){Toast("Дождитесь завершения текущей операции");return;}
    if(id=="@telegram"){if(!telegramBridge.Running)RestoreWindow();ToggleMainTelegram();return;}
    if(id=="@warp"){ToggleRoutedOutput(true);return;}
+   if(id=="@zapret"){if(!zapret.Running)RestoreWindow();await ToggleZapretTray();return;}
    if(id=="@tun"){
     if(state.Mode!="tun"){RestoreWindow();GlassNotice.Show(this,"Выберите режим TUN в настройках. Горячая клавиша TUN не переключает локальный прокси и не меняет режим подключения.","TUN");return;}
     ToggleConnection(null,EventArgs.Empty);return;
@@ -75,7 +76,7 @@ namespace SplifyWin {
     if(desired&&(ZapretRoutes.Lists(state,id).Length==0||String.IsNullOrEmpty(profile.Settings.Strategy))){if(fromHotkey)RestoreWindow();GlassNotice.Show(this,"Сначала выберите стратегию и пресеты. Изменения сохраняются автоматически.","Zapret");return;}
     if(desired&&!IsAdministrator()){RestoreWindow();if(await ConfirmChange("Для включения Zapret нужны права Windows. Приложение перезапустится с запросом разрешения.","Получить права и перезапустить","Доступ Windows"))RequestElevation("--zapret");return;}
     if(core.Running&&state.Mode=="tun"&&fromHotkey)RestoreWindow();if(!await OfferStopTun())return;bool wasRunning=zapret.Running;
-    if(await ChangeActiveProfiles(()=>state.ZapretProfiles.First(p=>p.Id==id).Enabled=desired,()=>{})){
+    if(await ChangeActiveProfiles(()=>state.ZapretProfiles.First(p=>p.Id==id).Enabled=desired,()=>{},true)){
      if(desired&&!wasRunning)await StartSavedZapretProfiles(CancellationToken.None);
      WriteLog((fromHotkey?"Горячая клавиша: ":"")+profile.Name+" · "+(desired?"включён":"выключен"));
      if(!Visible&&tray.Visible)tray.ShowBalloonTip(1500,"MCRF",profile.Name+" · "+(desired?"Вкл":"Выкл"),ToolTipIcon.Info);
@@ -104,9 +105,9 @@ namespace SplifyWin {
    try{await done.Task;}finally{hotkeyEditorOpen=false;if(!IsDisposed&&Visible&&(page=="zapret"||page=="settings"))ShowPage(page);}
   }
   void ShowGlobalHotkeys(){
-   var veil=new GlassBackdrop(blueDashboard){Dock=DockStyle.Fill};var popup=new GlassPopupPanel{Size=new Size(Math.Min(610,ClientSize.Width-40),340)};veil.Controls.Add(popup);Action layout=()=>popup.Location=new Point((veil.Width-popup.Width)/2,(veil.Height-popup.Height)/2);veil.Resize+=(s,e)=>layout();Add(popup,L("Глобальные горячие клавиши",16,true),24,20);
+   var veil=new GlassBackdrop(blueDashboard){Dock=DockStyle.Fill};var popup=new GlassPopupPanel{Size=new Size(Math.Min(610,ClientSize.Width-40),400)};veil.Controls.Add(popup);Action layout=()=>popup.Location=new Point((veil.Width-popup.Width)/2,(veil.Height-popup.Height)/2);veil.Resize+=(s,e)=>layout();Add(popup,L("Глобальные горячие клавиши",16,true),24,20);
    for(int i=0;i<GlobalHotkeyIds.Length;i++){string id=GlobalHotkeyIds[i];var label=L(GlobalHotkeyNames[i],11,true);label.SetBounds(24,84+i*60,220,30);popup.Controls.Add(label);var button=B(HotkeyValue(id)??"Не назначена",async(s,e)=>{veil.Dispose();await EditProfileHotkey(id);});button.Name="globalHotkey_"+id.Substring(1);button.SetBounds(250,76+i*60,popup.Width-274,40);popup.Controls.Add(button);}
-   var hint=L("Необязательно. Работает, пока MCRF запущен, в том числе в трее.",10,false,Muted);hint.SetBounds(24,258,popup.Width-48,30);popup.Controls.Add(hint);var close=B("Закрыть",(s,e)=>veil.Dispose());close.SetBounds(popup.Width-154,294,130,34);popup.Controls.Add(close);Controls.Add(veil);veil.BringToFront();layout();
+   var hint=L("Необязательно. Работает, пока MCRF запущен, в том числе в трее.",10,false,Muted);hint.SetBounds(24,318,popup.Width-48,30);popup.Controls.Add(hint);var close=B("Закрыть",(s,e)=>veil.Dispose());close.SetBounds(popup.Width-154,354,130,34);popup.Controls.Add(close);Controls.Add(veil);veil.BringToFront();layout();
   }
  }
 }

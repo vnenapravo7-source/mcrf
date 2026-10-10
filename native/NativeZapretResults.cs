@@ -63,6 +63,7 @@ var settings=ZapretChecks.CopySettings(report.ApplySettings??report.Settings);se
       menu.Items["trayCancel"].Visible=zapretCancellation!=null||warpCancellation!=null;((ToolStripMenuItem)menu.Items["trayStartup"]).Checked=windowsStartupEnabled;
     }
     async Task ToggleZapretTray(){
+      if(profileActionBusy||profileChangeBusy||connecting||setupCancellation!=null||warpCancellation!=null){Toast("Дождитесь завершения текущей операции");return;}
       if(byetubeCancellation!=null){Toast("Дождитесь завершения подбора ByeTube");return;}
       if(!zapret.Running&&!IsAdministrator()){RestoreWindow();if(await ConfirmChange("Для запуска Zapret нужны права администратора. Windows запросит разрешение на перезапуск приложения.","Получить права и перезапустить","Доступ Windows"))RequestElevation("--zapret");return;}
       if(discordVoiceChecking){Toast("Сначала закройте проверку голоса Discord");return;}if(zapretCancellation!=null)return;if(zapret.Running){zapret.Stop();WriteLog("Zapret остановлен из трея");blueDashboard.Invalidate();SyncTray();return;}
