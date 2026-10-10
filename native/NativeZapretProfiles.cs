@@ -8,6 +8,8 @@ using System.Windows.Forms;
 namespace SplifyWin {
   public sealed partial class MainForm {
     async Task<bool> ChangeActiveProfiles(Action change,Action refresh){
+      if(profileChangeBusy){Toast("Дождитесь сохранения профилей");return false;}profileChangeBusy=true;
+      try{
       if(zapretCancellation!=null||setupCancellation!=null||discordVoiceChecking||connecting||warpCancellation!=null){Toast("Дождитесь завершения текущей операции");return false;}
       bool running=zapret.Running;
       var serializer=new System.Web.Script.Serialization.JavaScriptSerializer{MaxJsonLength=Int32.MaxValue};string backup=serializer.Serialize(state);Exception failure=null;
@@ -22,7 +24,8 @@ namespace SplifyWin {
       catch(Exception ex){zapret.Stop();state=serializer.Deserialize<ClientState>(backup);if(cleared)rollback=Task.Run(()=>HostsRepair.Apply(store.Root,HostsEditor.Managed(hostsBefore),hostsAfter,false));store.Save(state);failure=ex;}
       if(rollback!=null)try{await rollback;}catch(Exception restore){WriteLog("Не удалось откатить hosts: "+restore.ToString());}
       if(failure!=null){if(running)try{await StartSavedZapretProfiles(CancellationToken.None);}catch(Exception ex){WriteLog("Не удалось восстановить профили: "+ex.Message);}if(!(failure is OperationCanceledException))GlassNotice.Show(this,failure.Message,"Профили Zapret");}
-      refresh();blueDashboard.Invalidate();return failure==null;
+      refresh();blueDashboard.Invalidate();SyncProfileHotkeys();return failure==null;
+      }finally{profileChangeBusy=false;}
     }
     void EnsureZapretProfiles(){
       if(state.ZapretProfiles==null)state.ZapretProfiles=new List<ZapretProfile>();state.ZapretProfiles.RemoveAll(x=>x==null);

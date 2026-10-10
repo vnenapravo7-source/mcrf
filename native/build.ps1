@@ -121,6 +121,8 @@ $arguments += ('/resource:' + (Join-Path $PSScriptRoot 'assets\mcrf-dotted-atlas
 $arguments += (Join-Path $PSScriptRoot 'GameProfiles.cs')
 $arguments += (Join-Path $PSScriptRoot 'GameFlowObserver.cs')
 $arguments += (Join-Path $PSScriptRoot 'RouteInlineEditor.cs')
+$arguments += (Join-Path $PSScriptRoot 'ProfileHotkeys.cs')
+$arguments += (Join-Path $PSScriptRoot 'SingleInstance.cs')
 if ($TestSources) {
   if (-not $TestEntryPoint) { throw 'Tests require an explicit entry point.' }
   $arguments = @('/target:exe', "/main:$TestEntryPoint") + @($arguments | Where-Object { $_ -ne '/target:winexe' -and $_ -notlike '/win32manifest:*' })

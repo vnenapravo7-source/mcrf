@@ -163,6 +163,7 @@ namespace SplifyWin {
     }
   }
   public sealed class ClientState {
+    public Dictionary<string,string> GlobalHotkeys{get;set;}
     public List<ExitDnsSettings> ExitDns{get;set;}
     public int TelegramPort{get;set;}public bool SetupSeen{get;set;}public List<string> SetupServices{get;set;}
     public List<ServerNode> Servers {get;set;} public List<RouteList> Lists {get;set;}

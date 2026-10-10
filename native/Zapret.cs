@@ -46,7 +46,7 @@ public bool DiscordVoiceEnabled{get;set;}public string DiscordInterfaceStrategy{
     public bool Available{get{return String.IsNullOrEmpty(UnavailableReason);}}
   }
   public sealed class ZapretProfile {
-    public string Id{get;set;} public string Name{get;set;} public bool Enabled{get;set;} public ZapretSettings Settings{get;set;}
+    public string Id{get;set;} public string Name{get;set;} public bool Enabled{get;set;} public ZapretSettings Settings{get;set;} public string Hotkey{get;set;}
     public ZapretProfile(){Id=Guid.NewGuid().ToString("N");Name="Новый профиль";Enabled=true;Settings=new ZapretSettings();}
   }
   // BAT files are source data only. No service installers, hosts edits or upstream scripts are executed.
