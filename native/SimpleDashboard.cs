@@ -15,8 +15,8 @@ namespace SplifyWin {
       GlassInk.SoftGlow(g,new Rectangle(20,Height-340,530,450),GlassInk.Purple);
       using(var fill=new SolidBrush(Color.FromArgb(19,23,41)))g.FillRectangle(fill,0,0,218,Height);
       BrandArt.DrawPlane(g,new Rectangle(26,26,36,36),GlassInk.Cyan);areas["repository"]=new Rectangle(20,20,180,60);GlassInk.Text(g,"MCRF",new Rectangle(75,22,125,42),23,GlassInk.White,true);
-      var keys=new[]{"home","servers","routes","exits","warp","tgws","zapret","hosts","byetube","logs","updates","settings"};
-      var labels=new[]{"Главная","Серверы","Маршрутизация","Выходы и DNS","WARP","Telegram WS","Zapret","hosts","ByeTube","Журнал","Обновления","Настройки"};
+      var keys=state().AdvancedMode?new[]{"home","servers","routes","warp","tgws","zapret","hosts","logs","updates","strategy-workshop"}:new[]{"home","servers","routes","warp","tgws","zapret","hosts","logs","updates","settings"};
+      var labels=state().AdvancedMode?new[]{"Главная","Серверы VPN","Маршрутизация","WARP","Telegram WS","Zapret","hosts","Журнал","Обновления","Тест - создать стратегию"}:new[]{"Главная","Серверы VPN","Маршрутизация","WARP","Telegram WS","Zapret","hosts","Журнал","Обновления","Настройки"};
       for(int i=0;i<keys.Length;i++){var r=new Rectangle(16,88+i*Math.Min(45,Math.Max(32,(Height-108)/keys.Length)),186,42);areas[keys[i]]=r;if(hover==keys[i]||(String.IsNullOrEmpty(s.Page)?"home":s.Page)==keys[i])using(var fill=new SolidBrush(Color.FromArgb(53,46,86)))using(var path=UiShape.Round(r,10))g.FillPath(fill,path);GlassInk.Text(g,labels[i],new Rectangle(r.X+22,r.Y,r.Width-32,r.Height),11,GlassInk.Muted,false,StringAlignment.Near);}
       int cx=Width-142;foreach(var key in new[]{"minimize","maximize","close"}){var r=new Rectangle(cx,18,36,36);areas[key]=r;GlassInk.Text(g,key=="minimize"?"−":key=="maximize"?"□":"×",r,16,GlassInk.Muted,false,StringAlignment.Center);cx+=42;}
       areas["design"]=new Rectangle(Width-368,18,210,36);SimpleCard(g,areas["design"]);GlassInk.Text(g,"Базовый интерфейс",areas["design"],10,GlassInk.White,false,StringAlignment.Center);
@@ -36,7 +36,7 @@ namespace SplifyWin {
   public sealed partial class MainForm {
     void ToggleDesign(){
       if(discordVoiceChecking||connecting||setupCancellation!=null||zapretCancellation!=null||warpCancellation!=null){Toast("Дождитесь завершения или отмените текущую проверку перед сменой оформления.");return;}
-      state.SimpleDesign=!state.SimpleDesign;state.AdvancedMode=state.SimpleDesign;state.SettingsModeChosen=true;UiTheme.Simple=state.SimpleDesign;store.Save(state);blueDashboard.RefreshTheme();ShowPage("");
+      state.SimpleDesign=!state.SimpleDesign;state.AdvancedMode=state.SimpleDesign;state.SettingsModeChosen=true;UiTheme.Simple=state.SimpleDesign;store.Save(state);blueDashboard.RefreshTheme();ShowPage(state.AdvancedMode?"home":"");
     }
     void ExitsLegacyBlue(){
       var box=Box();box.Dock=DockStyle.Fill;content.Controls.Add(box);
@@ -75,4 +75,3 @@ namespace SplifyWin {
     }
   }
 }
-

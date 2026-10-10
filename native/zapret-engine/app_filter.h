@@ -10,5 +10,7 @@ void mcrf_apps_stop(void);
 void mcrf_apps_packet(const void *packet, unsigned length, const WINDIVERT_ADDRESS *address);
 bool mcrf_apps_match(const struct mcrf_app_filter *filter);
 bool mcrf_apps_known(void);
+bool mcrf_apps_set_bypass(const char *file);
+bool mcrf_apps_bypass(void);
 UINT64 mcrf_apps_endpoint(void);
 #endif

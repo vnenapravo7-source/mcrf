@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 
 namespace SplifyWin {
   public sealed class ZapretSettings {
+    public List<string> ExcludedApplications{get;set;}
     public static string ServiceScope{get{return ZapretChecks.Scope;}}
     public static string ServiceTests{get{return ZapretChecks.Targets;}}
     public string Family{get;set;} public string Strategy{get;set;} public string ScopeText{get;set;}
@@ -87,7 +88,7 @@ public bool DiscordVoiceEnabled{get;set;}public string DiscordInterfaceStrategy{
           result.Add(new ZapretStrategy{Family="Flowseal",Id="flowseal:"+Path.GetFileName(entry.FullName),Name="Flowseal · "+name,Tcp=tcpOptions,Udp=udpOptions,VoiceUdp=voiceOptions,UnavailableReason=tcpReason??udpReason,GameTcp=gameTcpOptions,GameUdp=gameUdpOptions,GameUnavailableReason=gameTcpReason??gameUdpReason});
         }
       }
-      AddMarkdown(result,"V",Config(directory,"v-config","v.md"),directory);AddMarkdown(result,"YouTube",Config(directory,"youtube-config","youtube.md"),directory);return result;
+      AddMarkdown(result,"V",Config(directory,"v-config","v.md"),directory);AddMarkdown(result,"YouTube",Config(directory,"youtube-config","youtube.md"),directory);foreach(var definition in CustomStrategies.Read(directory)){try{result.Add(CustomStrategies.Build(definition,result));}catch(Exception ex){result.Add(new ZapretStrategy{Id=definition.Id,Name="Своя · "+definition.Name,Family="Свои",UnavailableReason=ex.Message});}}return result;
     }
     static void AddMarkdown(List<ZapretStrategy> result,string family,string text,string directory){
       var pattern=family=="V"?@"(?m)^# v([0-9]+)\s*\r?\n```\s*\r?\n([\s\S]*?)```":@"(?m)^#Yv([0-9]+)\s*\r?\n([\s\S]*?)(?=```|^#Yv[0-9]+|\z)";
@@ -119,12 +120,15 @@ public ZapretRuntime(NetworkCore core){hostsCore=core;root=core.DataRoot;curl=co
       prepared=true;
     }}
     public string BuildArguments(ZapretSettings settings,ZapretStrategy strategy,string runDirectory){
+      return ApplicationExclusions.ZapretArgument(settings.ExcludedApplications,runDirectory)+BuildScopedArguments(settings,strategy,runDirectory);
+    }
+    string BuildScopedArguments(ZapretSettings settings,ZapretStrategy strategy,string runDirectory){
       if(settings==null||strategy==null)throw new ArgumentNullException();runDirectory=Path.GetFullPath(runDirectory);if(!strategy.Available)throw new NotSupportedException(strategy.UnavailableReason);
       if(settings.DiscordVoiceEnabled){
         var normal=ZapretChecks.CopySettings(settings);normal.DiscordVoiceEnabled=false;
         var baseline=String.IsNullOrEmpty(settings.DiscordInterfaceStrategy)?strategy:ZapretCatalog.Load(DirectoryPath).FirstOrDefault(s=>s.Id==settings.DiscordInterfaceStrategy&&s.Available);
         if(baseline==null)throw new InvalidOperationException("Стратегия интерфейса Discord недоступна");
-        var args=BuildArguments(normal,baseline,runDirectory);var appsFile=Path.Combine(runDirectory,"discord-voice-apps.txt");File.WriteAllLines(appsFile,new[]{"app:Discord.exe","app:DiscordPTB.exe","app:DiscordCanary.exe"},new UTF8Encoding(false));
+        var args=BuildScopedArguments(normal,baseline,runDirectory);var appsFile=Path.Combine(runDirectory,"discord-voice-apps.txt");File.WriteAllLines(appsFile,new[]{"app:Discord.exe","app:DiscordPTB.exe","app:DiscordCanary.exe"},new UTF8Encoding(false));
         var voiceOptions=String.IsNullOrEmpty(strategy.VoiceUdp)?"--dpi-desync=fake --dpi-desync-repeats=6":strategy.VoiceUdp;
         var voiceAddresses=ZapretScope.Validate(new RouteList{Text=String.IsNullOrWhiteSpace(settings.DiscordScopeText)?settings.ScopeText:settings.DiscordScopeText,MatchMode="addresses"})["ip_cidr"].ToArray();string voiceScope="";
         if(voiceAddresses.Any(x=>x.EndsWith("/0")))throw new InvalidOperationException("Глобальная сеть /0 в голосовом пресете запрещена");
@@ -134,7 +138,7 @@ public ZapretRuntime(NetworkCore core){hostsCore=core;root=core.DataRoot;curl=co
         string voiceApplications=voiceAddresses.Length>0?"":" --mcrf-apps="+Quote(appsFile);
         int debug=args.IndexOf("--debug=",StringComparison.Ordinal);return args.Insert(debug,DiscordCaptureFilter.Write(runDirectory,voiceAddresses))+" --new --filter-udp=1024-65535 --filter-l7=discord,stun"+voiceScope+voiceApplications+" "+voiceOptions;
       }
-      if(settings.ScopeRules!=null){if(settings.ScopeRules.Count==0)throw new InvalidOperationException("Пустая область Zapret запрещена");var rules=new List<string>();int number=0;foreach(var rule in settings.ScopeRules){var part=new ZapretSettings{ScopeText=rule.Text,MatchMode=rule.MatchMode,DetailedLogs=settings.DetailedLogs,GameFilterTcp=rule.GameTcpEnabled,GameFilterUdp=rule.GameUdpEnabled};var arg=BuildArguments(part,strategy,Path.Combine(runDirectory,"rule-"+(++number)));rules.Add(arg.Substring(arg.IndexOf(" --filter-",StringComparison.Ordinal)+1));}return CaptureHeader(settings.ScopeRules.Any(r=>r.GameTcpEnabled),settings.ScopeRules.Any(r=>r.GameUdpEnabled),false)+"--debug="+(settings.DetailedLogs?"1":"0")+" "+String.Join(" --new ",rules);}
+      if(settings.ScopeRules!=null){if(settings.ScopeRules.Count==0)throw new InvalidOperationException("Пустая область Zapret запрещена");var rules=new List<string>();int number=0;foreach(var rule in settings.ScopeRules){var part=new ZapretSettings{ScopeText=rule.Text,MatchMode=rule.MatchMode,DetailedLogs=settings.DetailedLogs,GameFilterTcp=rule.GameTcpEnabled,GameFilterUdp=rule.GameUdpEnabled};var arg=BuildScopedArguments(part,strategy,Path.Combine(runDirectory,"rule-"+(++number)));rules.Add(arg.Substring(arg.IndexOf(" --filter-",StringComparison.Ordinal)+1));}return CaptureHeader(settings.ScopeRules.Any(r=>r.GameTcpEnabled),settings.ScopeRules.Any(r=>r.GameUdpEnabled),false)+"--debug="+(settings.DetailedLogs?"1":"0")+" "+String.Join(" --new ",rules);}
       var fields=ZapretScope.Validate(new RouteList{Text=settings.ScopeText,MatchMode=settings.MatchMode});
       if(fields["ip_cidr"].Any(x=>x.EndsWith("/0")))throw new InvalidOperationException("Сеть /0 применяет Zapret глобально. Укажите конкретные адреса.");
       Directory.CreateDirectory(runDirectory);var profiles=new List<string>();
@@ -153,7 +157,7 @@ public ZapretRuntime(NetworkCore core){hostsCore=core;root=core.DataRoot;curl=co
       var enabled=profiles.Where(x=>x!=null&&x.Enabled).ToArray();if(enabled.Length==0)throw new InvalidOperationException("Нет включённых профилей Zapret");
       var choices=catalog.ToArray();var arguments=new List<string>();var captures=new List<string>();int index=0;
       foreach(var profile in enabled){if(profile.Settings==null)throw new InvalidOperationException("Пустой профиль: "+profile.Name);var strategy=choices.FirstOrDefault(x=>x.Id==profile.Settings.Strategy&&x.Available);if(strategy==null)throw new InvalidOperationException("Выберите стратегию для профиля «"+profile.Name+"»");var arg=BuildArguments(profile.Settings,strategy,Path.Combine(runDirectory,"profile-"+(++index)));foreach(Match capture in Regex.Matches(arg.Substring(0,arg.IndexOf("--debug=",StringComparison.Ordinal)),@"--wf-raw-part=""[^""]+"""))captures.Add(capture.Value);arguments.Add(arg.Substring(arg.IndexOf(" --filter-",StringComparison.Ordinal)+1));}
-      return CaptureHeader(enabled.Any(p=>p.Settings.GameTcpEnabled||(p.Settings.ScopeRules!=null&&p.Settings.ScopeRules.Any(r=>r.GameTcpEnabled))),enabled.Any(p=>p.Settings.GameUdpEnabled||(p.Settings.ScopeRules!=null&&p.Settings.ScopeRules.Any(r=>r.GameUdpEnabled))),enabled.Any(p=>p.Settings.DiscordVoiceEnabled))+String.Join(" ",captures)+" --debug="+(enabled.Any(x=>x.Settings.DetailedLogs)?"1":"0")+" "+String.Join(" --new ",arguments);
+      return ApplicationExclusions.ZapretArgument(enabled.SelectMany(p=>p.Settings.ExcludedApplications??new List<string>()),runDirectory)+CaptureHeader(enabled.Any(p=>p.Settings.GameTcpEnabled||(p.Settings.ScopeRules!=null&&p.Settings.ScopeRules.Any(r=>r.GameTcpEnabled))),enabled.Any(p=>p.Settings.GameUdpEnabled||(p.Settings.ScopeRules!=null&&p.Settings.ScopeRules.Any(r=>r.GameUdpEnabled))),enabled.Any(p=>p.Settings.DiscordVoiceEnabled))+String.Join(" ",captures)+" --debug="+(enabled.Any(x=>x.Settings.DetailedLogs)?"1":"0")+" "+String.Join(" --new ",arguments);
     }
     static string CaptureHeader(bool tcp,bool udp,bool voice){return "--wf-tcp=80,443"+(tcp?",1024-65535":"")+" --wf-udp=443"+(udp?",1024-65535":"")+" ";}
     static void AddProfiles(List<string> profiles,string scope,ZapretStrategy strategy,bool hosts,bool tcp,bool udp){

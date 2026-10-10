@@ -23,6 +23,7 @@ static volatile LONG healthy[2];
 static bool needed,started;
 static unsigned count;
 static wchar_t current_path[PATH_CHARS];
+static struct mcrf_app_filter *bypass_apps;
 static UINT64 current_endpoint;
 static unsigned bucket(const struct tuple *t){unsigned h=2166136261u;for(int k=0;k<4;k++){h=(h^t->local[k])*16777619u;h=(h^t->remote[k])*16777619u;}return ((h^t->local_port^((unsigned)t->remote_port<<16)) *16777619u^t->protocol)%BUCKETS;}
 static bool same(const struct tuple *a,const struct tuple *b){return a->protocol==b->protocol&&a->local_port==b->local_port&&a->remote_port==b->remote_port&&!memcmp(a->local,b->local,16)&&!memcmp(a->remote,b->remote,16);}
@@ -107,5 +108,9 @@ bool mcrf_apps_match(const struct mcrf_app_filter *filter){
     return filter->exclude?!found:found;
 }
 bool mcrf_apps_known(void){return current_path[0]!=0;}
+bool mcrf_apps_set_bypass(const char *file){if(bypass_apps)return false;bypass_apps=mcrf_apps_load(file,false);return bypass_apps!=NULL;}
+/* Unknown ownership is deliberately passed through, not guessed from a port.
+ * This also protects connections created before the observer started. */
+bool mcrf_apps_bypass(void){return bypass_apps && (!mcrf_apps_known() || mcrf_apps_match(bypass_apps));}
 UINT64 mcrf_apps_endpoint(void){return current_path[0]?current_endpoint:0;}
 #endif

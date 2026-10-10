@@ -20,53 +20,60 @@ index d88350b..aad22ac 100644
  	size_t len;
  	unsigned int id;
  	uint8_t verdict;
-@@ -625,6 +629,7 @@ static int win_main(const char *windivert_filter)
+@@ -625,6 +629,8 @@ static int win_main(const char *windivert_filter)
  			}
  
  			ReloadCheck();
 +			mcrf_apps_packet(packet, (unsigned)len, &wa);
++			if (mcrf_apps_bypass()) { if (!windivert_send(packet,len,&wa)) DLOG_ERR("MCRF: bypass reinjection failed\n"); continue; }
  
  			*ifname = 0;
  			snprintf(ifname, sizeof(ifname), "%u.%u", wa.Network.IfIdx, wa.Network.SubIfIdx);
-@@ -1806,6 +1811,10 @@ static void exithelp(void)
+@@ -1806,6 +1811,11 @@ static void exithelp(void)
  		" --filter-tcp=[~]port1[-port2]|*\t\t\t; TCP port filter. ~ means negation. setting tcp and not setting udp filter denies udp. comma separated list allowed.\n"
  		" --filter-udp=[~]port1[-port2]|*\t\t\t; UDP port filter. ~ means negation. setting udp and not setting tcp filter denies tcp. comma separated list allowed.\n"
  		" --filter-l7=[http|tls|quic|wireguard|dht|discord|stun|unknown] ; L6-L7 protocol filter. multiple comma separated values allowed.\n"
 +#ifdef __CYGWIN__
 +		" --mcrf-apps=<UTF8-file> ; MCRF live endpoint application allowlist v1\n"
 +		" --mcrf-except-apps=<UTF8-file> ; MCRF known-owner application exclusions v1\n"
++		" --mcrf-bypass-apps=<UTF8-file> ; global bypass before DPI/conntrack; unknown owners pass through\n"
 +#endif
  #ifdef HAS_FILTER_SSID
  		" --filter-ssid=ssid1[,ssid2,ssid3,...]\t\t\t; per profile wifi SSID filter\n"
  #endif
-@@ -2113,6 +2122,10 @@ enum opt_indices {
+@@ -2113,6 +2122,11 @@ enum opt_indices {
  	IDX_FILTER_TCP,
  	IDX_FILTER_UDP,
  	IDX_FILTER_L7,
 +#ifdef __CYGWIN__
 +	IDX_MCRF_APPS,
 +	IDX_MCRF_EXCEPT_APPS,
++	IDX_MCRF_BYPASS_APPS,
 +#endif
  #ifdef HAS_FILTER_SSID
  	IDX_FILTER_SSID,
  #endif
-@@ -2254,6 +2267,10 @@ static const struct option long_options[] = {
+@@ -2254,6 +2267,11 @@ static const struct option long_options[] = {
  	[IDX_FILTER_TCP] = {"filter-tcp", required_argument, 0, 0},
  	[IDX_FILTER_UDP] = {"filter-udp", required_argument, 0, 0},
  	[IDX_FILTER_L7] = {"filter-l7", required_argument, 0, 0},
 +#ifdef __CYGWIN__
 +	[IDX_MCRF_APPS] = {"mcrf-apps", required_argument, 0, 0},
 +	[IDX_MCRF_EXCEPT_APPS] = {"mcrf-except-apps", required_argument, 0, 0},
++	[IDX_MCRF_BYPASS_APPS] = {"mcrf-bypass-apps", required_argument, 0, 0},
 +#endif
  #ifdef HAS_FILTER_SSID
  	[IDX_FILTER_SSID] = {"filter-ssid", required_argument, 0, 0},
  #endif
-@@ -3260,6 +3277,14 @@ int main(int argc, char **argv)
+@@ -3260,6 +3277,17 @@ int main(int argc, char **argv)
  				exit_clean(1);
  			break;
  		case IDX_FILTER_L7:
 +#ifdef __CYGWIN__
 +			goto parse_l7;
++		case IDX_MCRF_BYPASS_APPS:
++			if (!mcrf_apps_set_bypass(optarg)) { DLOG_ERR("Invalid MCRF global app bypass\n"); exit_clean(1); }
++			break;
 +		case IDX_MCRF_APPS:
 +		case IDX_MCRF_EXCEPT_APPS:
 +			if (dp->apps || !(dp->apps=mcrf_apps_load(optarg,option_index==IDX_MCRF_EXCEPT_APPS))) { DLOG_ERR("Invalid MCRF app filter\n"); exit_clean(1); }

@@ -124,6 +124,7 @@ $arguments += (Join-Path $PSScriptRoot 'RouteInlineEditor.cs')
 $arguments += (Join-Path $PSScriptRoot 'ProfileHotkeys.cs')
 $arguments += (Join-Path $PSScriptRoot 'SingleInstance.cs')
 $arguments += (Join-Path $PSScriptRoot 'DiscordCaptureFilter.cs')
+$arguments += @('ApplicationExclusions.cs','SteamGameTemplates.cs','RoutingToolsPage.cs','CustomStrategies.cs','StrategyWorkshopPage.cs','RouteDnsPage.cs') | ForEach-Object { Join-Path $PSScriptRoot $_ }
 if ($TestSources) {
   if (-not $TestEntryPoint) { throw 'Tests require an explicit entry point.' }
   $arguments = @('/target:exe', "/main:$TestEntryPoint") + @($arguments | Where-Object { $_ -ne '/target:winexe' -and $_ -notlike '/win32manifest:*' })
@@ -133,4 +134,3 @@ if ($TestSources) {
 if ($LASTEXITCODE -ne 0) { throw "C# build failed: $LASTEXITCODE" }
 $built = Get-Item -LiteralPath $OutputPath
 Write-Output "Built $($built.FullName) ($($built.Length) bytes)"
-

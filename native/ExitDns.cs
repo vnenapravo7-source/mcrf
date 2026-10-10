@@ -8,9 +8,11 @@ namespace SplifyWin {
     public string Target{get;set;}public string Provider{get;set;}public string Protocol{get;set;}public string Custom{get;set;}
   }
   public static class ExitDnsRouting {
+    public static ExitDnsSettings Effective(ClientState state,RouteList list){return list.Dns??(state.ExitDns??new List<ExitDnsSettings>()).FirstOrDefault(d=>d.Target==Target(list))??(list.Target=="zapret"?(state.ExitDns??new List<ExitDnsSettings>()).FirstOrDefault(d=>d.Target=="direct"):null);}
+    public static string Label(ClientState state,RouteList list){if(list.Target=="tgws"||list.Target=="block")return "—";var dns=Effective(state,list);return dns==null||dns.Provider=="Общий DNS"?"Общий DNS":dns.Provider+(dns.Provider=="Системный"?"":" · "+dns.Protocol);}
     public static string Target(RouteList list){return list.Target=="zapret"&&!String.IsNullOrEmpty(list.ZapretProfileId)?"zapret:"+list.ZapretProfileId:list.Target=="zapret"?"direct":list.Target;}
     public static bool Active(ClientState state,string target){return target=="proxy"?(!state.IndependentWarpOutputs||state.VpnEnabled):WarpOutputs.IsTarget(target)?state.WarpEnabled&&state.Lists.Any(r=>r.Enabled&&r.Target==target):target=="byetube"?state.ByeTubeEnabled:true;}
-    static string DnsTag(Dictionary<string,string> tags,RouteList list){string tag;return tags.TryGetValue(Target(list),out tag)?tag:list.Target=="zapret"&&tags.TryGetValue("direct",out tag)?tag:"chosen";}
+    static string DnsTag(Dictionary<string,string> tags,RouteList list){string tag;if(list.Dns!=null&&list.Dns.Provider=="Общий DNS")return "chosen";return tags.TryGetValue("list:"+list.Id,out tag)?tag:tags.TryGetValue(Target(list),out tag)?tag:list.Target=="zapret"&&tags.TryGetValue("direct",out tag)?tag:"chosen";}
     public static bool AllInternet(RouteList list){
       if(list.InvertAddresses||list.MatchMode=="apps"||list.MatchMode=="in-apps"||list.MatchMode=="except-apps")return false;
       var fields=RouteCompiler.Parse(list.Text);
@@ -34,7 +36,13 @@ namespace SplifyWin {
         if(entry.Target=="byetube"&&Convert.ToString(dns["type"])!="local")dns["detour"]=state.ByeTubeEnabled?"byetube":"block";
         servers.Add(dns);tags.Add(entry.Target,tag);
       }
+      foreach(var list in state.Lists.Where(l=>l.Enabled&&l.Target!="tgws"&&l.Target!="block"&&l.Dns!=null&&l.Dns.Provider!="Общий DNS"&&Active(state,l.Target))){
+        var entry=list.Dns;var dns=DnsOptions.Build(new ClientState{DnsProvider=entry.Provider,DnsProtocol=entry.Protocol,DnsCustom=entry.Custom});string tag="dns-list-"+list.Id;dns["tag"]=tag;
+        if(Convert.ToString(dns["type"])!="local"){if(list.Target=="proxy"&&proxy!="block")dns["detour"]=proxy;else if(WarpOutputs.IsTarget(list.Target))dns["detour"]=list.Target;else if(list.Target=="byetube")dns["detour"]="byetube";}
+        servers.Add(dns);tags.Add("list:"+list.Id,tag);
+      }
       if(tags.Count==0)return rules;
+      if(ApplicationExclusions.Normalize(state.ExcludedApplications).Length>0){servers.Add(new Dictionary<string,object>{{"type","local"},{"tag","dns-bypass-apps"}});rules.Add(new Dictionary<string,object>{{"process_name",ApplicationExclusions.Normalize(state.ExcludedApplications)},{"action","route"},{"server","dns-bypass-apps"}});}
       bool exclusionsAdded=false;
       foreach(var list in state.Lists.Where(l=>l.Enabled)){
         if(!Active(state,list.Target))continue;
@@ -44,7 +52,7 @@ namespace SplifyWin {
           if(vpn.Any(l=>l.ExcludeRussia))rules.Add(new Dictionary<string,object>{{"rule_set",new[]{VpnPresetRules.RussiaTags[1],VpnPresetRules.RussiaTags[2]}},{"action","route"},{"server",directTag}});
           foreach(var excluded in vpn.Where(l=>!String.IsNullOrWhiteSpace(l.ExcludedText))){var no=Domains(excluded.ExcludedText);if(no!=null){no["action"]="route";no["server"]=directTag;rules.Add(no);}}
         }
-        if(list.Target=="block")continue;
+        if(list.Target=="block"||list.Target=="tgws")continue;
         // Windows often emits app DNS through its shared DNS service. Never
         // broaden app-constrained routing into a global domain DNS rule.
         if(list.MatchMode=="apps"||list.MatchMode=="in-apps"||list.MatchMode=="except-apps")continue;
