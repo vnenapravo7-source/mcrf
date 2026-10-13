@@ -76,7 +76,7 @@ namespace SplifyWin {
         using(var stream=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete)){
           bool partial=stream.Length>400000;stream.Seek(Math.Max(0,stream.Length-400000),SeekOrigin.Begin);using(var reader=new StreamReader(stream)){if(partial)reader.ReadLine();return new JournalSource(name,reader.ReadToEnd(),written);}
         }
-      }catch(FileNotFoundException){return new JournalSource(name,"",DateTime.Now);}catch(DirectoryNotFoundException){return new JournalSource(name,"",DateTime.Now);}catch(UnauthorizedAccessException){return new JournalSource(name,"Нет доступа к журналу.",DateTime.Now);}catch(IOException){return new JournalSource(name,"Журнал занят другим процессом. Нажмите «Обновить».",DateTime.Now);}
+      }catch(FileNotFoundException){return new JournalSource(name,"",DateTime.Now);}catch(DirectoryNotFoundException){return new JournalSource(name,"",DateTime.Now);}catch(UnauthorizedAccessException){return new JournalSource(name,"Нет доступа к журналу.",DateTime.Now);}catch(IOException){return new JournalSource(name,"Журнал временно занят. Повторим чтение автоматически.",DateTime.Now);}
     }
     public static string DiagnosticBundle(string root,string configuration){
       var output=new System.Text.StringBuilder("MCRF · полный диагностический набор · "+DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")+Environment.NewLine+"Секреты удалены. IP, домены, имена серверов и маршруты остаются для диагностики."+Environment.NewLine);
@@ -101,6 +101,7 @@ namespace SplifyWin {
         }
       }}catch(FileNotFoundException){throw new IOException("Журнала движка пока нет. Сначала запустите VPN.");}catch(DirectoryNotFoundException){throw new IOException("Папка журнала движка пока не создана.");}
     }
+    public static JournalEntry[] ReadClient(string root,int limit){return Merge(limit,ReadSource("Клиент",Path.Combine(root,"client.log")));}
     public static JournalEntry[] Read(string root,int limit){return Merge(limit,ReadSource("Клиент",Path.Combine(root,"client.log")),ReadSource("Сеть",Path.Combine(root,"core.log")),ReadSource("Zapret",Path.Combine(root,"zapret.log")),ReadSource("ByeTube",Path.Combine(root,"byetube.log")),ReadSource("Telegram WS",Path.Combine(root,"tgws.log")),ReadSource("WARP",Path.Combine(root,"warp.log")));}
     public static string Format(JournalEntry[] entries){return (entries.Any(entry=>entry.InferredDate)?"Для старых записей без даты день определён по файлу."+Environment.NewLine:"")+String.Join(Environment.NewLine,entries.Select(entry=>JournalStyle.Redact(entry.ToString())));}
   }

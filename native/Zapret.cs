@@ -15,6 +15,8 @@ using System.Threading.Tasks;
 
 namespace SplifyWin {
   public sealed class ZapretSettings {
+    public bool OriginalEngine{get;set;}
+    public string ExcludedScopeText{get;set;}
     public List<string> ExcludedApplications{get;set;}
     public static string ServiceScope{get{return ZapretChecks.Scope;}}
     public static string ServiceTests{get{return ZapretChecks.Targets;}}
@@ -33,6 +35,7 @@ public bool DiscordVoiceEnabled{get;set;}public string DiscordInterfaceStrategy{
     public ZapretSettings(){Family="Flowseal";Strategy="";MatchMode="addresses";ScopeText="youtube.com\ngooglevideo.com\nytimg.com\nyoutubei.googleapis.com";TestUrls="https://www.youtube.com/\nhttps://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg";}
   }
   public sealed class ZapretStrategy {
+    public string[] CustomProfiles;
     public string Id,Name,Family,Tcp,Udp,VoiceUdp,UnavailableReason;
     public string GameTcp,GameUdp,GameUnavailableReason;
     public bool GameAvailable{get{return Available&&String.IsNullOrEmpty(GameUnavailableReason)&&(!String.IsNullOrEmpty(GameTcp)||!String.IsNullOrEmpty(GameUdp));}}
@@ -53,7 +56,7 @@ public bool DiscordVoiceEnabled{get;set;}public string DiscordInterfaceStrategy{
   // BAT files are source data only. No service installers, hosts edits or upstream scripts are executed.
   public static class ZapretCatalog {
     static string DataRoot(string directory){var p=System.IO.Directory.GetParent(directory);if(p!=null&&p.Name=="core")return p.Parent.FullName;if(p!=null&&p.Name=="installed"&&p.Parent.Name=="updates")return p.Parent.Parent.FullName;return null;}
-    static Stream Flowseal(string directory){string root=DataRoot(directory);if(root!=null){var prefs=AppUpdates.ReadPreferences(root);var candidates=new List<UpdateInstallation>();foreach(var id in new[]{"flowseal-config","zapret"}){UpdateInstallation item;if(prefs.Installed.TryGetValue(id,out item)&&AppUpdates.ActiveFile(root,id,null)!=null)candidates.Add(item);}var latest=candidates.OrderByDescending(p=>p.Version,Comparer<string>.Create(AppUpdates.CompareVersion)).FirstOrDefault();if(latest!=null)return File.OpenRead(Path.Combine(latest.Directory,latest.File));}return Assembly.GetExecutingAssembly().GetManifestResourceStream("SplifyWin.Zapret.flowseal.zip");}
+    internal static Stream Flowseal(string directory){string root=DataRoot(directory);if(root!=null){var prefs=AppUpdates.ReadPreferences(root);var candidates=new List<UpdateInstallation>();foreach(var id in new[]{"flowseal-config","zapret"}){UpdateInstallation item;if(prefs.Installed.TryGetValue(id,out item)&&AppUpdates.ActiveFile(root,id,null)!=null)candidates.Add(item);}var latest=candidates.OrderByDescending(p=>p.Version,Comparer<string>.Create(AppUpdates.CompareVersion)).FirstOrDefault();if(latest!=null)return File.OpenRead(Path.Combine(latest.Directory,latest.File));}return Assembly.GetExecutingAssembly().GetManifestResourceStream("SplifyWin.Zapret.flowseal.zip");}
     static string Config(string directory,string id,string resource){string root=DataRoot(directory),file=root==null?null:AppUpdates.ActiveFile(root,id,null);return file==null?Resource(resource):File.ReadAllText(file);}
     static string Resource(string name){using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("SplifyWin.Zapret."+name)){if(stream==null)throw new FileNotFoundException("Нет встроенного ресурса Zapret: "+name);using(var reader=new StreamReader(stream,Encoding.UTF8))return reader.ReadToEnd();}}
     static string Options(string text,string directory,out string reason,bool game=false){
@@ -99,10 +102,58 @@ public bool DiscordVoiceEnabled{get;set;}public string DiscordInterfaceStrategy{
   public sealed class ZapretPickResult {public ZapretStrategy Strategy;public int Milliseconds,PassedServices,TotalServices;public bool BaselinePassed;public string Summary;}
   public sealed class ZapretEngineException : Exception {public ZapretEngineException(string message,Exception inner=null):base(message,inner){}}
   public sealed partial class ZapretRuntime : IDisposable {
+    readonly List<Process> extraProcesses=new List<Process>();
+    readonly Dictionary<Process,bool> engineKinds=new Dictionary<Process,bool>();
+    readonly HashSet<string> autoPausedProfiles=new HashSet<string>();
+    readonly SemaphoreSlim engineOperation=new SemaphoreSlim(1,1);
+    public event Action Stopped;
+    public bool IsAutoPaused(string id){lock(sync)return autoPausedProfiles.Contains(id);}
+    public async Task UpdateWardogsPause(IEnumerable<ZapretProfile> profiles,IEnumerable<string> paused,CancellationToken token){
+      await engineOperation.WaitAsync(token);try{
+      var enabled=profiles.Where(p=>p!=null&&p.Enabled).ToArray();var next=new HashSet<string>(paused);string[] before;lock(sync){before=autoPausedProfiles.ToArray();if(autoPausedProfiles.SetEquals(next))return;}
+      var original=WardogsOriginalProfiles(enabled,next);
+      string args=await Task.Run(()=>{Prepare();return original.Length==0?null:BuildProfileArguments(original,ZapretCatalog.Load(DirectoryPath),Path.Combine(DirectoryPath,"run-"+Guid.NewGuid().ToString("N"),"original-autopause"));},token);
+      token.ThrowIfCancellationRequested();await Task.Run(()=>{Process[] owned;lock(sync)owned=engineKinds.Where(p=>!p.Value).Select(p=>p.Key).ToArray();foreach(var item in owned)StopOwned(item);},token);
+      lock(sync){token.ThrowIfCancellationRequested();autoPausedProfiles.Clear();foreach(var id in next)autoPausedProfiles.Add(id);}
+      Exception failure=null;try{if(args!=null)await StartArguments(args,"profiles","Оригинальный движок",token,false,true);}catch(Exception ex){failure=ex;}
+      lock(sync){var remaining=EngineProfiles(enabled,false).Concat(original).ToArray();activeProfiles.Clear();foreach(var p in remaining)activeProfiles[p.Id]=p.Settings.Strategy;Status=next.Count>0?"Включён · Wardogs: автопауза во время матча":"Включён · "+enabled.Length+" профилей";}
+      if(failure!=null){lock(sync){autoPausedProfiles.Clear();foreach(var id in before)autoPausedProfiles.Add(id);}throw failure;}
+      Record(next.Count>0?"Wardogs: игровой профиль приостановлен; движок MCRF не перезапускается":"Wardogs: игровой профиль восстановлен; движок MCRF не перезапускается");
+      }finally{engineOperation.Release();}
+    }
+    public static ZapretProfile[] WardogsOriginalProfiles(IEnumerable<ZapretProfile> profiles,HashSet<string> paused){
+      var result=new List<ZapretProfile>();foreach(var p in EngineProfiles(profiles,true)){
+        if(paused.Contains(p.Id)){
+          if(p.Settings.ScopeRules==null)continue;
+          p.Settings.ScopeRules=p.Settings.ScopeRules.Where(r=>!r.WardogsAutoPause).ToList();if(p.Settings.ScopeRules.Count==0)continue;
+          p.Settings.ScopeText=ZapretScope.Merge(p.Settings.ScopeRules);
+        }result.Add(p);
+      }return result.ToArray();
+    }
+    public static ZapretProfile[] EngineProfiles(IEnumerable<ZapretProfile> profiles,bool original){
+      var result=new List<ZapretProfile>();
+      foreach(var profile in profiles.Where(p=>p!=null&&p.Enabled)){
+        var settings=ZapretChecks.CopySettings(profile.Settings);bool entireScope=settings.ScopeRules==null||settings.ScopeRules.All(r=>r.OriginalEngine==original);
+        if(settings.ScopeRules!=null){settings.ScopeRules=settings.ScopeRules.Where(r=>r.OriginalEngine==original).ToList();if(settings.ScopeRules.Count==0)continue;settings.ScopeText=ZapretScope.Merge(settings.ScopeRules);}
+        else if(settings.OriginalEngine!=original)continue;
+        settings.OriginalEngine=original;
+        if(original){if((settings.ExcludedApplications??new List<string>()).Count>0)throw new InvalidOperationException("Оригинальный движок не поддерживает глобальные исключения приложений. Уберите их или выключите галочку у оригинального маршрута.");settings.ExcludedApplications=null;if(!entireScope)settings.DiscordVoiceEnabled=false;foreach(var route in settings.ScopeRules??new List<RouteList>{new RouteList{Text=settings.ScopeText,MatchMode=settings.MatchMode}}){var fields=ZapretScope.Validate(route);if(fields["process_name"].Count+fields["process_path"].Count>0||route.MatchMode=="in-apps"||route.MatchMode=="except-apps"||route.MatchMode=="apps")throw new InvalidOperationException("Оригинальный движок: условия по процессам не поддерживаются.");}}
+        result.Add(new ZapretProfile{Id=profile.Id,Name=profile.Name,Enabled=true,Settings=settings});
+      }
+      return result.ToArray();
+    }
+    public static string ExcludeOriginalScopes(string arguments,IEnumerable<ZapretProfile> original,string directory){
+      var routes=original.SelectMany(p=>p.Settings.ScopeRules??new List<RouteList>{new RouteList{Text=p.Settings.ScopeText,MatchMode=p.Settings.MatchMode}}).ToArray();
+      if(routes.Length==0)return arguments;Directory.CreateDirectory(directory);
+      var fields=routes.Select(ZapretScope.Validate).ToArray();string exclusions="";
+      var ips=fields.SelectMany(f=>f["ip_cidr"]).Distinct().ToArray();if(ips.Length>0){string file=Path.Combine(directory,"original-ips-exclude.txt");File.WriteAllLines(file,ips,new UTF8Encoding(false));exclusions+=" --ipset-exclude="+Quote(file);}
+      var hosts=fields.SelectMany(f=>f["domain"].Select(x=>"^"+x).Concat(f["domain_suffix"])).Distinct().ToArray();if(hosts.Length>0){string file=Path.Combine(directory,"original-hosts-exclude.txt");File.WriteAllLines(file,hosts,new UTF8Encoding(false));exclusions+=" --hostlist-exclude="+Quote(file);}
+      return Regex.Replace(arguments,@"--filter-(tcp|udp)=[^\s]+",m=>m.Value+exclusions);
+    }
     readonly string root,curl,cert;readonly object sync=new object(),logSync=new object();readonly StringBuilder pendingLog=new StringBuilder();readonly System.Threading.Timer logTimer;Process process;bool disposed,engineValidated,appEngineValidated,prepared;int operation;
     readonly Dictionary<string,string> activeProfiles=new Dictionary<string,string>();
     public string DirectoryPath{get;private set;} public string ActiveStrategy{get;private set;}public string Status{get;private set;}
-    public bool Running{get{lock(sync){try{return process!=null&&!process.HasExited;}catch{return false;}}}}
+    public bool Running{get{lock(sync){try{return process==null?autoPausedProfiles.Count>0:!process.HasExited&&extraProcesses.All(p=>!p.HasExited);}catch{return false;}}}}
     public bool ProfileApplied(string profileId,string strategyId){lock(sync){string current;return Running&&(String.IsNullOrEmpty(profileId)?ActiveStrategy==strategyId:activeProfiles.TryGetValue(profileId,out current)&&current==strategyId);}}
 public ZapretRuntime(NetworkCore core){hostsCore=core;root=core.DataRoot;curl=core.CurlExecutable;cert=Path.Combine(root,"core","curl-ca-bundle.crt");DirectoryPath=Path.Combine(root,"core","zapret-1.10.3");Status="Выключен";logTimer=new System.Threading.Timer(s=>FlushLog(),null,250,250);}
     public static string Quote(string value){if(value==null||value.IndexOfAny(new[]{'\r','\n','\0'})>=0)throw new FormatException("Недопустимый аргумент");return "\""+value.Replace("\"","\\\"")+"\"";}
@@ -120,7 +171,8 @@ public ZapretRuntime(NetworkCore core){hostsCore=core;root=core.DataRoot;curl=co
       prepared=true;
     }}
     public string BuildArguments(ZapretSettings settings,ZapretStrategy strategy,string runDirectory){
-      return ApplicationExclusions.ZapretArgument(settings.ExcludedApplications,runDirectory)+BuildScopedArguments(settings,strategy,runDirectory);
+      string arguments=ApplicationExclusions.ZapretArgument(settings.ExcludedApplications,runDirectory)+BuildScopedArguments(settings,strategy,runDirectory);
+      if(!String.IsNullOrWhiteSpace(settings.ExcludedScopeText))arguments=ExcludeOriginalScopes(arguments,new[]{new ZapretProfile{Enabled=true,Settings=new ZapretSettings{ScopeText=settings.ExcludedScopeText,MatchMode="addresses"}}},Path.Combine(runDirectory,"protected"));return arguments;
     }
     string BuildScopedArguments(ZapretSettings settings,ZapretStrategy strategy,string runDirectory){
       if(settings==null||strategy==null)throw new ArgumentNullException();runDirectory=Path.GetFullPath(runDirectory);if(!strategy.Available)throw new NotSupportedException(strategy.UnavailableReason);
@@ -138,7 +190,7 @@ public ZapretRuntime(NetworkCore core){hostsCore=core;root=core.DataRoot;curl=co
         string voiceApplications=voiceAddresses.Length>0?"":" --mcrf-apps="+Quote(appsFile);
         int debug=args.IndexOf("--debug=",StringComparison.Ordinal);return args.Insert(debug,DiscordCaptureFilter.Write(runDirectory,voiceAddresses))+" --new --filter-udp=1024-65535 --filter-l7=discord,stun"+voiceScope+voiceApplications+" "+voiceOptions;
       }
-      if(settings.ScopeRules!=null){if(settings.ScopeRules.Count==0)throw new InvalidOperationException("Пустая область Zapret запрещена");var rules=new List<string>();int number=0;foreach(var rule in settings.ScopeRules){var part=new ZapretSettings{ScopeText=rule.Text,MatchMode=rule.MatchMode,DetailedLogs=settings.DetailedLogs,GameFilterTcp=rule.GameTcpEnabled,GameFilterUdp=rule.GameUdpEnabled};var arg=BuildScopedArguments(part,strategy,Path.Combine(runDirectory,"rule-"+(++number)));rules.Add(arg.Substring(arg.IndexOf(" --filter-",StringComparison.Ordinal)+1));}return CaptureHeader(settings.ScopeRules.Any(r=>r.GameTcpEnabled),settings.ScopeRules.Any(r=>r.GameUdpEnabled),false)+"--debug="+(settings.DetailedLogs?"1":"0")+" "+String.Join(" --new ",rules);}
+      if(settings.ScopeRules!=null){if(settings.ScopeRules.Count==0)throw new InvalidOperationException("Пустая область Zapret запрещена");var rules=new List<string>();int number=0;foreach(var rule in settings.ScopeRules){var part=new ZapretSettings{ScopeText=rule.Text,MatchMode=rule.MatchMode,DetailedLogs=settings.DetailedLogs,GameFilterTcp=rule.GameTcpEnabled,GameFilterUdp=rule.GameUdpEnabled};var arg=BuildScopedArguments(part,strategy,Path.Combine(runDirectory,"rule-"+(++number)));rules.Add(arg.Substring(arg.IndexOf(" --filter-",StringComparison.Ordinal)+1));}return (strategy.CustomProfiles==null?CaptureHeader(settings.ScopeRules.Any(r=>r.GameTcpEnabled),settings.ScopeRules.Any(r=>r.GameUdpEnabled),false):"--wf-tcp=1-65535 --wf-udp=1-65535 ")+"--debug="+(settings.DetailedLogs?"1":"0")+" "+String.Join(" --new ",rules);}
       var fields=ZapretScope.Validate(new RouteList{Text=settings.ScopeText,MatchMode=settings.MatchMode});
       if(fields["ip_cidr"].Any(x=>x.EndsWith("/0")))throw new InvalidOperationException("Сеть /0 применяет Zapret глобально. Укажите конкретные адреса.");
       Directory.CreateDirectory(runDirectory);var profiles=new List<string>();
@@ -151,16 +203,17 @@ public ZapretRuntime(NetworkCore core){hostsCore=core;root=core.DataRoot;curl=co
       if(hasApps&&(mode=="apps"||mode=="any"))AddProfiles(profiles,apps,strategy,false,settings.GameTcpEnabled,settings.GameUdpEnabled);
       if(profiles.Count==0)throw new InvalidOperationException("Пустая область Zapret запрещена");
       // Every profile is explicitly scoped. No auto-hostlist, catch-all, SYN fake or service installation.
-      return CaptureHeader(settings.GameTcpEnabled,settings.GameUdpEnabled,false)+"--debug="+(settings.DetailedLogs?"1":"0")+" "+String.Join(" --new ",profiles);
+      return (strategy.CustomProfiles==null?CaptureHeader(settings.GameTcpEnabled,settings.GameUdpEnabled,false):"--wf-tcp=1-65535 --wf-udp=1-65535 ")+"--debug="+(settings.DetailedLogs?"1":"0")+" "+String.Join(" --new ",profiles);
     }
     public string BuildProfileArguments(IEnumerable<ZapretProfile> profiles,IEnumerable<ZapretStrategy> catalog,string runDirectory){
       var enabled=profiles.Where(x=>x!=null&&x.Enabled).ToArray();if(enabled.Length==0)throw new InvalidOperationException("Нет включённых профилей Zapret");
       var choices=catalog.ToArray();var arguments=new List<string>();var captures=new List<string>();int index=0;
       foreach(var profile in enabled){if(profile.Settings==null)throw new InvalidOperationException("Пустой профиль: "+profile.Name);var strategy=choices.FirstOrDefault(x=>x.Id==profile.Settings.Strategy&&x.Available);if(strategy==null)throw new InvalidOperationException("Выберите стратегию для профиля «"+profile.Name+"»");var arg=BuildArguments(profile.Settings,strategy,Path.Combine(runDirectory,"profile-"+(++index)));foreach(Match capture in Regex.Matches(arg.Substring(0,arg.IndexOf("--debug=",StringComparison.Ordinal)),@"--wf-raw-part=""[^""]+"""))captures.Add(capture.Value);arguments.Add(arg.Substring(arg.IndexOf(" --filter-",StringComparison.Ordinal)+1));}
-      return ApplicationExclusions.ZapretArgument(enabled.SelectMany(p=>p.Settings.ExcludedApplications??new List<string>()),runDirectory)+CaptureHeader(enabled.Any(p=>p.Settings.GameTcpEnabled||(p.Settings.ScopeRules!=null&&p.Settings.ScopeRules.Any(r=>r.GameTcpEnabled))),enabled.Any(p=>p.Settings.GameUdpEnabled||(p.Settings.ScopeRules!=null&&p.Settings.ScopeRules.Any(r=>r.GameUdpEnabled))),enabled.Any(p=>p.Settings.DiscordVoiceEnabled))+String.Join(" ",captures)+" --debug="+(enabled.Any(x=>x.Settings.DetailedLogs)?"1":"0")+" "+String.Join(" --new ",arguments);
+      return ApplicationExclusions.ZapretArgument(enabled.SelectMany(p=>p.Settings.ExcludedApplications??new List<string>()),runDirectory)+(enabled.Any(p=>choices.Any(c=>c.Id==p.Settings.Strategy&&c.CustomProfiles!=null))?"--wf-tcp=1-65535 --wf-udp=1-65535 ":CaptureHeader(enabled.Any(p=>p.Settings.GameTcpEnabled||(p.Settings.ScopeRules!=null&&p.Settings.ScopeRules.Any(r=>r.GameTcpEnabled))),enabled.Any(p=>p.Settings.GameUdpEnabled||(p.Settings.ScopeRules!=null&&p.Settings.ScopeRules.Any(r=>r.GameUdpEnabled))),enabled.Any(p=>p.Settings.DiscordVoiceEnabled)))+String.Join(" ",captures)+" --debug="+(enabled.Any(x=>x.Settings.DetailedLogs)?"1":"0")+" "+String.Join(" --new ",arguments);
     }
     static string CaptureHeader(bool tcp,bool udp,bool voice){return "--wf-tcp=80,443"+(tcp?",1024-65535":"")+" --wf-udp=443"+(udp?",1024-65535":"")+" ";}
     static void AddProfiles(List<string> profiles,string scope,ZapretStrategy strategy,bool hosts,bool tcp,bool udp){
+      if(strategy.CustomProfiles!=null){foreach(string profile in strategy.CustomProfiles)profiles.Add(profile+" "+scope);return;}
       profiles.Add("--filter-tcp=80,443 "+(hosts?"--filter-l7=http,tls ":"")+scope+" "+strategy.Tcp);
       if(!String.IsNullOrEmpty(strategy.Udp))profiles.Add("--filter-udp=443 "+(hosts?"--filter-l7=quic ":"")+scope+" "+strategy.Udp);
       if(tcp)profiles.Add("--filter-tcp=1024-65535 "+scope+" "+strategy.GameTcp);
@@ -177,7 +230,7 @@ public ZapretRuntime(NetworkCore core){hostsCore=core;root=core.DataRoot;curl=co
     }
     public string AppExecutable(){Prepare();string directory=Path.Combine(root,"core","zapret-apps-v1");Directory.CreateDirectory(directory);foreach(var name in new[]{"winws.exe","cygwin1.dll","WinDivert.dll","WinDivert64.sys","NOTICES.md","LICENSE.MCRF"})BundledResources.Install("SplifyWin.Zapret.apps."+name,Path.Combine(directory,name));foreach(var name in new[]{"LICENSE.zapret","LICENSE.WinDivert"})BundledResources.Install("SplifyWin.Zapret."+name,Path.Combine(directory,name));return Path.Combine(directory,"winws.exe");}
     public async Task CheckEngine(CancellationToken cancellation,bool applications=false){
-      cancellation.ThrowIfCancellationRequested();if(applications?appEngineValidated:engineValidated)return;Prepare();string executable=applications?AppExecutable():Path.Combine(DirectoryPath,"winws.exe");
+      cancellation.ThrowIfCancellationRequested();if(applications?appEngineValidated:engineValidated)return;string executable=await Task.Run(()=>{Prepare();return applications?AppExecutable():Path.Combine(DirectoryPath,"winws.exe");},cancellation);
       var info=new ProcessStartInfo(executable,"--help"){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,WorkingDirectory=Path.GetDirectoryName(executable)};
       Process validator;try{validator=OwnedJob.Start(info);}catch(Win32Exception ex){Record("Инициализация движка: "+ex);throw new ZapretEngineException("Windows не смог запустить движок Zapret. Это не ошибка выбранной стратегии. Подробности в журнале.",ex);}
       using(validator){var output=validator.StandardOutput.ReadToEndAsync();var error=validator.StandardError.ReadToEndAsync();var watch=Stopwatch.StartNew();
@@ -188,18 +241,23 @@ public ZapretRuntime(NetworkCore core){hostsCore=core;root=core.DataRoot;curl=co
       }
     }
     public async Task Start(ZapretSettings settings,ZapretStrategy strategy,CancellationToken cancellation){
-      cancellation.ThrowIfCancellationRequested();Prepare();var run=Path.Combine(DirectoryPath,"run-"+Guid.NewGuid().ToString("N"));string args=BuildArguments(settings,strategy,run);
-      await StartArguments(args,strategy.Id,strategy.Name,cancellation);
+      await engineOperation.WaitAsync(cancellation);try{lock(sync)autoPausedProfiles.Clear();
+      cancellation.ThrowIfCancellationRequested();string args=await Task.Run(()=>{Prepare();return BuildArguments(settings,strategy,Path.Combine(DirectoryPath,"run-"+Guid.NewGuid().ToString("N")));},cancellation);
+      await StartArguments(args,strategy.Id,strategy.Name,cancellation,settings.OriginalEngine?false:true);
+      }finally{engineOperation.Release();}
     }
     public async Task StartProfiles(IEnumerable<ZapretProfile> profiles,CancellationToken cancellation){
-      cancellation.ThrowIfCancellationRequested();Prepare();var enabled=profiles.Where(x=>x!=null&&x.Enabled).ToArray();var run=Path.Combine(DirectoryPath,"run-"+Guid.NewGuid().ToString("N"));string args=BuildProfileArguments(enabled,ZapretCatalog.Load(DirectoryPath),run);
-      await StartArguments(args,"profiles",enabled.Length+" профилей",cancellation);
+      await engineOperation.WaitAsync(cancellation);try{lock(sync)autoPausedProfiles.Clear();
+      cancellation.ThrowIfCancellationRequested();var enabled=profiles.Where(x=>x!=null&&x.Enabled).ToArray();var original=EngineProfiles(enabled,true);var ordinary=EngineProfiles(enabled,false);
+      var arguments=await Task.Run(()=>{Prepare();var catalog=ZapretCatalog.Load(DirectoryPath);var run=Path.Combine(DirectoryPath,"run-"+Guid.NewGuid().ToString("N"));return new[]{original.Length==0?null:BuildProfileArguments(original,catalog,Path.Combine(run,"original")),ordinary.Length==0?null:"--wf-raw-part=false "+ExcludeOriginalScopes(BuildProfileArguments(ordinary,catalog,Path.Combine(run,"mcrf")),original,run)};},cancellation);
+      Exception failure=null;try{await Task.Run(()=>StopProcesses());if(arguments[0]!=null)await StartArguments(arguments[0],"profiles","Оригинальный движок · "+original.Length+" профилей",cancellation,false,true);if(arguments[1]!=null)await StartArguments(arguments[1],"profiles","MCRF · "+ordinary.Length+" профилей",cancellation,true,true);Status="Включён · "+enabled.Length+" профилей";}catch(Exception ex){failure=ex;}if(failure!=null){await Task.Run(()=>Stop());throw failure;}
       lock(sync)foreach(var profile in enabled)activeProfiles[profile.Id]=profile.Settings.Strategy;
+      }finally{engineOperation.Release();}
     }
-    async Task StartArguments(string args,string id,string name,CancellationToken cancellation){
+    async Task StartArguments(string args,string id,string name,CancellationToken cancellation,bool? selectedEngine=null,bool append=false){
       if(!Administrator())throw new UnauthorizedAccessException("Zapret требует права администратора Windows. Нажмите «Запросить права».");
-      bool applications=args.Contains("--mcrf-apps=")||args.Contains("--mcrf-except-apps=");await CheckEngine(cancellation,applications);
-      Stop();var executable=applications?AppExecutable():Path.Combine(DirectoryPath,"winws.exe");
+      bool requiresApps=args.Contains("--mcrf-apps=")||args.Contains("--mcrf-except-apps=")||args.Contains("--mcrf-bypass-apps=");bool applications=selectedEngine??requiresApps;if(!applications&&requiresApps)throw new InvalidOperationException("Оригинальный движок не поддерживает условия по процессам.");await CheckEngine(cancellation,applications);
+      if(!append)await Task.Run(()=>StopProcesses());var executable=await Task.Run(()=>applications?AppExecutable():Path.Combine(DirectoryPath,"winws.exe"));Record("Выбран движок: "+(applications?"MCRF":"оригинальный")+" · "+name);
       var check=new ProcessStartInfo(executable,args+" --dry-run"){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,WorkingDirectory=Path.GetDirectoryName(executable)};
       using(var validator=OwnedJob.Start(check)){
         var stdout=validator.StandardOutput.ReadToEndAsync();var stderr=validator.StandardError.ReadToEndAsync();var watch=Stopwatch.StartNew();
@@ -207,10 +265,12 @@ public ZapretRuntime(NetworkCore core){hostsCore=core;root=core.DataRoot;curl=co
         finally{if(!validator.HasExited)validator.Kill();}
       }
       cancellation.ThrowIfCancellationRequested();
-      lock(sync){if(disposed)throw new ObjectDisposedException("Zapret");process=OwnedJob.Start(new ProcessStartInfo(executable,args){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,WorkingDirectory=Path.GetDirectoryName(executable)});process.OutputDataReceived+=(s,e)=>Record(e.Data);process.ErrorDataReceived+=(s,e)=>Record(e.Data);process.BeginOutputReadLine();process.BeginErrorReadLine();ActiveStrategy=id;Status="Запуск "+name;}
-      try{await Task.Delay(650,cancellation);if(!Running)throw new InvalidOperationException("Zapret завершился при запуске. Подробности в zapret.log");Status="Включён · "+name;Record(Status);}catch{Stop();throw;}
+      Process started=null;lock(sync){cancellation.ThrowIfCancellationRequested();if(disposed)throw new ObjectDisposedException("Zapret");var launched=OwnedJob.Start(new ProcessStartInfo(executable,args){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,WorkingDirectory=Path.GetDirectoryName(executable)});started=launched;engineKinds[launched]=applications;launched.OutputDataReceived+=(s,e)=>Record(e.Data);launched.ErrorDataReceived+=(s,e)=>Record(e.Data);launched.BeginOutputReadLine();launched.BeginErrorReadLine();if(append&&process!=null)extraProcesses.Add(launched);else process=launched;ActiveStrategy=id;Status="Запуск "+name;}
+      Exception startFailure=null;try{await Task.Delay(650,cancellation);if(!Running)throw new InvalidOperationException("Zapret завершился при запуске. Подробности в zapret.log");Status="Включён · "+name;Record(Status);}catch(Exception ex){startFailure=ex;}if(startFailure!=null){if(append&&started!=null)await Task.Run(()=>StopOwned(started));else await Task.Run(()=>StopProcesses());throw startFailure;}
     }
-    public void Stop(){Process previous;lock(sync){previous=process;}if(previous!=null){if(!previous.HasExited){previous.Kill();if(!previous.WaitForExit(5000))throw new TimeoutException("Прежний движок Zapret не завершился. Новый экземпляр не запускается.");}lock(sync){if(process==previous)process=null;}Record("Движок Zapret остановлен · PID "+previous.Id);previous.Dispose();}lock(sync){activeProfiles.Clear();ActiveStrategy=null;Status="Выключен";}FlushLog();}
+    void StopOwned(Process owned){if(!owned.HasExited){owned.Kill();if(!owned.WaitForExit(5000))throw new TimeoutException("Прежний движок Zapret не завершился. Новый экземпляр не запускается.");}Record("Движок Zapret остановлен · PID "+owned.Id);lock(sync){if(process==owned){process=extraProcesses.FirstOrDefault();if(process!=null)extraProcesses.Remove(process);}extraProcesses.Remove(owned);engineKinds.Remove(owned);}owned.Dispose();}
+    void StopProcesses(){Process[] previous;lock(sync)previous=(process==null?new Process[0]:new[]{process}).Concat(extraProcesses).ToArray();foreach(var owned in previous)StopOwned(owned);lock(sync){activeProfiles.Clear();ActiveStrategy=null;Status="Выключен";}FlushLog();}
+    public void Stop(){if(Stopped!=null)Stopped();lock(sync)autoPausedProfiles.Clear();StopProcesses();}
     public static string DefaultTargets(ZapretSettings settings){
       var fields=ZapretScope.Validate(new RouteList{Text=settings.ScopeText,MatchMode=settings.MatchMode});
       try{TestTargets(settings);return settings.TestUrls;}catch(FormatException){}catch(InvalidOperationException){}

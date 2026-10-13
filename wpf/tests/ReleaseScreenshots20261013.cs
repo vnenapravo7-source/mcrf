@@ -1,0 +1,33 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Reflection;
+using System.Threading;
+using System.Collections.Generic;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using Mcrf.Wpf;
+using SplifyWin;
+class ReleaseScreenshots20261013 {
+ static readonly BindingFlags F=BindingFlags.NonPublic|BindingFlags.Instance;
+ static MainWindow main;static ClientSession session;static string root;static Application app;
+ static void Pump(){var frame=new DispatcherFrame();Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background,new Action(()=>frame.Continue=false));Dispatcher.PushFrame(frame);}
+ static void Until(Func<bool> done){var limit=DateTime.UtcNow.AddSeconds(30);while(!done()&&DateTime.UtcNow<limit){Pump();Thread.Sleep(10);}if(!done())throw new Exception("Screenshot UI did not become ready");Pump();main.UpdateLayout();}
+ static IEnumerable<T> All<T>(DependencyObject parent)where T:DependencyObject{for(int i=0;i<VisualTreeHelper.GetChildrenCount(parent);i++){var child=VisualTreeHelper.GetChild(parent,i);if(child is T)yield return (T)child;foreach(var item in All<T>(child))yield return item;}}
+ static void Page(string name){typeof(MainWindow).GetMethod("Page",F).Invoke(main,new object[]{name});Until(()=>!(bool)typeof(MainWindow).GetField("busy",F).GetValue(main));}
+ static void Save(string name){Pump();main.UpdateLayout();((TextBlock)typeof(MainWindow).GetField("status",F).GetValue(main)).Text="Демонстрационный профиль · подключения не запущены";main.UpdateLayout();var dpi=VisualTreeHelper.GetDpi(main);var bitmap=new RenderTargetBitmap((int)Math.Ceiling(main.ActualWidth*dpi.DpiScaleX),(int)Math.Ceiling(main.ActualHeight*dpi.DpiScaleY),96*dpi.DpiScaleX,96*dpi.DpiScaleY,PixelFormats.Pbgra32);bitmap.Render(main);var png=new PngBitmapEncoder();png.Frames.Add(BitmapFrame.Create(bitmap));using(var file=File.Create(Path.Combine(root,name+"-wpf-1.0.11.png")))png.Save(file);Console.WriteLine("SCREENSHOT "+name);}
+ static ServerNode Node(string address,string transport,string name){var link="vless://00000000-0000-0000-0000-000000000001@"+address+":443?encryption=none&security=reality&type="+transport+"&sni=example.com&fp=chrome&pbk=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&sid=0011223344556677#"+Uri.EscapeDataString(name);var node=Links.Read(link).Single();node.Name=name;node.Source="https://subscription.example/demo";node.Latency=-1;return node;}
+ [STAThread]static int Main(string[] args){try{root=Path.GetFullPath(args[0]);if(Directory.Exists(root))throw new Exception("Fresh screenshot fixture required");Directory.CreateDirectory(root);ManagedDependencies.Ensure();Mcrf.Wpf.Program.ConfigureDpi();app=new Application{ShutdownMode=ShutdownMode.OnExplicitShutdown};Mcrf.Wpf.Program.LoadTheme(app);SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());main=new MainWindow(new[]{"--data",Path.Combine(root,"profile")}){ShowActivated=false,WindowStartupLocation=WindowStartupLocation.Manual,Left=-10000,Top=-10000,Width=1366,Height=865};main.Show();Until(()=>typeof(MainWindow).GetField("session",F).GetValue(main)!=null);session=(ClientSession)typeof(MainWindow).GetField("session",F).GetValue(main);((DispatcherTimer)typeof(MainWindow).GetField("health",F).GetValue(main)).Stop();
+  var tcp=Node("192.0.2.10","tcp","DE Германия · демо");var grpc=Node("192.0.2.20","grpc","NL Нидерланды · демо");var ws=Node("192.0.2.30","ws","SE Швеция · демо");session.State.Servers=new List<ServerNode>{tcp,grpc,ws};session.State.SelectedServerId=tcp.Id;session.State.RecentServerIds=new List<string>{tcp.Id,grpc.Id,ws.Id};session.State.AutoSelect=false;session.State.VpnEnabled=session.State.WarpEnabled=session.State.ByeTubeEnabled=false;
+  var zapret=new ZapretProfile{Name="Видео · демо",Settings=new ZapretSettings{Strategy="ALT",Family="Flowseal"}};session.State.ZapretProfiles=new List<ZapretProfile>{zapret};session.State.Lists=new List<RouteList>{new RouteList{Name="Telegram",Target="tgws",Text="app:Telegram.exe\ntelegram.org",Enabled=true},new RouteList{Name="YouTube",Target="proxy",Text="youtube.com\n*.googlevideo.com",Enabled=true},new RouteList{Name="Пример прямого маршрута",Target="direct",Text="example.com",Enabled=true},new RouteList{Name="Видео · Zapret",Target="zapret",ZapretProfileId=zapret.Id,Text="video.example",Enabled=true}};
+  File.AppendAllText(Path.Combine(root,"profile","client.log"),ClientJournal.Stamp("Демонстрационный профиль открыт; сеть не запускается.")+Environment.NewLine+ClientJournal.Stamp("Подключения добавлены из вымышленных данных.")+Environment.NewLine+ClientJournal.Stamp("Маршруты готовы к просмотру.")+Environment.NewLine,new UTF8Encoding(false));
+  Page("Главная");Until(()=>All<ListBox>(main).Any(l=>l.Name=="homeJournal"&&l.Items.Count>0));Save("home");Page("Серверы");Save("servers");Page("Маршрутизация");Save("routes");Page("Серверы");typeof(MainWindow).GetField("serversTab",F).SetValue(main,2);Page("Серверы");Save("protocols");
+  Page("Редактор стратегий");Until(()=>All<ComboBox>(main).Any(c=>c.Name=="wpfStrategyBasis"&&c.Items.Count>0));var mode=All<ComboBox>(main).Single(c=>c.Name=="strategyEditMode");mode.SelectedIndex=1;Pump();var config=All<TextBox>(main).Single(t=>t.Name=="strategyBatText");config.Text=String.Join("\r\n--new\r\n",new[]{"--filter-udp=443 --dpi-desync=fake --dpi-desync-repeats=6","--filter-tcp=443 --dpi-desync=fake,multisplit --dpi-desync-split-pos=1 --dpi-desync-fooling=md5sig","--filter-tcp=80,443 --dpi-desync=multisplit --dpi-desync-split-pos=2","--filter-udp=19294-19344,50000-50100 --dpi-desync=fake","--filter-tcp=2053,2083,2087 --dpi-desync=fake","--filter-udp=1024-65535 --dpi-desync=fake","--filter-tcp=1024-65535 --dpi-desync=multisplit"});All<TextBox>(main).Single(t=>t.Name=="wpfStrategyName").Text="Демонстрационная копия";mode.SelectedIndex=0;Pump();Save("editor");
+  Page("Автодеплой");Save("autodeploy");All<ComboBox>(main).Single(c=>c.Name=="deployRecipe").SelectedIndex=2;Pump();Save("swg");Page("Журнал");Until(()=>All<ListBox>(main).Any(l=>l.Name=="journalEvents"&&l.Items.Count>0));Save("journal");
+  if(session.Core.Running||session.Zapret.Running||session.Telegram.Running)throw new Exception("Screenshot fixture unexpectedly started networking");main.Close();Until(()=>!main.IsVisible);app.Shutdown();Console.WriteLine("OK 8 clean demo screenshots; no connections started");return 0;
+ }catch(Exception ex){Console.WriteLine(ex);if(main!=null)main.Close();if(app!=null)app.Shutdown();return 1;}}
+}

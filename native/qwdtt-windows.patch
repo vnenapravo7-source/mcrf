@@ -1,0 +1,98 @@
+diff --git a/go_client/listen.go b/go_client/listen.go
+index 7b55f7f..e98cb5b 100644
+--- a/go_client/listen.go
++++ b/go_client/listen.go
+@@ -1,3 +1,5 @@
++//go:build !windows
++
+ package main
+ 
+ import (
+diff --git a/go_client/main.go b/go_client/main.go
+index 108af15..3fb613c 100644
+--- a/go_client/main.go
++++ b/go_client/main.go
+@@ -4,6 +4,7 @@ import (
+ 	"bufio"
+ 	"context"
+ 	"flag"
++	"encoding/json"
+ 	"fmt"
+ 	"log"
+ 	"net"
+@@ -139,7 +140,7 @@ func main() {
+ 		for scanner.Scan() {
+ 			line := strings.TrimSpace(scanner.Text())
+ 			if !strings.Contains(line, "error:tunnel stopped") {
+-				log.Printf("[STDIN] %s", line)
++				log.Printf("[STDIN] command received")
+ 			}
+ 			switch {
+ 			case line == "PAUSE":
+@@ -186,7 +187,16 @@ func main() {
+ 	turnTCP := flag.Bool("turn-tcp", false, "соединяться с TURN-relay по TCP вместо UDP (обход UDP-душения на некоторых сетях, напр. Ростелеком)")
+ 	tunFdSock := flag.String("tun-fd-sock", "", "unix-сокет для получения TUN fd от Android (только -mode rawtun)")
+ 
++	startup := flag.String("startup-config", "", "MCRF: protected local JSON configuration")
+ 	flag.Parse()
++	if *startup != "" {
++		data, err := os.ReadFile(*startup)
++		if err != nil { log.Fatal("STARTUP_CONFIG_READ_FAILED") }
++		var config struct { Peer string `json:"peer"`; Hashes string `json:"hashes"`; Password string `json:"password"`; Device string `json:"device_id"`; Workers int `json:"workers"` }
++		if err = json.Unmarshal(data, &config); err != nil { log.Fatal("STARTUP_CONFIG_INVALID") }
++		*peerAddr, *vkHash, *connPassword = config.Peer, config.Hashes, config.Password
++		if config.Device != "" { *deviceID = config.Device }; if config.Workers > 0 { *numW = config.Workers }
++	}
+ 	activeConnMode := strings.ToLower(strings.TrimSpace(*connMode))
+ 	if activeConnMode != "socks" && activeConnMode != "rawtun" {
+ 		activeConnMode = "vpn"
+@@ -447,11 +457,11 @@ func main() {
+ 				fmt.Printf("║ %-44s ║\n", line)
+ 			}
+ 			fmt.Println("╚══════════════════════════════════════════════╝")
+-			if err := os.WriteFile("wg-turn.conf", []byte(finalConf+"\n"), 0600); err != nil {
++			if activeConnMode != "socks" { if err := os.WriteFile("wg-turn.conf", []byte(finalConf+"\n"), 0600); err != nil {
+ 				log.Printf("[КОНФИГ] Ошибка сохранения: %v", err)
+ 			} else {
+ 				log.Println("[КОНФИГ] Сохранён в wg-turn.conf")
+-			}
++			} }
+ 
+ 			if activeConnMode == "socks" {
+ 				dev, tnet, err := startUserspaceWireGuard(finalConf)
+diff --git a/go_client/socks5.go b/go_client/socks5.go
+index 360ecc5..e674b9c 100644
+--- a/go_client/socks5.go
++++ b/go_client/socks5.go
+@@ -118,6 +118,7 @@ func runSocks5Server(ctx context.Context, listenAddr string, tnet *netstack.Net,
+ 	}()
+ 
+ 	log.Printf("[SOCKS] listening %s", listenAddr)
++	fmt.Printf("PROXY_READY|%s\n", listenAddr)
+ 	err = server.Serve(ln)
+ 	if ctx.Err() != nil {
+ 		return nil
+diff --git a/go_client/tun_fd.go b/go_client/tun_fd.go
+index 7ebd698..0b31597 100644
+--- a/go_client/tun_fd.go
++++ b/go_client/tun_fd.go
+@@ -1,3 +1,5 @@
++//go:build !windows
++
+ package main
+ 
+ import (
+diff --git a/go_client/platform_windows.go b/go_client/platform_windows.go
+new file mode 100644
+--- /dev/null
++++ b/go_client/platform_windows.go
+@@ -0,0 +1,9 @@
++//go:build windows
++
++package main
++
++import ("fmt"; "net"; "os")
++
++// MCRF owns the Windows TUN through sing-box. qWDTT stays a SOCKS sidecar.
++func recvTunFD(string) (*os.File,error) { return nil,fmt.Errorf("Android rawtun is unsupported on Windows; use SOCKS mode") }
++func listenUDP(address string) (net.PacketConn,error) { return net.ListenPacket("udp",address) }

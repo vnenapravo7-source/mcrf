@@ -1,9 +1,11 @@
 /work/
 /outputs/
 /data/
+/backups/
 /.vs/
 *.user
 *.suo
 *.log
 *.previous
 **/target/
+**/__pycache__/

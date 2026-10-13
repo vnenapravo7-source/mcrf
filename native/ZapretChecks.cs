@@ -38,6 +38,7 @@ public string PingQuality{get;set;}public string InterfaceStrategyId{get;set;}
     public int PrimaryCount{get{return Services.Count(x=>(x.Id=="youtube"||x.Id=="discord")&&x.Access==ServiceAccess.Available);}}
   }
   public sealed class ZapretCheckReport {
+    public bool Adaptive{get;set;}
     public int Version{get;set;}public int MediaProbeRevision{get;set;}public DateTime StartedAt{get;set;}public DateTime FinishedAt{get;set;}public bool Complete{get;set;}
     public List<string> ServiceIds{get;set;}
     public List<string> WizardServiceIds{get;set;}

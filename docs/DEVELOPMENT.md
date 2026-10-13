@@ -2,6 +2,10 @@
 
 Single-file native WinForms application, one design and one released executable: `outputs/native/mcrf.exe`. No browser UI, Node.js, or separate main-core download. The embedded sing-box-lx v1.14.2-lx.11 core supports AWG and is extracted to the current user's LocalAppData. Optional OpenFlux, WDTT and CSQTT engines are downloaded separately from the engine release using the in-app download panel. TUN and the Zapret packet driver require Windows administrator permission. Local HTTP/SOCKS5 on `127.0.0.1:10808` does **not** enable the Windows system proxy or redirect the computer's traffic: configure the address in the intended application.
 
+## Release scope
+
+This document describes the stable 0.3.10 WinForms implementation below. Pre-release 1.0.11 uses the WPF shell and shared native backend: see [WPF implementation notes](../wpf/README.md), [build instructions](BUILD.md), and [release verification / limitations](releases/1.0.11.md). QWDTT is an optional download in the engine-only release `engines-2026-10-13-1`. The old statements below that real TUN is unverified apply to the earlier stable testing scope; the new pre-release has a limited elevated coexistence test, not a claim of universal network compatibility.
+
 ## Working features
 
 - Import proxy links and base64 subscriptions for VLESS (TLS/Reality/XHTTP), Trojan, Hysteria 1/2, TUIC, Shadowsocks (including base64 SIP002 links), VMess, AnyTLS, NaiveProxy, SSH, HTTP and SOCKS5. The UI can fetch an HTTPS subscription URL manually; refreshing it replaces stale entries from the same URL while retaining unchanged selections. HTTPS fetching uses the embedded curl/LibreSSL and CA bundle rather than Windows Schannel, so it also works on systems where WinForms' default TLS handshake fails.

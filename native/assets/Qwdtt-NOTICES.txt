@@ -1,0 +1,20 @@
+QWDTT Windows SOCKS sidecar for MCRF
+
+Original source: https://github.com/SpaceNeuroX/proxy-turn-vk-android
+Revision: a296c57eaba69bb9479a24f9157856490890e47d
+License: GNU GPL version 3; original LICENSE is distributed with the engine.
+Windows adaptation by MCRF, 2026-10-13:
+- Windows UDP listener; Android raw-TUN descriptor handoff is not used.
+- Protected startup JSON instead of passwords in process command lines.
+- No persisted WireGuard configuration in SOCKS mode.
+- SOCKS readiness marker emitted only after the real tunnel is ready.
+- Input command logging does not print authorization material.
+
+The adaptation is in native/qwdtt-windows.patch, reproducible build in
+native/build-qwdtt.ps1. Original source, patch, license and build script are
+distributed in QWDTT-source.zip in the same MCRF additional-engine release.
+The Go module pins dependencies in go.mod/go.sum; their licenses remain intact.
+QWDTT is a separate process, not a substitute for the WDTT-Plus engine.
+MCRF provides the login/manual captcha UI separately. Live VK and remote-server
+compatibility require a real account and server; a successful local build is not
+a guarantee that the provider will grant access.

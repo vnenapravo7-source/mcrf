@@ -11,7 +11,7 @@ using System.Windows.Forms;
 
 namespace SplifyWin {
   internal sealed class GlassState {
-    public bool AdvancedMode,Running, Verified, CoreReady, AutoSelect, Connecting, Switching, TelegramRunning,ZapretRunning,ZapretPicking,WarpRunning,StartupEnabled;
+    public bool TunRunning,AdvancedMode,Running, Verified, CoreReady, AutoSelect, Connecting, Switching, TelegramRunning,ZapretRunning,ZapretPicking,WarpRunning,StartupEnabled;
     public string Mode, Server, Protocol, Dns, ProxyAddress,Page;
     public int Latency, ServerCount, ActiveRoutes;
     public DateTime ConnectedAt;
@@ -60,7 +60,7 @@ namespace SplifyWin {
     }
   }
 
-  internal static class ServerIdentity {
+  public static class ServerIdentity {
     static readonly Dictionary<string,string[]> names=new Dictionary<string,string[]>{
       {"LV",new[]{"латв","latvia","riga"}},{"SE",new[]{"швец","sweden","stockholm"}},{"DE",new[]{"герман","germany","frankfurt","берлин"}},{"NL",new[]{"нидерланд","netherlands","amsterdam","амстердам"}},{"US",new[]{"сша","united states","new york","нью-йорк"}},{"FR",new[]{"франц","france","paris","париж"}},{"GB",new[]{"британ","united kingdom","london","лондон"}},{"JP",new[]{"япон","japan","tokyo","токио"}},{"SG",new[]{"сингапур","singapore"}},{"CA",new[]{"канада","canada","toronto"}},{"AU",new[]{"австрал","australia","sydney"}},{"RU",new[]{"росси","russia","moscow","москва"}}};
     public static string Country(string raw){var value=(raw??"").ToLowerInvariant();foreach(var pair in names)if(pair.Value.Any(value.Contains))return pair.Key;foreach(var pair in names)if(System.Text.RegularExpressions.Regex.IsMatch(raw??"",@"(?<![A-Za-z])"+pair.Key+@"(?![A-Za-z])",System.Text.RegularExpressions.RegexOptions.IgnoreCase))return pair.Key;for(int i=0;i+3<(raw??"").Length;i++){if(Char.IsLowSurrogate(raw[i]))continue;int a=Char.ConvertToUtf32(raw,i);if(a<0x1F1E6||a>0x1F1FF)continue;int b=Char.ConvertToUtf32(raw,i+2);if(b>=0x1F1E6&&b<=0x1F1FF)return new string(new[]{(char)('A'+a-0x1F1E6),(char)('A'+b-0x1F1E6)});}return "";}
@@ -99,7 +99,7 @@ namespace SplifyWin {
     public static void Card(Graphics g,Rectangle r,Color accent){
       if(r.Width<3||r.Height<3)return;
       using(var path=UiShape.Round(r,22)){
-        using(var fill=new LinearGradientBrush(r,Color.FromArgb(132,34,52,91),Color.FromArgb(153,18,26,58),LinearGradientMode.ForwardDiagonal))g.FillPath(fill,path);
+        using(var fill=new LinearGradientBrush(r,Color.FromArgb(27,40,64),Color.FromArgb(14,22,41),LinearGradientMode.ForwardDiagonal))g.FillPath(fill,path);
         var saved=g.Save();g.SetClip(path);SoftGlow(g,new Rectangle(r.Right-270,r.Bottom-220,360,310),accent);g.Restore(saved);
       }
     }
@@ -183,21 +183,22 @@ namespace SplifyWin {
   internal sealed partial class BlueGlassDashboard : Control {
     readonly Func<GlassState> state;readonly Action<string> action;readonly VpnTraffic traffic;readonly Image wallpaper;
     readonly Timer refresh=new Timer{Interval=1000};readonly Dictionary<string,Rectangle> areas=new Dictionary<string,Rectangle>();string hover="";bool sampling;int sizingEdge;Point sizingOrigin;Rectangle sizingBounds;bool resized;readonly ToolTip tips=new ToolTip{InitialDelay=500,ReshowDelay=100,AutoPopDelay=12000};
-    public BlueGlassDashboard(Func<GlassState> stateProvider,VpnTraffic trafficMonitor,Action<string> onAction){state=stateProvider;traffic=trafficMonitor;action=onAction;DoubleBuffered=true;TabStop=true;BackColor=Color.FromArgb(8,22,55);Dock=DockStyle.Fill;using(var stream=typeof(BlueGlassDashboard).Assembly.GetManifestResourceStream("SplifyWin.UI.BlueGlassBackdrop.png"))if(stream!=null)using(var original=Image.FromStream(stream))wallpaper=new Bitmap(original,new Size(Math.Max(1,original.Width/32),Math.Max(1,original.Height/32)));refresh.Tick+=async(s,e)=>{if(sampling)return;sampling=true;bool running=state().Running;try{await System.Threading.Tasks.Task.Run(()=>traffic.Sample(running));}finally{sampling=false;if(!IsDisposed)Invalidate();}};refresh.Start();Disposed+=(s,e)=>{refresh.Dispose();tips.Dispose();if(wallpaper!=null)wallpaper.Dispose();};}
+    public BlueGlassDashboard(Func<GlassState> stateProvider,VpnTraffic trafficMonitor,Action<string> onAction){state=stateProvider;traffic=trafficMonitor;action=onAction;DoubleBuffered=true;TabStop=true;BackColor=Color.FromArgb(8,22,55);Dock=DockStyle.Fill;using(var stream=typeof(BlueGlassDashboard).Assembly.GetManifestResourceStream("SplifyWin.UI.BlueGlassBackdrop.png"))if(stream!=null)using(var original=Image.FromStream(stream))wallpaper=new Bitmap(original,new Size(Math.Max(1,original.Width/32),Math.Max(1,original.Height/32)));refresh.Tick+=async(s,e)=>{if(sampling)return;sampling=true;bool running=state().Running;try{await System.Threading.Tasks.Task.Run(()=>traffic.Sample(running));}finally{sampling=false;if(!IsDisposed){var current=state();if(current.AdvancedMode&&!String.IsNullOrEmpty(current.Page))Invalidate(new Rectangle(0,Math.Max(0,Height-228),224,228));else Invalidate();}}};refresh.Start();Disposed+=(s,e)=>{refresh.Dispose();tips.Dispose();if(wallpaper!=null)wallpaper.Dispose();};}
     Bitmap backdropCache;
     internal void RefreshTheme(){ClearBackdrop();Invalidate(true);}
     void ClearBackdrop(){if(backdropCache!=null){backdropCache.Dispose();backdropCache=null;}}
-    protected override void OnResize(EventArgs e){ClearBackdrop();base.OnResize(e);}
-    protected override void Dispose(bool disposing){if(disposing){ClearBackdrop();if(neonGlobe!=null)neonGlobe.Dispose();}base.Dispose(disposing);}
+    Bitmap resizeFrame;bool basicResizing;
+    internal void BeginBasicResize(){if(basicResizing||state().AdvancedMode||Width<2||Height<2)return;resizeFrame=new Bitmap(Width,Height);using(var g=Graphics.FromImage(resizeFrame)){OnPaintBackground(new PaintEventArgs(g,ClientRectangle));OnPaint(new PaintEventArgs(g,ClientRectangle));}basicResizing=true;}
+    internal void EndBasicResize(){if(!basicResizing)return;basicResizing=false;if(resizeFrame!=null){resizeFrame.Dispose();resizeFrame=null;}ClearBackdrop();Invalidate();}
+    protected override void OnResize(EventArgs e){if(!basicResizing)ClearBackdrop();base.OnResize(e);}
+    protected override void Dispose(bool disposing){if(disposing){EndBasicResize();ClearBackdrop();if(neonGlobe!=null)neonGlobe.Dispose();}base.Dispose(disposing);}
     protected override void OnPaintBackground(PaintEventArgs e){
-      if(Width<2||Height<2)return;if(UiTheme.Simple){e.Graphics.Clear(Color.FromArgb(12,16,28));return;}
+      if(Width<2||Height<2)return;if(basicResizing&&resizeFrame!=null){e.Graphics.InterpolationMode=InterpolationMode.Low;e.Graphics.DrawImage(resizeFrame,ClientRectangle);return;}if(UiTheme.Simple){e.Graphics.Clear(Color.FromArgb(12,16,28));NetworkWallpaper.Draw(e.Graphics,ClientRectangle);return;}
       if(backdropCache==null){backdropCache=new Bitmap(Width,Height);using(var g=Graphics.FromImage(backdropCache)){DrawBackground(g);LayoutCards();foreach(var pair in areas)GlassInk.Card(g,pair.Value,pair.Key=="traffic"?GlassInk.Cyan:GlassInk.Purple);var a=areas["servers"];GlassInk.NetworkBackdrop(g,new Rectangle(a.X+180,a.Y+14,Math.Max(120,a.Width-385),116));}}
       e.Graphics.DrawImageUnscaled(backdropCache,0,0);
     }
-    void DrawBackground(Graphics g){g.SmoothingMode=SmoothingMode.AntiAlias;if(wallpaper!=null){g.InterpolationMode=InterpolationMode.HighQualityBicubic;g.DrawImage(wallpaper,ClientRectangle);using(var veil=new SolidBrush(Color.FromArgb(105,92,133,190)))g.FillRectangle(veil,ClientRectangle);GlassInk.SoftGlow(g,new Rectangle(-330,-190,930,670),Color.FromArgb(103,183,255));GlassInk.SoftGlow(g,new Rectangle(Width-630,Height-500,930,720),Color.FromArgb(143,114,255));return;}using(var bg=new LinearGradientBrush(ClientRectangle,Color.FromArgb(4,35,96),Color.FromArgb(13,11,56),LinearGradientMode.ForwardDiagonal))g.FillRectangle(bg,ClientRectangle);
-      GlassInk.SoftGlow(g,new Rectangle(Width-610,-300,970,700),Color.FromArgb(10,108,255));
-      GlassInk.SoftGlow(g,new Rectangle(-350,Height-480,820,640),Color.FromArgb(26,211,252));
-      GlassInk.SoftGlow(g,new Rectangle(Width-590,Height-430,790,750),Color.FromArgb(127,48,255));
+    void DrawBackground(Graphics g){using(var bg=new LinearGradientBrush(ClientRectangle,Color.FromArgb(9,20,40),Color.FromArgb(14,14,34),LinearGradientMode.ForwardDiagonal))g.FillRectangle(bg,ClientRectangle);
+      NetworkWallpaper.Draw(g,ClientRectangle);
     }
     void LayoutCards(){
       areas.Clear();areas["repository"]=new Rectangle(24,16,50,50);int pad=30,gap=18,width=Width-2*pad,col=(width-2*gap)/3,y=82;
@@ -209,9 +210,9 @@ namespace SplifyWin {
       y+=middle+gap;int tileGap=12;string[] tiles=state().AdvancedMode?new[]{"routes","dns","modules","zapret","strategy-workshop"}:new[]{"constructor","warp","zapret","tgws"};int tileWidth=(width-(tiles.Length-1)*tileGap)/tiles.Length;for(int i=0;i<tiles.Length;i++)areas[tiles[i]]=new Rectangle(pad+i*(tileWidth+tileGap),y,i==tiles.Length-1?width-(tiles.Length-1)*(tileWidth+tileGap):tileWidth,bottom);
     }
     protected override void OnPaint(PaintEventArgs e){
-      base.OnPaint(e);if(UiTheme.Simple){DrawSimple(e.Graphics);return;}var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;g.TextRenderingHint=System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;LayoutCards();var s=state();
+      base.OnPaint(e);if(basicResizing)return;UpdateSidebarSwitches();if(UiTheme.Simple){DrawSimple(e.Graphics);return;}var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;g.TextRenderingHint=System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;LayoutCards();var s=state();
       if(hover=="repository")using(var path=UiShape.Round(areas["repository"],12))using(var brush=new SolidBrush(Color.FromArgb(22,GlassInk.Cyan)))g.FillPath(brush,path);
-      BrandArt.DrawPlane(g,new Rectangle(32,24,34,34),GlassInk.Cyan);
+      BrandArt.DrawLogo(g,new Rectangle(32,24,34,34),GlassInk.Cyan);
       GlassInk.Text(g,AppBrand.Name,new RectangleF(80,12,165,35),22,GlassInk.White,true);
       if(Width>=1100)GlassInk.Text(g,AppBrand.FullName,new RectangleF(80,48,Width-300,22),10,GlassInk.Muted);
       bool compactHeader=Width<1100;int chromeX=Width-150;areas["minimize"]=new Rectangle(chromeX,21,36,36);areas["maximize"]=new Rectangle(chromeX+44,21,36,36);areas["close"]=new Rectangle(chromeX+88,21,36,36);
@@ -258,7 +259,7 @@ areas["design"]=new Rectangle(chromeX-(compactHeader?164:230),21,compactHeader?1
       if(s.AdvancedMode)ModuleTile(g,"dns","DNS / сеть",areas["dns"].Width<210?s.Dns.Split('·')[0].Trim():s.Dns,"✦",GlassInk.Cyan);
       if(s.AdvancedMode)ModuleTile(g,"modules","WARP · Telegram","Настроить выходы","W",GlassInk.Mint);else ModuleTile(g,"warp","WARP","Настроить WARP","W",GlassInk.Mint);
       ModuleTile(g,"zapret","Zapret",s.ZapretRunning?"Включён":"Выключен","Z",s.ZapretRunning?GlassInk.Mint:GlassInk.Purple);
-      if(s.AdvancedMode)ModuleTile(g,"strategy-workshop","Тест - создать стратегию","Мастер создания","↗",GlassInk.Cyan);else ModuleTile(g,"setup","Мастер настройки","Настроить по шагам","✦",GlassInk.Cyan);
+      if(s.AdvancedMode)ModuleTile(g,"strategy-workshop","Генератор стратегий","Мастер создания","↗",GlassInk.Cyan);else ModuleTile(g,"setup","Мастер настройки","Настроить по шагам","✦",GlassInk.Cyan);
     }
     void ModuleTile(Graphics g,string key,string title,string subtitle,string glyph,Color accent){
       var r=areas[key];if(hover==key)using(var path=UiShape.Round(r,22))using(var brush=new SolidBrush(Color.FromArgb(22,accent)))g.FillPath(brush,path);
@@ -278,8 +279,11 @@ areas["design"]=new Rectangle(chromeX-(compactHeader?164:230),21,compactHeader?1
     public static int LogRowsForHeight(int height){return Math.Max(0,(height-76)/36);}
     protected override void OnMouseMove(MouseEventArgs e){base.OnMouseMove(e);if(sizingEdge!=0){var form=FindForm();var delta=new Size(MousePosition.X-sizingOrigin.X,MousePosition.Y-sizingOrigin.Y);int left=sizingBounds.Left,top=sizingBounds.Top,right=sizingBounds.Right,bottom=sizingBounds.Bottom;if(sizingEdge==10||sizingEdge==13||sizingEdge==16)left=Math.Min(right-form.MinimumSize.Width,left+delta.Width);if(sizingEdge==11||sizingEdge==14||sizingEdge==17)right=Math.Max(left+form.MinimumSize.Width,right+delta.Width);if(sizingEdge==12||sizingEdge==13||sizingEdge==14)top=Math.Min(bottom-form.MinimumSize.Height,top+delta.Height);if(sizingEdge==15||sizingEdge==16||sizingEdge==17)bottom=Math.Max(top+form.MinimumSize.Height,bottom+delta.Height);form.Bounds=Rectangle.FromLTRB(left,top,right,bottom);resized=true;return;}int edge=GlassWindow.ResizeHit(this,e.Location);if(edge!=0){Cursor=edge==10||edge==11?Cursors.SizeWE:edge==12||edge==15?Cursors.SizeNS:edge==13||edge==17?Cursors.SizeNWSE:Cursors.SizeNESW;return;}string hit=areas.Where(x=>x.Value.Contains(e.Location)).OrderBy(x=>x.Value.Width*x.Value.Height).FirstOrDefault().Key??"";if(hit!=hover){string previous=hover;hover=hit;Cursor=hit.Length>0?Cursors.Hand:Cursors.Default;var data=state();string hint=hit=="repository"?"MCRF на GitHub · github.com/vnenapravo7-source/mcrf":hit=="servers"?data.Server:hit=="traffic"?"Статистика только VPN-соединений. Очень короткие соединения между замерами могут не учитываться.":hit.StartsWith("recent:")?(data.Recent??new ServerNode[0]).Where(n=>n.Id==hit.Substring(7)).Select(n=>n.Name).FirstOrDefault():"";tips.SetToolTip(this,hint??"");Rectangle dirty;if(areas.TryGetValue(previous,out dirty))Invalidate(dirty);if(areas.TryGetValue(hit,out dirty))Invalidate(dirty);}}
     protected override void OnMouseClick(MouseEventArgs e){base.OnMouseClick(e);if(e.Button!=MouseButtons.Left)return;if(resized){resized=false;return;}string hit=areas.Where(x=>x.Value.Contains(e.Location)).OrderBy(x=>x.Value.Width*x.Value.Height).FirstOrDefault().Key;if(hit!=null)action(hit);}
-    protected override void OnMouseDown(MouseEventArgs e){base.OnMouseDown(e);if(e.Button==MouseButtons.Left&&GlassWindow.ResizeHit(this,e.Location)!=0){sizingEdge=GlassWindow.ResizeHit(this,e.Location);sizingOrigin=MousePosition;sizingBounds=FindForm().Bounds;Capture=true;return;}if(e.Button==MouseButtons.Left&&e.Y<74&&!areas.Any(x=>x.Value.Contains(e.Location))){var window=FindForm();if(window!=null){GlassWindow.ReleaseCapture();GlassWindow.SendMessage(window.Handle,0xA1,new IntPtr(2),IntPtr.Zero);}}}
-    protected override void OnMouseUp(MouseEventArgs e){sizingEdge=0;Capture=false;base.OnMouseUp(e);}
+    protected override void OnMouseLeave(EventArgs e){base.OnMouseLeave(e);string previous=hover;hover="";Rectangle dirty;if(areas.TryGetValue(previous,out dirty))Invalidate(dirty);}
+    protected override void OnMouseDown(MouseEventArgs e){base.OnMouseDown(e);if(e.Button==MouseButtons.Left&&GlassWindow.ResizeHit(this,e.Location)!=0){sizingEdge=GlassWindow.ResizeHit(this,e.Location);sizingOrigin=MousePosition;sizingBounds=FindForm().Bounds;BeginBasicResize();Capture=true;return;}if(e.Button==MouseButtons.Left&&e.Y<74&&!areas.Any(x=>x.Value.Contains(e.Location))){var window=FindForm();if(window!=null){GlassWindow.ReleaseCapture();GlassWindow.SendMessage(window.Handle,0xA1,new IntPtr(2),IntPtr.Zero);}}}
+    protected override void OnMouseUp(MouseEventArgs e){sizingEdge=0;Capture=false;EndBasicResize();base.OnMouseUp(e);}
+    protected override void OnMouseCaptureChanged(EventArgs e){base.OnMouseCaptureChanged(e);if(!Capture&&basicResizing){sizingEdge=0;EndBasicResize();}}
+    protected override void OnMouseDoubleClick(MouseEventArgs e){base.OnMouseDoubleClick(e);if(e.Button==MouseButtons.Left&&e.Y<74&&!areas.Any(x=>x.Value.Contains(e.Location)))action("maximize");}
     protected override void OnKeyDown(KeyEventArgs e){base.OnKeyDown(e);if(e.KeyCode==Keys.Enter||e.KeyCode==Keys.Space){action(hover.Length>0?hover:"connection");e.Handled=true;}}
   }
 
@@ -288,6 +292,7 @@ areas["design"]=new Rectangle(chromeX-(compactHeader?164:230),21,compactHeader?1
     internal static void Drag(Control control){var form=control.FindForm();if(form==null||form.WindowState!=FormWindowState.Normal)return;ReleaseCapture();SendMessage(form.Handle,0xA1,new IntPtr(2),IntPtr.Zero);}
     [DllImport("user32.dll")]internal static extern bool ReleaseCapture();
     [DllImport("user32.dll")]internal static extern IntPtr SendMessage(IntPtr window,int message,IntPtr wParam,IntPtr lParam);
+    [DllImport("user32.dll")]internal static extern bool RedrawWindow(IntPtr window,IntPtr rect,IntPtr region,uint flags);
   }
 
   internal sealed class GlassBackdrop : Panel {
@@ -298,6 +303,7 @@ areas["design"]=new Rectangle(chromeX-(compactHeader?164:230),21,compactHeader?1
     protected override void OnMouseDown(MouseEventArgs e){suppressClick=e.Button==MouseButtons.Left&&e.Y<74;if(suppressClick){GlassWindow.Drag(this);return;}base.OnMouseDown(e);}
     protected override void OnClick(EventArgs e){if(suppressClick){suppressClick=false;return;}base.OnClick(e);}
     protected override void OnResize(EventArgs e){if(rendered!=null){rendered.Dispose();rendered=null;}base.OnResize(e);}
+    internal void ResetSurface(){if(rendered!=null){rendered.Dispose();rendered=null;}}
     protected override void OnPaintBackground(PaintEventArgs e){if(Width<1||Height<1)return;if(rendered==null){rendered=new Bitmap(Width,Height);using(var g=Graphics.FromImage(rendered)){g.Clear(Color.FromArgb(7,18,41));if(blurred!=null){g.InterpolationMode=InterpolationMode.HighQualityBicubic;g.DrawImage(blurred,ClientRectangle);using(var dark=new SolidBrush(Color.FromArgb(127,4,11,35)))g.FillRectangle(dark,ClientRectangle);}}}e.Graphics.DrawImageUnscaled(rendered,0,0);}
     protected override void Dispose(bool disposing){if(disposing){if(rendered!=null)rendered.Dispose();if(blurred!=null)blurred.Dispose();}base.Dispose(disposing);}
   }
@@ -307,9 +313,12 @@ areas["design"]=new Rectangle(chromeX-(compactHeader?164:230),21,compactHeader?1
     public bool OpaqueSurface;
     Bitmap rendered;
     public GlassPopupPanel(){SetStyle(ControlStyles.SupportsTransparentBackColor,true);DoubleBuffered=true;BackColor=Color.Transparent;}
+    internal void ResetSurface(){if(rendered!=null){rendered.Dispose();rendered=null;}}
     protected override void OnMouseDown(MouseEventArgs e){if(!Inline&&e.Button==MouseButtons.Left&&e.Y<64){GlassWindow.Drag(this);return;}base.OnMouseDown(e);}
     protected override void OnControlAdded(ControlEventArgs e){base.OnControlAdded(e);if(e.Control is Label)e.Control.MouseDown+=(s,m)=>{if(!Inline&&m.Button==MouseButtons.Left&&e.Control.Top<64)GlassWindow.Drag(this);};}
     protected override void OnResize(EventArgs e){if(rendered!=null){rendered.Dispose();rendered=null;}base.OnResize(e);}
+    protected override void OnLocationChanged(EventArgs e){if(rendered!=null){rendered.Dispose();rendered=null;}base.OnLocationChanged(e);Invalidate();}
+    protected override void OnParentChanged(EventArgs e){if(rendered!=null){rendered.Dispose();rendered=null;}base.OnParentChanged(e);Invalidate();}
     protected override void Dispose(bool disposing){if(disposing&&rendered!=null)rendered.Dispose();base.Dispose(disposing);}
     protected override void OnPaintBackground(PaintEventArgs e){if(Width<2||Height<2)return;if(rendered==null){rendered=new Bitmap(Width,Height);using(var graphics=Graphics.FromImage(rendered)){if(Parent!=null){graphics.TranslateTransform(-Left,-Top);InvokePaintBackground(Parent,new PaintEventArgs(graphics,Parent.ClientRectangle));graphics.ResetTransform();}DrawSurface(graphics);}}e.Graphics.DrawImageUnscaled(rendered,0,0);}
     void DrawSurface(Graphics g){if(Width<2||Height<2)return;if(Inline){g.Clear(Color.FromArgb(12,17,31));return;}if(UiTheme.Simple){using(var path=UiShape.Round(new Rectangle(1,1,Width-3,Height-3),20))using(var fill=new SolidBrush(Color.FromArgb(24,29,47)))g.FillPath(fill,path);return;}g.SmoothingMode=SmoothingMode.AntiAlias;
@@ -322,80 +331,9 @@ areas["design"]=new Rectangle(chromeX-(compactHeader?164:230),21,compactHeader?1
     }
   }
 
-  // One composed surface: backdrop and popup must become visible atomically.
-  internal sealed class GlassMotionLayer : Form {
-    [StructLayout(LayoutKind.Sequential)]struct Blend {public byte operation,flags,alpha,format;}
-    [DllImport("user32.dll")]static extern IntPtr GetDC(IntPtr window);
-    [DllImport("user32.dll")]static extern int ReleaseDC(IntPtr window,IntPtr dc);
-    [DllImport("gdi32.dll")]static extern IntPtr CreateCompatibleDC(IntPtr dc);
-    [DllImport("gdi32.dll")]static extern IntPtr SelectObject(IntPtr dc,IntPtr value);
-    [DllImport("gdi32.dll")]static extern bool DeleteObject(IntPtr value);
-    [DllImport("gdi32.dll")]static extern bool DeleteDC(IntPtr dc);
-    [StructLayout(LayoutKind.Sequential)]struct BitmapInfo{public uint size;public int width,height;public ushort planes,bits;public uint compression,imageSize;public int xppm,yppm;public uint used,important;}
-    [DllImport("gdi32.dll")]static extern IntPtr CreateDIBSection(IntPtr dc,ref BitmapInfo info,uint usage,out IntPtr bits,IntPtr section,uint offset);
-    [DllImport("user32.dll",SetLastError=true)]static extern bool UpdateLayeredWindow(IntPtr window,IntPtr destination,ref Point position,ref Size size,IntPtr source,ref Point origin,int key,ref Blend blend,int flags);
-    [DllImport("user32.dll")]static extern bool SetWindowPos(IntPtr window,IntPtr after,int x,int y,int width,int height,uint flags);
-    [DllImport("winmm.dll")]static extern uint timeBeginPeriod(uint period);
-    [DllImport("winmm.dll")]static extern uint timeEndPeriod(uint period);
-    internal Action CancelTransition;int generation;readonly bool inputShield;
-    readonly object surfaceLock=new object();IntPtr surfaceDc,surfaceBitmap,surfacePrevious,surfaceBits,screenDc,windowHandle;Size surfaceSize;byte[] surfaceBytes;
-    internal static readonly List<double> FrameTimes=new List<double>(),AppliedTimes=new List<double>();
-    System.Diagnostics.Stopwatch animationClock;
-    protected override void WndProc(ref Message m){base.WndProc(ref m);if(m.Msg==0x47&&animationClock!=null)lock(AppliedTimes)AppliedTimes.Add(animationClock.Elapsed.TotalMilliseconds);}
-    [DllImport("dwmapi.dll")]static extern int DwmSetWindowAttribute(IntPtr window,int attribute,ref int value,int size);
-    protected override void OnHandleCreated(EventArgs e){base.OnHandleCreated(e);BrandArt.ApplyFramelessChrome(Handle);int disabled=1;DwmSetWindowAttribute(Handle,3,ref disabled,4);}
-    public GlassMotionLayer(bool inputShield=false){this.inputShield=inputShield;BackColor=Color.FromArgb(18,27,56);FormBorderStyle=FormBorderStyle.None;ShowInTaskbar=false;StartPosition=FormStartPosition.Manual;}
-    protected override bool ShowWithoutActivation{get{return true;}}
-    protected override CreateParams CreateParams{get{var p=base.CreateParams;p.Style&=~0x00C40000;p.ExStyle&=~0x00020301;p.ClassStyle&=~0x00020000;p.ExStyle|=0x80000|0x80|0x8000000;if(!inputShield)p.ExStyle|=0x20;return p;}}
-    internal void Upload(Bitmap image,Point position){
-      lock(surfaceLock){if(surfaceDc==IntPtr.Zero){windowHandle=Handle;screenDc=GetDC(IntPtr.Zero);surfaceDc=CreateCompatibleDC(screenDc);var info=new BitmapInfo{size=40,width=image.Width,height=-image.Height,planes=1,bits=32};surfaceBitmap=CreateDIBSection(screenDc,ref info,0,out surfaceBits,IntPtr.Zero,0);if(surfaceBitmap==IntPtr.Zero)throw new System.ComponentModel.Win32Exception();surfacePrevious=SelectObject(surfaceDc,surfaceBitmap);surfaceSize=image.Size;surfaceBytes=new byte[image.Width*image.Height*4];}
-        if(surfaceSize!=image.Size)throw new InvalidOperationException("Размер слоя анимации изменился");
-        var data=image.LockBits(new Rectangle(Point.Empty,image.Size),System.Drawing.Imaging.ImageLockMode.ReadOnly,System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-        try{Marshal.Copy(data.Scan0,surfaceBytes,0,surfaceBytes.Length);Marshal.Copy(surfaceBytes,0,surfaceBits,surfaceBytes.Length);}finally{image.UnlockBits(data);}
-        var size=image.Size;var zero=Point.Empty;var blend=new Blend{alpha=255,format=1};if(!UpdateLayeredWindow(windowHandle,screenDc,ref position,ref size,surfaceDc,ref zero,0,ref blend,2))throw new System.ComponentModel.Win32Exception();
-      }
-    }
-    static void Compose(Graphics graphics,Bitmap backdrop,Bitmap popup,Rectangle bounds,double t,bool closing){
-      double ease=t*t*(3-2*t);graphics.CompositingMode=CompositingMode.SourceCopy;graphics.DrawImageUnscaled(backdrop,0,0);graphics.CompositingMode=CompositingMode.SourceOver;
-      var at=new Rectangle(bounds.X,bounds.Y+(int)Math.Round(20*(closing?ease:1-ease)),popup.Width,popup.Height);
-      using(var attributes=new System.Drawing.Imaging.ImageAttributes()){var matrix=new System.Drawing.Imaging.ColorMatrix();matrix.Matrix33=(float)(closing?1-ease:ease);attributes.SetColorMatrix(matrix);graphics.DrawImage(popup,at,0,0,popup.Width,popup.Height,GraphicsUnit.Pixel,attributes);}
-    }
-    internal void StartComposition(Bitmap backdrop,Bitmap popup,Rectangle bounds,Point origin,bool closing){using(var frame=new Bitmap(backdrop.Width,backdrop.Height,System.Drawing.Imaging.PixelFormat.Format32bppPArgb)){using(var g=Graphics.FromImage(frame))Compose(g,backdrop,popup,bounds,0,closing);Upload(frame,origin);}}
-    internal void AnimateComposition(bool closing,Point origin,Bitmap backdrop,Bitmap popup,Rectangle bounds,Action finished){
-      int token=++generation;FrameTimes.Clear();AppliedTimes.Clear();animationClock=System.Diagnostics.Stopwatch.StartNew();
-      System.Threading.Tasks.Task.Run(()=>{
-        timeBeginPeriod(1);var clock=System.Diagnostics.Stopwatch.StartNew();double next=0;
-        try{using(var frame=new Bitmap(backdrop.Width,backdrop.Height,System.Drawing.Imaging.PixelFormat.Format32bppPArgb))using(var graphics=Graphics.FromImage(frame)){
-          while(token==System.Threading.Volatile.Read(ref generation)){double t=Math.Min(1,clock.Elapsed.TotalMilliseconds/220);Compose(graphics,backdrop,popup,bounds,t,closing);Upload(frame,origin);lock(FrameTimes)FrameTimes.Add(clock.Elapsed.TotalMilliseconds);lock(AppliedTimes)AppliedTimes.Add(clock.Elapsed.TotalMilliseconds);if(t>=1)break;next+=1000.0/60;while(clock.Elapsed.TotalMilliseconds<next&&token==System.Threading.Volatile.Read(ref generation))System.Threading.Thread.Sleep(1);}
-        }}catch(System.ComponentModel.Win32Exception){}catch(ObjectDisposedException){}
-        finally{timeEndPeriod(1);backdrop.Dispose();popup.Dispose();}
-        if(token==System.Threading.Volatile.Read(ref generation)&&!IsDisposed)try{BeginInvoke(new Action(()=>{if(token==generation)finished();}));}catch(InvalidOperationException){}
-      });
-    }
-    internal void Animate(bool closing,Point origin,Action finished){
-      int token=++generation;var window=Handle;FrameTimes.Clear();AppliedTimes.Clear();animationClock=System.Diagnostics.Stopwatch.StartNew();
-      System.Threading.Tasks.Task.Run(()=>{
-        timeBeginPeriod(1);var clock=System.Diagnostics.Stopwatch.StartNew();double next=0;
-        try{
-        while(token==System.Threading.Volatile.Read(ref generation)){
-          double t=Math.Min(1,clock.Elapsed.TotalMilliseconds/220),ease=t*t*(3-2*t);
-          int y=origin.Y+(int)Math.Round(24*(closing?ease:1-ease));
-          SetWindowPos(window,IntPtr.Zero,origin.X,y,0,0,0x401D);
-          lock(FrameTimes)FrameTimes.Add(clock.Elapsed.TotalMilliseconds);
-          if(t>=1)break;
-          next+=1000.0/120;
-          while(clock.Elapsed.TotalMilliseconds<next&&token==System.Threading.Volatile.Read(ref generation))System.Threading.Thread.Sleep(1);
-        }
-        }finally{timeEndPeriod(1);}
-        if(token==System.Threading.Volatile.Read(ref generation)&&!IsDisposed)try{BeginInvoke(new Action(()=>{if(token==generation)finished();}));}catch(InvalidOperationException){}
-      });
-    }
-    internal void Cancel(){System.Threading.Interlocked.Increment(ref generation);}
-    protected override void Dispose(bool disposing){Cancel();lock(surfaceLock){if(surfaceDc!=IntPtr.Zero){SelectObject(surfaceDc,surfacePrevious);DeleteObject(surfaceBitmap);DeleteDC(surfaceDc);ReleaseDC(IntPtr.Zero,screenDc);surfaceDc=IntPtr.Zero;surfaceBytes=null;}}base.Dispose(disposing);}
-  }
   internal static class GlassTransition {
     internal static double LastSwapMilliseconds,LastRevealMilliseconds,LastCleanupMilliseconds;
-    static readonly Dictionary<Control,GlassMotionLayer> active=new Dictionary<Control,GlassMotionLayer>();
+
     [DllImport("winmm.dll")]static extern uint timeBeginPeriod(uint period);
     [DllImport("winmm.dll")]static extern uint timeEndPeriod(uint period);
     static void PaintRichText(Control root,Graphics graphics,Point offset){
@@ -452,26 +390,25 @@ areas["design"]=new Rectangle(chromeX-(compactHeader?164:230),21,compactHeader?1
         return result;
       }catch{result.Dispose();throw;}
     }
+    [DllImport("user32.dll")]static extern IntPtr SendMessage(IntPtr window,int message,IntPtr wParam,IntPtr lParam);
+    [DllImport("user32.dll")]static extern bool RedrawWindow(IntPtr window,IntPtr rectangle,IntPtr region,uint flags);
     public static void Play(Control popup,bool closing,Action done=null){
       if(popup.IsDisposed)return;var parent=popup.Parent;if(parent==null){if(done!=null)done();return;}
-      if(active.ContainsKey(popup)){var previous=active[popup];if(previous.CancelTransition!=null)previous.CancelTransition();}
-      popup.Visible=true;popup.PerformLayout();
-      var image=Capture(popup);
-      var bounds=popup.Bounds;var root=parent.TopLevelControl as Form;var layer=new GlassMotionLayer(true);
-      var staged=Convert.ToString(parent.Tag)=="staged";var origin=staged?root.PointToScreen(Point.Empty):parent.PointToScreen(Point.Empty);
-      var backdrop=parent as GlassBackdrop;Bitmap background=null;
-      if(backdrop!=null)background=backdrop.SnapshotArea(parent.ClientRectangle);else{background=new Bitmap(parent.Width,parent.Height);using(var graphics=Graphics.FromImage(background))graphics.Clear(parent.BackColor);}
-      layer.Bounds=new Rectangle(origin,background.Size);if(root!=null&&root.Region!=null&&root.ClientSize==background.Size)layer.Region=root.Region.Clone();
-      layer.StartComposition(background,image,bounds,origin,closing);layer.Show(root);layer.Update();
-      // Reveal/paint the real controls only beneath the already-visible full
-      // composition. No bare rectangle, second shield window or offscreen move
-      // of child HWNDs can be presented between backdrop and popup.
-      if(staged){parent.Tag=null;parent.Location=Point.Empty;parent.Dock=DockStyle.Fill;}
-      popup.Invalidate(true);popup.Update();parent.Update();
-      bool finished=false,swapping=false;EventHandler disposed=null;
-      Action cleanup=()=>{if(finished)return;finished=true;popup.Disposed-=disposed;active.Remove(popup);layer.CancelTransition=null;if(!layer.IsDisposed){layer.Cancel();layer.Close();layer.Dispose();}};
-      disposed=(s,e)=>{if(!swapping)cleanup();};popup.Disposed+=disposed;layer.CancelTransition=cleanup;active[popup]=layer;
-      layer.AnimateComposition(closing,origin,background,image,bounds,()=>{if(finished)return;var swap=System.Diagnostics.Stopwatch.StartNew();swapping=true;try{if(!popup.IsDisposed){if(done!=null)done();else if(closing)popup.Visible=false;}if(closing&&root!=null&&!root.IsDisposed){root.Invalidate(true);root.Update();}LastRevealMilliseconds=swap.Elapsed.TotalMilliseconds;}finally{var disposal=System.Diagnostics.Stopwatch.StartNew();cleanup();LastCleanupMilliseconds=disposal.Elapsed.TotalMilliseconds;swap.Stop();LastSwapMilliseconds=swap.Elapsed.TotalMilliseconds;}});
+
+      var root=parent.TopLevelControl as Form;var watch=System.Diagnostics.Stopwatch.StartNew();
+      // Show the real controls in one transaction. Never capture/move a full-window
+      // bitmap or upload megabytes per animation frame from a worker thread.
+      IntPtr handle=parent.Handle;SendMessage(handle,0x000B,IntPtr.Zero,IntPtr.Zero);
+      try{
+        parent.SuspendLayout();popup.Visible=!closing;popup.PerformLayout();
+        if(Convert.ToString(parent.Tag)=="staged"){parent.Tag=null;parent.Location=Point.Empty;parent.Dock=DockStyle.Fill;}
+        parent.ResumeLayout(true);
+        if(done!=null)done();
+      }finally{
+        if(!parent.IsDisposed){SendMessage(handle,0x000B,new IntPtr(1),IntPtr.Zero);RedrawWindow(handle,IntPtr.Zero,IntPtr.Zero,0x185);}
+        if(closing&&root!=null&&!root.IsDisposed){root.Invalidate(true);root.Update();}
+        LastRevealMilliseconds=LastSwapMilliseconds=watch.Elapsed.TotalMilliseconds;LastCleanupMilliseconds=0;
+      }
     }
   }
   internal sealed class GlassProfileTabs : Panel {
@@ -495,12 +432,13 @@ areas["design"]=new Rectangle(chromeX-(compactHeader?164:230),21,compactHeader?1
     protected override void OnPaint(PaintEventArgs e){var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;var r=new Rectangle(2,2,Width-5,Height-5);using(var p=UiShape.Round(r,r.Width/2)){using(var b=new SolidBrush(Color.FromArgb(55,117,136,206)))g.FillPath(b,p);}using(var pen=new Pen(GlassInk.White,2.1f)){pen.StartCap=LineCap.Round;pen.EndCap=LineCap.Round;g.DrawLine(pen,Width/2-5,Height/2-5,Width/2+5,Height/2+5);g.DrawLine(pen,Width/2+5,Height/2-5,Width/2-5,Height/2+5);}}
   }
   internal sealed class GlassToggle : Control {
+    public bool ShowStateText{get;set;}
     bool value;public event EventHandler CheckedChanged;
     public bool Checked {get{return value;}set{if(this.value==value)return;this.value=value;Invalidate();if(CheckedChanged!=null)CheckedChanged(this,EventArgs.Empty);}}
-    public GlassToggle(){SetStyle(ControlStyles.SupportsTransparentBackColor,true);DoubleBuffered=true;BackColor=Color.Transparent;Cursor=Cursors.Hand;Size=new Size(520,30);TabStop=true;}
+    public GlassToggle(){ShowStateText=true;SetStyle(ControlStyles.SupportsTransparentBackColor,true);DoubleBuffered=true;BackColor=Color.Transparent;Cursor=Cursors.Hand;Size=new Size(520,30);TabStop=true;}
     protected override void OnClick(EventArgs e){Checked=!Checked;base.OnClick(e);}
     protected override void OnKeyDown(KeyEventArgs e){if(e.KeyCode==Keys.Space){Checked=!Checked;e.Handled=true;}base.OnKeyDown(e);}
-    protected override void OnPaint(PaintEventArgs e){var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;int top=Math.Max(0,(Height-21)/2);var rect=new Rectangle(1,top,35,21);using(var path=UiShape.Round(rect,10)){using(var brush=new SolidBrush(Checked?Color.FromArgb(77,196,174):Color.FromArgb(69,88,130)))g.FillPath(brush,path);}using(var brush=new SolidBrush(GlassInk.White))g.FillEllipse(brush,Checked?19:4,top+3,15,15);if(!String.IsNullOrEmpty(Text))GlassInk.Text(g,Text+(Checked?" · ВКЛЮЧЁН":" · ВЫКЛЮЧЕН"),new RectangleF(48,0,Width-48,Height),10,Checked?GlassInk.Mint:GlassInk.White,true);}
+    protected override void OnPaint(PaintEventArgs e){var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;int top=Math.Max(0,(Height-21)/2);var rect=new Rectangle(1,top,35,21);using(var path=UiShape.Round(rect,10)){using(var brush=new SolidBrush(Checked?Color.FromArgb(77,196,174):Color.FromArgb(69,88,130)))g.FillPath(brush,path);}using(var brush=new SolidBrush(GlassInk.White))g.FillEllipse(brush,Checked?19:4,top+3,15,15);if(!String.IsNullOrEmpty(Text))GlassInk.Text(g,Text+(ShowStateText?(Checked?" · ВКЛЮЧЁН":" · ВЫКЛЮЧЕН"):""),new RectangleF(48,0,Width-48,Height),10,Checked?GlassInk.Mint:GlassInk.White,true);}
   }
 
   internal sealed class GlassPresetOverlay : Form {

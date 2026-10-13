@@ -20,19 +20,24 @@ namespace SplifyWin {
    var profile=new ZapretProfile{Name="Wardogs",Enabled=true,Settings=new ZapretSettings{Family=strategy.Family,Strategy=strategy.Id,ScopeText=WardogsEntries,MatchMode="any",GameFilterTcp=true,GameFilterUdp=true}};
    var route=new RouteList{Name="Wardogs · ALT11",Text=WardogsEntries,Target="zapret",ZapretProfileId=profile.Id,MatchMode="any",GameFilterTcp=true,GameFilterUdp=true,Enabled=true,BuiltinPreset="game:wardogs-alt11",Dns=new ExitDnsSettings{Provider="Cloudflare",Protocol="UDP"}};ZapretScope.Validate(route);return Tuple.Create(profile,route);
   }
+  public const string WardogsAlternativeEntries="app:WardogsClient-Win64-Shipping.exe\nlive.wardogs.bulkhead.pragmaengine.com\nfirstlook.gg\napi.epicgames.dev\nwardogs.com\nbulkhead.com\nteam17.com\ncommunity.wardogs.com";
+  public static int AddressCount(string text){var groups=RouteCompiler.Parse(text);return groups["domain"].Count+groups["domain_suffix"].Count+groups["ip_cidr"].Count;}
+  public const string WardogsArchiveEntries="live.wardogs.bulkhead.pragmaengine.com\nsocial.live.wardogs.bulkhead.pragmaengine.com\nfirstlook.gg\napi.epicgames.dev";
+  public const string WardogsArchiveProtected="codefusion.technology\n85.236.96.0/21\n35.71.0.0/16\n151.101.0.0/16\n216.239.32.0/19";
+  public static Tuple<ZapretProfile,RouteList> WardogsAlternative(IEnumerable<ZapretStrategy> catalog){
+    var template=Wardogs(catalog);template.Item1.Name="Wardogs Alternative";template.Item1.Settings.ScopeText=WardogsAlternativeEntries;var route=template.Item2;route.Name="Wardogs Alternative";route.Text=WardogsAlternativeEntries;route.BuiltinPreset="game:wardogs-alternative";route.Dns=new ExitDnsSettings{Provider="Google",Protocol="UDP"};return template;
+  }
+  public static Tuple<ZapretProfile,RouteList> WardogsArchive(IEnumerable<ZapretStrategy> catalog){
+    var strategy=catalog.FirstOrDefault(s=>s.Available&&s.Family=="Flowseal"&&s.ShortName=="ALT9");if(strategy==null)throw new InvalidOperationException("Flowseal ALT9 недоступна. Обновите набор стратегий.");
+    var profile=new ZapretProfile{Name="Wardogs arhekog · точечный",Enabled=true,Settings=new ZapretSettings{Family=strategy.Family,Strategy=strategy.Id,ScopeText=WardogsArchiveEntries,MatchMode="addresses"}};
+    var route=new RouteList{Name="Wardogs arhekog · точечный",Text=WardogsArchiveEntries,Target="zapret",ZapretProfileId=profile.Id,MatchMode="addresses",WardogsAutoPause=true,OriginalEngine=true,GameFilterTcp=false,GameFilterUdp=false,Enabled=true,BuiltinPreset="game:wardogs-arhekog",Dns=new ExitDnsSettings{Provider="Общий DNS"}};return Tuple.Create(profile,route);
+  }
   public static string Parse(string text){
    var root=new JavaScriptSerializer{MaxJsonLength=4000000}.DeserializeObject(text) as Dictionary<string,object>;object value;
    if(root==null||!root.TryGetValue("pops",out value)||root.ContainsKey("success")&&!Convert.ToBoolean(root["success"]))throw new FormatException("Steam не подтвердил пул SDR.");
    var pops=value as Dictionary<string,object>;if(pops==null)throw new FormatException("Неверный пул SDR.");var ips=new HashSet<string>();
    foreach(var pop in pops.Values){var fields=pop as Dictionary<string,object>;object relays;if(fields==null||!fields.TryGetValue("relays",out relays))continue;var list=relays as IEnumerable;if(list==null)continue;foreach(var relay in list){var data=relay as Dictionary<string,object>;if(data==null)continue;foreach(string key in new[]{"ipv4","ipv6"}){object raw;IPAddress ip;if(data.TryGetValue(key,out raw)&&IPAddress.TryParse(Convert.ToString(raw),out ip)&&!IPAddress.IsLoopback(ip)&&!ip.Equals(IPAddress.Any)&&!ip.Equals(IPAddress.IPv6Any))ips.Add(ip.ToString()+(ip.AddressFamily==AddressFamily.InterNetwork?"/32":"/128"));}}}
    if(ips.Count==0||ips.Count>10000)throw new FormatException("Нет пригодных адресов SDR.");return String.Join("\n",ips.OrderBy(x=>x,StringComparer.Ordinal));
-  }
-  public static List<SteamGameTemplate> Candidates(){return new List<SteamGameTemplate>{new SteamGameTemplate{AppId=570,Name="Dota 2 · пул SDR",Status="Отдельный ответ Steam; стратегия не проверена"}};}
-  public static async Task<SteamGameTemplate> Fetch(Func<string,Task<string>> download){
-   const string url="https://api.steampowered.com/ISteamApps/GetSDRConfig/v1/?appid=";
-   string pool=Parse(await download(url+570));string common=Parse(await download(url+0));string fallback=Parse(await download(url+1867240));
-   if(pool==common||pool==fallback)throw new FormatException("Steam вернул общий пул вместо отдельного списка. Шаблон не добавлен.");
-   return new SteamGameTemplate{AppId=570,Name="Dota 2 · пул SDR",Text=pool,CheckedAt=DateTime.Now,Status="Пул отличается от общих; стратегия не проверена"};
   }
  }
 }

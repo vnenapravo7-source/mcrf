@@ -34,10 +34,10 @@ namespace SplifyWin {
   bool routeInlineBusy;
   void InstallRouteFields(){
    var grid=routesGrid;grid.Name="routeTable";grid.RowTemplate.Height=48;var fields=new List<Tuple<string,int,GlassPicker>>();
-   Action arrange=()=>{if(grid.IsDisposed)return;foreach(var field in fields){var row=grid.Rows.Cast<DataGridViewRow>().FirstOrDefault(r=>r.Tag is RouteList&&((RouteList)r.Tag).Id==field.Item1);if(row==null){field.Item3.Visible=false;continue;}var rect=grid.GetCellDisplayRectangle(field.Item2,row.Index,false);bool visible=rect.Top>=grid.ColumnHeadersHeight&&rect.Bottom<=grid.ClientSize.Height&&rect.Width>30;field.Item3.Visible=visible;if(visible){field.Item3.SetBounds(rect.Left+4,rect.Top+5,Math.Max(20,rect.Width-12),rect.Height-10);field.Item3.BringToFront();}}};
+   bool arranging=false,rebuilding=false;Action arrange=()=>{if(grid.IsDisposed||arranging||rebuilding)return;arranging=true;try{var rows=grid.Rows.Cast<DataGridViewRow>().Where(r=>r.Tag is RouteList).GroupBy(r=>((RouteList)r.Tag).Id).ToDictionary(g=>g.Key,g=>g.First());foreach(var field in fields){DataGridViewRow row;rows.TryGetValue(field.Item1,out row);if(row==null){field.Item3.Visible=false;continue;}var rect=grid.GetCellDisplayRectangle(field.Item2,row.Index,false);bool visible=rect.Bottom>grid.ColumnHeadersHeight&&rect.Top<grid.ClientSize.Height&&rect.Width>30;field.Item3.Visible=visible;if(visible){field.Item3.SetBounds(rect.Left+4,rect.Top+5,Math.Max(20,rect.Width-12),rect.Height-10);var clip=Rectangle.Intersect(new Rectangle(0,grid.ColumnHeadersHeight,grid.ClientSize.Width-14,Math.Max(0,grid.ClientSize.Height-grid.ColumnHeadersHeight)),field.Item3.Bounds);clip.Offset(-field.Item3.Left,-field.Item3.Top);if(!(field.Item3.Tag is Rectangle)||(Rectangle)field.Item3.Tag!=clip){var previousRegion=field.Item3.Region;field.Item3.Region=new Region(clip);field.Item3.Tag=clip;if(previousRegion!=null)previousRegion.Dispose();}}}}finally{arranging=false;}};
    Func<RouteList,GlassPicker,int,GlassPicker> add=(route,pick,column)=>{grid.Controls.Add(pick);fields.Add(Tuple.Create(route.Id,column,pick));pick.MouseWheel+=(s,e)=>((GlassGrid)grid).ShiftRows(e.Delta>0?-3:3);return pick;};
    rebuildRouteFields=()=>{
-    if(grid.IsDisposed)return;foreach(var field in fields)field.Item3.Dispose();fields.Clear();var presets=RoutePresets.Groups;
+    if(grid.IsDisposed)return;rebuilding=true;grid.SuspendLayout();try{foreach(var field in fields)field.Item3.Dispose();fields.Clear();var presets=RoutePresets.Groups;
     var targets=new List<string>{"proxy","direct","block","byetube"};var names=new List<string>{"VPN / прокси","Напрямую","Блокировать","ByeTube"};
     foreach(var p in state.ZapretProfiles){targets.Add("zapret:"+p.Id);names.Add("Zapret → "+ZapretStrategy.CleanLabel(p.Name));}foreach(var p in WarpOutputs.Profiles(state)){targets.Add(WarpOutputs.Tag(p));names.Add("WARP → "+p.Name);}
     foreach(DataGridViewRow row in grid.Rows){row.Height=48;var route=row.Tag as RouteList;if(route==null)continue;
@@ -46,25 +46,25 @@ namespace SplifyWin {
      scope.SetItems(new[]{"Текущие записи / исключения"}.Concat(presets.Select(p=>p.Name)));scope.ItemSource=i=>i==0?RouteSources.SourceLabel(route):presets[i-1].SourceLabel;scope.ItemHint=i=>i==0?"Сохранённые адреса, приложения и ручные дополнения":presets[i-1].Description;
      var attached=RoutePresetSelection.Attached(route,presets);scope.SetChecked(0,true);for(int i=0;i<presets.Length;i++)scope.SetChecked(i+1,attached.Contains(presets[i]));scope.SelectionTextOverride=()=>{var actual=scope.SelectedIndices.Where(n=>n>0).ToArray();return actual.Length>1?"Несколько":actual.Length==1?presets[actual[0]-1].Name:ZapretStrategy.CleanLabel(route.Name);};scope.CheckedItemsChanged+=async(s,e)=>{var indices=scope.SelectedIndices;await ChangeInlineRoute(route.Id,r=>RoutePresetSelection.Build(core,r,indices.Where(i=>i>0).Select(i=>presets[i-1]).ToArray(),indices.Contains(0)));};
      var output=add(route,new GlassPicker{Name="routeOutput_"+route.Id,FlatSurface=true,EmptySelectionText="Выход удалён"},4);var routeTargets=targets.ToList();var routeNames=names.ToList();if(route.Target=="tgws"){routeTargets.Add("tgws");routeNames.Add("Telegram WS");}output.SetItems(routeNames);output.SelectedIndex=routeTargets.IndexOf(route.Target=="zapret"?"zapret:"+route.ZapretProfileId:route.Target);output.ItemHint=i=>routeTargets[i];output.SelectedIndexChanged+=async(s,e)=>{if(output.SelectedIndex<0)return;string target=routeTargets[output.SelectedIndex];await ChangeInlineRoute(route.Id,r=>{r.Target=target.StartsWith("zapret:")?"zapret":target;r.ZapretProfileId=target.StartsWith("zapret:")?target.Substring(7):null;return Task.FromResult(r);});};if(grid.Columns.Contains("routeDns")){var dns=add(route,new GlassPicker{Name="routeDns_"+route.Id,FlatSurface=true},7);dns.SetItems(new[]{ExitDnsRouting.Label(state,route),"Изменить DNS…"});dns.SelectedIndex=0;dns.Enabled=route.Target!="tgws"&&route.Target!="block";dns.ItemHint=i=>"DNS для доменных списков в TUN. Для IP не требуется; условия по приложениям и собственный DoH браузера не гарантируются.";dns.SelectedIndexChanged+=(s,e)=>{if(dns.SelectedIndex==1){dns.SelectedIndex=0;EditRouteDns(route);}};}
-    }arrange();
+    }}finally{rebuilding=false;grid.ResumeLayout(false);}arrange();
    };
-   grid.Scroll+=(s,e)=>arrange();grid.Resize+=(s,e)=>arrange();grid.ColumnWidthChanged+=(s,e)=>arrange();grid.Disposed+=(s,e)=>{foreach(var f in fields)f.Item3.Dispose();fields.Clear();if(routesGrid==grid)rebuildRouteFields=null;};
+   grid.Layout+=(s,e)=>arrange();grid.RowHeightChanged+=(s,e)=>arrange();grid.Scroll+=(s,e)=>arrange();grid.Resize+=(s,e)=>arrange();grid.ColumnWidthChanged+=(s,e)=>arrange();grid.Disposed+=(s,e)=>{foreach(var f in fields)f.Item3.Dispose();fields.Clear();if(routesGrid==grid)rebuildRouteFields=null;};
    grid.CellDoubleClick+=(s,e)=>{if(e.RowIndex>=0&&e.ColumnIndex==2&&!routeInlineBusy)EditRoute(grid.Rows[e.RowIndex].Tag as RouteList);};
    grid.CellContentClick+=async(s,e)=>{
     if(e.RowIndex<0||(e.ColumnIndex!=5&&e.ColumnIndex!=6)||routeInlineBusy)return;
     bool tcp=e.ColumnIndex==5;
     var route=grid.Rows[e.RowIndex].Tag as RouteList;if(route==null)return;
-    await ChangeInlineRoute(route.Id,r=>{
+    await ChangeInlineRoute(route.Id,async r=>{
      bool enabled=tcp?r.GameTcpEnabled:r.GameUdpEnabled;
      if(!enabled){
       if(r.Target!="zapret")throw new InvalidOperationException("Для Game Filter сначала выберите выход Zapret → профиль.");
       var profile=state.ZapretProfiles.FirstOrDefault(p=>p.Id==r.ZapretProfileId);
-      zapret.Prepare();var strategy=profile==null?null:ZapretCatalog.Load(zapret.DirectoryPath).FirstOrDefault(p=>p.Id==profile.Settings.Strategy);
+      var strategy=await Task.Run(()=>{zapret.Prepare();return profile==null?null:ZapretCatalog.Load(zapret.DirectoryPath).FirstOrDefault(p=>p.Id==profile.Settings.Strategy);});
       if(strategy==null||!strategy.GameAvailable)throw new InvalidOperationException("Выберите для этого профиля стратегию Flowseal с доступной игровой частью (например ALT12).");
       var settings=new ZapretSettings{ScopeText=r.Text,MatchMode=r.MatchMode,GameFilterTcp=tcp,GameFilterUdp=!tcp};
-      zapret.BuildArguments(settings,strategy,System.IO.Path.Combine(core.DataRoot,"game-filter-validation"));
+      await Task.Run(()=>zapret.BuildArguments(settings,strategy,System.IO.Path.Combine(core.DataRoot,"game-filter-validation")));
      }
-     r.GameFilterTcp=tcp?!enabled:r.GameTcpEnabled;r.GameFilterUdp=tcp?r.GameUdpEnabled:!enabled;r.GameFilter=false;return Task.FromResult(r);
+     r.GameFilterTcp=tcp?!enabled:r.GameTcpEnabled;r.GameFilterUdp=tcp?r.GameUdpEnabled:!enabled;r.GameFilter=false;return r;
     });
    };
    rebuildRouteFields();

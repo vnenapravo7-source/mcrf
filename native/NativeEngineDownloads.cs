@@ -15,7 +15,7 @@ namespace SplifyWin {
     string engineReturnPage;
     string[] requestedEngines=new string[0];
     async Task<bool> OfferEngineDownload(ServerNode[] nodes){
-      var missing=nodes.Where(n=>new[]{"openflux","csqtt","wdtt"}.Contains(n.Protocol)&&!core.HasEngine(n)).Select(n=>n.Protocol).Distinct().ToArray();
+      var missing=nodes.Where(n=>new[]{"openflux","csqtt","wdtt","qwdtt"}.Contains(n.Protocol)&&!core.HasEngine(n)).Select(n=>n.Protocol).Distinct().ToArray();
       if(missing.Length==0)return false;
       if(await ConfirmChange("Для этого подключения нужно скачать: "+String.Join(", ",missing.Select(x=>x.ToUpperInvariant()))+".\nПосле установки вернём вас к добавлению подключения. Введённые данные сохранятся.","Перейти к скачиванию","Нужен дополнительный движок"))OpenRequiredEngines(missing);
       return true;
@@ -37,7 +37,7 @@ namespace SplifyWin {
       var intro=L("Дополнительные движки скачиваются один раз. После установки профиль готов к подключению — перезапуск не нужен. Загрузка продолжится, если закрыть это окно.",10,false,Muted);intro.AutoSize=false;intro.SetBounds(22,14,body.Width-44,58);intro.Anchor=AnchorStyles.Top|AnchorStyles.Left|AnchorStyles.Right;body.Controls.Add(intro);
       int row=0;var timer=new Timer{Interval=160};
       foreach(var package in core.Engines.Packages){var p=package;int y=82+row++*112;var name=L(p.Name,15,true);name.SetBounds(22,y,145,26);body.Controls.Add(name);
-        var description=L(p.Id=="csqtt"?"TURN/RTP · включает локальный мост WDTT · некоммерческая лицензия":p.Id=="wdtt"?"WireGuard через DTLS/TURN · локальный SOCKS5":"TCP-туннель с переключаемыми транспортами",9,false,Muted);description.AutoSize=false;description.SetBounds(172,y,body.Width-194,28);description.Anchor=AnchorStyles.Top|AnchorStyles.Left|AnchorStyles.Right;body.Controls.Add(description);
+        var description=L(p.Id=="csqtt"?"TURN/RTP · включает локальный мост WDTT · некоммерческая лицензия":p.Id=="wdtt"?"WireGuard через DTLS/TURN · локальный SOCKS5":p.Id=="qwdtt"?"QUIC через TURN · VK · локальный SOCKS5":"TCP-туннель с переключаемыми транспортами",9,false,Muted);description.AutoSize=false;description.SetBounds(172,y,body.Width-194,28);description.Anchor=AnchorStyles.Top|AnchorStyles.Left|AnchorStyles.Right;body.Controls.Add(description);
         var status=L("",9,false,Muted);status.Name="engineStatus_"+p.Id;status.AutoSize=false;status.SetBounds(22,y+34,body.Width-350,40);status.Anchor=AnchorStyles.Top|AnchorStyles.Left|AnchorStyles.Right;body.Controls.Add(status);
         var bar=new EngineProgress{Name="engineProgress_"+p.Id,Location=new Point(22,y+76),Size=new Size(body.Width-350,16),Anchor=AnchorStyles.Top|AnchorStyles.Left|AnchorStyles.Right};body.Controls.Add(bar);
         var download=B("Скачать",async(s,e)=>{if(core.Engines.State(p.Id).Busy){core.Engines.Cancel(p.Id);return;}await DownloadEngine(p.Id);},true);download.Name="engineDownload_"+p.Id;download.SetBounds(body.Width-300,y+38,160,38);download.Anchor=AnchorStyles.Top|AnchorStyles.Right;body.Controls.Add(download);

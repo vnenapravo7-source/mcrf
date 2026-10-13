@@ -22,6 +22,13 @@ foreach ($name in @('discord-capture-check.exe','hotkey-check.exe','game-split-r
     $binary = Join-Path $workRoot $name
     if (Test-Path -LiteralPath $binary -PathType Leaf) { $targets.Add($binary) }
 }
+# Isolated engine compilation copies; retain pristine sources, SDKs and toolchains.
+$engineBuildRoot = Join-Path $workRoot 'zapret\build'
+if (Test-Path -LiteralPath $engineBuildRoot -PathType Container) {
+    foreach ($item in (Get-ChildItem -LiteralPath $engineBuildRoot -Directory)) {
+        if ($item.Name -match '^[a-f0-9]{32}$') { $targets.Add($item.FullName) }
+    }
+}
 $plan = @($targets | Select-Object -Unique | ForEach-Object {
     $resolved = (Get-Item -LiteralPath $_ -Force).FullName
     if (!$resolved.StartsWith($projectRoot+'\', [StringComparison]::OrdinalIgnoreCase) -or $resolved -eq $projectRoot) { throw "Unsafe cleanup target: $resolved" }

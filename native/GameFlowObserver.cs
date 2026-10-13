@@ -25,6 +25,7 @@ namespace SplifyWin {
   IntPtr module;readonly IntPtr[] handles={IntPtr.Zero,IntPtr.Zero};readonly Thread[] workers=new Thread[2];
   RecvFn receive;HandleFn close;ShutdownFn shutdown;FormatFn format;string[] names;volatile bool running;
   public bool Running{get{return running;}} public string Error{get;private set;}
+  public bool IncludeClosedEvents{get;set;}
   T Function<T>(string name) where T:class {var address=GetProcAddress(module,name);if(address==IntPtr.Zero)throw new IOException("Нет функции наблюдения "+name);return Marshal.GetDelegateForFunctionPointer(address,typeof(T)) as T;}
   public void Start(string directory,GamePreset game){
    Stop();if(workers.Any(t=>t!=null&&t.IsAlive))throw new IOException("Предыдущая запись ещё завершается. Повторите позже.");Error=null;lock(gate)pending.Clear();names=game.Processes.ToArray();
@@ -40,7 +41,7 @@ namespace SplifyWin {
   void Observe(int slot){IntPtr address=Marshal.AllocHGlobal(80);try{
    uint length;while(running&&receive(handles[slot],IntPtr.Zero,0,out length,address)){
     if(!running)break;int bits=Marshal.ReadInt32(address,8),kind=(bits>>8)&255;
-    if(kind!=1&&kind!=4&&kind!=6)continue;
+    bool closed=kind==2||kind==7;if(kind!=1&&kind!=4&&kind!=6&&!(IncludeClosedEvents&&closed))continue;
     int protocol=Marshal.ReadByte(address,72),port=(ushort)Marshal.ReadInt16(address,70),pid=Marshal.ReadInt32(address,32);
     if((protocol!=6&&protocol!=17)||port==0||pid<=0)continue;
     long now,freq;QueryPerformanceCounter(out now);QueryPerformanceFrequency(out freq);long stamp=Marshal.ReadInt64(address);double elapsed=freq>0?(now-stamp)/(double)freq:-1;if(elapsed<0||elapsed>30)continue;
@@ -49,7 +50,7 @@ namespace SplifyWin {
      var path=new StringBuilder(2048);int capacity=path.Capacity;if(!QueryFullProcessImageName(handle,0,path,ref capacity)||process.HasExited)continue;
      if(!names.Contains(Path.GetFileName(path.ToString()),StringComparer.OrdinalIgnoreCase))continue;
      var ipText=new StringBuilder(80);if(!format(IntPtr.Add(address,52),ipText,80))continue;IPAddress ip;if(!IPAddress.TryParse(ipText.ToString(),out ip))continue;if(ip.IsIPv4MappedToIPv6)ip=ip.MapToIPv4();if(IPAddress.IsLoopback(ip)||ip.Equals(IPAddress.Any)||ip.Equals(IPAddress.IPv6Any))continue;
-     lock(gate){if(pending.Count<4096)pending.Enqueue(new Dictionary<string,string>{{"processPath",path.ToString()},{"destinationIP",ip.ToString()},{"destinationPort",port.ToString()},{"network",protocol==6?"tcp":"udp"}});else Error="Очередь записи переполнена; часть соединений пропущена.";}
+     lock(gate){if(pending.Count<4096)pending.Enqueue(new Dictionary<string,string>{{"processPath",path.ToString()},{"destinationIP",ip.ToString()},{"destinationPort",port.ToString()},{"network",protocol==6?"tcp":"udp"},{"event",closed?"closed":"opened"},{"endpointId",Marshal.ReadInt64(address,16).ToString()}});else Error="Очередь записи переполнена; часть соединений пропущена.";}
     }}catch(System.ComponentModel.Win32Exception){}catch(ArgumentException){}catch(InvalidOperationException){}
    }
    if(running){Error="Наблюдение соединений остановилось: "+Marshal.GetLastWin32Error();running=false;}

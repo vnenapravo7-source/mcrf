@@ -1,4 +1,4 @@
-param([string]$OutputPath,[string[]]$TestSources,[string]$TestEntryPoint)
+param([string]$OutputPath,[string[]]$TestSources,[string]$TestEntryPoint,[switch]$Wpf)
 $ErrorActionPreference = 'Stop'
 $project = Split-Path -Parent $PSScriptRoot
 if (-not $OutputPath) { $OutputPath = Join-Path $project 'outputs\native\mcrf.exe' }
@@ -6,14 +6,17 @@ New-Item -ItemType Directory -Path (Split-Path -Parent ([System.IO.Path]::GetFul
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if (-not (Test-Path $compiler)) { throw 'Windows .NET Framework compiler was not found.' }
 $iconTool = Join-Path $project 'work\brand\make-icon.exe'
-$iconFile = Join-Path $project 'work\brand\7olet.ico'
+$iconFile = Join-Path $project 'work\brand\mcrf.ico'
+$logoFile = Join-Path $PSScriptRoot 'assets/mcrf-logo.png'
 New-Item -ItemType Directory -Path (Split-Path -Parent $iconTool) -Force | Out-Null
-& $compiler '/nologo' '/target:exe' "/out:$iconTool" '/r:System.Drawing.dll' (Join-Path $PSScriptRoot 'BrandArt.cs') (Join-Path $PSScriptRoot 'IconGenerator.cs')
+& $compiler '/nologo' '/target:exe' "/out:$iconTool" '/r:System.Drawing.dll' "/resource:$logoFile,SplifyWin.UI.Logo.png" (Join-Path $PSScriptRoot 'BrandArt.cs') (Join-Path $PSScriptRoot 'IconGenerator.cs')
 if ($LASTEXITCODE -ne 0) { throw 'Icon builder failed.' }
 & $iconTool $iconFile
 if ($LASTEXITCODE -ne 0) { throw 'Icon generation failed.' }
 $core = Join-Path $project 'work\sing-box-lx\sing-box-1.14.2-lx.11-windows-amd64'
 $resources = @(
+  @($logoFile, 'SplifyWin.UI.Logo.png'),
+  @($iconFile, 'SplifyWin.UI.AppIcon.ico'),
   @((Join-Path $PSScriptRoot 'assets/preset-bundle.json'), 'SplifyWin.Presets.bundle'),
   @((Join-Path $project 'work/byedpi/extracted/ciadpi.exe'), 'SplifyWin.ByeTube.ciadpi.exe'),
   @((Join-Path $project 'work/byedpi/LICENSE'), 'SplifyWin.ByeTube.LICENSE'),
@@ -29,7 +32,7 @@ $resources = @(
   @((Join-Path $core 'LICENSE'), 'SplifyWin.Core.LICENSE'),
   @((Join-Path $project 'work\openflux\LICENSE'), 'SplifyWin.Core.LICENSE.openflux'),
   @((Join-Path $PSScriptRoot 'turn-engines\NOTICES.txt'), 'SplifyWin.Core.LICENSE.turn-engines.txt'),
-  @((Join-Path $project 'outputs\engine-packages\engine-catalog.json'), 'SplifyWin.Core.engine-catalog.json'),
+  @((Join-Path $PSScriptRoot 'assets/optional-engines.json'), 'SplifyWin.Core.engine-catalog.json'),
   @((Join-Path $project 'work\tgws\TgWsProxy_lite_windows_amd64.exe'), 'SplifyWin.Core.tgws.exe'),
   @((Join-Path $project 'work\tgws\LICENSE'), 'SplifyWin.Core.LICENSE.tgws'),
   @((Join-Path $project 'work\warpscout\extracted\warpscout.exe'), 'SplifyWin.Core.warpscout.exe'),
@@ -53,20 +56,33 @@ $resources = @(
   @((Join-Path $project 'work\zapret\tls_clienthello_gosuslugi_ru.bin'), 'SplifyWin.Zapret.tls_clienthello_gosuslugi_ru.bin'),
   @((Join-Path $PSScriptRoot 'assets\blue-glass-backdrop.png'), 'SplifyWin.UI.BlueGlassBackdrop.png')
 )
+if ($Wpf) {
+  $qrLibrary=Join-Path $project 'work/qrcode/qrcoder-1.6.0/package/lib/net40/QRCoder.dll'
+  if ((Get-FileHash -LiteralPath $qrLibrary -Algorithm SHA256).Hash -ne '5AE2792C76262943A4E34140BBD64B2AA7D9ED5C5822680C00D9EAA322412680') { throw 'QRCoder dependency checksum changed.' }
+  $resources+=,@($qrLibrary,'Mcrf.Managed.QRCoder.dll')
+  $resources+=,@((Join-Path $project 'work/qrcode/qrcoder-1.6.0/LICENSE.txt'),'Mcrf.Managed.LICENSE.QRCoder.txt')
+  $sshRoot=Join-Path $project 'work/sshnet'
+  $sshFiles=@('ssh.net-2025.1.0/lib/net462/Renci.SshNet.dll','microsoft.bcl.asyncinterfaces-8.0.0/lib/net462/Microsoft.Bcl.AsyncInterfaces.dll','bouncycastle.cryptography-2.6.2/lib/net461/BouncyCastle.Cryptography.dll','microsoft.extensions.logging.abstractions-8.0.3/lib/net462/Microsoft.Extensions.Logging.Abstractions.dll','microsoft.extensions.dependencyinjection.abstractions-8.0.2/lib/net462/Microsoft.Extensions.DependencyInjection.Abstractions.dll','system.formats.asn1-8.0.2/lib/net462/System.Formats.Asn1.dll','system.memory-4.5.5/lib/net461/System.Memory.dll','system.numerics.vectors-4.5.0/lib/net46/System.Numerics.Vectors.dll','system.buffers-4.5.1/lib/net461/System.Buffers.dll','system.runtime.compilerservices.unsafe-6.0.0/lib/net461/System.Runtime.CompilerServices.Unsafe.dll','system.threading.tasks.extensions-4.5.4/lib/net461/System.Threading.Tasks.Extensions.dll')
+  foreach ($file in $sshFiles) { $resources+=,@((Join-Path $sshRoot $file),('Mcrf.Managed.'+[IO.Path]::GetFileName($file))) }
+}
 $arguments = @('/nologo', '/platform:x64', '/target:winexe', '/optimize+', "/out:$OutputPath", "/win32icon:$iconFile", "/win32manifest:$(Join-Path $PSScriptRoot 'assets\app.manifest')", '/r:System.Windows.Forms.dll', '/r:System.Web.Extensions.dll', '/r:System.Web.dll', '/r:System.IO.Compression.dll', '/r:System.IO.Compression.FileSystem.dll')
 Add-Type -AssemblyName System.IO.Compression
 $packedRoot=Join-Path $project 'work/packed-resources'
 New-Item -ItemType Directory -Path $packedRoot -Force | Out-Null
 foreach ($item in $resources) {
+  # Optional transports are downloaded on demand, never embedded in mcrf.exe.
+  if ([IO.Path]::GetFileName($item[0]) -match '^(openflux(?:-windows-amd64)?|csqtt-client|wdtt-client|qwdtt-client|libunwind)\.(exe|dll)$') {
+    throw "Optional engine must not be bundled: $($item[0])"
+  }
   if (-not (Test-Path $item[0])) { throw "Missing bundled resource: $($item[0])" }
-  if ($item[0] -match '\.(exe|dll)$') {
+  if ($item[0] -match '\.(exe|dll)$' -or $item[1] -eq 'SplifyWin.Presets.bundle') {
     $packed=Join-Path $packedRoot ($item[1]+'.deflate')
     $input=[IO.File]::OpenRead($item[0]);$output=[IO.File]::Create($packed)
     try{$deflate=[IO.Compression.DeflateStream]::new($output,[IO.Compression.CompressionLevel]::Optimal,$true);try{$input.CopyTo($deflate)}finally{$deflate.Dispose()}}finally{$input.Dispose();$output.Dispose()}
     $arguments += "/resource:$packed,$($item[1]).deflate"
   } else { $arguments += "/resource:$($item[0]),$($item[1])" }
 }
-$arguments += @((Join-Path $PSScriptRoot 'AssemblyInfo.cs'), (Join-Path $PSScriptRoot 'AppBrand.cs'), (Join-Path $PSScriptRoot 'ClientModel.cs'), (Join-Path $PSScriptRoot 'PresetStorage.cs'), (Join-Path $PSScriptRoot 'TurnProfile.cs'), (Join-Path $PSScriptRoot 'TurnEngines.cs'), (Join-Path $PSScriptRoot 'NetworkCore.cs'), (Join-Path $PSScriptRoot 'RouteCompiler.cs'), (Join-Path $PSScriptRoot 'SecondPart.cs'), (Join-Path $PSScriptRoot 'Zapret.cs'), (Join-Path $PSScriptRoot 'OwnedJob.cs'), (Join-Path $PSScriptRoot 'WarpScout.cs'), (Join-Path $PSScriptRoot 'SystemProxy.cs'), (Join-Path $PSScriptRoot 'BrandArt.cs'), (Join-Path $PSScriptRoot 'BlueGlassDashboard.cs'), (Join-Path $PSScriptRoot 'NativeClient.cs'))
+$arguments += @((Join-Path $PSScriptRoot 'AssemblyInfo.cs'), (Join-Path $PSScriptRoot 'AppBrand.cs'), (Join-Path $PSScriptRoot 'ClientModel.cs'), (Join-Path $PSScriptRoot 'PresetStorage.cs'), (Join-Path $PSScriptRoot 'Qwdtt.cs'), (Join-Path $PSScriptRoot 'VkCalls.cs'), (Join-Path $PSScriptRoot 'TurnProfile.cs'), (Join-Path $PSScriptRoot 'TurnEngines.cs'), (Join-Path $PSScriptRoot 'NetworkCore.cs'), (Join-Path $PSScriptRoot 'RouteCompiler.cs'), (Join-Path $PSScriptRoot 'SecondPart.cs'), (Join-Path $PSScriptRoot 'Zapret.cs'), (Join-Path $PSScriptRoot 'OwnedJob.cs'), (Join-Path $PSScriptRoot 'WarpScout.cs'), (Join-Path $PSScriptRoot 'SystemProxy.cs'), (Join-Path $PSScriptRoot 'BrandArt.cs'), (Join-Path $PSScriptRoot 'BlueGlassDashboard.cs'), (Join-Path $PSScriptRoot 'NativeClient.cs'))
 $arguments += (Join-Path $PSScriptRoot 'ClientJournal.cs')
 $arguments += (Join-Path $PSScriptRoot 'ChangeConfirmation.cs')
 $arguments += (Join-Path $PSScriptRoot 'HostsRepair.cs')
@@ -96,6 +112,7 @@ $arguments += (Join-Path $PSScriptRoot 'ZapretResultTable.cs')
 $arguments += (Join-Path $PSScriptRoot 'NativeZapretProfiles.cs')
 $arguments += (Join-Path $PSScriptRoot 'ZapretRoutes.cs')
 $arguments += (Join-Path $PSScriptRoot 'AppUpdates.cs')
+$arguments += (Join-Path $PSScriptRoot 'CoreEngineUpdates.cs')
 $arguments += (Join-Path $PSScriptRoot 'NativeUpdates.cs')
 $arguments += '/r:System.Security.dll'
 $arguments += (Join-Path $PSScriptRoot 'NativeSetup.cs')
@@ -120,11 +137,30 @@ $arguments += (Join-Path $PSScriptRoot 'NeonServerMap.cs')
 $arguments += ('/resource:' + (Join-Path $PSScriptRoot 'assets\mcrf-dotted-atlas.png') + ',SplifyWin.UI.NeonGlobe.png')
 $arguments += (Join-Path $PSScriptRoot 'GameProfiles.cs')
 $arguments += (Join-Path $PSScriptRoot 'GameFlowObserver.cs')
+$arguments += (Join-Path $PSScriptRoot 'WardogsAutopause.cs')
+$arguments += (Join-Path $PSScriptRoot 'AdaptiveStrategySearch.cs')
+$arguments += (Join-Path $PSScriptRoot 'StrategyEditorPage.cs')
+$arguments += (Join-Path $PSScriptRoot 'StrategyParameterEditor.cs')
+$arguments += (Join-Path $PSScriptRoot 'BatStrategyConfig.cs')
 $arguments += (Join-Path $PSScriptRoot 'RouteInlineEditor.cs')
 $arguments += (Join-Path $PSScriptRoot 'ProfileHotkeys.cs')
 $arguments += (Join-Path $PSScriptRoot 'SingleInstance.cs')
+$arguments += (Join-Path $PSScriptRoot 'NetworkWallpaper.cs')
 $arguments += (Join-Path $PSScriptRoot 'DiscordCaptureFilter.cs')
 $arguments += @('ApplicationExclusions.cs','SteamGameTemplates.cs','RoutingToolsPage.cs','CustomStrategies.cs','StrategyWorkshopPage.cs','RouteDnsPage.cs') | ForEach-Object { Join-Path $PSScriptRoot $_ }
+if ($Wpf) {
+  $wpfRoot=Join-Path $project 'wpf'
+  $arguments=@($arguments | Where-Object { $_ -notlike '/win32manifest:*' })
+  $arguments+=('/win32manifest:'+(Join-Path $wpfRoot 'app.manifest'))
+  $framework=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319'
+  $arguments+=('/r:'+$qrLibrary)
+  $arguments+=@('/r:System.Xaml.dll',('/r:'+(Join-Path $project 'work/sshnet/ssh.net-2025.1.0/lib/net462/Renci.SshNet.dll')))
+  $arguments+=@('PresentationFramework.dll','PresentationCore.dll','WindowsBase.dll','WindowsFormsIntegration.dll') | ForEach-Object { '/r:'+(Join-Path $framework ('WPF/'+$_)) }
+  $arguments+=Get-ChildItem -LiteralPath $wpfRoot -Filter '*.cs' | ForEach-Object FullName
+  $arguments+=('/resource:'+(Join-Path $wpfRoot 'Theme.xaml')+',Mcrf.Wpf.Theme.xaml')
+  $arguments+=('/resource:'+(Join-Path $wpfRoot 'Provisioning.py')+',Mcrf.Deployment.Provisioning.py')
+  if (!$TestSources) { $arguments+='/main:Mcrf.Wpf.Program' }
+}
 if ($TestSources) {
   if (-not $TestEntryPoint) { throw 'Tests require an explicit entry point.' }
   $arguments = @('/target:exe', "/main:$TestEntryPoint") + @($arguments | Where-Object { $_ -ne '/target:winexe' -and $_ -notlike '/win32manifest:*' })

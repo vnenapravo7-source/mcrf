@@ -10,7 +10,7 @@ namespace SplifyWin {
   public static ServiceProfileRecommendation[] Choose(ZapretCheckReport report){
    if(report==null)return new ServiceProfileRecommendation[0];var answers=new List<ServiceProfileRecommendation>();
    foreach(var service in ZapretChecks.Services.Where(ZapretChecks.CanCheckZapret).Concat(new[]{DiscordVoiceScores.Service})){
-    var candidate=report.Rows.Where(r=>!r.Checking&&!String.IsNullOrEmpty(r.StrategyId)&&String.IsNullOrEmpty(r.Error)&&r.Access(service.Id)==ServiceAccess.Available).OrderBy(r=>service.Id=="discord-voice"&&r.Services.First(s=>s.Id==service.Id).PingQuality=="high"?1:0).ThenBy(r=>{var result=r.Services.First(s=>s.Id==service.Id);return result.Milliseconds>0?result.Milliseconds:Int32.MaxValue;}).ThenBy(r=>r.StrategyId,StringComparer.Ordinal).FirstOrDefault();
+    var candidate=report.Adaptive?AdaptiveStrategySearch.BestForService(report,service.Id,true):report.Rows.Where(r=>!r.Checking&&!String.IsNullOrEmpty(r.StrategyId)&&String.IsNullOrEmpty(r.Error)&&r.Access(service.Id)==ServiceAccess.Available).OrderBy(r=>service.Id=="discord-voice"&&r.Services.First(s=>s.Id==service.Id).PingQuality=="high"?1:0).ThenBy(r=>{var result=r.Services.First(s=>s.Id==service.Id);return result.Milliseconds>0?result.Milliseconds:Int32.MaxValue;}).ThenBy(r=>r.StrategyId,StringComparer.Ordinal).FirstOrDefault();
     if(candidate!=null)answers.Add(new ServiceProfileRecommendation{Service=service,Row=candidate,Milliseconds=candidate.Services.First(s=>s.Id==service.Id).Milliseconds});
    }return answers.ToArray();
   }

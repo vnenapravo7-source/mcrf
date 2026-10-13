@@ -1,3 +1,15 @@
+diff --git a/nfq/darkmagic.c b/nfq/darkmagic.c
+--- a/nfq/darkmagic.c
++++ b/nfq/darkmagic.c
+@@ -1435,7 +1435,7 @@
+ 	hMutex = CreateMutexA(NULL,TRUE,mutex_name);
+ 	if (hMutex && GetLastError()==ERROR_ALREADY_EXISTS)
+ 		WaitForSingleObject(hMutex,INFINITE);
+-	h = WinDivertOpen(filter, WINDIVERT_LAYER_NETWORK, 0, flags);
++	h = WinDivertOpen(filter, WINDIVERT_LAYER_NETWORK, -100, flags);
+ 	w_win32_error = GetLastError();
+ 
+ 	if (hMutex)
 diff --git a/nfq/nfqws.c b/nfq/nfqws.c
 index d88350b..aad22ac 100644
 --- a/nfq/nfqws.c

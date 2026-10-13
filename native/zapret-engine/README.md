@@ -18,7 +18,28 @@ checkboxes add the selected Flowseal strategy's respective game profiles on port
 Every game profile
 retains the routing list's IP/application constraints; domain-only game scopes
 are rejected. Game Filter is off by default and saved per routing list.
-Address-only lists continue using the upstream binary unchanged.
+Routes marked "Original engine" use the upstream binary unchanged; all other
+routes use MCRF's binary, including address-only routes. A profile may contain
+both kinds of routes: it is partitioned before argument generation. Original
+routes reject process conditions; adjacent MCRF routes retain process matching.
+Global application exclusions cannot be enforced by upstream and cause a clear
+validation error while original routes are active.
+
+For simultaneous execution, the MCRF NETWORK handle uses priority -100, below
+upstream priority 0. Each MCRF desync block excludes the original routes' IP and
+host lists; impostor packets remain excluded by upstream's capture prolog. A
+false raw filter part distinguishes the capture mutex from upstream. This does
+not bypass WinDivert entirely for excluded packets: hostname checks still occur
+in the engine. Both owned processes are stopped on cancellation/startup failure.
+
+Wardogs arhekog's targeted template enables an independent automatic pause. Match
+detection uses the selected Wardogs executable's UDP connection metadata to
+85.236.96.0/21 on ports 7000-8000 (two-second debounce), or current Unreal game
+logs confirming a join. Disconnect/return-to-menu or process exit resumes the
+profile. These are detection heuristics, not a verified universal game-state API.
+Only its marked original-engine routes are removed while paused; other original
+routes are rebuilt and MCRF's process is not restarted. No match-IP entry is needed.
+The observer never diverts traffic; this feature still needs a live-match check.
 
 Process recording without VPN uses separate FLOW/SOCKET SNIFF|RECV_ONLY handles
 through GameFlowObserver.cs. It collects IPs of newly observed TCP/UDP connections
