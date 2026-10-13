@@ -1,4 +1,4 @@
-param([string]$RunName='release-1.0.11')
+param([string]$RunName='release-1.0.11',[switch]$OfflineStartupOnly)
 $ErrorActionPreference='Stop'
 $project=[IO.Path]::GetFullPath((Split-Path -Parent (Split-Path -Parent $PSScriptRoot)))
 if ($RunName -notmatch '^release-1\.0\.11(?:-[0-9]+)?$') { throw 'Unexpected release fixture name.' }
@@ -11,6 +11,28 @@ if (Test-Path -LiteralPath $fixtures) { throw 'Fresh release verification fixtur
 New-Item -ItemType Directory -Path $fixtures | Out-Null
 $evidence=Join-Path $releaseDirectory 'verification'
 New-Item -ItemType Directory -Path $evidence -Force | Out-Null
+$startupDirectory=Join-Path $fixtures 'startup'
+New-Item -ItemType Directory -Path $startupDirectory -Force | Out-Null
+$probe=Join-Path $startupDirectory 'startup-probe.exe'
+$framework=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319'
+& (Join-Path $framework 'csc.exe') /nologo /target:exe ("/out:"+$probe) /r:System.Xaml.dll ("/r:"+(Join-Path $framework 'WPF/WindowsBase.dll')) ("/r:"+(Join-Path $framework 'WPF/PresentationFramework.dll')) ("/r:"+(Join-Path $framework 'WPF/PresentationCore.dll')) (Join-Path $PSScriptRoot 'StartupThemeProbe20261014.cs')
+if($LASTEXITCODE -ne 0){throw 'Startup probe compilation failed.'}
+# Load the exact production EXE, not another build with a test Main(). Never show a window.
+$index=0
+$localizedName=(-join ([char[]]@(0x041c,0x043e,0x0439)))+' VPN.exe'
+foreach($name in @('mcrf.exe','mcrf (1).exe',$localizedName)) {
+ $copyDirectory=Join-Path $startupDirectory ('copy-'+$index)
+ New-Item -ItemType Directory -Path $copyDirectory | Out-Null
+ $copy=Join-Path $copyDirectory $name
+ Copy-Item -LiteralPath $production -Destination $copy
+ $lines=@(& $probe $copy --bootstrap 2>&1)
+ $code=$LASTEXITCODE
+ $lines | Out-File -LiteralPath (Join-Path $evidence ('startup-'+$index+'.txt')) -Encoding utf8
+ if($code -ne 0 -or 'STARTUP_OFFLINE_OK 30' -notin $lines){throw ('Exact production startup probe failed: '+$name)}
+ Write-Output ('STARTUP_OFFLINE_OK 30 / '+$name)
+ $index++
+}
+if($OfflineStartupOnly){Write-Output ('PRODUCTION_STARTUP_VERIFIED '+(Get-FileHash -LiteralPath $production -Algorithm SHA256).Hash.ToLowerInvariant());return}
 $suites=@(
  @{Name='outline';Entry='OutlineDeploymentCheck20261013';Summary='RESULT 3687 checks; 0 failures'},
  @{Name='routing-toggle';Entry='RoutingToggleCheck20261013';Summary='RESULT 160 checks; 0 failures'},
