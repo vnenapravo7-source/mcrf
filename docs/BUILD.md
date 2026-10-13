@@ -48,7 +48,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File native/build.ps1 -Wpf -Outpu
 Результат: `outputs/native/mcrf.exe`. Скрипт создаёт иконку и сжимает встроенные
 EXE/DLL без потери данных. Для компиляции запуск самого MCRF не требуется.
 
-Для сохранённой версии предрелиза используется `outputs/native/release-1.0.11/mcrf.exe`.
+Для сохранённой версии релиза используется `outputs/native/release-1.0.11/mcrf.exe`.
 `AssemblyVersion`/`AssemblyFileVersion` — 1.0.11.0, `AssemblyInformationalVersion` — 1.0.11.
 Приложение и тестовые EXE собираются последовательно: генератор значка общий.
 
