@@ -1,12 +1,14 @@
 # MCRF
 
-VPN/прокси, серверы, подписки и маршруты — в одном приложении.
+MCRF — мультиплатформенный клиент с широкой поддержкой транспортов.
 
-| Платформа | Скачать / статус |
-| --- | --- |
-| Windows x64 | [v1.0.11](https://github.com/vnenapravo7-source/mcrf/releases/tag/v1.0.11) |
-| Android | [v0.1.0 · тестовая версия](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.1.0-preview.20261015.1) |
-| Linux | В разработке; опубликованного выпуска пока нет |
+| Платформа | Скачать / статус | Основной VPN / прокси | Обход белых списков · доп. движки | Дополнительно |
+| --- | --- | --- | --- | --- |
+| Windows x64 | [v1.0.11](https://github.com/vnenapravo7-source/mcrf/releases/tag/v1.0.11) | VLESS, VMess, Trojan, Shadowsocks, Hysteria/2, TUIC, AnyTLS, NaiveProxy, SSH, HTTP/SOCKS5, WireGuard/AmneziaWG | CSQTT, WDTT, QWDTT, OpenFlux | Zapret, ByeTube, Telegram WS Proxy, WARP, автодеплой |
+| Android | [v0.1.0 · тестовая версия](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.1.0-preview.20261015.1) | Через sing-box: VLESS, VMess, Trojan, Shadowsocks, Hysteria/2, TUIC, AnyTLS, NaiveProxy, SSH, HTTP/SOCKS5, WireGuard/AmneziaWG; Steer — ограниченный набор | CSQTT, WDTT, QWDTT, OLCRTC, DNSTT; OpenFlux — в доработке | Telegram WS Proxy, WARP, Xray/TLS-модули, раздача HTTP/SOCKS5, автодеплой |
+| Linux | В разработке; опубликованного выпуска пока нет | Набор протоколов проходит приёмку | Набор транспортов проходит приёмку | Возможности будут перечислены после проверки |
+
+Наличие протокола не означает проверку всех серверов и сетей. Steer пока ограничен IPv4 и не заменяет весь набор sing-box; рабочий HTTPS через OpenFlux Android ещё не подтверждён.
 
 ## Основное
 
