@@ -30,7 +30,7 @@ MCRF — мультиплатформенный клиент с широкой �
 ![Windows — главная](docs/screenshots/home-wpf-1.0.11.png)
 
 <details>
-<summary>Android — плавный тур по интерфейсу</summary>
+<summary>Android</summary>
 
 <img src="docs/screenshots/android-tour.gif" alt="Android — реальные переходы и прокрутка интерфейса" width="360">
 
