@@ -30,15 +30,17 @@ MCRF — мультиплатформенный клиент с широкой �
 ![Windows — главная](docs/screenshots/home-wpf-1.0.11.png)
 
 <details>
-<summary>Android — автодеплой</summary>
+<summary>Android — плавный тур по интерфейсу</summary>
 
-<img src="docs/screenshots/android-autodeploy.png" alt="Android — автодеплой" width="320">
+<img src="docs/screenshots/android-tour.gif" alt="Android — реальные переходы и прокрутка интерфейса" width="360">
+
+Демонстрационные серверы, без подключения к сети. [Расширенный обзор Android](docs/ANDROID-GUIDE.md).
 
 </details>
 
 ## Документация
 
-[Windows: подробное руководство](docs/WINDOWS-GUIDE.md) · [Сборка](docs/BUILD.md) · [Исходники](docs/DEVELOPMENT.md) · [Сообщить о проблеме](https://github.com/vnenapravo7-source/mcrf/issues)
+[Windows: подробное руководство](docs/WINDOWS-GUIDE.md) · [Android: расширенный обзор](docs/ANDROID-GUIDE.md) · [Сборка](docs/BUILD.md) · [Исходники](docs/DEVELOPMENT.md) · [Сообщить о проблеме](https://github.com/vnenapravo7-source/mcrf/issues)
 
 Контрольные суммы, исходники и лицензии компонентов — рядом с пакетами в релизах.
 
