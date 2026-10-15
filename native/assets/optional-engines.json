@@ -7,7 +7,7 @@
       "Sha256": "e1a398efc07e7769167affdd84c8942a9b79d2e41c5b7d82668688a988098487",
       "Size": 6160199,
       "Version": "engines-2026-10-02-1",
-      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-02-1/mcrf-openflux-windows-amd64.zip",
+      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-openflux-windows-amd64.zip",
       "Files": [
         {
           "Size": 15303168,
@@ -27,7 +27,7 @@
       "Sha256": "0ccad6080f57998f9904ba9f6a2574aa4c4b68ff28d73a9b8bbbe280042de939",
       "Size": 7561835,
       "Version": "engines-2026-10-02-1",
-      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-02-1/mcrf-wdtt-windows-amd64.zip",
+      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-wdtt-windows-amd64.zip",
       "Files": [
         {
           "Size": 19125248,
@@ -52,7 +52,7 @@
       "Sha256": "8f5f3ec81a8505517ca749f768f3da865dba80a7277ff94e606f94727889bf6c",
       "Size": 12709783,
       "Version": "engines-2026-10-02-1",
-      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-02-1/mcrf-csqtt-windows-amd64.zip",
+      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-csqtt-windows-amd64.zip",
       "Files": [
         {
           "Size": 10883584,

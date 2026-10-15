@@ -59,7 +59,7 @@ EXE/DLL без потери данных. Для компиляции запус
 Скрипты: `native/turn-engines/build.ps1`, `native/zapret-engine/build.ps1` и
 `native/package-engines.ps1`. Они требуют отдельных инструментов и исходников,
 указанных внутри скриптов. Исходные архивы дополнительных движков доступны в
-[релизе движков](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-02-1).
+[релизе движков](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1).
 
 Лицензии сторонних компонентов сохраняются; публикация кода MCRF не заменяет их
 условия. Общая лицензия на собственный код приложения пока не выбрана.

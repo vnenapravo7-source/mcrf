@@ -20,12 +20,24 @@ namespace SplifyWin {
     readonly ConcurrentDictionary<string,EngineDownloadState> statuses=new ConcurrentDictionary<string,EngineDownloadState>();
     readonly ConcurrentDictionary<string,CancellationTokenSource> jobs=new ConcurrentDictionary<string,CancellationTokenSource>();
     readonly ConcurrentDictionary<string,string> verified=new ConcurrentDictionary<string,string>();
+    public const string SharedRelease="engines-2026-10-13-1";
+    // Relocate only the exact legacy URLs. Package versions and digests remain unchanged:
+    // installed directories and their verification must survive catalogue consolidation.
+    public static EngineCatalog RelocateLegacyCatalog(EngineCatalog data){
+      ValidateCatalog(data);
+      foreach(var p in data.Engines){
+        string file="mcrf-"+p.Id+"-windows-amd64.zip";
+        string old="https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-02-1/"+file;
+        if(String.Equals(p.Url,old,StringComparison.Ordinal))p.Url="https://github.com/vnenapravo7-source/mcrf/releases/download/"+SharedRelease+"/"+file;
+      }
+      return data;
+    }
     public IEnumerable<EnginePackage> Packages{get{return catalog.Engines;}}
     public string StorageRoot{get{return root;}}
     public OptionalEngines(string dataRoot):this(dataRoot,ReadActiveCatalog(dataRoot)){}
     static EngineCatalog ReadActiveCatalog(string dataRoot){try{var data=new JavaScriptSerializer().Deserialize<EngineCatalog>(File.ReadAllText(Path.Combine(dataRoot,"optional-engines-v2","active-catalog.json")));ValidateCatalog(data);return data;}catch(IOException){}catch(ArgumentException){}catch(InvalidDataException){}return ReadCatalog();}
     public static void ValidateCatalog(EngineCatalog data){if(data==null||data.Version!=1||data.Engines==null||data.Engines.Count<3||data.Engines.Count>4||data.Engines.Select(p=>p.Id).Distinct().Count()!=data.Engines.Count||new[]{"csqtt","openflux","wdtt"}.Any(id=>!data.Engines.Any(p=>p.Id==id))||data.Engines.Any(p=>!new[]{"csqtt","openflux","wdtt","qwdtt"}.Contains(p.Id)))throw new InvalidDataException("Некорректный каталог движков");foreach(var p in data.Engines)Validate(p);}
-    public OptionalEngines(string dataRoot,EngineCatalog data){root=Path.Combine(dataRoot,"optional-engines-v2");legacy=Path.Combine(dataRoot,"core");if(data!=null&&data.Engines!=null&&!data.Engines.Any(p=>p.Id=="qwdtt")){var q=ReadCatalog().Engines.FirstOrDefault(p=>p.Id=="qwdtt");if(q!=null)data.Engines.Add(q);}catalog=data;if(data==null||data.Version!=1||data.Engines==null)throw new InvalidDataException("Некорректный каталог движков");foreach(var p in Packages)Validate(p);}
+    public OptionalEngines(string dataRoot,EngineCatalog data){root=Path.Combine(dataRoot,"optional-engines-v2");legacy=Path.Combine(dataRoot,"core");if(data!=null&&data.Engines!=null&&!data.Engines.Any(p=>p.Id=="qwdtt")){var q=ReadCatalog().Engines.FirstOrDefault(p=>p.Id=="qwdtt");if(q!=null)data.Engines.Add(q);}catalog=RelocateLegacyCatalog(data);}
     static EngineCatalog ReadCatalog(){using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("SplifyWin.Core.engine-catalog.json"))using(var reader=new StreamReader(stream))return new JavaScriptSerializer().Deserialize<EngineCatalog>(reader.ReadToEnd());}
     static bool SafeName(string name){return !String.IsNullOrEmpty(name)&&Char.IsLetterOrDigit(name[0])&&name==Path.GetFileName(name)&&name.All(c=>Char.IsLetterOrDigit(c)||c=='-'||c=='_'||c=='.')&&!name.Contains("..");}
     static void Validate(EnginePackage p){Uri uri;if(!SafeName(p.Id)||!SafeName(p.Version)||p.Sha256==null||p.Sha256.Length!=64||p.Size<1||p.Size>80000000||p.Files==null||p.Files.Count<1||p.Files.Count>20||p.Files.Any(f=>!SafeName(f.Name)||f.Size<1||f.Size>100000000||f.Sha256==null||f.Sha256.Length!=64)||p.Files.Select(f=>f.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=p.Files.Count||!Uri.TryCreate(p.Url,UriKind.Absolute,out uri)||uri.Scheme!="https"||uri.Host!="github.com"||uri.Port!=443||uri.UserInfo.Length>0||uri.Query.Length>0||uri.Fragment.Length>0||!uri.AbsolutePath.StartsWith("/vnenapravo7-source/mcrf/releases/download/",StringComparison.Ordinal))throw new InvalidDataException("Небезопасный каталог движков");}
