@@ -12,15 +12,24 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 
 Всё управляется из приложения. Если для подключения нужен отсутствующий движок, MCRF предложит скачать его.
 
-| Компонент | Протоколы | Происхождение |
-| --- | --- | --- |
-| [sing-box-lx](https://github.com/Leadaxe/sing-box-lx) | VLESS / REALITY, VMess, Trojan, Shadowsocks, Hysteria / Hysteria2, TUIC, AnyTLS, Naive, SSH, HTTP / HTTPS / SOCKS5, WireGuard / AmneziaWG | **Кастомная сборка MCRF** на базе sing-box-lx: маршруты, DNS и прямой выход |
-| [Steer](https://github.com/splify2/steer) | VLESS / REALITY, VMess, Trojan, Shadowsocks, Hysteria2, HTTP / HTTPS, SOCKS4 / 4a / 5 | **Доработанный порт MCRF** для Android: правила, DNS, IPv6 и локальный прокси |
-| [Компактный WG/AWG](ports/android/transports/wg-backend/) | WireGuard, AmneziaWG 3.0 / 3.1 | **Собственный модуль MCRF** на базе [wireguard-go](https://github.com/SagerNet/wireguard-go) |
-| [Telegram WS](https://github.com/y0sy4/telegram-proxy) | Локальный SOCKS5-прокси для Telegram через WebSocket | Сторонний движок с адаптацией MCRF для Android |
-| [Дополнительные транспорты](ports/android/transports/transport-lock.json) | CSQTT, WDTT, QWDTT, OLCRTC, DNSTT | Сторонние движки с адаптерами и пакетами MCRF |
-| [Zapret для Windows](native/zapret-engine/README.md) | Обход DPI для TCP / UDP | **Кастомное расширение MCRF** для правил по приложениям; исходный движок также доступен |
-| [ByeDPI](https://github.com/hufrea/byedpi) / ByeTube | Локальный SOCKS-прокси с обходом DPI | Сторонний движок обхода, интегрированный в интерфейс Windows |
+| Компонент | Протоколы | Происхождение | Размер загрузки |
+| --- | --- | --- | --- |
+| [sing-box-lx](https://github.com/Leadaxe/sing-box-lx) | VLESS / REALITY, VMess, Trojan, Shadowsocks, Hysteria / Hysteria2, TUIC, AnyTLS, Naive, SSH, HTTP / HTTPS / SOCKS5, WireGuard / AmneziaWG | **Кастомная сборка MCRF** на базе sing-box-lx: маршруты, DNS и прямой выход | 30,3 МБ |
+| [Steer](https://github.com/splify2/steer) | VLESS / REALITY, VMess, Trojan, Shadowsocks, Hysteria2, HTTP / HTTPS, SOCKS4 / 4a / 5 | **Легковесный доработанный порт MCRF** для Android: правила, DNS, IPv6 и локальный прокси | 4,7 МБ |
+| [Компактный WG/AWG](ports/android/transports/wg-backend/) | WireGuard, AmneziaWG 3.0 / 3.1 | **Собственный модуль MCRF** на базе [wireguard-go](https://github.com/SagerNet/wireguard-go) | 4,0 МБ |
+| [Telegram WS](https://github.com/y0sy4/telegram-proxy) | Локальный SOCKS5-прокси для Telegram через WebSocket | Сторонний движок с адаптацией MCRF для Android | 4,3 МБ |
+| [CSQTT / CSQTT 2.5](ports/android/transports/transport-lock.json) | TURN-транспорт CSQTT | Сторонние движки с адаптерами и пакетами MCRF | 12,8 / 13,0 МБ |
+| [WDTT](ports/android/transports/transport-lock.json) | WDTT | Сторонний движок с адаптацией MCRF | 9,2 МБ |
+| [QWDTT](ports/android/transports/transport-lock.json) | QWDTT | Сторонний движок с адаптацией MCRF | 8,7 МБ |
+| [OLCRTC](ports/android/transports/transport-lock.json) | OLCRTC | Сторонний движок с адаптацией MCRF | 12,9 МБ |
+| [DNSTT](ports/android/transports/transport-lock.json) | DNS-туннель DNSTT | Сторонний движок с адаптацией MCRF | 5,7 МБ |
+| [Xray](https://github.com/throneproj/xray-core) | VLESS / REALITY, VMess, Trojan, Shadowsocks, HTTP / SOCKS | Сторонний форк Xray с адаптацией MCRF | 14,1 МБ |
+| [TLScore](https://github.com/throneproj/sing-box) | VLESS, VMess, Trojan, HTTP/SOCKS поверх TLS; TLS fragmentation / tricks | Сторонний форк sing-box с адаптацией MCRF | 15,3 МБ |
+| [WarpScout](https://github.com/vernette/warpscout) | WARP | Сторонний инструмент поиска WARP-подключений | 7,0 МБ |
+| [Zapret для Windows](native/zapret-engine/README.md) | Обход DPI для TCP / UDP | **Кастомное расширение MCRF** для правил по приложениям; исходный движок также доступен | В составе Windows-приложения |
+| [ByeDPI](https://github.com/hufrea/byedpi) / ByeTube | Локальный SOCKS-прокси с обходом DPI | Сторонний движок обхода, интегрированный в интерфейс Windows | В составе Windows-приложения |
+
+Размеры — APK для Android arm64, округлённые до 0,1 МБ; после установки движок занимает больше места.
 
 ## Возможности
 
@@ -33,27 +42,15 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 
 ## Android в действии
 
-### Подключение и отключение
-
-<img src="docs/screenshots/android-connection.gif" alt="Настоящее подключение VPN и последующее отключение" width="300">
-
-### Оформление
-
-<img src="docs/screenshots/android-appearance.gif" alt="Настройки оформления и светлая/тёмная тема" width="300">
-
-### Функции
-
-<img src="docs/screenshots/android-functionality.gif" alt="БС, подписки и серверы, правила маршрутизации и DNS" width="300">
-
-### Разделы приложения
-
-<img src="docs/screenshots/android-sections.gif" alt="VPN, БС, маршруты, настройки, DNS и оформление" width="300">
+| Подключение и отключение | Оформление | Функции | Разделы |
+| --- | --- | --- | --- |
+| <img src="docs/screenshots/android-connection.gif" alt="Подключение и отключение" width="220"> | <img src="docs/screenshots/android-appearance.gif" alt="Оформление и смена анимации" width="220"> | <img src="docs/screenshots/android-functionality.gif" alt="БС, серверы и маршруты" width="220"> | <img src="docs/screenshots/android-sections.gif" alt="Настройки, DNS, прокси и движки" width="220"> |
 
 Записи настоящего приложения с существующими серверами. [Разделы и скриншоты подробнее](docs/ANDROID-GUIDE.md).
 
 ## Пул реализации Android
 
-Все этапы — по приоритетам. Сейчас в работе **П2**; готовые возможности оставлены в таблице для общей картины.
+Все этапы — по приоритетам. Сейчас исправляем открытие списка приложений в **П0**, затем продолжаем **П2**; готовые возможности оставлены для общей картины.
 
 | Приоритет | Задача | Статус |
 | --- | --- | --- |
@@ -63,6 +60,7 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | П0 | Гибкий дизайн: темы, цвета, узоры, значки, минимализм, анимации и удобные окна на небольшом экране | Готово |
 | П0 | Настройки: поиск, понятные группы, сброс группы и переход сразу к нужному параметру | Готово |
 | П0 | Маршруты: домены, IP и приложения, глобальные исключения, готовые списки, GeoIP/GeoSite и «Всё кроме РФ» | Готово |
+| П0 | №47: ускорить открытие выбора приложений в глобальных политиках «Напрямую» и «Только VPN» | В работе |
 | П0 | Прямой выход через sing-box: исправить открытие сайтов и приложений по правилу «Напрямую» при проблемном IPv6; добавить общую опцию совместимости IPv4 | Готово |
 | П0 | Автоопределение БС: проверка раз в минуту, переходы VPN ↔ БС, уведомления и выбор быстрого сервера боковыми переключателями | Готово |
 | П0 | При включённом автоопределении проверять БС **до** запуска VPN, чтобы сразу подключаться в нужном режиме | В работе |
@@ -83,14 +81,14 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | П3 | Капча CSQTT legacy/2.5, WDTT и QWDTT: довести ручное и автоматическое прохождение | В плане |
 | П3 | OLCRTC и DNSTT: довести подключение, переподключение и остановку | В плане |
 | П3 | TUIC, AnyTLS, NaiveProxy и SSH: завершить поддержку в компактных и дополнительных движках | В плане |
-| П3 | Добавить DNS-туннели VayDNS, SlipStream и MasterDNS | В плане |
+| П3 | Добавить DNS-туннели VayDNS и SlipStream | В плане |
 | П3 | Запасной движок: переходить на него при сбое основного, только если пользователь включил эту функцию | В плане |
 | П3 | Довести автопереходы VPN ↔ БС при реальных ограничениях сети | В плане |
 | П3 | Завершить совместимость IPv4/IPv6 для действий «Напрямую», «VPN» и «Блок» во всех поддерживаемых движках | В плане |
 | П4 | Обновления дополнительных движков: довести обнаружение нужной версии и замену установленного модуля | В плане |
+| П4 | №48: добавить поддержку [MasterDnsVPN](https://github.com/masterking32/MasterDnsVPN) — подключения через DNS-туннель | В плане |
 | П4 | Автодеплой: завершить установку 3x-ui, SWG и S3 Bypass на сервер | Отложено |
 | П4 | Управление серверами: клиенты, сроки доступа, ссылки и QR, резервные копии и перезапуск | Отложено |
-| Финальный | Общая интеграция, актуальная документация и итоговый выпуск | В плане |
 | Вне плана | OpenFlux на Android | Отложено |
 
 ## Windows
