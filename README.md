@@ -18,16 +18,10 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | [Steer](https://github.com/splify2/steer) | VLESS / REALITY, VMess, Trojan, Shadowsocks, Hysteria2, HTTP / HTTPS, SOCKS4 / 4a / 5 | **Легковесный доработанный порт MCRF** для Android: правила, DNS, IPv6 и локальный прокси | 4,7 МБ |
 | [Компактный WG/AWG](ports/android/transports/wg-backend/) | WireGuard, AmneziaWG 3.0 / 3.1 | **Собственный модуль MCRF** на базе [wireguard-go](https://github.com/SagerNet/wireguard-go) | 4,0 МБ |
 | [Telegram WS](https://github.com/y0sy4/telegram-proxy) | Локальный SOCKS5-прокси для Telegram через WebSocket | Сторонний движок с адаптацией MCRF для Android | 4,3 МБ |
-| [CSQTT / CSQTT 2.5](ports/android/transports/transport-lock.json) | TURN-транспорт CSQTT | Сторонние движки с адаптерами и пакетами MCRF | 12,8 / 13,0 МБ |
-| [WDTT](ports/android/transports/transport-lock.json) | WDTT | Сторонний движок с адаптацией MCRF | 9,2 МБ |
-| [QWDTT](ports/android/transports/transport-lock.json) | QWDTT | Сторонний движок с адаптацией MCRF | 8,7 МБ |
-| [OLCRTC](ports/android/transports/transport-lock.json) | OLCRTC | Сторонний движок с адаптацией MCRF | 12,9 МБ |
-| [DNSTT](ports/android/transports/transport-lock.json) | DNS-туннель DNSTT | Сторонний движок с адаптацией MCRF | 5,7 МБ |
-| [Xray](https://github.com/throneproj/xray-core) | VLESS / REALITY, VMess, Trojan, Shadowsocks, HTTP / SOCKS | Сторонний форк Xray с адаптацией MCRF | 14,1 МБ |
-| [TLScore](https://github.com/throneproj/sing-box) | VLESS, VMess, Trojan, HTTP/SOCKS поверх TLS; TLS fragmentation / tricks | Сторонний форк sing-box с адаптацией MCRF | 15,3 МБ |
+| [Дополнительные транспорты](ports/android/transports/transport-lock.json) | CSQTT / CSQTT 2.5, WDTT, QWDTT, OLCRTC, DNSTT | Сторонние движки с адаптерами и пакетами MCRF | CSQTT — 12,8 МБ; 2.5 — 13,0 МБ<br>WDTT — 9,2 МБ; QWDTT — 8,7 МБ<br>OLCRTC — 12,9 МБ; DNSTT — 5,7 МБ |
+| Дополнительные ядра: [Xray](https://github.com/throneproj/xray-core), [TLScore](https://github.com/throneproj/sing-box) | Xray: VLESS / REALITY, VMess, Trojan, Shadowsocks, HTTP / SOCKS<br>TLScore: VLESS, VMess, Trojan, HTTP/SOCKS поверх TLS; TLS fragmentation / tricks | Сторонние форки Xray и sing-box с адаптацией MCRF | Xray — 14,1 МБ<br>TLScore — 15,3 МБ |
 | [WarpScout](https://github.com/vernette/warpscout) | WARP | Сторонний инструмент поиска WARP-подключений | 7,0 МБ |
-| [Zapret для Windows](native/zapret-engine/README.md) | Обход DPI для TCP / UDP | **Кастомное расширение MCRF** для правил по приложениям; исходный движок также доступен | В составе Windows-приложения |
-| [ByeDPI](https://github.com/hufrea/byedpi) / ByeTube | Локальный SOCKS-прокси с обходом DPI | Сторонний движок обхода, интегрированный в интерфейс Windows | В составе Windows-приложения |
+| Обход DPI на Windows: [Zapret](native/zapret-engine/README.md), [ByeDPI](https://github.com/hufrea/byedpi) / ByeTube | Zapret: TCP / UDP<br>ByeDPI / ByeTube: локальный SOCKS-прокси с обходом DPI | Zapret — **кастомное расширение MCRF** для правил по приложениям; исходный движок также доступен. ByeDPI — сторонний движок, интегрированный в интерфейс Windows | В составе Windows-приложения |
 
 Размеры — APK для Android arm64, округлённые до 0,1 МБ; после установки движок занимает больше места.
 
@@ -49,6 +43,9 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 Записи настоящего приложения с существующими серверами. [Разделы и скриншоты подробнее](docs/ANDROID-GUIDE.md).
 
 ## Пул реализации Android
+
+<details>
+<summary>Показать план и статусы по приоритетам</summary>
 
 Все этапы — по приоритетам. Сейчас исправляем открытие списка приложений в **П0**, затем продолжаем **П2**; готовые возможности оставлены для общей картины.
 
@@ -90,6 +87,8 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | П4 | Автодеплой: завершить установку 3x-ui, SWG и S3 Bypass на сервер | Отложено |
 | П4 | Управление серверами: клиенты, сроки доступа, ссылки и QR, резервные копии и перезапуск | Отложено |
 | Вне плана | OpenFlux на Android | Отложено |
+
+</details>
 
 ## Windows
 
