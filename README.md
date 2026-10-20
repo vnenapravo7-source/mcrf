@@ -12,15 +12,15 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 
 Всё управляется из приложения. Если для подключения нужен отсутствующий движок, MCRF предложит скачать его.
 
-| Компонент | Происхождение |
-| --- | --- |
-| [sing-box-lx](https://github.com/Leadaxe/sing-box-lx) | **Кастомная сборка MCRF** на базе форка sing-box-lx: доработки маршрутов, DNS и прямого выхода |
-| [Steer](https://github.com/splify2/steer) | **Доработанный порт MCRF**: интеграция с Android, правила, DNS, IPv6 и локальный прокси |
-| [Компактный WG/AWG](ports/android/transports/wg-backend/) | **Собственный модуль MCRF** на базе [wireguard-go](https://github.com/SagerNet/wireguard-go); протоколы WireGuard/AmneziaWG не самописные |
-| [Telegram WS](https://github.com/y0sy4/telegram-proxy) | Сторонний движок с адаптацией MCRF для Android |
-| [Дополнительные транспорты](ports/android/transports/transport-lock.json) | Сторонние CSQTT, WDTT, QWDTT, OLCRTC и DNSTT с адаптерами и пакетами MCRF |
-| [Zapret для Windows](native/zapret-engine/README.md) | **Кастомное расширение MCRF** для правил по приложениям; исходный движок также доступен |
-| [ByeDPI](https://github.com/hufrea/byedpi) / ByeTube | Сторонний движок обхода, интегрированный в интерфейс Windows |
+| Компонент | Протоколы | Происхождение |
+| --- | --- | --- |
+| [sing-box-lx](https://github.com/Leadaxe/sing-box-lx) | VLESS / REALITY, VMess, Trojan, Shadowsocks, Hysteria / Hysteria2, TUIC, AnyTLS, Naive, SSH, HTTP / HTTPS / SOCKS5, WireGuard / AmneziaWG | **Кастомная сборка MCRF** на базе sing-box-lx: маршруты, DNS и прямой выход |
+| [Steer](https://github.com/splify2/steer) | VLESS / REALITY, VMess, Trojan, Shadowsocks, Hysteria2, HTTP / HTTPS, SOCKS4 / 4a / 5 | **Доработанный порт MCRF** для Android: правила, DNS, IPv6 и локальный прокси |
+| [Компактный WG/AWG](ports/android/transports/wg-backend/) | WireGuard, AmneziaWG 3.0 / 3.1 | **Собственный модуль MCRF** на базе [wireguard-go](https://github.com/SagerNet/wireguard-go) |
+| [Telegram WS](https://github.com/y0sy4/telegram-proxy) | Локальный SOCKS5-прокси для Telegram через WebSocket | Сторонний движок с адаптацией MCRF для Android |
+| [Дополнительные транспорты](ports/android/transports/transport-lock.json) | CSQTT, WDTT, QWDTT, OLCRTC, DNSTT | Сторонние движки с адаптерами и пакетами MCRF |
+| [Zapret для Windows](native/zapret-engine/README.md) | Обход DPI для TCP / UDP | **Кастомное расширение MCRF** для правил по приложениям; исходный движок также доступен |
+| [ByeDPI](https://github.com/hufrea/byedpi) / ByeTube | Локальный SOCKS-прокси с обходом DPI | Сторонний движок обхода, интегрированный в интерфейс Windows |
 
 ## Возможности
 
