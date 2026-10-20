@@ -12,18 +12,18 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 
 Всё управляется из приложения. Если для подключения нужен отсутствующий движок, MCRF предложит скачать его.
 
-| Компонент | Протоколы | Происхождение | Размер загрузки |
-| --- | --- | --- | --- |
-| [sing-box-lx](https://github.com/Leadaxe/sing-box-lx) | VLESS / REALITY, VMess, Trojan, Shadowsocks, Hysteria / Hysteria2, TUIC, AnyTLS, Naive, SSH, HTTP / HTTPS / SOCKS5, WireGuard / AmneziaWG | **Кастомная сборка MCRF** на базе sing-box-lx: маршруты, DNS и прямой выход | 30,3 МБ |
-| [Steer](https://github.com/splify2/steer) | VLESS / REALITY, VMess, Trojan, Shadowsocks, Hysteria2, HTTP / HTTPS, SOCKS4 / 4a / 5 | **Легковесный доработанный порт MCRF** для Android: правила, DNS, IPv6 и локальный прокси | 4,7 МБ |
-| [Компактный WG/AWG](ports/android/transports/wg-backend/) | WireGuard, AmneziaWG 3.0 / 3.1 | **Собственный модуль MCRF** на базе [wireguard-go](https://github.com/SagerNet/wireguard-go) | 4,0 МБ |
-| [Telegram WS](https://github.com/y0sy4/telegram-proxy) | Локальный SOCKS5-прокси для Telegram через WebSocket | Сторонний движок с адаптацией MCRF для Android | 4,3 МБ |
-| [Дополнительные транспорты](ports/android/transports/transport-lock.json) | CSQTT / CSQTT 2.5, WDTT, QWDTT, OLCRTC, DNSTT | Сторонние движки с адаптерами и пакетами MCRF | CSQTT — 12,8 МБ; 2.5 — 13,0 МБ<br>WDTT — 9,2 МБ; QWDTT — 8,7 МБ<br>OLCRTC — 12,9 МБ; DNSTT — 5,7 МБ |
-| Дополнительные ядра: [Xray](https://github.com/throneproj/xray-core), [TLScore](https://github.com/throneproj/sing-box) | Xray: VLESS / REALITY, VMess, Trojan, Shadowsocks, HTTP / SOCKS<br>TLScore: VLESS, VMess, Trojan, HTTP/SOCKS поверх TLS; TLS fragmentation / tricks | Сторонние форки Xray и sing-box с адаптацией MCRF | Xray — 14,1 МБ<br>TLScore — 15,3 МБ |
-| [WarpScout](https://github.com/vernette/warpscout) | WARP | Сторонний инструмент поиска WARP-подключений | 7,0 МБ |
-| Обход DPI на Windows: [Zapret](native/zapret-engine/README.md), [ByeDPI](https://github.com/hufrea/byedpi) / ByeTube | Zapret: TCP / UDP<br>ByeDPI / ByeTube: локальный SOCKS-прокси с обходом DPI | Zapret — **кастомное расширение MCRF** для правил по приложениям; исходный движок также доступен. ByeDPI — сторонний движок, интегрированный в интерфейс Windows | В составе Windows-приложения |
+| Движок | Протоколы | APK, МБ |
+| --- | --- | --- |
+| [sing-box-lx](https://github.com/Leadaxe/sing-box-lx)<br><sub>Кастомная сборка MCRF</sub> | VLESS / REALITY, VMess, Trojan, SS, HY / HY2<br>TUIC, AnyTLS, Naive, SSH, HTTP(S), SOCKS5, WG / AWG | 30,3 |
+| [Steer](https://github.com/splify2/steer)<br><sub>Доработанный порт MCRF</sub> | VLESS / REALITY, VMess, Trojan, SS, HY2<br>HTTP(S), SOCKS4 / 4a / 5 | **4,7 · легковесный** |
+| [Компактный WG/AWG](ports/android/transports/wg-backend/)<br><sub>Модуль MCRF на базе wireguard-go</sub> | WireGuard, AmneziaWG 3.0 / 3.1 | 4,0 |
+| [Telegram WS](https://github.com/y0sy4/telegram-proxy)<br><sub>Сторонний, адаптирован для MCRF</sub> | SOCKS5 → WebSocket для Telegram | 4,3 |
+| [Дополнительные транспорты](ports/android/transports/transport-lock.json)<br><sub>Сторонние, адаптированы для MCRF</sub> | CSQTT / 2.5, WDTT, QWDTT, OLCRTC, DNSTT | CSQTT: 12,8 / 13,0<br>WDTT: 9,2<br>QWDTT: 8,7<br>OLCRTC: 12,9<br>DNSTT: 5,7 |
+| [Xray](https://github.com/throneproj/xray-core) / [TLScore](https://github.com/throneproj/sing-box)<br><sub>Сторонние форки с адаптацией MCRF</sub> | Xray: VLESS / REALITY, VMess, Trojan, SS, HTTP / SOCKS<br>TLScore: VLESS, VMess, Trojan, HTTP / SOCKS + TLS fragmentation / tricks | Xray: 14,1<br>TLScore: 15,3 |
+| [WarpScout](https://github.com/vernette/warpscout)<br><sub>Сторонний</sub> | Поиск WARP-подключений | 7,0 |
+| [Zapret](native/zapret-engine/README.md) / [ByeDPI](https://github.com/hufrea/byedpi) · ByeTube<br><sub>Windows: Zapret — расширение MCRF; ByeDPI — сторонний</sub> | Обход DPI: TCP / UDP и локальный SOCKS-прокси | В приложении Windows |
 
-Размеры — APK для Android arm64, округлённые до 0,1 МБ; после установки движок занимает больше места.
+APK — размер загрузки для Android arm64. SS — Shadowsocks, HY / HY2 — Hysteria / Hysteria2, WG / AWG — WireGuard / AmneziaWG. После установки размер больше.
 
 ## Возможности
 
