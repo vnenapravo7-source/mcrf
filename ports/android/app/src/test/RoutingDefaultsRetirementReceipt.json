@@ -1,0 +1,66 @@
+{
+  "state": "implemented_local_checks_passed_ready_for_snapshot",
+  "requested_by": "Main relayed new direct human instructions superseding prior URL-manager/app-mode/RU-exclusions requirements",
+  "changed_files": [
+    "app/src/main/kotlin/org/mcrf/client/RoutingPage.kt",
+    "app/src/main/kotlin/org/mcrf/client/RoutingDefaultsRussianAppsPolicy.kt",
+    "app/src/main/kotlin/org/mcrf/client/RoutingDefaultsRussianAppsUi.kt",
+    "app/src/main/kotlin/org/mcrf/client/RemoteRoutingEditor.kt",
+    "app/src/main/kotlin/org/mcrf/client/RemoteRoutingSchedule.kt",
+    "app/src/main/kotlin/org/mcrf/client/RemoteRoutingConfig.kt",
+    "app/src/main/kotlin/org/mcrf/client/AdvancedDnsEditor.kt",
+    "app/src/test/kotlin/org/mcrf/client/AdvancedDnsRoutingTest.kt",
+    "app/src/test/kotlin/org/mcrf/client/RoutingDefaultsRussianAppsTest.kt",
+    "app/src/androidTest/kotlin/org/mcrf/client/RoutingDefaultsRussianAppsDeviceChecks.kt"
+  ],
+  "sha256": {
+    "app/src/main/kotlin/org/mcrf/client/RoutingPage.kt": "ea28ca666921d39cb045506e2e570566d14b91a147938e9fe342617d075b7e67",
+    "app/src/main/kotlin/org/mcrf/client/RoutingDefaultsRussianAppsPolicy.kt": "a7fbf2789d6a730a7415a6343efa06facb3bed747aa5ebebdcfed4c6c2a1247f",
+    "app/src/main/kotlin/org/mcrf/client/RoutingDefaultsRussianAppsUi.kt": "65a4ea79f3f7bd6644c9f124002d0290f9a54cb739dab34fa18e421376615129",
+    "app/src/main/kotlin/org/mcrf/client/RemoteRoutingEditor.kt": "abaf955280944a73eb9884a4d8b599f1e16820e3bc07f3da14140c8cb285faef",
+    "app/src/main/kotlin/org/mcrf/client/RemoteRoutingSchedule.kt": "ff417c5010c8f6f87052fa0028ce1acdb2538fefd7d6549755aecc6e2ad39920",
+    "app/src/main/kotlin/org/mcrf/client/RemoteRoutingConfig.kt": "fc8ad3cd4cb95f9f2f7d9c0afa49904db7c5b66b228b29b98eb40a71eafea0be",
+    "app/src/main/kotlin/org/mcrf/client/AdvancedDnsEditor.kt": "58a697da36317837989f684e61c7a9e04a4daf765406d663eee3a0c3735c14ec",
+    "app/src/test/kotlin/org/mcrf/client/AdvancedDnsRoutingTest.kt": "bfec740122be08a0b45f962bc45cffa8b80a39929a2abcb8003b17aefcad382d",
+    "app/src/test/kotlin/org/mcrf/client/RoutingDefaultsRussianAppsTest.kt": "670ea965b608e9ceaad1e7330675c7274a045fa5a8d04d3448af4b5d4392a1fd",
+    "app/src/androidTest/kotlin/org/mcrf/client/RoutingDefaultsRussianAppsDeviceChecks.kt": "4b4163a84292a213e8f245e0ffa5a6b64323e63e3e01e57007666e23798f3e7a"
+  },
+  "remote_retirement": {
+    "ui": "RoutingPage URL-list button removed; compatibility RemoteRoutingEditor only inert notice; no URL/profile/refresh form",
+    "background": "RemoteRoutingSchedule.sync is cancel-only; RemoteRoutingJob inert false/no retry/no worker; refresh API errors before network/write",
+    "native": "RemoteRoutingConfig.apply is no-op, so legacy AdBlock no longer injects remote auto-updating SRS",
+    "retained": "Encrypted remoteRouting metadata and already imported rules incl remoteOwner/nativeMatch untouched; GeoData network/fetch helper, GeoIP/GeoSite/presets, server subscriptions untouched",
+    "main_hooks": [
+      "Call RemoteRoutingSchedule.cancelRetired(context) at application/startup BEFORE routing.load, so even unreadable legacy routing cancels persisted JOB_ID=0x4d435244. Existing sync remains safe cancel-only compatibility.",
+      "Remove AndroidManifest .RemoteRoutingJob service entry; main owns startup/manifest. No storage migration/delete necessary."
+    ]
+  },
+  "ru_apps": {
+    "api": "RoutingDefaultsRussianAppsPolicy.selected(state), conflicts(state,desiredPackages), apply(state,shown,chosen,allowVpnConflict)",
+    "rule": "Visible ordinary RouteRules: id=mcrf-ru-app-direct, managedBy=ru-app-picker, name=RU-app · напрямую, mode=apps, target=direct, enabled=true, text=app:package per row",
+    "behavior": "Own rule first; repeat updates one rule, empty selection removes own rule rather than catchall. Unshown previously selected packages retained. Foreign ID collision rejected. Other rule objects/order and excludedApps preserved exactly; only explicitly confirmed chosen vpnApps removed, remaining VPN order preserved.",
+    "consent": "Explicit confirmation for selected VPN-only packages, enabled non-direct ordinary app matches, imported app-condition rules, or legacy include scope. Recheck conflicts in generation-guarded commit. Include scope changes to all only after confirmation with nonempty RU selection; no silent navigation migration.",
+    "limitations": "Old RU picker stored no ownership marker in excludedApps; cannot distinguish old RU exclusions from manually chosen ones. Preserve ALL exclusions rather than guessing migration/deleting personal choices. Such packages remain Builder-bypassed alongside the visible direct rule. Import/native app conflicts conservatively require confirmation."
+  },
+  "legacy_appmode": {
+    "ui": "Exact Какие приложения идут через VPN dropdown and explanatory control removed. Existing global-direct/VPN policy buttons retained because instruction only retires exact dropdown.",
+    "audit": "Builder include_package/exclude_package controls whether traffic enters VPN and DNS capture; ordinary package rules inside TUN cannot guarantee equivalent behavior for unselected/forced-direct apps. No automatic equivalent migration claimed. Existing appMode/vpnApps/excludedApps runtime preserved; read-only legacy include status shown.",
+    "main_hook": "No bulk reset of appMode or app arrays. If full retirement of legacy Builder scope is required, main must offer explicit confirmation separately; current RU confirmation can retire include only when user applies nonempty direct selection."
+  },
+  "dns": "Advanced hint now says DNS VPN is selected on this page; main moves global DNS card into DNS subpage",
+  "tests": {
+    "isolated_command": "app/src/test/AdvancedDnsIsolatedCheck.ps1",
+    "result": "89 JUnit PASS:49 AdvancedDnsRoutingTest+14 existingRouteRulesTest+26 RoutingDefaultsRussianAppsTest",
+    "sdk_first": "Changed7productionfiles+RoutingDefaultsRussianAppsDeviceChecks compiled against Android34 actual JSONObject with SDK FIRST/no desktop JSON compiler dependency",
+    "coverage": "Visible direct route/native package compile, no Builder exclusion injection, update/no duplicates/empty removal, unseen selections, unrelated exclusions/rules, consent/include preservation/foreign id collision, retired remote native downloads absent and legacy data unchanged; existing backup/Geo tests retained",
+    "device": "Updated preview copy assertion only; new apply/update/runtime UI device gate still main-owned and pending",
+    "shared_gradle_adb": "None executed"
+  },
+  "pending": [
+    "Main startup/manifest retirement hook",
+    "Main immutable full unit/debug/AndroidTest integration",
+    "Currentphone RU visible rule apply/update/empty + conflict dialogs + old-app-mode preservation",
+    "SyntheticAdvancedDnsNoEditDeviceChecks still pending main",
+    "Retained DNS/route packet, Geo download/core capabilities/R8 gates"
+  ]
+}

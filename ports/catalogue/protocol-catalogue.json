@@ -1,0 +1,19 @@
+[
+  {"name":"VLESS", "transport":"TCP · gRPC · WS · HTTPUpgrade · XHTTP", "engine":"sing-box-lx"},
+  {"name":"VMess", "transport":"TCP · gRPC · WS · HTTPUpgrade", "engine":"sing-box-lx"},
+  {"name":"Trojan", "transport":"TCP · gRPC · WS · HTTPUpgrade", "engine":"sing-box-lx"},
+  {"name":"Shadowsocks", "transport":"TCP / UDP", "engine":"sing-box-lx"},
+  {"name":"Hysteria / Hysteria2", "transport":"QUIC", "engine":"sing-box-lx"},
+  {"name":"TUIC", "transport":"QUIC", "engine":"sing-box-lx"},
+  {"name":"AnyTLS", "transport":"TLS / TCP", "engine":"sing-box-lx"},
+  {"name":"Naive", "transport":"HTTPS", "engine":"sing-box-lx"},
+  {"name":"SSH", "transport":"TCP", "engine":"sing-box-lx"},
+  {"name":"HTTP / HTTPS / SOCKS5", "transport":"Прокси", "engine":"sing-box-lx"},
+  {"name":"WireGuard / AmneziaWG", "transport":"UDP", "engine":"sing-box-lx"},
+  {"name":"OpenFlux", "transport":"Ссылка OpenFlux", "engine":"Отдельный движок · переносится"},
+  {"name":"CSQTT / WDTT / QWDTT", "transport":"SWG · VK-звонки", "engine":"Отдельные движки · переносятся"},
+  {"name":"Telegram WS", "transport":"WebSocket", "engine":"Отдельный движок · переносится"}
+  ,{"name":"OLC RTC", "transport":"Jitsi · Telemost · WB Stream", "engine":"MCRF · пакет движков"}
+  ,{"name":"DNSTT", "transport":"DNS · DoH · DoT", "engine":"MCRF · пакет движков"}
+  ,{"name":"S3 Bypass", "transport":"S3 · fedarisha", "engine":"Отдельный движок · не stock Xray"}
+]

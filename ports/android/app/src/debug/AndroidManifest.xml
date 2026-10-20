@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <permission android:name="org.mcrf.client.permission.P1_OWNER" android:protectionLevel="signature" />
+    <uses-permission android:name="org.mcrf.client.permission.P1_OWNER" />
+    <application android:label="${debugApplicationLabel}" tools:replace="android:label">
+        <service android:name=".DebugLanSharingService" android:exported="false" android:process=":lanFixture" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="bounded authenticated local proxy acceptance fixture" />
+        </service>
+    </application>
+</manifest>

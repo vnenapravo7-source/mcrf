@@ -1,0 +1,11 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data android:name="org.mcrf.engines.source.repository" android:value="p1neappleXpress/OpenFlux" />
+        <meta-data android:name="org.mcrf.engines.source.version" android:value="${openfluxSourceVersion}" />
+        <meta-data android:name="org.mcrf.engines.source.commit" android:value="${openfluxSourceCommit}" />
+        <meta-data android:name="org.mcrf.engines.source.overlay" android:value="${openfluxSourceOverlay}" />
+        <meta-data android:name="org.mcrf.engines.script-updater" android:value="${openfluxScriptUpdater}" />
+        <meta-data android:name="org.mcrf.engines.provider-diagnostic" android:value="${openfluxProviderDiagnostic}" />
+        <meta-data android:name="org.mcrf.engines.provider-diagnostic-cli" android:value="${openfluxProviderDiagnosticCli}" />
+    </application>
+</manifest>

@@ -1,0 +1,13 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:label="MCRF · Steer core" android:allowBackup="false" android:supportsRtl="true">
+        <meta-data android:name="org.mcrf.engines.primary-core" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.kind" android:value="steer" />
+        <meta-data android:name="org.mcrf.engines.interface" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.core-api" android:value="2" />
+        <meta-data android:name="org.mcrf.engines.entry" android:value="org.mcrf.engines.steer.SteerEngine" />
+        <meta-data android:name="org.mcrf.engine.abis" android:value="arm64-v8a,x86_64" />
+        <meta-data android:name="org.mcrf.engine.spi.version" android:value="1" />
+        <meta-data android:name="org.mcrf.engine.core.api" android:value="2" />
+        <meta-data android:name="org.mcrf.engine.entry" android:value="org.mcrf.engines.steer.SteerEngine" />
+    </application>
+</manifest>

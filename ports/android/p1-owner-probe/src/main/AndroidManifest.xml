@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:sharedUserId="org.mcrf.p1fixture.shared">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application android:label="MCRF P1 owner fixture" android:testOnly="true" android:allowBackup="false" android:usesCleartextTraffic="false">
+        <service android:name=".OwnerProbeService" android:exported="true" android:permission="org.mcrf.client.permission.P1_OWNER" />
+        <service android:name=".ProxyProbeService" android:exported="true" android:permission="org.mcrf.client.permission.P1_OWNER" />
+    </application>
+</manifest>

@@ -1,0 +1,209 @@
+[
+  {
+    "name": "Яндекс Игры",
+    "packageName": "ru.yandex.games",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/ru.yandex.games",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Игра Яндекс Игры — Казуальные 4,0★ — скачать для Android бесплатно 🎮 в RuStore"
+  },
+  {
+    "name": "Яндекс Задания",
+    "packageName": "com.yandex.tasks.androidapp",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/com.yandex.tasks.androidapp",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Яндекс Задания — скачать для Android 3,0★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "Яндекс Интернетометр",
+    "packageName": "com.yandex.internetometer",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/com.yandex.internetometer",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Яндекс Интернетометр — скачать для Android 4,3★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "Яндекс Чаевые: на карту по QR",
+    "packageName": "com.chaevieprosto.app",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/com.chaevieprosto.app",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Яндекс Чаевые: на карту по QR — скачать для Android 3,1★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "Яндекс Мед — ИИ для врача",
+    "packageName": "ru.yandex.medtech",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/ru.yandex.medtech",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Яндекс Мед — ИИ для врача — скачать для Android 3,7★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "Сказбука для детей от Яндекса",
+    "packageName": "com.zebrainy.skazbuka",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/com.zebrainy.skazbuka",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Игра Сказбука для детей от Яндекса — Детские 4,3★ — скачать для Android бесплатно 🎮 в RuStore"
+  },
+  {
+    "name": "Яндекс Маршрутизация",
+    "packageName": "com.routeq.app",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/com.routeq.app",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Яндекс Маршрутизация — скачать для Android 1,9★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "Рисовайка для детей от Яндекса",
+    "packageName": "ru.yandex.drawie",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/ru.yandex.drawie",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Игра Рисовайка для детей от Яндекса — Детские 4,5★ — скачать для Android бесплатно 🎮 в RuStore"
+  },
+  {
+    "name": "Читайник — чтение для детей",
+    "packageName": "ru.yandex.readie",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/ru.yandex.readie",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Игра Читайник — чтение для детей — Детские 4,5★ — скачать для Android бесплатно 🎮 в RuStore"
+  },
+  {
+    "name": "Маркет Курьер",
+    "packageName": "ru.yandex.market.tpl.courierpro2",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/ru.yandex.market.tpl.courierpro2",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Маркет Курьер — скачать для Android 3,0★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "Яндекс Еда Вендор",
+    "packageName": "ru.foodfox.vendor",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/ru.foodfox.vendor",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Яндекс Еда Вендор — скачать для Android 3,3★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "Яндекс ПроБлогер",
+    "packageName": "ru.yandex.yablogger",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/ru.yandex.yablogger",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Яндекс ПроБлогер — скачать для Android 4,4★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "Яндекс Ритм: Идеи для покупок",
+    "packageName": "com.yandex.rhythm",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/com.yandex.rhythm",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Яндекс Ритм: Идеи для покупок — скачать для Android 3,2★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "Яндекс Вектор",
+    "packageName": "com.yandex.corp.tracking.app",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/com.yandex.corp.tracking.app",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Яндекс Вектор — скачать для Android 3,5★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "Я.Путешествия: Экстранет",
+    "packageName": "ru.yandex.travel.extranet",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/ru.yandex.travel.extranet",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Я.Путешествия: Экстранет — скачать для Android 2,3★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "Я Team",
+    "packageName": "ru.yandex_team.calendar_app",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/ru.yandex_team.calendar_app",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Я Team — скачать для Android 4,0★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "Яндекс СИТИ",
+    "packageName": "ru.yandex.transport.city",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/ru.yandex.transport.city",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Яндекс СИТИ — скачать для Android 4,1★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "Робот-доставщик",
+    "packageName": "ru.yandex.rovertoy.app",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/ru.yandex.rovertoy.app",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Робот-доставщик — скачать для Android 4,2★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "Эйрин: помощник в поиске работы",
+    "packageName": "com.yandex.aira",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/com.yandex.aira",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Эйрин: помощник в поиске работы — скачать для Android 3,0★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "Яндекс 3D-Туры: показ онлайн",
+    "packageName": "com.yandex.mobile.tours3d",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/com.yandex.mobile.tours3d",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Яндекс 3D-Туры: показ онлайн — скачать для Android 5,0★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "СмартРезерв",
+    "packageName": "ru.yandex.smartreserve",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/ru.yandex.smartreserve",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "СмартРезерв — скачать для Android 3,5★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "СмартРезерв АОН",
+    "packageName": "ru.yandex.smartreserve.aon",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/ru.yandex.smartreserve.aon",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "СмартРезерв АОН — скачать для Android 5,0★ бесплатно 📱 в RuStore"
+  },
+  {
+    "name": "Яндекс Мессенджер для бизнеса",
+    "packageName": "com.yandex.yamb",
+    "category": "Яндекс",
+    "primaryUrl": "https://www.rustore.ru/catalog/app/com.yandex.yamb",
+    "provenance": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "verifiedOn": "2026-10-14",
+    "primaryTitle": "Яндекс Мессенджер для бизнеса — скачать для Android 3,4★ бесплатно 📱 в RuStore"
+  }
+]

@@ -1,0 +1,1889 @@
+[
+  {
+    "package": "ru.sberbankmobile",
+    "name": "СберБанк Онлайн",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "com.idamob.tinkoff.android",
+    "name": "Т-Банк: карты, вклады, кредиты",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.vtb24.mobilebanking.android",
+    "name": "ВТБ Онлайн",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.alfabank.mobile.android",
+    "name": "Альфа-Банк",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.ozon.fintech.finance",
+    "name": "Ozon Банк: выгодные покупки",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.nspk.mirpay",
+    "name": "Mir Pay",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.fns.lkfl",
+    "name": "Налоги ФЛ",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.sovcomcard.halva.v1",
+    "name": "Халва – Совкомбанк",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "logo.com.mbanking",
+    "name": "ПСБ",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "com.yandex.bank",
+    "name": "Яндекс Пэй: QR, NFC и Сплит",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.sberbank.sberkids",
+    "name": "СберKids",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "com.gnivts.selfemployed",
+    "name": "Мой налог",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.gazprombank.android.mobilebank.app",
+    "name": "Газпромбанк",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.sberbank.investor",
+    "name": "СберИнвестиции",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.lewis.dbo",
+    "name": "МТС Деньги",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.wildberries.bank",
+    "name": "WB Банк",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "com.moex.finuslugi",
+    "name": "Финуслуги. Вклады, займы, инвестиции, кредиты",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.otpbank.mobile",
+    "name": "ОТП Банк Онлайн",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.yoo.money",
+    "name": "ЮMoney: кошелёк, карты, кэшбэк",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.gibdd_pay.app",
+    "name": "Штрафы ГИБДД",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "by.bpssberbank.sbol",
+    "name": "СберБанк Онлайн Беларусь",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.rshb.dbo",
+    "name": "Мобильный банк, Россельхозбанк",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.sberbank_sbbol",
+    "name": "СберБизнес",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.bankuralsib.mb.android",
+    "name": "Уралсиб Онлайн",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.modulmoney.app",
+    "name": "Займы онлайн",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.tinkoff.investing",
+    "name": "Т-Инвестиции",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.finance.rocket",
+    "name": "Займы онлайн — ФинРакета",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.nspk.sbpay",
+    "name": "СБПэй",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "com.webbankir",
+    "name": "Webbankir – займы онлайн на карту",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.alfastrah.app",
+    "name": "АльфаСтрахование Мобайл",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "com.money365.app",
+    "name": "Займы онлайн – Кредит365",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.ingos.ingomobile",
+    "name": "Ингосстрах IngoMobile",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.banki.banki",
+    "name": "Банки.ру: кредиты, займы онлайн",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "com.kubyshka.app",
+    "name": "Кубышка займ",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.bober.finance",
+    "name": "Микрозайм",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.alfadirect.app",
+    "name": "Альфа-Инвестиции",
+    "source": "https://www.rustore.ru/catalog/finance",
+    "category": "finance"
+  },
+  {
+    "package": "ru.oneme.app",
+    "name": "МАКС: общение, звонки, сервисы",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.vkontakte.android",
+    "name": "ВКонтакте: чаты, видео, музыка",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "ru.ok.android",
+    "name": "Одноклассники: социальная сеть",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "org.telegram.messenger.web",
+    "name": "Telegram",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.vk.love",
+    "name": "VK Знакомства",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "drug.vokrug",
+    "name": "ДругВокруг: Знакомства и чат",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "sg.bigo.live.rustore",
+    "name": "Bigo Live",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.vk.im",
+    "name": "VK Мессенджер: общение и звонки, контакты и чаты",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "ru.tabor.search",
+    "name": "Tabor — знакомства",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.pinterest",
+    "name": "Pinterest",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "ru.ok.dating",
+    "name": "OK Знакомства",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.imo.android.imoim",
+    "name": "Imo video calls and chat",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "ru.yandex.telemost",
+    "name": "Яндекс Телемост — чаты и видео",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "ru.mamba.client",
+    "name": "Мамба - знакомства и общение",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "ru.zen.android",
+    "name": "Дзен",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "mint.dating",
+    "name": "Мята — знакомства",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.chat.ruletka",
+    "name": "Чат Рулетка",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.directmessage.whatsapp",
+    "name": "Сообщение в Whatsapp*",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.zhiliaoapp.musically",
+    "name": "TikTok",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "live.vkplay.app",
+    "name": "VK Видео Live: стримы, общение",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.imo.android.imoimhd",
+    "name": "imo HD — Video Calls and Chats",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.dominantstudios.vkactiveguests",
+    "name": "Мои Гости — Вся активность Вк",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "us.zoom.videomeetings",
+    "name": "Zoom",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "ai.socialapps.speakmaster",
+    "name": "PolyBuzz: Chat with AI Friends",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.blinkmap.rs",
+    "name": "Blink — общение, друзья на карте",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "ru.beboo.reload",
+    "name": "Beboo – знакомства и общение",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.destruction.tg.ai",
+    "name": "TG AI: Чаты, звонки и ИИ Генерация",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.vk.clips",
+    "name": "VK Клипы: короткие видео",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "ru.unlimitedtech.express",
+    "name": "eXpress: Enterprise Messenger",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "ru.mobstudio.andgalaxy",
+    "name": "Чат знакомств Galaxy|Галактика",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.getpure.pure",
+    "name": "Pure — Нескучные знакомства",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.tencent.mm",
+    "name": "WeChat",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.funtech.whatsapp_status_saver",
+    "name": "Status WhatsApp* Saver — Save WhatsApp* Status",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "com.funapps.status_saver.whats_app_toolkit",
+    "name": "WhatsApp* Tools - Tools for WhatsApp*",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "chat.dreamsai",
+    "name": "Виртуальная девушка: знакомства, ai чат, истории",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "ru.magnit.tag",
+    "name": "Tag",
+    "source": "https://www.rustore.ru/catalog/social",
+    "category": "social"
+  },
+  {
+    "package": "ru.ozon.app.android",
+    "name": "OZON: товары, одежда, билеты",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "com.wildberries.ru",
+    "name": "WILDBERRIES",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.beru.android",
+    "name": "Яндекс Маркет: онлайн-магазин",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.leroymerlin.mobile",
+    "name": "Лемана ПРО: товары для дома и сада",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.instamart",
+    "name": "Купер・доставка еды и продуктов",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.bestprice.fixprice",
+    "name": "Fix Price: доставка, самовывоз",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "com.edadeal.android",
+    "name": "Свои Плюсы Едадил — кешбэк, акции, купоны, скидки",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.dns.shop.android",
+    "name": "DNS-SHOP",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.ozon.select",
+    "name": "Ozon Селект: брендовые товары",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.aliexpress.buyer",
+    "name": "AliExpress: интернет-магазин",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.sportmaster.app",
+    "name": "Спортмастер: интернет-магазин",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.letu",
+    "name": "ЛЭТУАЛЬ: косметика, парфюмерия",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.kari.android",
+    "name": "kari: обувь и аксессуары",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.sbcs.store",
+    "name": "Самокат: быстрая доставка еды и продуктов на дом",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.sunlight.sunlight",
+    "name": "SUNLIGHT Ювелирный Гипермаркет",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "goldapple.ru.goldapple.customers",
+    "name": "Золотое Яблоко: косметика и парфюмерия",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.filit.mvideo.b2c",
+    "name": "М.Видео: онлайн-маркет",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.crptech.mark",
+    "name": "Честный ЗНАК – Проверь товар",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.detmir.dmbonus",
+    "name": "Детский магазин «Детский мир»",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.lenta.lentochka",
+    "name": "Лента Онлайн — Заказ продуктов",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "com.warefly.checkscan",
+    "name": "ЧекСкан — кэшбэк за покупки",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "com.lamoda.lite",
+    "name": "Lamoda: мода, красота, дом — интернет-магазин",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.zolotoy585.customer",
+    "name": "585 Золотой ювелирный магазин. Золото и серебро",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.vcr.verniy_all",
+    "name": "Верный — магазин продуктов",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.cardsmobile.mw3",
+    "name": "Кошелёк: карты, скидки, бонусы",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "com.faberlic",
+    "name": "Faberlic",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "org.orange.mobile",
+    "name": "Апельсин — сервис лояльности",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.rivegauche.app",
+    "name": "РИВ ГОШ Парфюмерия и Косметика",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "com.newword.medved.bbb",
+    "name": "Poizon (ДЭВУ) — Официальное приложение",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.sokolov.android",
+    "name": "SOKOLOV: ювелирный магазин",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "com.notissimus.allinstruments.android",
+    "name": "ВсеИнструменты.ру",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "com.flowwow",
+    "name": "Флаувау: цветы, подарки, торты",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.briz.rendezvous",
+    "name": "Rendez-Vous",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "tech.jm",
+    "name": "Джум Маркет — покупки и скидки онлайн",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "com.setinbox.game",
+    "name": "UDS App: экономь с умом",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "com.kazanexpress.ke_app",
+    "name": "Магнит Маркет",
+    "source": "https://www.rustore.ru/catalog/purchases",
+    "category": "purchases"
+  },
+  {
+    "package": "ru.rostel",
+    "name": "Госуслуги",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.gosuslugi.goskey",
+    "name": "Госключ",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.mos.amina.app",
+    "name": "Амина",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "com.gnivts.selfemployed",
+    "name": "Мой налог",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.sigma.gisgkh",
+    "name": "Госуслуги Дом",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.election.droid",
+    "name": "ДЭГ - 2026",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.mos.app",
+    "name": "Моя Москва — приложение mos.ru",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.gosuslugi.auto",
+    "name": "Госуслуги Авто",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.gosuslugi.culture",
+    "name": "Госуслуги Культура",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.gnivc.lkip",
+    "name": "Личный кабинет предпринимателя",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.gosuslugi.pos",
+    "name": "Госуслуги Решаем вместе",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.rtlabs.mobile.ebs.gosuslugi.android",
+    "name": "Госуслуги Биометрия",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.belregion.belgoroddrone",
+    "name": "Что по небу?",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.altarix.mos.pgu",
+    "name": "Госуслуги Москвы",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.mos.cms.erzapp",
+    "name": "ЕРЗ. Мои задания",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.mosreg.uslugi.mobile.beta",
+    "name": "Добродел",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "io.citizens.security",
+    "name": "МЧС России",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.trudvsem.mobile",
+    "name": "Работа в России",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.mos.ed",
+    "name": "Электронный дом Москва",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.sitesoft.fssp",
+    "name": "ФССП",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.mos.polls",
+    "name": "Активный Гражданин",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.fanid",
+    "name": "Госуслуги Карта болельщика",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "team.rtds.checkcontrol",
+    "name": "МП. Инспектор",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.netvoxlab.mydocapp",
+    "name": "Мои документы",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.csarm.sreda",
+    "name": "Среда",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.integrics.kirovschool",
+    "name": "Образование Кировской области",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.mos.ourcity",
+    "name": "Наш город",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "com.uip.gosuslugi2",
+    "name": "Услуги РТ",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.fns.billchecker.mobile.android",
+    "name": "Проверка чеков ФНС России",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.integrics.mobiled",
+    "name": "Цифровая школа Оренбуржья",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.fsrar.anti_counterfeit_b2b",
+    "name": "АТК",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "info.emias.spb",
+    "name": "ЕМИАС.ПЕТЕРБУРГ",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.nso.karta",
+    "name": "Карта жителя НСО",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.mvd",
+    "name": "МВД России",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.rosreestr.mobile",
+    "name": "Росреестр",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "ru.finassist",
+    "name": "ЦБ онлайн",
+    "source": "https://www.rustore.ru/catalog/state",
+    "category": "state"
+  },
+  {
+    "package": "com.yandex.browser",
+    "name": "Яндекс Браузер с Алисой AI",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.taxi",
+    "name": "Яндекс Go: Такси, Еда, Маркет, Самокаты, Доставка",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.searchapp",
+    "name": "Яндекс — с Алисой AI",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.music",
+    "name": "Яндекс Музыка, книги, подкасты",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.bank",
+    "name": "Яндекс Пэй: QR, NFC и Сплит",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.aliceapp",
+    "name": "Алиса AI: Нейросеть Яндекса",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.yandexmaps",
+    "name": "Яндекс Карты и Навигатор",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.yandexnavi",
+    "name": "Яндекс Навигатор",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.taximeter",
+    "name": "Яндекс Про: водители и курьеры",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.beru.android",
+    "name": "Яндекс Маркет: онлайн-магазин",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.kinopoisk",
+    "name": "Кинопоиск: кино и сериалы",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.mail",
+    "name": "Яндекс Почта: умная электронная почта, облако",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.searchplugin",
+    "name": "Яндекс Старт",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.weatherplugin",
+    "name": "Яндекс Погода — Карта осадков",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "com.edadeal.android",
+    "name": "Свои Плюсы Едадил — кешбэк, акции, купоны, скидки",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.iot",
+    "name": "Дом с Алисой",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.foodfox.client",
+    "name": "Яндекс Еда: доставка еды",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.disk",
+    "name": "Яндекс Диск — облако для фото",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.telemost",
+    "name": "Яндекс Телемост — чаты и видео",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.superapp.plus",
+    "name": "Яндекс Плюс",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.plus.bookmate",
+    "name": "Яндекс Книги",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.browser.lite",
+    "name": "Яндекс Браузер Лайт",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.travel",
+    "name": "Яндекс Путешествия: Отели",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.translate",
+    "name": "Яндекс Переводчик",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.uber",
+    "name": "Fasten RU",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.androidkeyboard",
+    "name": "Яндекс Клавиатура",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.lavka",
+    "name": "Яндекс Лавка: заказ продуктов",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.key",
+    "name": "Яндекс ID – аутентификатор 2FA",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.direct",
+    "name": "Яндекс Директ",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.mobile.gasstations",
+    "name": "Яндекс Заправки – АЗС на карте",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.rasp",
+    "name": "Яндекс Электрички и ЖД билеты",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.mobile.afisha",
+    "name": "Яндекс Афиша — билеты",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.metro",
+    "name": "Яндекс Метро",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.bluecollars",
+    "name": "Яндекс Смена",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.mobile.fmradio",
+    "name": "Яндекс Радио — все станции",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.games",
+    "name": "Яндекс Игры",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.vseapteki",
+    "name": "Яндекс Аптеки: заказ лекарств",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.vezet",
+    "name": "Везёт — заказ такси",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "com.deliveryclub",
+    "name": "Деливери: еда и продукты",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.shedevrus",
+    "name": "Шедеврум",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.mobile.drive",
+    "name": "Яндекс Драйв — каршеринг",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.flowers",
+    "name": "Яндекс Цветы: доставка букетов",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.mobile.realty",
+    "name": "Яндекс Недвижимость и Аренда",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.dikidi",
+    "name": "DIKIDI Online",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.tasks.androidapp",
+    "name": "Яндекс Задания",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.internetometer",
+    "name": "Яндекс Интернетометр",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "com.chaevieprosto.app",
+    "name": "Яндекс Чаевые: на карту по QR",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "jamhome.ru.lktsj",
+    "name": "Домиленд+",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.calendar.app",
+    "name": "Яндекс Календарь",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.medtech",
+    "name": "Яндекс Мед — ИИ для врача",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.browser.corp",
+    "name": "Яндекс Браузер для организаций",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "com.zebrainy.skazbuka",
+    "name": "Сказбука для детей от Яндекса",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.mobile.arenda",
+    "name": "Яндекс Аренда",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.dikidi.beauty.business",
+    "name": "DIKIDI Business",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "com.routeq.app",
+    "name": "Яндекс Маршрутизация",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "home.tuvio.com",
+    "name": "Tuvio",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.market.partner",
+    "name": "Яндекс Маркет для продавцов",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.drawie",
+    "name": "Рисовайка для детей от Яндекса",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.practicum.flutter_practicum",
+    "name": "Яндекс Практикум: онлайн курсы",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.readie",
+    "name": "Читайник — чтение для детей",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.subtitles",
+    "name": "Яндекс Разговор: помощь глухим",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.market.pickuppointpro",
+    "name": "Маркет ПВЗ",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.mobile.avia",
+    "name": "Яндекс Авиабилеты",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.market.tpl.courierpro2",
+    "name": "Маркет Курьер",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.cloud",
+    "name": "Yandex Cloud",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.cloud.tracker",
+    "name": "Яндекс Трекер",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.foodfox.vendor",
+    "name": "Яндекс Еда Вендор",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.yablogger",
+    "name": "Яндекс ПроБлогер",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.rhythm",
+    "name": "Яндекс Ритм: Идеи для покупок",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.corp.tracking.app",
+    "name": "Яндекс Вектор",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.travel.extranet",
+    "name": "Я.Путешествия: Экстранет",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.domyland.worker",
+    "name": "Domyland Pro",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-2",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex_team.calendar_app",
+    "name": "Я Team",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-3",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.transport.city",
+    "name": "Яндекс СИТИ",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-3",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.rovertoy.app",
+    "name": "Робот-доставщик",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-3",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.aira",
+    "name": "Эйрин: помощник в поиске работы",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-3",
+    "category": "yandex"
+  },
+  {
+    "package": "home.pragma.com",
+    "name": "Свет Яндекс Фабрики",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-3",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.mobile.tours3d",
+    "name": "Яндекс 3D-Туры: показ онлайн",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-3",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.smartreserve",
+    "name": "СмартРезерв",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-3",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.smartreserve.aon",
+    "name": "СмартРезерв АОН",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-3",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.mercaux.app",
+    "name": "Modern Retail",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-3",
+    "category": "yandex"
+  },
+  {
+    "package": "com.yandex.browser.tv",
+    "name": "Яндекс Браузер для ТВ",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-3",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.yandex.games.tv",
+    "name": "Яндекс Игры | Yandex Games: One Stop Gateway",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-3",
+    "category": "yandex"
+  },
+  {
+    "package": "ru.kinopoisk.tv",
+    "name": "Кинопоиск",
+    "source": "https://www.rustore.ru/catalog/developer/c184ae7c/page-3",
+    "category": "yandex"
+  },
+  {
+    "package": "com.vk.vkvideo",
+    "name": "VK Видео: кино, сериалы, ТВ, мультфильмы и клипы",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "com.vkontakte.android",
+    "name": "ВКонтакте: чаты, видео, музыка",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "ru.ok.android",
+    "name": "Одноклассники: социальная сеть",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "ru.mail.mailapp",
+    "name": "Mail: Почта, Облако, Календарь",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "ru.mail.cloud",
+    "name": "Облако Mail: Хранилище фото",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "com.vk.love",
+    "name": "VK Знакомства",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "com.uma.musicvk",
+    "name": "VK Музыка: аудиокниги, песни, подкасты",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "com.allgoritm.youla",
+    "name": "Юла — сервис объявлений",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "com.vk.im",
+    "name": "VK Мессенджер: общение и звонки, контакты и чаты",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "ru.ok.dating",
+    "name": "OK Знакомства",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "ru.mail.search.electroscope",
+    "name": "Маруся — голосовой помощник",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "ru.zen.android",
+    "name": "Дзен",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "live.vkplay.app",
+    "name": "VK Видео Live: стримы, общение",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "com.vk.clips",
+    "name": "VK Клипы: короткие видео",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "ru.vk.hrtek",
+    "name": "VK HR Tek: кадровые процессы онлайн",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "ru.mail.biz.avocado",
+    "name": "VK WorkSpace для бизнеса",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "com.vk.mail",
+    "name": "VK Почта",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "com.my.mygamesapp",
+    "name": "VK Play",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "ru.mail.my",
+    "name": "Мой Мир",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "games.my.cloud",
+    "name": "VK Play Облачный гейминг",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "com.vk.calls",
+    "name": "VK Calls",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "ru.mail.horo.android",
+    "name": "Гороскопы",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "ru.mail.intranet",
+    "name": "Интранет",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "com.BOGG.ART.VKT",
+    "name": "Магия Знаний: История России",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "games.my.cloud.tv",
+    "name": "VK Play ТВ",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "com.vk.tv",
+    "name": "VK Видео для Android TV",
+    "source": "https://www.rustore.ru/catalog/developer/df91b73f",
+    "category": "vk"
+  },
+  {
+    "package": "ru.sberbankmobile",
+    "name": "СберБанк Онлайн",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.vtb24.mobilebanking.android",
+    "name": "ВТБ Онлайн",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "com.idamob.tinkoff.android",
+    "name": "Т-Банк: карты, вклады, кредиты",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.alfabank.mobile.android",
+    "name": "Альфа-Банк",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.ozon.fintech.finance",
+    "name": "Ozon Банк: выгодные покупки",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.sovcomcard.halva.v1",
+    "name": "Халва – Совкомбанк",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "logo.com.mbanking",
+    "name": "ПСБ",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.gazprombank.android.mobilebank.app",
+    "name": "Газпромбанк",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.sberbank.sberkids",
+    "name": "СберKids",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.rshb.dbo",
+    "name": "Мобильный банк, Россельхозбанк",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.otpbank.mobile",
+    "name": "ОТП Банк Онлайн",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.zhuck.webapp",
+    "name": "Точка",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.bankuralsib.mb.android",
+    "name": "Уралсиб Онлайн",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.sberbank_sbbol",
+    "name": "СберБизнес",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.alfabank.oavdo.amc",
+    "name": "Альфа-Бизнес",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.tinkoff.sme",
+    "name": "Т-Бизнес",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.raiffeisennews",
+    "name": "Райффайзен Онлайн Банк Россия",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.akbars.mobile",
+    "name": "Ак Барс Онлайн",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.mkb.mobile",
+    "name": "МКБ Онлайн",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.bspb",
+    "name": "БСПБ",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.simpls.brs2.mobbank",
+    "name": "Русский Стандарт Онлайн",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.vtb.smb",
+    "name": "Бизнес Платформа ВТБ",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.skbbank.ib",
+    "name": "Синара Банк",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "com.isimplelab.ibank.solidarnost",
+    "name": "Солидарность Онлайн",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "cb.ibank",
+    "name": "УБРиР Мобильный банк",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.ozon.fintech.sme",
+    "name": "Ozon Банк для бизнеса",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.psbank.msb.dev.psb_appstore",
+    "name": "ПСБ Бизнес",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "pro.rocketTech.rocket.rocketapp",
+    "name": "Рокет",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.ftc.faktura.nskbl",
+    "name": "Банк Левобережный BL-Online",
+    "source": "https://www.rustore.ru/catalog/featuring/e481e019-6a06-4c7b-8487-d2a45321ddd2",
+    "category": "banks"
+  },
+  {
+    "package": "ru.mts.mymts",
+    "name": "Мой МТС",
+    "source": "https://www.rustore.ru/catalog/app/ru.mts.mymts",
+    "category": "Операторы",
+    "primaryTitle": "Мой МТС — скачать для Android 3,5★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.beeline.services",
+    "name": "билайн",
+    "source": "https://www.rustore.ru/catalog/app/ru.beeline.services",
+    "category": "Операторы",
+    "primaryTitle": "билайн — скачать для Android 4,6★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.megafon.mlk",
+    "name": "МегаФон",
+    "source": "https://www.rustore.ru/catalog/app/ru.megafon.mlk",
+    "category": "Операторы",
+    "primaryTitle": "МегаФон — скачать для Android 3,2★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.tele2.mytele2",
+    "name": "t2. Новый уровень",
+    "source": "https://www.rustore.ru/catalog/app/ru.tele2.mytele2",
+    "category": "Операторы",
+    "primaryTitle": "t2. Новый уровень — скачать для Android 4,6★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.yota.android",
+    "name": "Yota: мобильная связь",
+    "source": "https://www.rustore.ru/catalog/app/ru.yota.android",
+    "category": "Операторы",
+    "primaryTitle": "Yota: мобильная связь — скачать для Android 4,2★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "com.dartit.RTcabinet",
+    "name": "Мой Ростелеком",
+    "source": "https://www.rustore.ru/catalog/app/com.dartit.RTcabinet",
+    "category": "Операторы",
+    "primaryTitle": "Мой Ростелеком — скачать для Android 2,9★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.rzd.pass",
+    "name": "РЖД Пассажирам",
+    "source": "https://www.rustore.ru/catalog/app/ru.rzd.pass",
+    "category": "Транспорт и поездки",
+    "primaryTitle": "«РЖД Пассажирам»: билеты на поезд — скачать для Android 2,6★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.dublgis.dgismobile",
+    "name": "2ГИС",
+    "source": "https://www.rustore.ru/catalog/app/ru.dublgis.dgismobile",
+    "category": "Транспорт и поездки",
+    "primaryTitle": "2ГИС: навигатор, транспорт, друзья на карте — скачать для Android 4,2★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.mosgorpass",
+    "name": "Московский транспорт",
+    "source": "https://www.rustore.ru/catalog/app/ru.mosgorpass",
+    "category": "Транспорт и поездки",
+    "primaryTitle": "Московский транспорт — скачать для Android 2,8★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.mosmetro.metro",
+    "name": "Метро Москвы",
+    "source": "https://www.rustore.ru/catalog/app/ru.mosmetro.metro",
+    "category": "Транспорт и поездки",
+    "primaryTitle": "Метро Москвы – карта и схема — скачать для Android 3,6★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.mosparking.appnew",
+    "name": "Парковки России",
+    "source": "https://www.rustore.ru/catalog/app/ru.mosparking.appnew",
+    "category": "Транспорт и поездки",
+    "primaryTitle": "Парковки России — скачать для Android 2,1★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "com.carshering",
+    "name": "Делимобиль",
+    "source": "https://www.rustore.ru/catalog/app/com.carshering",
+    "category": "Транспорт и поездки",
+    "primaryTitle": "Делимобиль — скачать для Android 3,9★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.tutu.tutu_emp",
+    "name": "Туту",
+    "source": "https://www.rustore.ru/catalog/app/ru.tutu.tutu_emp",
+    "category": "Транспорт и поездки",
+    "primaryTitle": "Туту: Жд билеты, отели, авиабилеты, автобусы — скачать для Android 4,5★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.aeroflot",
+    "name": "Аэрофлот",
+    "source": "https://www.rustore.ru/catalog/app/ru.aeroflot",
+    "category": "Транспорт и поездки",
+    "primaryTitle": "Аэрофлот – купить билеты на самолет онлайн — скачать для Android 3,3★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "com.octopod.russianpost.client.android",
+    "name": "Почта России",
+    "source": "https://www.rustore.ru/catalog/app/com.octopod.russianpost.client.android",
+    "category": "Доставка и продукты",
+    "primaryTitle": "Почта России — скачать для Android 4,0★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "com.logistic.sdek",
+    "name": "СДЭК: Доставка и Шопинг",
+    "source": "https://www.rustore.ru/catalog/app/com.logistic.sdek",
+    "category": "Доставка и продукты",
+    "primaryTitle": "СДЭК: Доставка и Шопинг — скачать для Android 3,1★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.x5.omni",
+    "name": "5 POST",
+    "source": "https://www.rustore.ru/catalog/app/ru.x5.omni",
+    "category": "Доставка и продукты",
+    "primaryTitle": "5 POST — скачать для Android 3,5★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.pyaterochka.app.browser",
+    "name": "Пятёрочка",
+    "source": "https://www.rustore.ru/catalog/app/ru.pyaterochka.app.browser",
+    "category": "Доставка и продукты",
+    "primaryTitle": "Пятёрочка: доставка продуктов — скачать для Android 3,5★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.vkusvill",
+    "name": "ВкусВилл",
+    "source": "https://www.rustore.ru/catalog/app/ru.vkusvill",
+    "category": "Доставка и продукты",
+    "primaryTitle": "ВкусВилл: доставка продуктов на дом ・ заказ еды — скачать для Android 4,8★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.tander.magnit",
+    "name": "Магнит",
+    "source": "https://www.rustore.ru/catalog/app/ru.tander.magnit",
+    "category": "Доставка и продукты",
+    "primaryTitle": "Магнит: акции и доставка — скачать для Android 3,9★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.dodopizza.app",
+    "name": "Додо Пицца",
+    "source": "https://www.rustore.ru/catalog/app/ru.dodopizza.app",
+    "category": "Доставка и продукты",
+    "primaryTitle": "Додо Пицца доставка и ресторан — скачать для Android 4,7★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "com.apegroup.mcdonaldsrussia",
+    "name": "Вкусно — и точка",
+    "source": "https://www.rustore.ru/catalog/app/com.apegroup.mcdonaldsrussia",
+    "category": "Доставка и продукты",
+    "primaryTitle": "Вкусно — и точка: еда, доставка, скидки и акции — скачать для Android 4,2★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "com.avito.android",
+    "name": "Авито",
+    "source": "https://www.rustore.ru/catalog/app/com.avito.android",
+    "category": "Объявления и работа",
+    "primaryTitle": "Авито – путешествия, работа, услуги, авто — скачать для Android 4,7★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.hh.android",
+    "name": "Поиск работы на hh",
+    "source": "https://www.rustore.ru/catalog/app/ru.hh.android",
+    "category": "Объявления и работа",
+    "primaryTitle": "Поиск работы на hh — скачать для Android 4,4★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.rutube.app",
+    "name": "RUTUBE",
+    "source": "https://www.rustore.ru/catalog/app/ru.rutube.app",
+    "category": "Видео и развлечения",
+    "primaryTitle": "RUTUBE: видео, шоу, трансляции — скачать для Android 3,4★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "ru.rt.video.app.mobile",
+    "name": "Wink",
+    "source": "https://www.rustore.ru/catalog/app/ru.rt.video.app.mobile",
+    "category": "Видео и развлечения",
+    "primaryTitle": "Wink: ТВ онлайн, Кино, Сериалы — скачать для Android 4,3★ бесплатно 📱 в RuStore"
+  },
+  {
+    "package": "com.bank.domrf.v2",
+    "name": "Банк ДОМ.РФ",
+    "source": "https://www.rustore.ru/catalog/app/com.bank.domrf.v2",
+    "category": "Банки и финансы",
+    "primaryTitle": "Банк ДОМ.РФ — скачать для Android 3,2★ бесплатно 📱 в RuStore"
+  }
+]

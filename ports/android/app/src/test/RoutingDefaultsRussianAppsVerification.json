@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-14",
+  "sourceStable": true,
+  "packages": 284,
+  "tests": 72,
+  "dnsTests": 38,
+  "existingRouteTests": 14,
+  "russianAppTests": 20,
+  "failures": 0,
+  "runtimeExportMetadataParity": true,
+  "sha256": {
+    "app/src/main/kotlin/org/mcrf/client/RoutingDefaultsRussianApps.kt": "dd88250932ab3122ba53c2d6a495afb1397cd247bdcc0a017859388947112440",
+    "app/src/test/kotlin/org/mcrf/client/RoutingDefaultsRussianAppsTest.kt": "73592668330aba802d67c24b37ec712715084dc2ca9a7d286e4a2cdc4f161f37",
+    "app/src/test/RoutingDefaultsRussianAppsCatalogue.json": "7454581659701516a5a86f023f357ec99a8e0075896751cad86d06f868d58af3"
+  },
+  "scope": "Owned isolated compilation/JUnit only, no Gradle/ADB/frozen snapshot changes; phone preview/native traffic remain coordinator gates"
+}

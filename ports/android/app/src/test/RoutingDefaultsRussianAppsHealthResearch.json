@@ -1,0 +1,220 @@
+{
+  "additions": [
+    {
+      "name": "Apteka.RU",
+      "packageName": "ru.apteka",
+      "category": "Аптеки",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/ru.apteka",
+      "provenance": "https://www.rustore.ru/catalog/app/ru.apteka",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "Еаптека",
+      "packageName": "ru.getpharma.eapteka",
+      "category": "Аптеки",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/ru.getpharma.eapteka",
+      "provenance": "https://www.rustore.ru/catalog/app/ru.getpharma.eapteka",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "Ютека. Все аптеки города",
+      "packageName": "ru.uteka.app",
+      "category": "Аптеки",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/ru.uteka.app",
+      "provenance": "https://www.rustore.ru/catalog/app/ru.uteka.app",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "Здравсити",
+      "packageName": "ru.zdravcity.app",
+      "category": "Аптеки",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/ru.zdravcity.app",
+      "provenance": "https://www.rustore.ru/catalog/developer/1bdc673c",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "Онлайн аптека Ригла: лекарства",
+      "packageName": "ru.rigla.client.android",
+      "category": "Аптеки",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/ru.rigla.client.android",
+      "provenance": "https://www.rustore.ru/catalog/developer/4ed2b964",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "Планета Здоровья - аптека",
+      "packageName": "com.aptekarsk.pz",
+      "category": "Аптеки",
+      "primaryUrl": "https://play.google.com/store/apps/details?id=com.aptekarsk.pz&hl=ru",
+      "provenance": "https://play.google.com/store/apps/details?id=com.aptekarsk.pz&hl=ru",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "Аптека Апрель",
+      "packageName": "com.apteka.sklad",
+      "category": "Аптеки",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/com.apteka.sklad",
+      "provenance": "https://www.rustore.ru/catalog/app/com.apteka.sklad",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "ГОРЗДРАВ - аптека с доставкой",
+      "packageName": "com.platfomni.gorzdrav",
+      "category": "Аптеки",
+      "primaryUrl": "https://play.google.com/store/apps/details?id=com.platfomni.gorzdrav&hl=ru",
+      "provenance": "https://play.google.com/store/apps/details?id=com.platfomni.gorzdrav&hl=ru",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "Аптеки 36,6: доставка лекарств",
+      "packageName": "com.platfomni.apteka366",
+      "category": "Аптеки",
+      "primaryUrl": "https://play.google.com/store/apps/details?id=com.platfomni.apteka366&hl=ru",
+      "provenance": "https://play.google.com/store/apps/details?id=com.platfomni.apteka366&hl=ru",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "Аптека Озерки — поиск лекарств, витаминов и БАДов",
+      "packageName": "com.erkafarm.ozerki",
+      "category": "Аптеки",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/com.erkafarm.ozerki",
+      "provenance": "https://www.rustore.ru/catalog/app/com.erkafarm.ozerki",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "Аптеки НЕОФАРМ",
+      "packageName": "ru.neopharm.neoapp",
+      "category": "Аптеки",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/ru.neopharm.neoapp",
+      "provenance": "https://www.rustore.ru/catalog/developer/8d3df126",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "Аптека Столички",
+      "packageName": "ru.neopharm.stolichki",
+      "category": "Аптеки",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/ru.neopharm.stolichki",
+      "provenance": "https://www.rustore.ru/catalog/developer/8d3df126",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "Аптека Вита — поиск лекарств",
+      "packageName": "com.platfomni.vita",
+      "category": "Аптеки",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/com.platfomni.vita",
+      "provenance": "https://www.rustore.ru/catalog/developer/e2b3d26d",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "Мегаптека.ру — поиск лекарств",
+      "packageName": "com.platfomni.saas.ma",
+      "category": "Аптеки",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/com.platfomni.saas.ma",
+      "provenance": "https://www.rustore.ru/catalog/app/com.platfomni.saas.ma",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "СберЗдоровье — телемедицина",
+      "packageName": "com.docdoc.docdoc",
+      "category": "Здоровье и медицина",
+      "primaryUrl": "https://play.google.com/store/apps/details?id=com.docdoc.docdoc&hl=ru",
+      "provenance": "https://play.google.com/store/apps/details?id=com.docdoc.docdoc&hl=ru",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "НаПоправку — врачи онлайн 24/7",
+      "packageName": "ru.napopravku",
+      "category": "Здоровье и медицина",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/ru.napopravku",
+      "provenance": "https://www.rustore.ru/catalog/developer/c1521fd6",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "МедТочка – запись к врачу",
+      "packageName": "ru.medtochka",
+      "category": "Здоровье и медицина",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/ru.medtochka",
+      "provenance": "https://www.rustore.ru/catalog/developer/c8582902",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "SmartMed: врачи онлайн",
+      "packageName": "ru.mts.smartmed",
+      "category": "Здоровье и медицина",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/ru.mts.smartmed",
+      "provenance": "https://www.rustore.ru/catalog/app/ru.mts.smartmed",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "ЕМИАС.ИНФО",
+      "packageName": "com.programmisty.emiasapp",
+      "category": "Здоровье и медицина",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/com.programmisty.emiasapp",
+      "provenance": "https://www.rustore.ru/catalog/app/com.programmisty.emiasapp",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "INVITRO — здоровье и анализы",
+      "packageName": "com.invitro.app",
+      "category": "Медицинские лаборатории",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/com.invitro.app",
+      "provenance": "https://www.rustore.ru/catalog/app/com.invitro.app",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "Хеликс: медицинские анализы",
+      "packageName": "ru.helix",
+      "category": "Медицинские лаборатории",
+      "primaryUrl": "https://play.google.com/store/apps/details?id=ru.helix&hl=ru",
+      "provenance": "https://play.google.com/store/apps/details?id=ru.helix&hl=ru",
+      "verifiedOn": "2026-10-14"
+    },
+    {
+      "name": "HelixExpress скидки на анализы",
+      "packageName": "ru.helix.express",
+      "category": "Медицинские лаборатории",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/ru.helix.express",
+      "provenance": "https://www.rustore.ru/catalog/developer/tcwcy035",
+      "verifiedOn": "2026-10-14"
+    }
+  ],
+  "rejected": [
+    {
+      "name": "Яндекс Аптеки / Все Аптеки",
+      "packageName": "ru.vseapteki",
+      "reason": "Package already present in the catalogue."
+    },
+    {
+      "name": "МедТочка Врач",
+      "packageName": "ru.medtochka.doctor",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/ru.medtochka.doctor",
+      "reason": "Professional app for doctors; outside consumer scope."
+    },
+    {
+      "name": "SmartMed Doctor",
+      "packageName": "ru.smartmed.doctor",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/ru.smartmed.doctor",
+      "reason": "Professional app for doctors; outside consumer scope."
+    }
+  ],
+  "uncertain": [
+    {
+      "name": "Гемотест Телемед",
+      "packageName": "pro.ibolit.iBolitPatient.gemotest",
+      "primaryUrl": "https://www.rustore.ru/catalog/app/pro.ibolit.iBolitPatient.gemotest",
+      "reason": "RuStore explicitly marks it as externally imported; publisher NYU MED SOLYUSHNS. Official vendor/publisher link was not corroborated in this pass."
+    },
+    {
+      "name": "CMD — медицинская лаборатория",
+      "packageName": null,
+      "primaryUrl": "https://www.cmd-online.ru/",
+      "reason": "No official medical-lab Android store identity verified. Unrelated apps named CMD must not be substituted."
+    }
+  ],
+  "notes": [
+    "ПроДокторов consumer functionality is verified in МедТочка (ru.medtochka); no separate package identity invented.",
+    "Each addition's primaryUrl directly identifies the app, exact package and publisher.",
+    "Where RuStore developer directories returned 429, provenance uses the successfully inspected official app listing."
+  ],
+  "kind": "Read-only primary-source identity research for DNS-owner review/merge, not an implemented/device gate",
+  "researcher": "01a13b96-96b9-78a0-96be-5de129906f8a"
+}

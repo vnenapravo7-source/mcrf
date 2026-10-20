@@ -1,0 +1,20 @@
+[
+  {"link":"vless://11111111-1111-4111-8111-111111111111@127.0.0.1:443?security=reality&pbk=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&sid=1234&type=tcp&flow=xtls-rprx-vision&sni=example.com#TCP","type":"vless","transport":"tcp","name":"TCP"},
+  {"link":"vless://11111111-1111-4111-8111-111111111111@127.0.0.1:444?security=reality&pbk=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&sid=1234&type=grpc&serviceName=mcrf&sni=example.com#GRPC","type":"vless","transport":"grpc","name":"GRPC"},
+  {"link":"vless://11111111-1111-4111-8111-111111111111@[::1]:445?security=tls&type=ws&path=%2Fsocket&host=example.com&sni=example.com#IPv6","type":"vless","transport":"ws","name":"IPv6"},
+  {"link":"vless://11111111-1111-4111-8111-111111111111@127.0.0.1:446?security=tls&type=httpupgrade&path=%2Fup#Upgrade","type":"vless","transport":"httpupgrade","name":"Upgrade"},
+  {"link":"vless://11111111-1111-4111-8111-111111111111@127.0.0.1:447?security=tls&type=splithttp&mode=auto&path=%2Fx#XHTTP","type":"vless","transport":"xhttp","name":"XHTTP"},
+  {"link":"trojan://test%3Ap%40ss%2Bword@127.0.0.1:448?security=tls&type=ws&path=%2Ft&sni=example.com#Trojan","type":"trojan","transport":"ws","name":"Trojan"},
+  {"link":"ss://YWVzLTI1Ni1nY206c2FmZS10ZXN0@127.0.0.1:449#SS","type":"shadowsocks","transport":"tcp","name":"SS"},
+  {"link":"hy2://fixture@127.0.0.1:450?sni=example.com&obfs=salamander&obfs-password=fixture&upmbps=100&downmbps=200#HY2","type":"hysteria2","transport":"tcp","name":"HY2"},
+  {"link":"hysteria://fixture@127.0.0.1:451?auth=fixture&sni=example.com&upmbps=100&downmbps=100#HY1","type":"hysteria","transport":"tcp","name":"HY1"},
+  {"link":"tuic://11111111-1111-4111-8111-111111111111:fixture@127.0.0.1:452?sni=example.com&congestion_control=bbr#TUIC","type":"tuic","transport":"tcp","name":"TUIC"},
+  {"link":"anytls://fixture@127.0.0.1:453?sni=example.com#AnyTLS","type":"anytls","transport":"tcp","name":"AnyTLS"},
+  {"link":"socks5://user:fixture@127.0.0.1:454#SOCKS","type":"socks","transport":"tcp","name":"SOCKS"},
+  {"link":"http://user:fixture@127.0.0.1:455#HTTP","type":"http","transport":"tcp","name":"HTTP"},
+  {"link":"https://user:fixture@127.0.0.1:456?sni=example.com#HTTPS","type":"http","transport":"tcp","name":"HTTPS"},
+  {"link":"naive+https://user:fixture@127.0.0.1:457?sni=example.com#Naive","type":"naive","transport":"tcp","name":"Naive"},
+  {"link":"ssh://user:fixture@127.0.0.1:458#SSH","type":"ssh","transport":"tcp","name":"SSH"},
+  {"link":"wireguard://AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA%3D@127.0.0.1:459?publickey=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA%3D&address=10.55.0.2%2F32&presharedkey=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA%3D#WG","type":"wireguard","transport":"tcp","name":"WG"},
+  {"link":"awg://AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA%3D@127.0.0.1:460?publickey=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA%3D&address=10.56.0.2%2F32&Jc=4&Jmin=40&Jmax=70&S1=1&S2=2&H1=1&H2=2&H3=3&H4=4#AWG","type":"wireguard","transport":"tcp","name":"AWG"}
+]

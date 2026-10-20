@@ -1,0 +1,34 @@
+libyaml 0.2.5 — сторонний код, НЕ ПРАВИТСЯ
+
+Откуда:   https://github.com/yaml/libyaml, тег 0.2.5
+          коммит 2c891fc7a770e8ba2fec34fc6b545c672beb37e6 («Changes for v0.2.5 release»,
+          2020-06-01) — последний выпуск; 0.2.6-rc.1 — кандидат, не выпуск.
+Лицензия: MIT, файл LICENSE (в upstream называется License, содержимое то же).
+
+Взято только то, что нужно для разбора (событийный парсер):
+  api.c           upstream src/api.c
+  parser.c        upstream src/parser.c
+  reader.c        upstream src/reader.c
+  scanner.c       upstream src/scanner.c
+  yaml_private.h  upstream src/yaml_private.h
+  yaml.h          upstream include/yaml.h
+Все шесть файлов — байт в байт как в теге (sha256 ниже). Не взяты: loader.c (дерево документа
+строит наша обёртка src/lib/ynode.c — там же пределы и отказ на алиасах), emitter.c, writer.c,
+dumper.c (печать v2 командой `steer spec convert` своя: эмиттер не умеет комментариев и
+выравнивания, которые есть в примере спеки docs/architecture.md, раздел 3).
+
+Наш файл здесь один — config.h (номер версии вместо того, что выводит CMake upstream), он
+подключается ключом -DHAVE_CONFIG_H (THIRD_DEFS в build/sources.mk, cflags libsteer_yaml в
+Android.bp).
+
+sha256:
+71f9263a2c77237762c8fa5e7c3d2bdd35723ecf1e2898222c7a603a5bf3f2db  api.c
+b418ed8d6ef7e86dbd0e59c8dc7a00c8e48200b0252dd41e25d00d4616c7b2dc  parser.c
+c428a44b177391557bdf49177c1dc0216edf2a2bbe0e24ca2ef2725ef7f01e9d  reader.c
+bc3b30ceec0c696925e9703845874d7fafefb42bfbd3006dc4a02fc6d646f2d1  scanner.c
+de39c9fc2b2c8584775e6d0dc0f13c8e778ceba47d419cff9d85465ca35d6954  yaml.h
+8dffe95c784665eba4ee88169456ebd41137a6d80ad13d536df6ad10d7a4d459  yaml_private.h
+c40112449f254b9753045925248313e9270efa36d226b22d82d4cc6c43c57f29  LICENSE
+
+Обновление: заменить шесть файлов из нового тега, поправить числа в config.h и суммы здесь,
+прогнать make test (стенд tests/yamlmatch.c) и make ndk-check.

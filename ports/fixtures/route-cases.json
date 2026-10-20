@@ -1,0 +1,8 @@
+[
+ {"text":"DOMAIN,Exact.EXAMPLE\n*.suffix.example\n||ads.example^\n10.20.0.0/16\n2001:db8::/32\napp:org.example.client","mode":"any","matches":2,"domains":1,"suffixes":2,"ips":2,"apps":1},
+ {"text":"0.0.0.0 one.example two.example\n127.0.0.1 localhost\n! comment\n# comment\none.example","mode":"addresses","matches":1,"domains":0,"suffixes":2,"ips":0,"apps":0},
+ {"text":"192.0.2.12\n2001:db8::12\nIP-CIDR,198.51.100.0/24,no-resolve","mode":"addresses","matches":1,"domains":0,"suffixes":0,"ips":3,"apps":0},
+ {"text":"app:org.example.client\nexample.com","mode":"in-apps","matches":1,"domains":0,"suffixes":1,"ips":0,"apps":1},
+ {"text":"app:org.example.client\nexample.com","mode":"except-apps","matches":1,"domains":0,"suffixes":1,"ips":0,"apps":1},
+ {"text":"pkg:org.example.client\napp:org.example.client","mode":"apps","matches":1,"domains":0,"suffixes":0,"ips":0,"apps":1}
+]

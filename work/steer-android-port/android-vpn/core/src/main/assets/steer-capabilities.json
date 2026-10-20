@@ -1,0 +1,76 @@
+{
+  "port_version": "0.3.3-dev",
+  "api_version": 2,
+  "upstream_version": "2.0.4",
+  "upstream_base": "dec8b1c6dd37e31510252490ac6ad98b13cf02f9",
+  "abis": [
+    "arm64-v8a",
+    "x86_64"
+  ],
+  "min_sdk": 29,
+  "root_required": false,
+  "tun_mtu": 1500,
+  "one_run_per_process": true,
+  "protocols": [
+    "vless",
+    "trojan",
+    "shadowsocks",
+    "socks5",
+    "vmess",
+    "hysteria2"
+  ],
+  "vless_transports": [
+    "tcp",
+    "grpc",
+    "ws",
+    "httpupgrade",
+    "xhttp"
+  ],
+  "dns": [
+    "udp_ipv4_through_selected_proxy",
+    "doh_https_http2_through_selected_proxy",
+    "dot_authenticated_tls_through_selected_proxy",
+    "local_udp_tcp_53_capture",
+    "fake_ipv4_A_only"
+  ],
+  "routing": [
+    "ordered_domain_exact_suffix_and_ipv4_rules",
+    "include_apps",
+    "exclude_apps",
+    "domain_direct_proxy_block",
+    "grouped_address_union_inversion",
+    "default_proxy_direct_block"
+  ],
+  "counters": [
+    "tx_payload",
+    "rx_payload",
+    "blocked_flow_attempts"
+  ],
+  "ipv6": "blocked_for_captured_apps",
+  "unsupported": [
+    "per_rule_dns",
+    "doq",
+    "doh3",
+    "multiple_outputs",
+    "groups",
+    "mixed_local_proxy",
+    "native_restart_in_same_process",
+    "wireguard",
+    "tuic",
+    "anytls",
+    "naiveproxy",
+    "ssh",
+    "zapret",
+    "byedpi"
+  ],
+  "managed_dns_limits": {
+    "fake_pool": "198.19.0.0/16",
+    "mapping_capacity": 32768,
+    "mapping_reuse": "never_within_process",
+    "ipv6": "NODATA",
+    "other_record_types": "NODATA",
+    "udp_payload_max": 4096,
+    "app_encrypted_dns": "not_intercepted",
+    "host_must_be_inside_vpn": true
+  }
+}

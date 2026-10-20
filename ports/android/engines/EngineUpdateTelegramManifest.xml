@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data android:name="org.mcrf.engines.tgws" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.tgws-cli" android:value="port-v1" />
+        <meta-data android:name="org.mcrf.engines.source.repository" android:value="y0sy4/telegram-proxy" />
+        <meta-data android:name="org.mcrf.engines.source.commit" android:value="cc6b7928e7306509bdeefbb6e0e29f2a982bdb48" />
+    </application>
+</manifest>

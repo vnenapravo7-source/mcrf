@@ -1,0 +1,30 @@
+{
+  "tested_runtime": [
+    {
+      "coordinate": "com.squareup.okhttp3:okhttp:4.12.0",
+      "sha256": "b1050081b14bb7a3a7e55a4d3ef01b5dcfabc453b4573a4fc019767191d5f4e0"
+    },
+    {
+      "coordinate": "com.squareup.okio:okio-jvm:3.6.0",
+      "sha256": "67543f0736fc422ae927ed0e504b98bc5e269fda0d3500579337cb713da28412"
+    },
+    {
+      "coordinate": "org.jetbrains.kotlin:kotlin-stdlib:2.2.10",
+      "sha256": "9c67cc79efd6b9215b49d2a4308f5f3433537376c7c88e89bdd6729bd096e61a"
+    },
+    {
+      "coordinate": "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.10",
+      "sha256": "ac6361bf9ad1ed382c2103d9712c47cdec166232b4903ed596e8876b0681c9b7"
+    },
+    {
+      "coordinate": "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10",
+      "sha256": "a4c74d94d64ce1abe53760fe0389dd941f6fc558d0dab35e47c085a11ec80f28"
+    },
+    {
+      "coordinate": "org.jetbrains:annotations:13.0",
+      "sha256": "ace2a10dc8e2d5fd34925ecac03e4988b2c0f851650c94b8cef49ba1bd111478"
+    }
+  ],
+  "aar_is_not_fat": true,
+  "gradle_module_recommended": true
+}

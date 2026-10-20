@@ -1,0 +1,954 @@
+#include "nftnl.h"
+#include <arpa/inet.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <unistd.h>
+
+/* SPLIFY_DNSD_DEBUG решается один раз: getenv — линейный проход по environ с
+ * strncmp на каждую переменную, а спрашивали его до восьми раз на один
+ * запрос — только чтобы решить «не печатать». Окружение демона после старта
+ * не меняется, так что кэшировать ответ безопасно. */
+static int g_debug = -1;
+int dbg(void) {
+    if (g_debug < 0) g_debug = getenv("SPLIFY_DNSD_DEBUG") != NULL;
+    return g_debug;
+}
+
+/* ---------------------------------------------------------------------- */
+/* nftables integration — direct netlink (no fork/exec, no `nft` CLI)     */
+/* ---------------------------------------------------------------------- */
+/* Why this is NOT fork+exec("nft add element ...") anymore.
+ *
+ * The previous implementation fired one `nft` subprocess per matched DNS
+ * resolution. Each `nft` invocation loads and reparses the ENTIRE live
+ * ruleset into its own address space (measured 40-70MB per process, even
+ * with NFNL_F_NO_GEN-tracking). On a memory-constrained OpenWrt box
+ * (~240MB total) this is catastrophic: under a burst of new domains the
+ * OOM-killer murders `nft` (10x) and `dnsmasq` (3x) live on real hardware,
+ * leaving the fakeip map half-empty — clients then receive a fake IP whose
+ * DNAT entry was never installed and hang on TCP retries for ~130s. That
+ * is exactly the "locks up the router for 2-3 minutes" symptom.
+ *
+ * The fix is the same insight sing-box/Clash use for their fakeip: keep a
+ * single long-lived process and mutate kernel state in-process, with no
+ * subprocess per operation. We speak nfnetlink directly. A `NEWSETELEM`
+ * carries only the element delta (~40 bytes) plus table/set NAMES — the
+ * kernel resolves name->handle internally, so the full ruleset is never
+ * serialized into userspace. Cost per add: a single sendmsg + one ack
+ * recv, sub-millisecond. Peak memory of this daemon stays constant
+ * (~250KB RSS) regardless of traffic burst.
+ *
+ * ACK discipline: every transaction carries NLM_F_ACK, so we synchronously
+ * read the kernel's NLMSG_ERROR reply. For the DNAT map (the part whose
+ * absence hangs clients) we block on the ack BEFORE handing the client the
+ * fake IP — if it fails, we relay the real answer instead (fail-open). For
+ * the routing set (best-effort policy mark) we fire-and-forget after the
+ * reply, since the default policy covers a missing entry anyway.
+ */
+const char *g_nft_table = "inet steer"; /* "<family> <table>" */
+/* Где лежит карта fakeip. В современной раскладке — там же, где наборы каналов; в старой
+ * (ядро 4.9, см. nft_compat в spec.h) — в таблице ip, рядом с единственной цепочкой nat,
+ * потому что наборы между таблицами не видны, а nat в inet на таком ядре нет вовсе. */
+const char *g_nft_map_table = "inet steer";
+/* Интервальные ли наборы каналов. В старой раскладке доменный набор — hash со сроками
+ * (интервальный набор со сроками ядро 4.9 не умеет), и элемент туда идёт ОДИН, без пары
+ * «начало + конец диапазона»: конец с флагом INTERVAL_END hash-набор отверг бы. */
+int g_nft_sets_interval = 1;
+
+/* nfgenmsg::nfgen_family takes a NFPROTO_* constant (NOT AF_* despite the
+ * kernel header's misleading "AF_xxx" comment — nf_tables predates that
+ * comment and libnftnl/nft both use NFPROTO_*). We do NOT rely on the
+ * <linux/netfilter.h> enum here: several cross-toolchain sysroots ship a
+ * header where NFPROTO_* are defined as bare enum constants that a static
+ * build can resolve to 0 (verified: glibc-cross 13 gives NFPROTO_INET==0),
+ * whereas the kernel's canonical values are fixed ABI numbers. Hard-code the
+ * stable uapi values instead — they never change. */
+#define SPL_NFPROTO_UNSPEC  0
+#define SPL_NFPROTO_INET    1   /* nft's "inet" family — the only one we use */
+#define SPL_NFPROTO_IPV4    2
+#define SPL_NFPROTO_ARP     3
+#define SPL_NFPROTO_NETDEV  5
+#define SPL_NFPROTO_BRIDGE  7
+#define SPL_NFPROTO_IPV6    10
+
+/* Map the textual table family (first token of "--table", e.g. "inet") to its
+ * NFPROTO number. Defaults to INET — this daemon only ever targets "inet fw4". */
+/* Сравнивается ПЕРВОЕ СЛОВО, а не строка целиком: nftlk_split_table отдаёт семейство
+ * указателем на начало «ip steer», без обрезки, и strcmp с "ip" там не совпадал никогда —
+ * любое семейство молча становилось inet. Пока все наши объекты жили в inet, этого не было
+ * видно; карта fakeip в таблице ip (старая раскладка, см. nft_compat) получала ENOENT. */
+static uint8_t nftlk_family(const char *fam) {
+    if (!fam) return SPL_NFPROTO_INET;
+    size_t n = strcspn(fam, " ");
+    static const struct { const char *name; uint8_t proto; } FAM[] = {
+        { "inet", SPL_NFPROTO_INET }, { "ip", SPL_NFPROTO_IPV4 }, { "ip6", SPL_NFPROTO_IPV6 },
+        { "arp", SPL_NFPROTO_ARP }, { "bridge", SPL_NFPROTO_BRIDGE },
+        { "netdev", SPL_NFPROTO_NETDEV },
+    };
+    for (size_t i = 0; i < sizeof(FAM) / sizeof(FAM[0]); i++)
+        if (strlen(FAM[i].name) == n && !strncmp(fam, FAM[i].name, n)) return FAM[i].proto;
+    return SPL_NFPROTO_INET;
+}
+static void nftlk_split_table(const char *fam_tbl, const char **out_fam, const char **out_tbl) {
+    const char *sp = strchr(fam_tbl, ' ');
+    if (sp) { *out_fam = fam_tbl; *out_tbl = sp + 1; }
+    else    { *out_fam = fam_tbl; *out_tbl = "fw4"; }
+}
+
+/* ---- minimal nla (netlink attribute) builder -------------------------- */
+/* Builds one nfnetlink message in a flat buffer using standard netlink TLV
+ * semantics: NLA_HEADER(2B len incl header, 2B type) + payload padded to 4B.
+ * Nested attrs use NLA_F_NESTED in the type. We only ever build one
+ * NEWSETELEM transaction at a time, so a single reentrant builder suffices. */
+#define ACK_TIMEOUT_MS    100   /* recv() wait for the kernel's NLM_F_ACK reply */
+
+/* ---- netlink socket --------------------------------------------------- */
+int g_nlk_fd = -1;
+/* Monotonic request sequence. Also used to match the kernel's ack to the request
+ * that caused it: a stale ack left in the socket buffer by a timed-out earlier
+ * transaction would otherwise be read as this one's result. */
+static uint32_t g_nlk_seq = 0;
+
+/* nf_tables mutations are TRANSACTIONAL: the kernel registers only batch
+ * handlers for this subsystem, so a standalone NFT_MSG_NEWSETELEM is rejected
+ * outright. Verified against a live 6.x kernel on the test router:
+ *
+ *   standalone NFT_MSG_NEWSETELEM        -> ack error=-22 (EINVAL), no element
+ *   same message inside BATCH_BEGIN/END  -> ack error=0, element present
+ *
+ * That is why this file's first netlink version silently added nothing: every
+ * insert failed and the daemon fell back to relaying the real answer, so the
+ * fake-IP map stayed empty and domain routing never took effect.
+ *
+ * Builds one NFNL_MSG_BATCH_BEGIN or _END message into `out`; res_id carries the
+ * subsystem the transaction belongs to. */
+static size_t nftlk_build_batch(uint8_t *out, uint32_t seq, int begin) {
+    struct nlmsghdr *nh = (struct nlmsghdr *)out;
+    struct nfgenmsg *ng = (struct nfgenmsg *)(out + NLMSG_ALIGN(sizeof(*nh)));
+    size_t len = NLMSG_ALIGN(sizeof(*nh)) + NLMSG_ALIGN(sizeof(*ng));
+    memset(out, 0, len);
+    nh->nlmsg_len   = (uint32_t)len;
+    nh->nlmsg_type  = begin ? NFNL_MSG_BATCH_BEGIN : NFNL_MSG_BATCH_END;
+    nh->nlmsg_flags = NLM_F_REQUEST;
+    nh->nlmsg_seq   = seq;
+    ng->nfgen_family = AF_UNSPEC;
+    ng->version      = NFNETLINK_V0;
+    ng->res_id       = htons(NFNL_SUBSYS_NFTABLES);
+    return len;
+}
+
+int nftlk_open(void) {
+    int fd = socket(AF_NETLINK, SOCK_RAW | SOCK_CLOEXEC, NETLINK_NETFILTER);
+    if (fd < 0) return -1;
+    struct sockaddr_nl sa = { .nl_family = AF_NETLINK };
+    if (bind(fd, (struct sockaddr *)&sa, sizeof(sa)) != 0) { close(fd); return -1; }
+    int sndbuf = 1 << 16;
+    setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &sndbuf, sizeof(sndbuf));
+    /* Hard recv timeout so a missing ack can never wedge the (single-threaded)
+     * main loop: if the kernel hasn't replied within ACK_TIMEOUT_MS we treat
+     * the transaction as failed and fail-open the DNS answer. */
+    struct timeval tv = { .tv_sec = 0, .tv_usec = ACK_TIMEOUT_MS * 1000 };
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    g_nlk_fd = fd;
+    return 0;
+}
+
+/* Build one set-element message (NFT_MSG_NEWSETELEM / DELSETELEM) into `buf`
+ * with sequence number `seq`; returns its length. Sending is nftlk_txn's job, so
+ * several of these can go into ONE transaction (see nft_map_set_element).
+ *
+ * A re-insert of an element that already exists returns -EEXIST — NOT 0, despite
+ * what an earlier version of this comment claimed. Measured on the test router:
+ * every repeat query for an already-mapped domain got `error=-17 (File exists)`
+ * for the fake-IP map, the caller treated that as failure and fell back to
+ * relaying the REAL address — so a domain was routed through the tunnel exactly
+ * once and silently went direct from the second query onward. Callers must map
+ * EEXIST onto "already in the desired state" (see nft_map_set_element), and an
+ * element whose DATA must change has to be deleted first.
+ *
+ *   table      : "inet fw4" (family+table combined, like g_nft_table)
+ *   obj_name   : the set or map name ("splify_vpn_v4", "splify_fakeip_map")
+ *   key_host   : element KEY as 4 bytes in NETWORK order (inet_pton'd IPv4)
+ *   data_host  : element DATA as 4 bytes, or NULL for a plain set (no mapping)
+ *   timeout_ms : element timeout in ms (nft 'timeout'), or 0 for none
+ */
+/* alen — длина ключа и данных: 4 (IPv4) или 16 (IPv6, fake-IP v6 и real-ip v6). */
+static size_t nftlk_elem_build(uint8_t *buf, size_t cap, uint32_t seq,
+                               uint16_t nft_msg_type, const char *table,
+                               const char *obj_name, const void *key_net, size_t alen,
+                               int interval, const void *data_net,
+                               uint64_t timeout_ms) {
+    const char *fam_str, *tbl_str;
+    nftlk_split_table(table, &fam_str, &tbl_str);
+
+    /* The caller's stack buffer (no malloc in the hot path). */
+    struct nlbuf b;
+    nlbuf_init(&b, buf, cap);
+
+    /* Reserve the fixed headers up front, then fill attrs, then patch nlmsg_len. */
+    struct nlmsghdr *nh = (struct nlmsghdr *)b.p;
+    b.p += NLMSG_ALIGN(sizeof(*nh));
+    struct nfgenmsg *nfg = (struct nfgenmsg *)b.p;
+    b.p += NLMSG_ALIGN(sizeof(*nfg));
+
+    /* NFTA_SET_ELEM_LIST: TABLE, SET, ELEMENTS — attribute order matches the
+     * libnftnl/nft wire format (TABLE before SET). The kernel resolves the
+     * set/map by (family, table, name). SET_ID is omitted: it's only needed
+     * when NEWSETELEM is part of a transaction that references the set by id,
+     * and a standalone add-by-name is rejected (EINVAL) when SET_ID is present. */
+    nlbuf_put_str(&b, NFTA_SET_ELEM_LIST_TABLE, tbl_str);
+    nlbuf_put_str(&b, NFTA_SET_ELEM_LIST_SET, obj_name);
+
+    struct nlattr *elems = nlbuf_begin_nested(&b, NFTA_SET_ELEM_LIST_ELEMENTS);
+    struct nlattr *elem  = nlbuf_begin_nested(&b, NFTA_LIST_ELEM);
+
+    /* KEY: nested nft_data { NFTA_DATA_VALUE = 4 bytes IPv4 }. */
+    struct nlattr *key = nlbuf_begin_nested(&b, NFTA_SET_ELEM_KEY);
+    nlbuf_put_data(&b, NFTA_DATA_VALUE, key_net, alen);
+    nlbuf_end_nested(&b, key);
+
+    /* DATA: present only for maps (fake->real). Omitted for plain sets. */
+    if (data_net) {
+        struct nlattr *d = nlbuf_begin_nested(&b, NFTA_SET_ELEM_DATA);
+        nlbuf_put_data(&b, NFTA_DATA_VALUE, data_net, alen);
+        nlbuf_end_nested(&b, d);
+    }
+    if (timeout_ms) nlbuf_put_be64(&b, NFTA_SET_ELEM_TIMEOUT, timeout_ms);
+
+    nlbuf_end_nested(&b, elem);
+
+    /* A set declared `flags interval` (which is how splify-apply declares the
+     * VPN/direct sets — see emit_set) stores RANGE BOUNDARIES, not addresses: a
+     * range is the start element plus an end marker carrying
+     * NFT_SET_ELEM_INTERVAL_END. Sending only the start leaves the range open,
+     * and the kernel then reports the element as
+     * 198.18.0.0-255.255.255.255 — with `ip daddr @splify_vpn_v4` marking
+     * traffic into the tunnel, ONE resolved domain diverted every address above
+     * the fake IP into the VPN. That is the "one request and the router is dead"
+     * symptom, reproduced in the lab.
+     *
+     * This is exactly what nft itself emits for `add element … { 1.2.3.4 }` on an
+     * interval set (verified with nft --debug=netlink on the same kernel):
+     *   element 1.2.3.4 flags=0   +   element 1.2.3.5 flags=INTERVAL_END
+     * i.e. the end boundary is key+1, exclusive. Both boundaries go in the same
+     * message so the pair is applied atomically.
+     *
+     * KEY_END (the newer single-element form) was tried first and the kernel
+     * rejected it with -EINVAL here, so this uses the representation nft uses. */
+    if (interval) {
+        /* Конец — ключ + 1 по всей длине (у IPv6 — 128-битное сложение с переносом); у
+         * последнего адреса семейства преемника нет, и маркер не ставится. */
+        uint8_t end_net[16];
+        memcpy(end_net, key_net, alen);
+        int carry = 1;
+        for (size_t i = alen; i-- > 0 && carry; ) {
+            end_net[i] = (uint8_t)(end_net[i] + 1);
+            carry = end_net[i] == 0;
+        }
+        if (!carry) {                           /* no successor to 255.255.255.255 / ffff:… */
+            struct nlattr *e2 = nlbuf_begin_nested(&b, NFTA_LIST_ELEM);
+            struct nlattr *k2 = nlbuf_begin_nested(&b, NFTA_SET_ELEM_KEY);
+            nlbuf_put_data(&b, NFTA_DATA_VALUE, end_net, alen);
+            nlbuf_end_nested(&b, k2);
+            nlbuf_put_be32(&b, NFTA_SET_ELEM_FLAGS, NFT_SET_ELEM_INTERVAL_END);
+            /* NO timeout on the end marker. Probed against a live kernel with
+             * every plausible encoding (see the lab probe):
+             *   start only, no marker              -> accepted, but stores
+             *                                         198.18.9.0-255.255.255.255
+             *   start + marker, timeout on BOTH    -> -EINVAL
+             *   start + marker, timeout on start   -> accepted, stores 198.18.9.0
+             *   single element with KEY_END        -> -EINVAL
+             * The kernel drops the whole range when the start element expires, so
+             * the marker needs no timeout of its own. */
+            nlbuf_end_nested(&b, e2);
+        }
+    }
+
+    nlbuf_end_nested(&b, elems);
+
+    /* Backfill the fixed headers now that total length is known.
+     *
+     * NLM_F_CREATE matters: without it the kernel rejects an element that is not
+     * already present, which is every element we ever add.
+     *
+     * The sequence number comes from nftlk_seq_reserve: it is how nftlk_txn tells
+     * this message's ack from its neighbours' and from stale ones. */
+    nh->nlmsg_len   = (uint32_t)(b.p - buf);
+    nh->nlmsg_type  = (uint16_t)((NFNL_SUBSYS_NFTABLES << 8) | nft_msg_type);
+    /* NLM_F_CREATE only makes sense for an add; a delete must not carry it. */
+    nh->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK
+                    | (nft_msg_type == NFT_MSG_NEWSETELEM ? NLM_F_CREATE : 0);
+    nh->nlmsg_seq   = seq;
+    nh->nlmsg_pid   = 0;
+    nfg->nfgen_family = nftlk_family(fam_str);
+    nfg->version      = NFNETLINK_V0;
+    nfg->res_id       = 0; /* res_id encodes the hw protocol family; 0 = any */
+
+    if (dbg()) {
+        fprintf(stderr, "nftlk: fam_str='%s' -> nfgen_family=%u, total=%u bytes, hex:",
+                fam_str, nfg->nfgen_family, nh->nlmsg_len);
+        for (uint32_t i = 0; i < nh->nlmsg_len; i++) {
+            if (i % 16 == 0) fprintf(stderr, "\n  ");
+            fprintf(stderr, "%02x ", buf[i]);
+        }
+        fprintf(stderr, "\n");
+    }
+
+    return nh->nlmsg_len;
+}
+
+/* One nf_tables TRANSACTION of `n` element messages: BATCH_BEGIN, the messages,
+ * BATCH_END — in a single sendmsg, so the kernel can never see a half-open
+ * transaction if we are interrupted between writes. The kernel applies the batch
+ * all-or-nothing: if ANY message fails, every message in it is rolled back.
+ *
+ * Every element message carries NLM_F_ACK (begin/end do not), and the kernel
+ * reports ALL of them once the whole batch has been processed — including a 0 for
+ * a message that was fine but rolled back because a neighbour failed. So errs[i]
+ * alone does not say "applied": the batch committed only if every errs[i] is 0.
+ *
+ * msgs[i] must have been built with seq = first_seq + i (see nftlk_seq_reserve).
+ * Returns 0 once every message's ack has been read (errs[] filled with the
+ * kernel's negative errno or 0), -1 if the batch could not be sent or an ack did
+ * not arrive in ACK_TIMEOUT_MS — the outcome is then unknown. */
+static int nftlk_txn(uint8_t *const msgs[], const size_t lens[], int n,
+                     uint32_t first_seq, int errs[]) {
+    if (g_nlk_fd < 0 || n < 1 || n > 4) return -1;
+    uint8_t bbuf[64], ebuf[64];
+    size_t blen = nftlk_build_batch(bbuf, first_seq - 1, 1);
+    size_t elen = nftlk_build_batch(ebuf, first_seq + (uint32_t)n, 0);
+
+    struct sockaddr_nl dst = { .nl_family = AF_NETLINK };
+    struct iovec iov[6];
+    int k = 0;
+    iov[k++] = (struct iovec){ bbuf, blen };
+    for (int i = 0; i < n; i++) iov[k++] = (struct iovec){ msgs[i], lens[i] };
+    iov[k++] = (struct iovec){ ebuf, elen };
+    struct msghdr msg = { .msg_name = &dst, .msg_namelen = sizeof(dst),
+                          .msg_iov = iov, .msg_iovlen = (size_t)k };
+    if (sendmsg(g_nlk_fd, &msg, 0) < 0) {
+        if (dbg()) fprintf(stderr, "nftlk: sendmsg fail errno=%d\n", errno);
+        return -1;
+    }
+
+    /* Drain until every message of THIS batch has its ack. The kernel replies with
+     * an NLMSG_ERROR whose nlmsgerr::error is 0 on success or a negative errno;
+     * acks for other sequence numbers are leftovers from a transaction that timed
+     * out earlier and must not be mistaken for this one's result. An error acked
+     * against BATCH_BEGIN's own seq is a batch-level refusal (e.g. ENOMEM): none
+     * of the messages then get an ack of their own. */
+    int got = 0, seen[4] = {0};
+    _Alignas(8) uint8_t rbuf[1024];
+    while (got < n) {
+        ssize_t r = recv(g_nlk_fd, rbuf, sizeof(rbuf), 0);
+        if (r < (ssize_t)NLMSG_HDRLEN) {
+            if (dbg()) fprintf(stderr, "nftlk: ack recv short/timeout r=%zd errno=%d\n", r, errno);
+            return -1; /* timeout / truncated */
+        }
+        size_t left = (size_t)r;
+        for (struct nlmsghdr *rh = (struct nlmsghdr *)rbuf; NLMSG_OK(rh, left);
+             rh = NLMSG_NEXT(rh, left)) {
+            if (rh->nlmsg_type != NLMSG_ERROR) continue; /* multipart / unrelated */
+            struct nlmsgerr *e = NLMSG_DATA(rh);
+            if (rh->nlmsg_seq == first_seq - 1 && e->error != 0) {
+                if (dbg()) fprintf(stderr, "nftlk: batch refused error=%d\n", e->error);
+                return -1;
+            }
+            uint32_t i = rh->nlmsg_seq - first_seq;
+            if (i >= (uint32_t)n || seen[i]) {
+                if (dbg())
+                    fprintf(stderr, "nftlk: stale ack seq=%u (want %u..%u), ignoring\n",
+                            rh->nlmsg_seq, first_seq, first_seq + (uint32_t)n - 1);
+                continue;
+            }
+            seen[i] = 1;
+            errs[i] = e->error;
+            got++;
+        }
+    }
+    return 0;
+}
+
+/* Sequence numbers for one transaction of `n` messages: begin, n messages, end.
+ * Returns the first MESSAGE seq. Unique per request, not a timestamp: two inserts
+ * within the same second would share a seq, and the ack matcher could then credit
+ * one transaction with the other's result. */
+static uint32_t nftlk_seq_reserve(int n) {
+    uint32_t first = g_nlk_seq + 2;           /* g_nlk_seq + 1 is BATCH_BEGIN */
+    g_nlk_seq = first + (uint32_t)n;          /* ... and this one is BATCH_END */
+    return first;
+}
+
+/* One element message in its own transaction. Returns the kernel's errno as-is
+ * (0 or negative): EEXIST and ENOENT are meaningful outcomes for the callers
+ * below, not plain failures. -ETIMEDOUT when the outcome is unknown (send
+ * failure / no ack in time), -ENOTCONN without a netlink socket. */
+static int elem_msg(uint16_t nft_msg_type, const char *table, const char *obj_name,
+                    const void *key_net, size_t alen, int interval, const void *data_net,
+                    uint64_t timeout_ms) {
+    if (g_nlk_fd < 0) return -ENOTCONN;
+    uint8_t buf[NFTLK_MSG_CAP];
+    uint32_t seq = nftlk_seq_reserve(1);
+    size_t len = nftlk_elem_build(buf, sizeof(buf), seq, nft_msg_type, table, obj_name,
+                                  key_net, alen, interval, data_net, timeout_ms);
+    uint8_t *msgs[1] = { buf };
+    int err = 0;
+    if (nftlk_txn(msgs, &len, 1, seq, &err) != 0) return -ETIMEDOUT;
+    if (err != 0 && dbg())
+        fprintf(stderr, "nftlk: kernel ack error=%d (%s) for %s/%s\n",
+                err, strerror(-err), table, obj_name);
+    return err;
+}
+
+int nftlk_elem_msg(uint16_t nft_msg_type, const char *table,
+                    const char *obj_name, const void *key_net,
+                    int interval, const void *data_net,
+                    uint64_t timeout_ms) {
+    return elem_msg(nft_msg_type, table, obj_name, key_net, 4, interval, data_net, timeout_ms);
+}
+
+int nftlk_elem_msg6(uint16_t nft_msg_type, const char *table,
+                     const char *obj_name, const uint8_t key[16],
+                     int interval, const uint8_t *data, uint64_t timeout_ms) {
+    return elem_msg(nft_msg_type, table, obj_name, key, 16, interval, data, timeout_ms);
+}
+
+/* ---- typed wrappers (the call sites below use these) ------------------ */
+
+/* Adds an IPv4 element to a timeout-flagged set (nft 'timeout'). ttl is in
+ * seconds; clamped to [1, 86400] so a hostile/huge record TTL can never pin
+ * an entry for longer than a day. ttl == 0 is a PERMANENT element (no timeout
+ * attribute at all): used for fake-IP, which must outlive the client's cached
+ * answer — see fakeip_route_set. */
+/* Срок элемента набора канала из TTL ответа: 1..86400 с. Ноль здесь НЕ «навечно»: TTL 0 у
+ * A-записи законен (балансировщики), а нулевой аргумент у nft_add_element означает постоянный
+ * элемент — так реальный, часто общий CDN-адрес навечно оставался в наборе канала, и весь
+ * чужой трафик на него шёл в канал до пересборки набора. */
+uint32_t set_ttl_clamp(uint32_t ttl) {
+    if (ttl < 1) return 1;
+    if (ttl > 86400) return 86400;
+    return ttl;
+}
+
+/* Общее тело nft_add_element и nft_add_element6: ключ в порядке сети, alen — 4 или 16. */
+int nft_last_add_rc;
+
+static int add_element(const char *set_name, const void *key_net, size_t alen, uint32_t ttl) {
+    uint64_t timeout_ms;
+    if (ttl == 0) {
+        timeout_ms = 0;                          /* permanent: no NFTA_SET_ELEM_TIMEOUT */
+    } else {
+        if (ttl < 1) ttl = 1;
+        if (ttl > 86400) ttl = 86400;
+        timeout_ms = (uint64_t)ttl * 1000;
+    }
+    int rc = elem_msg(NFT_MSG_NEWSETELEM, g_nft_table, set_name,
+                      key_net, alen, g_nft_sets_interval, NULL, timeout_ms);
+    if (rc == -EINVAL && g_nft_sets_interval)
+        /* Имя splify-dnsd осталось от предыдущего проекта, и строка из-за него не
+         * доезжала до интерфейса вовсе: журнал там собирается как `logread | grep steer`,
+         * а подстроки steer в ней не было. При этом сообщение важное — доменная
+         * маршрутизация не наполняется. */
+        fprintf(stderr, "steer[warn] dnsd: %s rejected an interval element (-EINVAL) — "
+                        "is it declared without `flags interval`?\n", set_name);
+    nft_last_add_rc = rc;
+    /* Already there = already in the desired state. (A refreshed timeout would be
+     * nicer, but the element only has to outlive the client's cached answer, and
+     * a re-resolve after expiry re-adds it.) */
+    return (rc == 0 || rc == -EEXIST) ? 0 : -1;
+}
+
+int nft_add_element(const char *set_name, uint32_t key_host, uint32_t ttl) {
+    uint32_t key_net = htonl(key_host);
+    return add_element(set_name, &key_net, 4, ttl);
+}
+
+/* Элемент IPv6 — в парный набор «<группа>6» (fake-IP v6 и real-ip v6, docs/architecture.md,
+ * «4б»). Тот же набор флагов и те же правила, что у IPv4: интервальный набор получает пару
+ * «начало + маркер конца», hash со сроками старой раскладки — один элемент. */
+int nft_add_element6(const char *set_name, const uint8_t key[16], uint32_t ttl) {
+    return add_element(set_name, key, 16, ttl);
+}
+
+/* ---- составной ключ: адрес . протокол . порты ---------------------------------------------
+ *
+ * Набор канала со смешанным сужением (src/model/srsplan.c) объявлен как `ipv4_addr .
+ * inet_proto . inet_service` с флагом interval — в ядре это pipapo, и элемент у него один:
+ * NFTA_SET_ELEM_KEY с началом и NFTA_SET_ELEM_KEY_END с концом диапазона по всем полям сразу
+ * (не пара «начало + маркер конца», как у интервального набора из одного поля). Поля ключа
+ * выровнены по 4 байта: адрес — 4, протокол — байт и три нуля, порт — два байта big-endian и
+ * два нуля. Снято `nft --debug=netlink add element … { 198.51.100.7 . 17 . 50000-65535 }` на
+ * ядре 6.8: «076433c6 00000011 000050c3 - 076433c6 00000011 0000ffff».
+ *
+ * Срок — на самом элементе, как у обычного. Пересекающийся элемент ядро отвергает (EEXIST),
+ * поэтому вызывающий кладёт ящики, уже разложенные без пересечений (l4_union_boxes). */
+static size_t nftlk_concat_build(uint8_t *buf, size_t cap, uint32_t seq, uint16_t nft_msg_type,
+                                 const char *table, const char *obj_name,
+                                 const uint8_t *key, const uint8_t *key_end, size_t klen,
+                                 uint64_t timeout_ms) {
+    const char *fam_str, *tbl_str;
+    nftlk_split_table(table, &fam_str, &tbl_str);
+    struct nlbuf b;
+    nlbuf_init(&b, buf, cap);
+    struct nlmsghdr *nh = (struct nlmsghdr *)b.p;
+    b.p += NLMSG_ALIGN(sizeof(*nh));
+    struct nfgenmsg *nfg = (struct nfgenmsg *)b.p;
+    b.p += NLMSG_ALIGN(sizeof(*nfg));
+    nlbuf_put_str(&b, NFTA_SET_ELEM_LIST_TABLE, tbl_str);
+    nlbuf_put_str(&b, NFTA_SET_ELEM_LIST_SET, obj_name);
+    struct nlattr *elems = nlbuf_begin_nested(&b, NFTA_SET_ELEM_LIST_ELEMENTS);
+    struct nlattr *elem  = nlbuf_begin_nested(&b, NFTA_LIST_ELEM);
+    struct nlattr *k = nlbuf_begin_nested(&b, NFTA_SET_ELEM_KEY);
+    nlbuf_put_data(&b, NFTA_DATA_VALUE, key, klen);
+    nlbuf_end_nested(&b, k);
+    struct nlattr *ke = nlbuf_begin_nested(&b, NFTA_SET_ELEM_KEY_END);
+    nlbuf_put_data(&b, NFTA_DATA_VALUE, key_end, klen);
+    nlbuf_end_nested(&b, ke);
+    if (timeout_ms) nlbuf_put_be64(&b, NFTA_SET_ELEM_TIMEOUT, timeout_ms);
+    nlbuf_end_nested(&b, elem);
+    nlbuf_end_nested(&b, elems);
+    nh->nlmsg_len   = (uint32_t)(b.p - buf);
+    nh->nlmsg_type  = (uint16_t)((NFNL_SUBSYS_NFTABLES << 8) | nft_msg_type);
+    nh->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK
+                    | (nft_msg_type == NFT_MSG_NEWSETELEM ? NLM_F_CREATE : 0);
+    nh->nlmsg_seq   = seq;
+    nh->nlmsg_pid   = 0;
+    nfg->nfgen_family = nftlk_family(fam_str);
+    nfg->version      = NFNETLINK_V0;
+    nfg->res_id       = 0;
+    return nh->nlmsg_len;
+}
+
+static void concat_key(uint8_t out[12], uint32_t addr_host, uint8_t proto, uint16_t port) {
+    memset(out, 0, 12);
+    uint32_t a = htonl(addr_host);
+    memcpy(out, &a, 4);
+    out[4] = proto;
+    out[8] = (uint8_t)(port >> 8);
+    out[9] = (uint8_t)(port & 0xFF);
+}
+
+/* Ключ составного набора IPv6 (`ipv6_addr . inet_proto . inet_service`): 16 байт адреса, затем
+ * протокол и порт — так же выровненные по 4 байта, как у IPv4. */
+static void concat_key6(uint8_t out[24], const uint8_t addr[16], uint8_t proto, uint16_t port) {
+    memset(out, 0, 24);
+    memcpy(out, addr, 16);
+    out[16] = proto;
+    out[20] = (uint8_t)(port >> 8);
+    out[21] = (uint8_t)(port & 0xFF);
+}
+
+static int concat_element(int add, const char *set_name, const uint8_t *key,
+                          const uint8_t *key_end, size_t klen, uint32_t ttl) {
+    if (g_nlk_fd < 0) return -1;
+    uint8_t buf[NFTLK_MSG_CAP];
+    uint64_t timeout_ms = 0;
+    if (add && ttl) timeout_ms = (uint64_t)(ttl > 86400 ? 86400 : ttl) * 1000;
+    uint32_t seq = nftlk_seq_reserve(1);
+    size_t len = nftlk_concat_build(buf, sizeof(buf), seq,
+                                    add ? NFT_MSG_NEWSETELEM : NFT_MSG_DELSETELEM,
+                                    g_nft_table, set_name, key, key_end, klen, timeout_ms);
+    uint8_t *msgs[1] = { buf };
+    int err = 0;
+    if (nftlk_txn(msgs, &len, 1, seq, &err) != 0) return -1;
+    if (err != 0 && dbg())
+        fprintf(stderr, "nftlk: concat element %s %s: error=%d (%s)\n", add ? "add" : "del",
+                set_name, err, strerror(-err));
+    if (add) return (err == 0 || err == -EEXIST) ? 0 : -1;
+    return (err == 0 || err == -ENOENT) ? 0 : -1;
+}
+
+int nft_concat_element(int add, const char *set_name, uint32_t addr_host,
+                       const struct nftlk_box *box, uint32_t ttl) {
+    uint8_t key[12], key_end[12];
+    concat_key(key, addr_host, box->plo, box->lo);
+    concat_key(key_end, addr_host, box->phi, box->hi);
+    return concat_element(add, set_name, key, key_end, 12, ttl);
+}
+
+int nft_concat_element6(int add, const char *set_name, const uint8_t addr[16],
+                        const struct nftlk_box *box, uint32_t ttl) {
+    uint8_t key[24], key_end[24];
+    concat_key6(key, addr, box->plo, box->lo);
+    concat_key6(key_end, addr, box->phi, box->hi);
+    return concat_element(add, set_name, key, key_end, 24, ttl);
+}
+
+/* Points a fake IP (key) at its real backend (data) in the DNAT map splify-apply
+ * installs (`ip daddr 198.18.0.0/15 dnat ip to ip daddr map @<map_name>`). No
+ * timeout: the fake IP is a stable, exclusive allocation for this domain, so the
+ * mapping lives as long as the domain does.
+ *
+ * "Just add it again with the new value" does NOT work — nf_tables answers
+ * -EEXIST and keeps the old data, which for a CDN-fronted domain means the DNAT
+ * keeps pointing at a backend the domain has since moved off. So an existing key
+ * whose value must change is deleted and re-added inside ONE transaction (the
+ * pair is atomic: no packet can observe the fake IP without a mapping).
+ *
+ * ONE transaction, not two back to back — which is what this used to be, despite
+ * the paragraph above: delete in its own batch, add in the next. Between them was
+ * a kernel generation with no mapping at all, and if the add then failed (100 ms
+ * ack timeout, the table mid-rebuild) the delete stayed committed: the map lost
+ * the element while the fast path kept handing out the fake IP from our own
+ * bookkeeping — clients went to 198.18.x.x with no DNAT behind it. Now a refused
+ * add rolls the delete back with it, the OLD mapping stays in the kernel, we
+ * return -1 and the caller keeps `known_real` as the installed value (it only
+ * records the new backend on 0). Covered by tests/dnsnft.sh.
+ *
+ * The one catch of all-or-nothing: a delete of an element that is not there
+ * answers -ENOENT, and that alone rolls back the add in the same batch. That state
+ * is legitimate (an fw4 reload flushed the map) and is exactly what a plain add
+ * wants, so on ENOENT for the delete we retry the add on its own.
+ *
+ * Returns 0 when the kernel holds the wanted mapping, otherwise the kernel's
+ * negative errno (-ETIMEDOUT: outcome unknown) — the caller decides by it whether
+ * this is the table-rebuild window or a lasting refusal (see map_refusal_is_window).
+ *
+ * `known_real` is what we believe is currently installed (0 = nothing), so the
+ * common case — same backend as last time — costs one add that the kernel
+ * answers EEXIST to, and the uncommon case costs a delete plus an add.
+ * Both addrs are HOST order here. */
+/* Общее тело карт fakeip и fakeip6: k, d — ключ и значение в порядке сети, alen — 4 или 16;
+ * changed — известное установленное значение есть и отличается от d. */
+static int map_set(const char *table, const char *map_name, const void *k, const void *d,
+                   size_t alen, int changed) {
+    if (changed) {
+        if (g_nlk_fd < 0) return -ENOTCONN;
+        uint8_t del[NFTLK_MSG_CAP], add[NFTLK_MSG_CAP];
+        uint32_t seq = nftlk_seq_reserve(2);
+        size_t lens[2];
+        lens[0] = nftlk_elem_build(del, sizeof(del), seq, NFT_MSG_DELSETELEM, table,
+                                   map_name, k, alen, 0, NULL, 0);
+        lens[1] = nftlk_elem_build(add, sizeof(add), seq + 1, NFT_MSG_NEWSETELEM,
+                                   table, map_name, k, alen, 0, d, 0);
+        uint8_t *msgs[2] = { del, add };
+        int errs[2] = { 0, 0 };
+        if (nftlk_txn(msgs, lens, 2, seq, errs) != 0) return -ETIMEDOUT;
+        if (errs[0] == 0 && errs[1] == 0) return 0;   /* committed: new value in place */
+        if (dbg())
+            fprintf(stderr, "nftlk: map update rolled back del=%d add=%d\n",
+                    errs[0], errs[1]);
+        /* Rolled back. Only a missing old element is worth a retry (see above);
+         * anything else leaves the old mapping in place and fails the update. */
+        if (errs[0] != -ENOENT) return errs[0] ? errs[0] : errs[1];
+    }
+    int rc = elem_msg(NFT_MSG_NEWSETELEM, table, map_name,
+                      k, alen, 0 /* plain map, not interval */, d, 0);
+    if (rc == -EEXIST) {
+        /* Present with the value we wanted (known_real told us so, or a restart
+         * lost our bookkeeping and the kernel kept the mapping) — desired state. */
+        return 0;
+    }
+    return rc;
+}
+
+int nft_map_set_element(const char *map_name, uint32_t fake_host,
+                         uint32_t real_host, uint32_t known_real) {
+    uint32_t k = htonl(fake_host), d = htonl(real_host);
+    return map_set(g_nft_map_table, map_name, &k, &d, 4,
+                   known_real != 0 && known_real != real_host);
+}
+
+/* Карта fakeip6 — где лежит: в современной раскладке там же, где fakeip, в старой — в таблице
+ * ip6 (legacy.c переносит карту к правилу dnat её семейства; без nat в ip6 карты нет вовсе, и
+ * резолвер поддельных IPv6 не выдаёт — таблица каналов тогда не несёт семейства 6). */
+const char *g_nft_map6_table = "inet steer";
+
+int nft_map_set_element6(const char *map_name, const uint8_t fake[16], const uint8_t real[16],
+                         const uint8_t *known_real) {
+    return map_set(g_nft_map6_table, map_name, fake, real, 16,
+                   known_real && memcmp(known_real, real, 16) != 0);
+}
+
+/* ---- вырезать один адрес из слитого отрезка интервального набора -----------------------------
+ *
+ * ОТКУДА ОТРЕЗКИ. Поддельные адреса каналов fake-IP засеваются в наборы каналов текстом набора
+ * правил (src/dnsd/fpseed.c), а доменный набор объявлен с auto-merge: nft при загрузке сливает
+ * соседние адреса одного канала в отрезок — «198.18.0.1-198.18.0.3» вместо трёх элементов (пул
+ * раздаётся подряд, так что соседи — обычное дело). Резолвер же снимает адрес имени, ушедшего из
+ * канала (перечитанные списки, правило сменилось, dch_del в fakeip.c), точным ключом «начало +
+ * маркер конца», и на слитом отрезке ядро отвечает ENOENT: элемента [F, F+1) нет, есть [s, e).
+ * Адрес оставался бы в наборе, и имя, переехавшее в другой канал, продолжало бы уходить в прежний
+ * выход (порядок цепочки) до следующей замены таблицы.
+ *
+ * КАК. Ядро отдаёт отрезок, в котором лежит ключ: NFT_MSG_GETSETELEM с ключом — его начало, с
+ * флагом NFT_SET_ELEM_INTERVAL_END — его маркер конца (rbtree ищет ближайшую границу нужного вида
+ * — так `nft get element` находит отрезок по адресу внутри него). Дальше ОДНОЙ транзакцией: снять
+ * [s, e) и положить [s, F) и [F+1, e), те из них, что не пусты. Одной — чтобы соседи F ни на миг
+ * не выпали из набора: снятие без вставок оставило бы их без метки, то есть в WAN.
+ *
+ * Только отрезок, который целиком лежит в [lo, hi] (пул fake-IP — его передаёт вызывающий) и без
+ * срока. Слитый засев — ровно такой: постоянные элементы внутри пула. Отрезок шире пула — это
+ * префикс адресного списка (список «bogon» с 198.18.0.0/15 законно покрывает весь пул), и
+ * вырезать из него адрес значило бы молча поменять список человека; со сроком — не наш засев.
+ * Тогда — ENOENT, как прежде. Старая раскладка (hash, g_nft_sets_interval = 0) не сливает ничего,
+ * и туда эта функция не нужна. */
+
+/* Найти атрибут type в потоке атрибутов [p, p+len). */
+static const struct nlattr *nla_find(const uint8_t *p, size_t len, uint16_t type) {
+    while (len >= sizeof(struct nlattr)) {
+        const struct nlattr *a = (const struct nlattr *)p;
+        if (a->nla_len < sizeof(*a) || a->nla_len > len) return NULL;
+        if ((a->nla_type & NLA_TYPE_MASK) == type) return a;
+        size_t step = NLA_ALIGN(a->nla_len);
+        if (step >= len) return NULL;
+        p += step;
+        len -= step;
+    }
+    return NULL;
+}
+#define NLA_PAY(a) ((const uint8_t *)(a) + NLA_HDRLEN)
+#define NLA_PLEN(a) ((size_t)(a)->nla_len - NLA_HDRLEN)
+
+/* Элемент по ключу: у интервального набора — граница отрезка, в котором лежит key (end = 0 — его
+ * начало, 1 — его маркер конца, исключающий), у карты без интервалов — сам элемент. 0 — найдено,
+ * ключ в out, *timed — у элемента есть срок, и если data не NULL — значение элемента карты в data
+ * (alen байт), *has_data — оно было в ответе; -ENOENT — такого ключа нет; иное — отказ ядра (старое
+ * ядро отдаёт элементы только дампом и на одиночный GET отвечает -EOPNOTSUPP) или ответа нет
+ * (-ETIMEDOUT). Обычный запрос, не транзакция: GET в пакет не входит. */
+static int nftlk_get_elem(const char *table, const char *set, const uint8_t *key, size_t alen,
+                          int end, uint8_t *out, int *timed, uint8_t *data, int *has_data) {
+    if (has_data) *has_data = 0;
+    if (g_nlk_fd < 0) return -ENOTCONN;
+    const char *fam_str, *tbl_str;
+    nftlk_split_table(table, &fam_str, &tbl_str);
+    uint8_t buf[NFTLK_MSG_CAP];
+    struct nlbuf b;
+    nlbuf_init(&b, buf, sizeof(buf));
+    struct nlmsghdr *nh = (struct nlmsghdr *)b.p;
+    b.p += NLMSG_ALIGN(sizeof(*nh));
+    struct nfgenmsg *nfg = (struct nfgenmsg *)b.p;
+    b.p += NLMSG_ALIGN(sizeof(*nfg));
+    nlbuf_put_str(&b, NFTA_SET_ELEM_LIST_TABLE, tbl_str);
+    nlbuf_put_str(&b, NFTA_SET_ELEM_LIST_SET, set);
+    struct nlattr *elems = nlbuf_begin_nested(&b, NFTA_SET_ELEM_LIST_ELEMENTS);
+    struct nlattr *elem = nlbuf_begin_nested(&b, NFTA_LIST_ELEM);
+    struct nlattr *k = nlbuf_begin_nested(&b, NFTA_SET_ELEM_KEY);
+    nlbuf_put_data(&b, NFTA_DATA_VALUE, key, alen);
+    nlbuf_end_nested(&b, k);
+    if (end) nlbuf_put_be32(&b, NFTA_SET_ELEM_FLAGS, NFT_SET_ELEM_INTERVAL_END);
+    nlbuf_end_nested(&b, elem);
+    nlbuf_end_nested(&b, elems);
+    uint32_t seq = nftlk_seq_reserve(1);
+    nh->nlmsg_len = (uint32_t)(b.p - buf);
+    nh->nlmsg_type = (uint16_t)((NFNL_SUBSYS_NFTABLES << 8) | NFT_MSG_GETSETELEM);
+    nh->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK;
+    nh->nlmsg_seq = seq;
+    nh->nlmsg_pid = 0;
+    nfg->nfgen_family = nftlk_family(fam_str);
+    nfg->version = NFNETLINK_V0;
+    nfg->res_id = 0;
+    struct sockaddr_nl dst = { .nl_family = AF_NETLINK };
+    if (sendto(g_nlk_fd, buf, nh->nlmsg_len, 0, (struct sockaddr *)&dst, sizeof(dst)) < 0)
+        return -ETIMEDOUT;
+    /* Ответ — сообщение NEWSETELEM с найденным элементом и за ним подтверждение (NLM_F_ACK); на
+     * отказ — одно подтверждение с кодом. Чужие номера — хвосты прежних запросов, мимо. */
+    int found = 0;
+    _Alignas(8) uint8_t rbuf[2048];
+    for (;;) {
+        ssize_t r = recv(g_nlk_fd, rbuf, sizeof(rbuf), 0);
+        if (r < (ssize_t)NLMSG_HDRLEN) return found ? 0 : -ETIMEDOUT;
+        size_t left = (size_t)r;
+        for (struct nlmsghdr *rh = (struct nlmsghdr *)rbuf; NLMSG_OK(rh, left);
+             rh = NLMSG_NEXT(rh, left)) {
+            if (rh->nlmsg_seq != seq) continue;
+            if (rh->nlmsg_type == NLMSG_ERROR) {
+                int err = ((struct nlmsgerr *)NLMSG_DATA(rh))->error;
+                if (err) return err;
+                return found ? 0 : -ENOENT;
+            }
+            if (rh->nlmsg_type != ((NFNL_SUBSYS_NFTABLES << 8) | NFT_MSG_NEWSETELEM)) continue;
+            size_t hl = NLMSG_ALIGN(sizeof(struct nfgenmsg));
+            if (rh->nlmsg_len < NLMSG_HDRLEN + hl) continue;
+            const uint8_t *p = (const uint8_t *)NLMSG_DATA(rh) + hl;
+            size_t pl = rh->nlmsg_len - NLMSG_HDRLEN - hl;
+            const struct nlattr *es = nla_find(p, pl, NFTA_SET_ELEM_LIST_ELEMENTS);
+            const struct nlattr *e1 = es ? nla_find(NLA_PAY(es), NLA_PLEN(es), NFTA_LIST_ELEM) : NULL;
+            const struct nlattr *ka = e1 ? nla_find(NLA_PAY(e1), NLA_PLEN(e1), NFTA_SET_ELEM_KEY) : NULL;
+            const struct nlattr *kv = ka ? nla_find(NLA_PAY(ka), NLA_PLEN(ka), NFTA_DATA_VALUE) : NULL;
+            if (!kv || NLA_PLEN(kv) != alen) continue;
+            memcpy(out, NLA_PAY(kv), alen);
+            *timed = nla_find(NLA_PAY(e1), NLA_PLEN(e1), NFTA_SET_ELEM_TIMEOUT) != NULL;
+            /* Флаг вида границы у найденного — тот, что спрашивали (ядро отдаёт границу нужного
+             * вида или ничего), но проверить дёшево. */
+            const struct nlattr *fl = nla_find(NLA_PAY(e1), NLA_PLEN(e1), NFTA_SET_ELEM_FLAGS);
+            uint32_t f = 0;
+            if (fl && NLA_PLEN(fl) >= 4) {
+                memcpy(&f, NLA_PAY(fl), 4);
+                f = ntohl(f);
+            }
+            if (((f & NFT_SET_ELEM_INTERVAL_END) != 0) != (end != 0)) return -ENOENT;
+            if (data && has_data) {
+                const struct nlattr *da = nla_find(NLA_PAY(e1), NLA_PLEN(e1), NFTA_SET_ELEM_DATA);
+                const struct nlattr *dv = da ? nla_find(NLA_PAY(da), NLA_PLEN(da), NFTA_DATA_VALUE)
+                                             : NULL;
+                if (dv && NLA_PLEN(dv) == alen) {
+                    memcpy(data, NLA_PAY(dv), alen);
+                    *has_data = 1;
+                }
+            }
+            found = 1;
+        }
+    }
+}
+
+static int nftlk_get_bound(const char *table, const char *set, const uint8_t *key, size_t alen,
+                           int end, uint8_t *out, int *timed) {
+    return nftlk_get_elem(table, set, key, alen, end, out, timed, NULL, NULL);
+}
+
+/* ---- элемент карты подмены — по тому, что стоит в ядре ------------------------------------------
+ *
+ * ЗАЧЕМ (проверка на QEMU 98b7964, 2026-09-28). После замены набора
+ * правил карта fakeip приходит засеянной текстом (fpseed.c, print.c) — из файла состояния, а не из
+ * памяти резолвера. Резолвер, получив таблицу, ставил каждую подмену заново простым add (у
+ * fakeip_rehydrate «что стоит в ядре» не известно), и EEXIST значил для него «желаемое
+ * состояние». Но EEXIST говорит только, что КЛЮЧ занят: засеянный отставшим файлом адрес .11
+ * оставался в карте, память резолвера (и его быстрый путь по real_host) считала, что стоит .10, и
+ * повторный вопрос имени ничего не менял — в ответе .10, «установлено» .10, менять нечего. Клиенты
+ * шли на прежний адрес, пока не перезапустили резолвер.
+ *
+ * КАК. Сначала спросить ядро (NFT_MSG_GETSETELEM с ключом): значение то же — ничего не делать;
+ * другое — снять и положить одной транзакцией (map_set с changed); ключа нет — простой add. Цена
+ * та же, что у прежнего add: один обмен netlink на имя в обычном случае (засев совпал), два — когда
+ * ключа нет (после перезапуска резолвера карта пуста) и транзакция — когда значение разошлось.
+ * Ядро без одиночного GET (старое: только дамп) или иной отказ ответа — прежний простой add: хуже,
+ * чем было, не становится. Горячий
+ * путь ответа DNS это не зовёт: там «установленное» знает память (known_real), и засевом она не
+ * расходится — расхождение возникает только на замене набора, после которой и зовут этот проход.
+ *
+ * 0 — в ядре желаемое значение (стояло или добавлено), 1 — стояло другое и заменено, иначе
+ * отрицательный errno ядра. */
+static int map_ensure(const char *table, const char *map_name, const void *k, const void *d,
+                      size_t alen) {
+    uint8_t got_k[16], cur[16];
+    int timed = 0, has = 0;
+    int rc = nftlk_get_elem(table, map_name, k, alen, 0, got_k, &timed, cur, &has);
+    if (rc == 0 && has) {
+        if (!memcmp(cur, d, alen)) return 0;
+        rc = map_set(table, map_name, k, d, alen, 1);
+        return rc == 0 ? 1 : rc;
+    }
+    return map_set(table, map_name, k, d, alen, 0);
+}
+
+/* Стоит ли в наборе g_nft_table элемент с ключом key (alen — 4 или 16, порядок сети); у
+ * интервального набора — отрезок, в который ключ попадает (ядро ищет по отрезкам). 1 — стоит,
+ * 0 — нет или ответа нет. GET — не транзакция: на роутере это доли миллисекунды, тогда как
+ * каждое добавление — своя транзакция nftables с фиксацией в десятки миллисекунд. Поэтому
+ * проход восстановления сначала спрашивает (fakeip.c, route_reassert). */
+int nft_set_has(const char *set_name, const void *key_net, size_t alen) {
+    uint8_t got[16];
+    int timed = 0;
+    return nftlk_get_bound(g_nft_table, set_name, key_net, alen, 0, got, &timed) == 0;
+}
+
+int nft_map_ensure_element(const char *map_name, uint32_t fake_host, uint32_t real_host) {
+    uint32_t k = htonl(fake_host), d = htonl(real_host);
+    return map_ensure(g_nft_map_table, map_name, &k, &d, 4);
+}
+
+int nft_map_ensure_element6(const char *map_name, const uint8_t fake[16],
+                            const uint8_t real[16]) {
+    return map_ensure(g_nft_map6_table, map_name, fake, real, 16);
+}
+
+/* Отрезок [lo, hi) интервального набора одним сообщением: начало и маркер конца (как у
+ * nftlk_elem_build, но с явным концом), без срока. */
+static size_t nftlk_range_build(uint8_t *buf, size_t cap, uint32_t seq, uint16_t type,
+                                const char *table, const char *set, const uint8_t *lo,
+                                const uint8_t *hi, size_t alen) {
+    const char *fam_str, *tbl_str;
+    nftlk_split_table(table, &fam_str, &tbl_str);
+    struct nlbuf b;
+    nlbuf_init(&b, buf, cap);
+    struct nlmsghdr *nh = (struct nlmsghdr *)b.p;
+    b.p += NLMSG_ALIGN(sizeof(*nh));
+    struct nfgenmsg *nfg = (struct nfgenmsg *)b.p;
+    b.p += NLMSG_ALIGN(sizeof(*nfg));
+    nlbuf_put_str(&b, NFTA_SET_ELEM_LIST_TABLE, tbl_str);
+    nlbuf_put_str(&b, NFTA_SET_ELEM_LIST_SET, set);
+    struct nlattr *elems = nlbuf_begin_nested(&b, NFTA_SET_ELEM_LIST_ELEMENTS);
+    struct nlattr *e1 = nlbuf_begin_nested(&b, NFTA_LIST_ELEM);
+    struct nlattr *k1 = nlbuf_begin_nested(&b, NFTA_SET_ELEM_KEY);
+    nlbuf_put_data(&b, NFTA_DATA_VALUE, lo, alen);
+    nlbuf_end_nested(&b, k1);
+    nlbuf_end_nested(&b, e1);
+    struct nlattr *e2 = nlbuf_begin_nested(&b, NFTA_LIST_ELEM);
+    struct nlattr *k2 = nlbuf_begin_nested(&b, NFTA_SET_ELEM_KEY);
+    nlbuf_put_data(&b, NFTA_DATA_VALUE, hi, alen);
+    nlbuf_end_nested(&b, k2);
+    nlbuf_put_be32(&b, NFTA_SET_ELEM_FLAGS, NFT_SET_ELEM_INTERVAL_END);
+    nlbuf_end_nested(&b, e2);
+    nlbuf_end_nested(&b, elems);
+    nh->nlmsg_len = (uint32_t)(b.p - buf);
+    nh->nlmsg_type = (uint16_t)((NFNL_SUBSYS_NFTABLES << 8) | type);
+    nh->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK | (type == NFT_MSG_NEWSETELEM ? NLM_F_CREATE : 0);
+    nh->nlmsg_seq = seq;
+    nh->nlmsg_pid = 0;
+    nfg->nfgen_family = nftlk_family(fam_str);
+    nfg->version = NFNETLINK_V0;
+    nfg->res_id = 0;
+    return nh->nlmsg_len;
+}
+
+/* Сравнение и шаг ключа — по всей длине, big-endian. */
+static void key_step(uint8_t *k, size_t alen, int up) {
+    for (size_t i = alen; i-- > 0;) {
+        if (up) { if (++k[i] != 0) return; }
+        else if (k[i]-- != 0) return;
+    }
+}
+
+int nft_elem_carve(const char *set, const uint8_t *key, size_t alen, const uint8_t *lo,
+                   const uint8_t *hi) {
+    if (!g_nft_sets_interval || (alen != 4 && alen != 16)) return -ENOENT;
+    uint8_t s[16], e[16];
+    int ts = 0, te = 0;
+    int rc = nftlk_get_bound(g_nft_table, set, key, alen, 0, s, &ts);
+    if (rc) return rc;
+    rc = nftlk_get_bound(g_nft_table, set, key, alen, 1, e, &te);
+    if (rc) return rc;
+    /* s <= key < e — иначе ядро нашло не тот отрезок (адрес между отрезками). */
+    if (ts || te || memcmp(s, key, alen) > 0 || memcmp(e, key, alen) <= 0) return -ENOENT;
+    uint8_t last[16];
+    memcpy(last, e, alen);
+    key_step(last, alen, 0);
+    if (memcmp(s, lo, alen) < 0 || memcmp(last, hi, alen) > 0) return -ENOENT;
+    uint8_t next[16];
+    memcpy(next, key, alen);
+    key_step(next, alen, 1);
+    uint8_t m[3][NFTLK_MSG_CAP];
+    size_t lens[3];
+    uint8_t *msgs[3];
+    int n = 0;
+    uint32_t seq = nftlk_seq_reserve(3);
+    lens[n] = nftlk_range_build(m[n], sizeof(m[n]), seq + (uint32_t)n, NFT_MSG_DELSETELEM,
+                                g_nft_table, set, s, e, alen);
+    msgs[n] = m[n];
+    n++;
+    if (memcmp(s, key, alen) < 0) {
+        lens[n] = nftlk_range_build(m[n], sizeof(m[n]), seq + (uint32_t)n, NFT_MSG_NEWSETELEM,
+                                    g_nft_table, set, s, key, alen);
+        msgs[n] = m[n];
+        n++;
+    }
+    if (memcmp(next, e, alen) < 0) {
+        lens[n] = nftlk_range_build(m[n], sizeof(m[n]), seq + (uint32_t)n, NFT_MSG_NEWSETELEM,
+                                    g_nft_table, set, next, e, alen);
+        msgs[n] = m[n];
+        n++;
+    }
+    int errs[3] = { 0, 0, 0 };
+    if (nftlk_txn(msgs, lens, n, seq, errs) != 0) return -ETIMEDOUT;
+    for (int i = 0; i < n; i++)
+        if (errs[i]) {
+            if (dbg()) fprintf(stderr, "nftlk: carve %s: part %d error=%d\n", set, i, errs[i]);
+            return errs[i];
+        }
+    return 0;
+}

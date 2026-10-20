@@ -1,0 +1,55 @@
+--- a/lib/ngtcp2_conn.c
++++ b/lib/ngtcp2_conn.c
+@@ -14520,3 +14520,31 @@
+
+   return 0;
+ }
++
++/* Steer patch: switch the congestion controller of an established
++   connection.  hysteria2 learns the server's receive limit only from the
++   authentication response, i.e. after the handshake, and then either
++   lowers the Brutal target (min(client, server)) or falls back to BBR
++   (server rate 0 or "auto"), exactly as the reference client does. */
++int ngtcp2_conn_set_cc_brutal(ngtcp2_conn *conn, uint64_t bps,
++                              ngtcp2_tstamp ts) {
++  if (bps) {
++    if (conn->cc_algo == NGTCP2_CC_ALGO_BRUTAL) {
++      conn->brutal.bps = bps;
++      return 0;
++    }
++    ngtcp2_cc_brutal_init(&conn->brutal, &conn->log, &conn->cstat, bps);
++    conn->cc_algo = NGTCP2_CC_ALGO_BRUTAL;
++    return 0;
++  }
++
++  if (conn->cc_algo == NGTCP2_CC_ALGO_BBR) {
++    return 0;
++  }
++
++  ngtcp2_cc_bbr_init(&conn->bbr, &conn->log, &conn->cstat, &conn->rst, ts,
++                     &conn->pcg);
++  conn->cc_algo = NGTCP2_CC_ALGO_BBR;
++
++  return 0;
++}
+--- a/lib/includes/ngtcp2/ngtcp2.h
++++ b/lib/includes/ngtcp2/ngtcp2.h
+@@ -4679,6 +4679,18 @@
+ /**
+  * @function
+  *
++ * `ngtcp2_conn_set_cc_brutal` (Steer patch, see 0002) switches the
++ * congestion controller of an established connection: nonzero |bps|
++ * selects Brutal with that target rate in bytes per second (only the rate
++ * is updated if Brutal is already in use), zero selects BBR.  |ts| is
++ * the current timestamp.  It returns 0.
++ */
++NGTCP2_EXTERN int ngtcp2_conn_set_cc_brutal(ngtcp2_conn *conn, uint64_t bps,
++                                            ngtcp2_tstamp ts);
++
++/**
++ * @function
++ *
+  * `ngtcp2_conn_set_keep_alive_timeout` sets keep-alive timeout.  If
+  * nonzero value is given, after a connection is idle at least in a
+  * given amount of time, a keep-alive packet is sent.  If UINT64_MAX

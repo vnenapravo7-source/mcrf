@@ -1,0 +1,14 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <application android:hasCode="true" tools:replace="android:hasCode">
+        <meta-data android:name="org.mcrf.engines.primary-core" android:value="1" />
+        <meta-data android:name="org.mcrf.engine.spi.version" android:value="1" />
+        <meta-data android:name="org.mcrf.engine.core.api" android:value="${primaryCoreApi}" />
+        <meta-data android:name="org.mcrf.engine.entry" android:value="${primaryCoreEntry}" />
+        <meta-data android:name="org.mcrf.engines.core-api" android:value="${primaryCoreApi}" />
+        <meta-data android:name="org.mcrf.engines.entry" android:value="${primaryCoreEntry}" />
+        <meta-data android:name="org.mcrf.engine.abis" android:value="${primaryCoreAbis}" />
+        <meta-data android:name="org.mcrf.engines.source.repository" android:value="${primarySourceRepository}" />
+        <meta-data android:name="org.mcrf.engines.source.version" android:value="${primarySourceVersion}" />
+        <meta-data android:name="org.mcrf.engines.source.sha256" android:value="${primarySourceSha256}" />
+    </application>
+</manifest>

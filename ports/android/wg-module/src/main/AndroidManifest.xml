@@ -1,0 +1,13 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application android:label="MCRF · WG/AWG" android:allowBackup="false" android:extractNativeLibs="true">
+        <meta-data android:name="org.mcrf.engines.interface" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.kind" android:value="wg-awg" />
+        <meta-data android:name="org.mcrf.engines.packet-core" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.source.commit" android:value="64065e6826ad82aa28429dd829c1c65f29b7f6c9" />
+        <meta-data android:name="org.mcrf.engine.protocol.api" android:value="1" />
+        <meta-data android:name="org.mcrf.engine.protocol.entry" android:value="org.mcrf.engines.wg.WgPacketBackend" />
+        <meta-data android:name="org.mcrf.engine.protocol.kind" android:value="wg-awg" />
+        <meta-data android:name="org.mcrf.engine.protocol.candidate" android:value="true" />
+    </application>
+</manifest>

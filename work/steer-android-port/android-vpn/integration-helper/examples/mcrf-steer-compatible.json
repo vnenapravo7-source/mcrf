@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "mode": "vpn",
+  "acceptSteerIpv4DnsModel": true,
+  "additionalRequiredFeatures": [],
+  "routing": {
+    "version": 1,
+    "defaultTarget": "proxy",
+    "globalDns": {
+      "provider": "Cloudflare",
+      "protocol": "DoH",
+      "custom": ""
+    },
+    "excludedApps": [],
+    "vpnApps": [],
+    "rules": [],
+    "appMode": "all",
+    "advancedDns": {
+      "enabled": false,
+      "direct": {
+        "provider": "Cloudflare",
+        "protocol": "DoH",
+        "custom": ""
+      },
+      "local": {
+        "provider": "Системный",
+        "protocol": "Системный"
+      },
+      "final": "remote",
+      "remoteNoAAAA": false,
+      "directNoAAAA": false,
+      "fakeIp": false,
+      "fakeNoAAAA": true,
+      "hosts": false,
+      "answers": "",
+      "cache": true,
+      "capacity": 1024,
+      "optimistic": false,
+      "optimisticTimeout": "30s",
+      "timeout": "10s",
+      "strategy": "prefer_ipv4",
+      "custom": ""
+    },
+    "geoData": {
+      "source": "Loyalsoldier",
+      "geoipUrl": "https://example.invalid/geoip.dat",
+      "geositeUrl": "https://example.invalid/geosite.dat",
+      "selectors": []
+    },
+    "remoteRouting": {
+      "mirror": "origin",
+      "mirrorUrl": "",
+      "adblock": false,
+      "adblockUrl": "https://example.invalid/ads.srs",
+      "autoRefresh": false,
+      "intervalMinutes": 360,
+      "profiles": []
+    }
+  },
+  "tun": {
+    "mtu": 1500,
+    "ipv6": false,
+    "address4": "10.89.0.2/32",
+    "address6": "fdfe:dcba:9876::1/126",
+    "bypassPrivate": false,
+    "privateRanges": "10.0.0.0/8",
+    "bypassDirectIps": false,
+    "mixedEnabled": false,
+    "randomPort": false,
+    "mixedPort": 10808,
+    "httpProxy": false,
+    "httpBypass": "",
+    "shareLan": false,
+    "lanPort": 10809,
+    "dnsPort": 0,
+    "customInbounds": ""
+  },
+  "coreTuning": {
+    "certificateStore": "system",
+    "insecure": false,
+    "ntpEnabled": false,
+    "ntpServer": "time.cloudflare.com",
+    "ntpPort": 123,
+    "ntpInterval": "30m",
+    "clashEnabled": false,
+    "clashPort": 9090,
+    "clashSecret": "",
+    "apiEnabled": false,
+    "apiPort": 9091,
+    "apiSecret": "",
+    "muxDefault": false,
+    "muxProtocol": "smux",
+    "muxConcurrency": 8,
+    "muxPadding": false,
+    "fragmentDefault": false,
+    "fragmentDelay": "500ms",
+    "fingerprint": "",
+    "idleTimeout": "",
+    "keepAlive": "",
+    "streamWindow": "",
+    "connectionWindow": "",
+    "maxStreams": 0,
+    "initialPacketSize": 0,
+    "disablePmtu": false
+  }
+}

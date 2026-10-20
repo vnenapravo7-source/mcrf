@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data android:name="org.mcrf.engines.s3bypass" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.source.repository" android:value="Fedarisha/Xray-core-fedarisha" />
+        <meta-data android:name="org.mcrf.engines.source.commit" android:value="b54ed13e3d7473ad8c25b5c39dfe127b004db540" />
+    </application>
+</manifest>

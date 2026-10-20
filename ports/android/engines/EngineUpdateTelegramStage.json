@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "kind": "tgws",
+  "repository": "y0sy4/telegram-proxy",
+  "commit": "cc6b7928e7306509bdeefbb6e0e29f2a982bdb48",
+  "api": 1,
+  "cli": "port-v1",
+  "files": [
+    {
+      "abi": "arm64-v8a",
+      "bytes": 5543728,
+      "sha256": "ff989f7ce037676953744e4926f19d4858f776c9a067b66abe8ad8c20b0855e0"
+    },
+    {
+      "abi": "armeabi-v7a",
+      "bytes": 5594472,
+      "sha256": "6160c785e43909f91b4c0acb5832683c3217d74be31132e3ac474f1a9fa61ca1"
+    },
+    {
+      "abi": "x86_64",
+      "bytes": 6040488,
+      "sha256": "08abe1729254978b5697f79ae80771d26f537c24100ce4ee7ef27c70aa0090f4"
+    }
+  ],
+  "licenses": [
+    {
+      "file": "tgws-LICENSE",
+      "bytes": 1086,
+      "sha256": "2ab27cf113cda4fd525358b2ee3ee28aee940aa66e6d443f6f76ecced24eb25c"
+    },
+    {
+      "file": "tgws-go-LICENSE",
+      "bytes": 1453,
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "file": "tgws-x-net-LICENSE",
+      "bytes": 1453,
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "source": {
+    "repository": "https://github.com/Loyalsoldier/v2ray-rules-dat",
+    "release": "202610132205",
+    "published_at": "2026-10-13T22:06:25Z",
+    "assets": [
+      {
+        "name": "geoip.dat",
+        "url": "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/202610132205/geoip.dat",
+        "size": 16583067,
+        "sha256": "116cc0f03d48991962f7f9cdbbcf53d45d89777f9c3cd1a663210853e5df6093"
+      },
+      {
+        "name": "geosite.dat",
+        "url": "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/202610132205/geosite.dat",
+        "size": 11180277,
+        "sha256": "c5a73fbd415bb0506ecf8fa574caadc6f54a71d9308c265e97da49e4cebf8466"
+      }
+    ]
+  },
+  "conversion": {
+    "checks": [
+      {
+        "code": "ru",
+        "records": 25171,
+        "kind": "geoip",
+        "sourceBytes": 16583067
+      },
+      {
+        "code": "cn",
+        "records": 9609,
+        "kind": "geoip",
+        "sourceBytes": 16583067
+      },
+      {
+        "code": "google",
+        "records": 1077,
+        "kind": "geosite",
+        "sourceBytes": 11180277
+      },
+      {
+        "code": "yandex",
+        "records": 153,
+        "kind": "geosite",
+        "sourceBytes": 11180277
+      },
+      {
+        "code": "category-ads-all",
+        "records": 193644,
+        "kind": "geosite",
+        "sourceBytes": 11180277
+      }
+    ],
+    "scope": "Pinned actual DAT parser/conversion/download-content validation only; Android acquisition, native runtime, and traffic not executed",
+    "missingCategoriesRejected": true
+  },
+  "directory": "C:/Users/dieonfire/Documents/ChatGPT/MCRF/work/android-dns-real-geodata-a4702a9e1652425983f97176b9c3b70e",
+  "helper": "app/src/test/kotlin/org/mcrf/client/GeoDataRealDatasetCheck.kt",
+  "jvm_heap": "512MiB",
+  "isolated_only": true,
+  "native_android_executed": false,
+  "phone_network_executed": false
+}

@@ -1,0 +1,6 @@
+{
+  "log": {"level": "info", "timestamp": true},
+  "dns": {"servers": [{"type": "local", "tag": "bootstrap"}], "final": "bootstrap"},
+  "outbounds": [{"type": "direct", "tag": "direct"}],
+  "route": {"final": "direct"}
+}

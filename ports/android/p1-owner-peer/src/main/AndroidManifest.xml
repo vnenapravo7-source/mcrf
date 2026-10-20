@@ -1,0 +1,5 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:sharedUserId="org.mcrf.p1fixture.shared">
+    <!-- No executable code/components; contributes a REAL second package to
+         the disposable helper UID union. Never a release/app dependency. -->
+    <application android:label="MCRF P1 shared UID peer" android:hasCode="false" android:testOnly="true" android:allowBackup="false" />
+</manifest>

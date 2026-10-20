@@ -1,0 +1,226 @@
+#!/bin/sh
+# Разделяемая раскладка роутера под ОДНУ архитектуру (шаг 4 выпуска 1.10, docs/architecture.md,
+# «Сборки»): libsteer-wolfssl.so, libsteer.so, steerd, модули steer-vless, steer-xsteer, steer-obfs,
+# steer-tgws.
+#
+#     sh build/build-libs.sh ВЫХОДНОЙ_КАТАЛОГ ВЕРСИЯ [РЕВИЗИЯ]
+#
+# Компилятор и цель — из окружения: CC (по умолчанию cc; zig — «zig cc -target … -mcpu=…»), AR
+# (у zig — «zig ar»), INTERP (путь загрузчика musl этой архитектуры, см. ниже; пусто — как у
+# компилятора: хостовая сборка стендов), LIBS (добавочные системные библиотеки: на glibc хоста
+# нужен -lpthread -ldl -lm, на musl — ничего), WOLFSSL_DIR (исходники wolfSSL; в образе сборщика —
+# /opt/wolfssl), JOBS (параллельность). Зовут этот скрипт build.sh (внутри образа сборщика, по разу
+# на архитектуру) и tests/libs-test.sh (на хосте, gcc).
+#
+# ЧТО В КАКОМ ФАЙЛЕ — build/sources.mk (PROFILE_libsteer, PROFILE_steerd, PROFILE_mod_*); здесь
+# только рецепт. Файлы на выходе называются по SONAME, а не по «libсteer.so»: у libsteer версия
+# движка (ABI между версиями не обещается, и бинарник, слинкованный с чужой версией, должен не
+# запуститься с понятной ошибкой загрузчика, а не молча взять несовместимую), у libsteer-wolfssl —
+# версия wolfSSL (пакет обновляется отдельно, а совместимость раскладки при этом сторожит сверка
+# размеров при загрузке — build/wolfssl/abi.c).
+#
+# ИНТЕРПРЕТАТОР. У статического бинарника загрузчика нет, у динамического он вшит по абсолютному
+# пути, и умолчание zig для musl — путь без поправок на мягкую плавающую точку и разные ABI ARM,
+# то есть не тот файл, что лежит на роутере. Поэтому build.sh задаёт INTERP на каждую
+# архитектуру по имени загрузчика musl (ld-musl-mipsel-sf.so.1 для mipsel soft-float,
+# ld-musl-armhf.so.1 для hard-float ARM, и т. д.). RPATH не нужен: библиотеки лежат в /usr/lib,
+# где musl ищет по умолчанию.
+set -eu
+
+OUT="${1:?нужен выходной каталог}"
+VERSION="${2:?нужна версия}"
+REV="${3:-неизвестна}"
+CC="${CC:-cc}"
+AR="${AR:-ar}"
+INTERP="${INTERP:-}"
+LIBS="${LIBS:-}"
+WOLFSSL_DIR="${WOLFSSL_DIR:-/opt/wolfssl}"
+J="${JOBS:-$(nproc 2>/dev/null || echo 4)}"
+export CC
+
+. build/sources.sh
+STEER_INC="$(for d in $(profile_var INC_DIRS); do printf -- '-I%s ' "$d"; done)"
+THIRD_DEFS="$(profile_var THIRD_DEFS)"
+WVER="$(sh build/wolfssl/fetch.sh version)"
+
+mkdir -p "$OUT"
+OBJ="$OUT/obj"
+rm -rf "$OBJ"
+mkdir -p "$OBJ/lib" "$OBJ/steerd" "$OBJ/mod"
+
+# Версия и ревизия — заголовком, а не -D: значение со строкой в кавычках через переменную оболочки
+# не передать (кавычки не переразбираются), а прежний приём — литерал в самой командной строке — не
+# годится для общей переменной флагов.
+{
+    printf '#define STEER_VERSION "%s"\n' "$VERSION"
+    printf '#define STEER_REV "%s"\n' "$REV"
+} > "$OBJ/steer_version.h"
+
+# ---- wolfSSL: статический архив С -fPIC и общая библиотека ---------------------------------------
+# Архив собирает тот же рецепт, что для статических бинарников (build/wolfssl/build.sh), но -fPIC
+# и в свой каталог: объекты без PIC в общую библиотеку не влезают. -ffunction-sections и
+# --gc-sections оставляют в .so только достижимое от экспортируемых символов: TLS-стек и QUIC
+# wolfSSL, включённые опциями заранее, весят там ровно столько, сколько их зовут (с шага 7 — обёртка
+# QUIC и ngtcp2, ниже).
+WTAG="$(echo "$CC" | tr -c 'a-zA-Z0-9' '_')"
+WLIB="$OUT/wolfssl-pic/$WTAG/libwolfssl.a"
+env CC="$CC" AR="$AR" CFLAGS="-O2 -fPIC -ffunction-sections -fdata-sections" \
+    sh build/wolfssl/build.sh "$WOLFSSL_DIR" "$WLIB" asm
+WCFLAGS="$(cat "$WLIB.cflags")"
+
+# shellcheck disable=SC2086
+$CC -O2 -fPIC -fvisibility=hidden -ffunction-sections -fdata-sections -Wall -Wextra \
+    -Isrc/lib $WCFLAGS -c build/wolfssl/abi.c -o "$OBJ/abi.o"
+# Экспортируется из библиотеки ровно то, что зовёт слой src/lib/scrypto.c (и отпечаток сборки):
+# список лежит в дереве (build/wolfssl/libsteer-wolfssl.map), а `sh build/libs-exports.sh check`
+# сверяет его с неопределёнными символами объекта слоя. Забытый символ ловит и сама сборка:
+# libsteer.so не слинкуется (-z defs). Список — файлом, а не вычисляется здесь, потому что nm в
+# образе сборщика нет (там только zig), а состав символов от архитектуры не зависит.
+WMAP="build/wolfssl/libsteer-wolfssl.map"
+
+# ---- ngtcp2: статический архив с -fPIC (шаг 7) ----------------------------------------------------
+# Исходники — с нашим патчем Brutal (build/ngtcp2/fetch.sh; в образе сборщика — /opt/ngtcp2), рецепт —
+# build/ngtcp2/build.sh: те же флаги, что у архива wolfSSL. Архив идёт в libsteer.so, а не в
+# отдельную библиотеку: у неё один потребитель за раз, а пакет с ещё одной .so на флеше 7 МБ —
+# лишний (docs/architecture.md, «Туннели»). Криптобэкенд ngtcp2 зовёт wolfSSL_*, они берутся из
+# libsteer-wolfssl.so (список экспорта — build/libs-exports.sh).
+NGTCP2_DIR="${NGTCP2_DIR:-/opt/ngtcp2}"
+NGLIB="$OUT/ngtcp2-pic/$WTAG/libngtcp2.a"
+env CC="$CC" AR="$AR" CFLAGS="-Os -fPIC -ffunction-sections -fdata-sections" \
+    sh build/ngtcp2/build.sh "$NGTCP2_DIR" "$WOLFSSL_DIR" "$NGLIB"
+NGCFLAGS="$(cat "$NGLIB.cflags")"
+
+# ---- libsteer.so ---------------------------------------------------------------------------------
+# -O2: через эти файлы идёт весь трафик туннеля (шифр, стек, транспорты), и -Os тут стоил бы
+# скорости (тот же довод, что у прежней расширенной сборки, build/build-ext.sh).
+# -ftls-model=initial-exec: __thread в библиотеке без него ходят через __tls_get_addr на каждое
+# обращение — на mipsel это заметно, а библиотека всегда грузится при запуске процесса (DT_NEEDED,
+# не dlopen), где initial-exec допустим и стоит одну загрузку из GOT.
+# -DSTEER_LIBSTEER: реестр видов (kinds/kind.c) отвечает по наличию модулей.
+#
+# ВИДИМОСТЬ. Экспорт задаёт version-script (build/libsteer.map), порождённый из того, что
+# действительно берут потребители (build/libs-exports.sh): всё, чего в нём нет, компоновщик
+# делает локальным, и в .dynsym остаётся ровно список. -fvisibility=hidden поверх него дал бы
+# ту же таблицу, но потребовал бы пометить `visibility("default")` каждое из 240 определений
+# (иначе скрытое нельзя экспортировать даже из version-script), то есть второй список в
+# исходниках, который разъезжается с первым. Потеря — только в том, что компилятор не знает
+# заранее о локальности символов; её возвращают -fno-semantic-interposition (вызовы внутри
+# библиотеки не идут через PLT) и -Bsymbolic-functions при компоновке.
+LIBF="-O2 -fPIC -fno-semantic-interposition -ftls-model=initial-exec -ffunction-sections -fdata-sections \
+      -DSTEER_LIBSTEER -Wall -Wextra -include $OBJ/steer_version.h $STEER_INC $THIRD_DEFS"
+APPF="-Wall -Wextra -include $OBJ/steer_version.h $STEER_INC $THIRD_DEFS -ffunction-sections -fdata-sections"
+
+# compile КЛАСС ФЛАГИ КАТАЛОГ ФАЙЛЫ… — параллельно; отказ любого файла — отказ сборки.
+compile() {
+    _f="$1"; _d="$2"; shift 2
+    printf '%s\n' "$@" | CCF="$_f" OD="$_d" xargs -P "$J" -I{} \
+        sh -c '$CC $CCF -c "$1" -o "$OD/$(echo "$1" | tr / _).o"' _ {}
+}
+
+CRYPTO="$(profile_var CRYPTO_SRC)"
+QUIC_ALL="$(profile_var QUIC_SRC)"
+QUIC_SSL="$(profile_var QUIC_SSL_SRC)"
+LIB_SRC=""
+for f in $(profile_var PROFILE_libsteer); do
+    case " $CRYPTO $QUIC_ALL " in *" $f "*) ;; *) LIB_SRC="$LIB_SRC $f" ;; esac
+done
+# shellcheck disable=SC2086
+compile "$LIBF" "$OBJ/lib" $LIB_SRC
+# Слой примитивов — с ключами wolfSSL, остальным они ничего не значат.
+# shellcheck disable=SC2086
+$CC $LIBF $WCFLAGS -c "$CRYPTO" -o "$OBJ/lib/$(echo "$CRYPTO" | tr / _).o"
+# Обёртка QUIC: заголовки ngtcp2 — обоим файлам, wolfSSL — только тому, что ему положено (QUIC_SSL_SRC).
+for f in $QUIC_ALL; do
+    case " $QUIC_SSL " in *" $f "*) _wc="$WCFLAGS" ;; *) _wc="" ;; esac
+    # shellcheck disable=SC2086
+    $CC $LIBF $NGCFLAGS $_wc -c "$f" -o "$OBJ/lib/$(echo "$f" | tr / _).o"
+done
+
+# -z defs (библиотека не оставляет неопределённых символов) по умолчанию включён: он превращает
+# забытый экспорт или файл, выпавший из списка, в ошибку сборки, а не в падение на роутере. Но
+# libc, с которой zig линкует общие библиотеки под musl, — заглушка, собранная из перечня
+# «стабильных» символов, и в ней нет служебных __time64 и __gmtime64, которые заголовки musl
+# подставляют вместо time() и gmtime() на 32-битных архитектурах (в настоящем libc.so на роутере они
+# есть — любая динамическая программа под 32-битный musl зовёт их же). Поэтому кросс-сборка
+# отключает проверку переменной ZIG=1, а замену ей даёт запуск на самих архитектурах
+# (qemu-user, ВМ): неопределённый символ там — отказ загрузчика при первом запуске. ZIG=1 же
+# убирает -rpath-link, которого драйвер zig не знает (зависимости библиотек lld ищет сам).
+if [ -n "${ZIG:-}" ]; then
+    ZDEFS=""
+    RPL=""
+else
+    ZDEFS="-Wl,-z,defs"
+    RPL="-Wl,-rpath-link,$OUT"
+fi
+
+WSO="$OUT/libsteer-wolfssl.so.$WVER"
+# --whole-archive: символы экспортируются, но никто внутри библиотеки их не «требует», и обычная
+# компоновка архива не вытянула бы ни одного члена; --gc-sections потом выбрасывает все секции,
+# недостижимые от экспортов.
+# shellcheck disable=SC2086
+$CC -shared -o "$WSO" "$OBJ/abi.o" -Wl,--whole-archive "$WLIB" -Wl,--no-whole-archive \
+    -Wl,-soname,"libsteer-wolfssl.so.$WVER" -Wl,--version-script="$WMAP" -Wl,--gc-sections \
+    $ZDEFS -Wl,-z,relro -s $LIBS
+
+SO="$OUT/libsteer.so.$VERSION"
+# shellcheck disable=SC2086
+$CC -shared -o "$SO" "$OBJ"/lib/*.o "$NGLIB" "$WSO" \
+    -Wl,-soname,"libsteer.so.$VERSION" -Wl,--version-script=build/libsteer.map \
+    -Wl,-Bsymbolic -Wl,--gc-sections $ZDEFS -Wl,-z,relro -s $LIBS
+
+# ---- steerd и модули ------------------------------------------------------------------------------
+# steerd: -Os, как базовый движок всегда (пакет ядра весит меньше, а горячих циклов в нём нет).
+# Модули: -O2 — в xsteer через xsclient.c идёт поток пакетов звезды.
+link_app() {  # ИМЯ КЛАСС-ФЛАГИ СПИСОК-ПРОФИЛЯ
+    _n="$1"; _f="$2"; _p="$3"
+    _od="$OBJ/$_n"
+    mkdir -p "$_od"
+    _files=""
+    for f in $(profile_var "$_p"); do
+        # modcmd.c общий: собирается один раз с флагами steerd и берётся всеми.
+        [ "$f" = "$MODCMD" ] && continue
+        _files="$_files $f"
+    done
+    # shellcheck disable=SC2086
+    compile "$_f" "$_od" $_files
+    _ldi=""
+    [ -z "$INTERP" ] || _ldi="-Wl,--dynamic-linker=$INTERP"
+    # shellcheck disable=SC2086
+    $CC -o "$OUT/$_n" "$_od"/*.o "$OBJ/modcmd.o" "$SO" $_ldi $RPL \
+        -Wl,--gc-sections -Wl,--as-needed -s $LIBS
+}
+
+# shellcheck disable=SC2086
+MODCMD="$(profile_var MODCMD_SRC)"
+$CC -Os $APPF -c "$MODCMD" -o "$OBJ/modcmd.o"
+# STEER_EXT_ONLY=1 (build/ext-build.sh) — только библиотеки и внешние модули: steerd и модули steer
+# внешнему модулю не нужны, их пакеты собирает build.sh steer.
+if [ -z "${STEER_EXT_ONLY:-}" ]; then
+link_app steerd "-Os $APPF" PROFILE_steerd
+link_app steer-vless "-O2 $APPF" PROFILE_mod_vless
+link_app steer-xsteer "-O2 $APPF" PROFILE_mod_xsteer
+link_app steer-obfs "-O2 $APPF" PROFILE_mod_obfs
+link_app steer-tgws "-O2 $APPF" PROFILE_mod_tgws
+link_app steer-hysteria2 "-O2 $APPF" PROFILE_mod_hysteria2
+link_app steer-proxy "-O2 $APPF" PROFILE_mod_proxy
+fi
+
+# Внешние модули (STEER_EXT_APPS="имя:каталог …"): бинарники из исходников ВНЕ этого дерева —
+# steer-box-connector (sing-box). Собираются теми же флагами и с той же libsteer, что модули
+# steer, а нужные им символы библиотека экспортирует по build/exports-ext.lst. Зовёт их сборка
+# build/ext-build.sh.
+_eldi=""
+[ -z "$INTERP" ] || _eldi="-Wl,--dynamic-linker=$INTERP"
+for _ea in ${STEER_EXT_APPS:-}; do
+    _en="${_ea%%:*}"; _ed="${_ea#*:}"
+    _eod="$OBJ/ext-$_en"
+    mkdir -p "$_eod"
+    # shellcheck disable=SC2046,SC2086
+    compile "-O2 $APPF -I$_ed" "$_eod" $(ls "$_ed"/*.c)
+    # shellcheck disable=SC2086
+    $CC -o "$OUT/$_en" "$_eod"/*.o "$OBJ/modcmd.o" "$SO" $_eldi $RPL \
+        -Wl,--gc-sections -Wl,--as-needed -s $LIBS
+done
+
+# Клиент сокета `steer` — по-прежнему статический, один на все раскладки (build.sh собирает его сам).
+echo "libs: готово в $OUT (libsteer.so.$VERSION, libsteer-wolfssl.so.$WVER, steerd, steer-vless, steer-xsteer, steer-obfs, steer-tgws, steer-hysteria2, steer-proxy${STEER_EXT_APPS:+, внешние: $STEER_EXT_APPS})"

@@ -1,0 +1,317 @@
+// steer for the Android platform build (DerpFest 16.2 / lineage-23.2).
+//
+// Two binaries, as in the router package (docs/architecture.md, section 4a, "Бинарники"):
+// steerd — the whole engine (daemon, compiler, apply, helpers, tools; steer-tools is a symlink
+// to it and answers only the tools under that name), and steer — the small socket client that
+// sends daemon commands (status, diag, explain, conns, dns-log, apply, reload, subscribe) to
+// the daemon and hands everything else to steerd next to itself with execv.
+//
+// Two builds of the same engine, as on the router: the base one (ten sources, the Makefile's
+// build/steer target) and the extended one — the same sources plus src/tunnel and src/proto (VLESS/Reality
+// client, xsteer, tgws) and wolfSSL. The owner chose the extended build for the phone from the
+// first version, so it is the module named "steer" that vendor/der/config/der.mk installs; the
+// base build stays as steer_base for trees without wolfSSL. Both engine builds install as
+// steerd.
+//
+// Both are compiled with -DSTEER_DEFAULT_PLATFORM=android. The platform is chosen at run time
+// (src/platform/platform.c) and the code of both platforms is in every binary; the define only
+// makes the phone the default, so the binary behaves as the phone wherever it runs (mark field
+// above netd's bits, ip rule priorities below netd's ladder, directories under
+// /data/misc/steer, /dev/tun — see src/platform/android.c). The engine calls `nft -f`, `ip`
+// and `iptables` as external programs and finds them through init's default PATH, which
+// includes /system_ext/bin (nft) and /system/bin.
+//
+// Installed in system_ext/bin/der/ rather than system_ext/bin/: every domain may list
+// /system_ext/bin (system_file:dir r_dir_perms), and the directory der/ carries its own SELinux
+// label that apps cannot search, so neither the name nor the attributes of the binary are
+// visible to them. See vendor/der/sepolicy.
+
+cc_defaults {
+    name: "steer_defaults",
+    system_ext_specific: true,
+    relative_install_path: "der",
+    stem: "steerd",
+    srcs: [
+        "src/lib/run.c",
+        "src/lib/jsonw.c",
+        "src/lib/evline.c",
+        // Step 4 of 1.10 (module split): which command belongs to which module and whether the
+        // module is installed, the module commands themselves (the phone keeps them all in
+        // steerd, so the stubs never fire) and the obfuscator entry point.
+        "src/lib/module.c",
+        "src/cli/modcmd.c",
+        "src/proto/obfs/obfsmain.c",
+        "src/lib/err.c",
+        "src/compile/groups.c",
+        "src/compile/generate.c",
+        "src/compile/balance.c",
+        "src/lib/ir.c",
+        "src/compile/print.c",
+        "src/compile/legacy.c",
+        "src/daemon/fwcheck.c",
+        "src/daemon/apply.c",
+        "src/daemon/status.c",
+        "src/daemon/nftquery.c",
+        "src/daemon/diag.c",
+        "src/daemon/explain.c",
+        "src/daemon/helpers.c",
+        "src/daemon/supervise.c",
+        "src/daemon/supd.c",
+        "src/daemon/watch.c",
+        "src/daemon/main.c",
+        "src/lib/jsonr.c",
+        "src/lib/tmpfile.c",
+        "src/platform/platform.c",
+        "src/platform/openwrt.c",
+        "src/platform/android.c",
+        "src/profile/profile.c",
+        "src/model/parse.c",
+        "src/model/v1.c",
+        "src/model/check.c",
+        "src/model/v2.c",
+        "src/model/v2print.c",
+        "src/model/registry.c",
+        "src/model/probe.c",
+        "src/compile/nftcompat.c",
+        "src/lib/puff.c",
+        "src/model/srs.c",
+        "src/model/srsplan.c",
+        "src/lib/nftdump.c",
+        "src/lib/rtnl.c",
+        "src/lib/procscan.c",
+        "src/lib/sindex.c",
+        "src/lib/nftnl.c",
+        "src/lib/ctnl.c",
+        "src/dnsd/rules.c",
+        "src/dnsd/wire.c",
+        "src/dnsd/origdst.c",
+        "src/dnsd/fakeip.c",
+        "src/dnsd/table.c",
+        "src/dnsd/tabfmt.c",
+        "src/dnsd/dlog.c",
+        "src/dnsd/realip.c",
+        "src/dnsd/adopt.c",
+        "src/dnsd/fpseed.c",
+        "src/dnsd/dcache.c",
+        "src/dnsd/dup.c",
+        "src/dnsd/dupgrp.c",
+        "src/dnsd/dupdial.c",
+        "src/dnsd/doq.c",
+        "src/dnsd/doh2.c",
+        "src/dnsd/proxy.c",
+        "src/dnsd/main.c",
+        "src/daemon/failover.c",
+        "src/tools/aggregate.c",
+        "src/proto/obfs/obfs.c",
+        "src/cli/cli.c",
+        "src/tools/srsread.c",
+        "src/tools/hwid.c",
+        "src/daemon/ctl.c",
+        "src/daemon/conns.c",
+        "src/daemon/loop.c",
+        "src/daemon/state.c",
+        "src/daemon/watchd.c",
+        "src/daemon/recon.c",
+        "src/daemon/rulewd.c",
+        "src/daemon/foprobe.c",
+        "src/daemon/gaiw.c",
+        "src/daemon/urltest.c",
+        "src/daemon/fogroup.c",
+        "src/lib/nftvmap.c",
+        "src/daemon/folat.c",
+        "src/lib/ctlcall.c",
+        "src/kinds/kind.c",
+        "src/kinds/direct.c",
+        "src/kinds/group.c",
+        "src/kinds/grpurl.c",
+        "src/kinds/interface.c",
+        "src/kinds/zapret.c",
+        "src/kinds/tgws.c",
+        "src/kinds/awg.c",
+        // YAML_SRC in build/sources.mk: the engine's wrapper here, libyaml itself in
+        // libsteer_yaml below (its own flags, like wolfSSL).
+        "src/lib/ynode.c",
+    ],
+    static_libs: ["libsteer_yaml"],
+    // Каталоги слоёв — те же, что INC_DIRS в build/sources.mk (сверяет tests/buildmatch.sh).
+    local_include_dirs: [
+        "src/lib",
+        "src/model",
+        "src/platform",
+        "src/compile",
+        "src/daemon",
+        "src/kinds",
+        "src/cli",
+        "src/dnsd",
+        "src/tools",
+        "src/proto/obfs",
+        "src/profile",
+        "src/tunnel",
+        "src/proto/tls",
+        "src/proto/transport",
+        "src/proto/vless",
+        "src/proto/xsteer",
+        "src/proto/tgws",
+        // QUIC (step 7 of 1.10) lives in libsteer on the router only. TODO(step 6): a
+        // libsteer_ngtcp2 module from a fork external/der-ngtcp2 (upstream + build/ngtcp2/patches,
+        // build/ngtcp2/config.h) once the phone gets a QUIC consumer; nothing here uses it yet.
+        "src/proto/quic",
+        "src/modules",
+        "src/client",
+        "src/third_party/libyaml",
+    ],
+    cflags: [
+        "-DSTEER_DEFAULT_PLATFORM=android",
+        // Keep in step with VERSION (build.sh and the Makefile read it from
+        // there; Soong cannot read a file into a define).
+        "-DSTEER_VERSION=\"1.5.8\"",
+    ],
+    // No binary with steer's name should linger in a symbol table either.
+    strip: {
+        all: true,
+    },
+}
+
+// Not installable: both modules would be /system_ext/bin/der/steerd, and Kati rejects two
+// install rules for one path ("overriding commands for target") for EVERY declared module,
+// not only for those in PRODUCT_PACKAGES. Still buildable by name (m steer_base).
+cc_binary {
+    name: "steer_base",
+    defaults: ["steer_defaults"],
+    installable: false,
+}
+
+// libyaml 0.2.5, the event parser only (src/third_party/libyaml, MIT; see UPSTREAM there):
+// LIBYAML_SRC in build/sources.mk, checked by tests/buildmatch.sh. A library of its own, as
+// wolfSSL, so that its flags stay its own: -DHAVE_CONFIG_H (THIRD_DEFS in sources.mk) makes
+// yaml_private.h include config.h with the version numbers. The sources are upstream's and are
+// not edited; today they build clean under Soong's warnings with -Werror, and if a compiler
+// update ever makes them noisy, the warning is turned off here in cflags, not fixed there.
+cc_library_static {
+    name: "libsteer_yaml",
+    srcs: [
+        "src/third_party/libyaml/api.c",
+        "src/third_party/libyaml/reader.c",
+        "src/third_party/libyaml/scanner.c",
+        "src/third_party/libyaml/parser.c",
+    ],
+    local_include_dirs: ["src/third_party/libyaml"],
+    export_include_dirs: ["src/third_party/libyaml"],
+    cflags: ["-DHAVE_CONFIG_H"],
+}
+
+// wolfSSL with the engine's own options (build/wolfssl/user_settings.h): the sources come from
+// external/der-wolfssl (its Android.bp is build/wolfssl/Android.bp until the der-exp fork exists,
+// step 6 of 1.10), the options from here, because in wolfSSL the options header is seen by every
+// .c and must be the one src/lib/scrypto.c is compiled with — the only engine file that sees
+// wolfSSL. The same file list as build/wolfssl/build.sh, checked by tests/buildmatch.sh.
+cc_library_static {
+    name: "libsteer_wolfssl",
+    srcs: [":libwolfssl_der_srcs"],
+    header_libs: ["libwolfssl_der_headers"],
+    export_header_lib_headers: ["libwolfssl_der_headers"],
+    local_include_dirs: ["build/wolfssl"],
+    export_include_dirs: ["build/wolfssl"],
+    cflags: ["-DWOLFSSL_USER_SETTINGS"],
+}
+
+cc_binary {
+    name: "steerd",
+    defaults: ["steer_defaults"],
+    // Tools role by argv[0] (src/daemon/main.c): the same file under another name.
+    symlinks: ["steer-tools"],
+    // The router role of build/build-ext.sh: XS_COMMON + EXT_ROUTER.
+    srcs: [
+        "src/proto/xsteer/xswire.c",
+        "src/proto/xsteer/xsconf.c",
+        "src/proto/xsteer/xslink.c",
+        "src/proto/xsteer/xsroute.c",
+        "src/proto/tls/chello.c",
+        "src/proto/xsteer/xshake.c",
+        "src/proto/xsteer/xsconn.c",
+        "src/proto/xsteer/xsstream.c",
+        "src/proto/xsteer/xsepoch.c",
+        "src/proto/tls/tls13.c",
+        "src/proto/tls/certverify.c",
+        "src/proto/tls/reality.c",
+        "src/tunnel/tun.c",
+        "src/proto/tls/h2.c",
+        "src/proto/xsteer/xsadmin.c",
+        // CRYPTO_SRC in build/sources.mk: the primitives layer, the only file that includes
+        // wolfSSL headers (they come with libsteer_wolfssl below, with -DWOLFSSL_USER_SETTINGS).
+        "src/lib/scrypto.c",
+        "src/proto/vless/sub.c",
+        "src/proto/vless/sublink.c",
+        // The VLESS module (VLESS_MOD_SRC), the tunnel stack (STACK_SRC) and the transports
+        // (TRANSPORT_SRC) — see build/sources.mk for which of them go to libsteer later.
+        "src/proto/vless/vlmain.c",
+        "src/proto/vless/vldial.c",
+        "src/tunnel/pool.c",
+        "src/proto/vless/client.c",
+        "src/proto/vless/vless_proto.c",
+        "src/proto/vless/vision.c",
+        "src/tunnel/stack.c",
+        "src/tunnel/rtx.c",
+        "src/proto/transport/transport.c",
+        "src/proto/transport/trdial.c",
+        "src/proto/transport/trsec.c",
+        "src/proto/tls/ech.c",
+        "src/proto/transport/trgrpc.c",
+        "src/proto/transport/trxhttp.c",
+        "src/proto/transport/trupgrade.c",
+        "src/proto/transport/trws.c",
+        "src/proto/transport/trpath.c",
+        "src/proto/transport/trvenc.c",
+        "src/proto/tls/roots.c",
+        "src/proto/xsteer/xsclient.c",
+        "src/proto/vless/subfetch.c",
+        "src/proto/tgws/tgws.c",
+        "src/proto/tls/tlsprobe.c",
+        "src/proto/tls/urltls.c",
+        // Kinds of the full package (KINDS_EXT_SRC in build/sources.mk); without them the
+        // registry answers "requires steer-extended" — see src/kinds/kind.c.
+        "src/kinds/vless.c",
+        "src/kinds/xsteer.c",
+        // The profile file of the full package (src/profile/profile.h): the build's name and the
+        // [steer-extended] marks in help. Profiles are sets of files, not defines.
+        "src/profile/extended.c",
+    ],
+    cflags: [
+        // For src/lib/scrypto.c: wolfSSL reads its options from user_settings.h (exported by
+        // libsteer_wolfssl). The other engine files never include wolfSSL, the define means
+        // nothing to them. The former -Wno-comment is gone: the comment in certverify.c that
+        // tripped -Wcomment ("*val/*val_n") was reworded when the file moved to the layer.
+        "-DWOLFSSL_USER_SETTINGS",
+    ],
+    static_libs: ["libsteer_wolfssl"],
+}
+
+// The socket client: CLIENT_SRC in build/sources.mk (checked by tests/buildmatch.sh). No spec,
+// no compiler — command parsing, protocol v1 and execv of steerd from the same directory
+// (/system_ext/bin/der). The platform files give it the phone's default paths (spec, socket,
+// state directory) the same way the engine chooses them.
+cc_binary {
+    name: "steer",
+    system_ext_specific: true,
+    relative_install_path: "der",
+    srcs: [
+        "src/client/main.c",
+        "src/lib/ctlcall.c",
+        "src/platform/platform.c",
+        "src/platform/openwrt.c",
+        "src/platform/android.c",
+        "src/profile/profile.c",
+    ],
+    local_include_dirs: [
+        "src/platform",
+        "src/lib",
+        "src/profile",
+        "src/client",
+    ],
+    cflags: [
+        "-DSTEER_DEFAULT_PLATFORM=android",
+    ],
+    strip: {
+        all: true,
+    },
+}

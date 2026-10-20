@@ -1,0 +1,398 @@
+Brutal — управление перегрузкой Hysteria 2 в ngtcp2 (steer, выпуск 1.10, шаг 7).
+
+ЗАЧЕМ. Hysteria 2 держит заданную скорость и не снижает её при потерях (Brutal). В ngtcp2 своего
+управления перегрузкой подключить нельзя: NGTCP2_CC_ALGO_CUSTOM убрали в 2021 году, а struct
+ngtcp2_cc — внутренняя. Единственный путь — новый алгоритм внутри библиотеки, то есть этот патч.
+Эталон поведения — apernet/hysteria, core/internal/congestion/brutal/brutal.go и common/pacer.go
+(соответствие строк — комментарий в lib/ngtcp2_brutal.c).
+
+ЧТО МЕНЯЕТ (четыре небольших куска и два новых файла):
+  lib/ngtcp2_brutal.c, lib/ngtcp2_brutal.h   новые: весь алгоритм (новые файлы при обновлении
+                                             не конфликтуют)
+  lib/includes/ngtcp2/ngtcp2.h               enum ngtcp2_cc_algo += NGTCP2_CC_ALGO_BRUTAL (0x03);
+                                             ngtcp2_settings += cc_brutal_bps (байт/с, В КОНЕЦ
+                                             структуры, версия настроек не менялась)
+  lib/ngtcp2_conn.h                          #include и член ngtcp2_cc_brutal в union алгоритмов
+  lib/ngtcp2_conn.c                          case в выборе алгоритма (conn_new) и assert на bps
+Makefile.am и CMakeLists.txt не тронуты: движок собирает lib/*.c сам (build/ngtcp2/build.sh).
+
+КАК ПЕРЕНОСИТЬ НА НОВЫЙ ВЫПУСК ngtcp2.
+  1. Правки версии и суммы в build/ngtcp2/fetch.sh; `sh build/ngtcp2/fetch.sh /tmp/x`. Если
+     сказано «патч не лёг» — дальше пункты 2-4; если лёг — сразу пункт 5.
+  2. Новые файлы (ngtcp2_brutal.[ch]) ложатся всегда. Ручной перенос — четыре куска в ngtcp2.h,
+     ngtcp2_conn.h и ngtcp2_conn.c: найти те же места (enum ngtcp2_cc_algo; конец
+     ngtcp2_settings; union с ngtcp2_cc_reno/cubic/bbr в struct ngtcp2_conn; switch по
+     settings->cc_algo в conn_new и блок assert(settings->initial_rtt)) и добавить строки из патча.
+  3. Проверить, что интерфейс ngtcp2_cc не изменился: поля struct ngtcp2_cc (lib/ngtcp2_cc.h),
+     сигнатуры on_pkt_acked/on_pkt_lost/on_ack_recv/congestion_event/reset, поля
+     ngtcp2_conn_stat (cwnd, pacing_interval_m, send_quantum, smoothed_rtt, first_rtt_sample_ts,
+     max_tx_udp_payload_size) и ngtcp2_cc_compute_initcwnd. Если ngtcp2 переименовал
+     единицу pacing_interval_m (нс на байт << 10) — поправить brutal_apply.
+  4. Если в ngtcp2_settings появилась новая версия (NGTCP2_SETTINGS_V5): наше поле остаётся
+     последним и не входит ни в одну версию — ngtcp2_settingslen_version() для последней версии
+     возвращает sizeof, для старых поле не копируется и остаётся нулём (у Brutal нуль запрещён —
+     assert, поэтому вызывающий обязан передавать последнюю версию; обёртка src/proto/quic так и
+     делает, вызывая ngtcp2_settings_default без суффикса версии).
+  5. Пересобрать и прогнать `make ext-test` (стенды qcbrutal — алгоритм на модели и qcloop —
+     рукопожатие, потоки и датаграммы) и `make libs-test`; замер Brutal против CUBIC на netem —
+     tests/qcbench.sh.
+
+diff -ruN a/lib/includes/ngtcp2/ngtcp2.h b/lib/includes/ngtcp2/ngtcp2.h
+--- a/lib/includes/ngtcp2/ngtcp2.h
++++ b/lib/includes/ngtcp2/ngtcp2.h
+@@ -1754,7 +1754,13 @@
+   /**
+    * :enum:`NGTCP2_CC_ALGO_BBR` represents BBR v2.
+    */
+-  NGTCP2_CC_ALGO_BBR = 0x02
++  NGTCP2_CC_ALGO_BBR = 0x02,
++  /**
++   * :enum:`NGTCP2_CC_ALGO_BRUTAL` represents Brutal of Hysteria 2: a
++   * fixed sending rate, :member:`ngtcp2_settings.cc_brutal_bps`,
++   * which does not decrease on packet loss.  (steer patch)
++   */
++  NGTCP2_CC_ALGO_BRUTAL = 0x03
+ } ngtcp2_cc_algo;
+ 
+ /**
+@@ -2116,6 +2122,15 @@
+    * .. version-added:: 1.23.0
+    */
+   ngtcp2_log_write log_write;
++  /**
++   * :member:`cc_brutal_bps` is the target rate of
++   * :enum:`ngtcp2_cc_algo.NGTCP2_CC_ALGO_BRUTAL` in BYTES per second
++   * (as ``bps`` in Hysteria).  It must not be zero if
++   * :member:`cc_algo` is Brutal, and is ignored otherwise.  (steer
++   * patch: added at the end regardless of the settings version, the
++   * library and the header are always built together.)
++   */
++  uint64_t cc_brutal_bps;
+ } ngtcp2_settings;
+ 
+ /**
+diff -ruN a/lib/ngtcp2_brutal.c b/lib/ngtcp2_brutal.c
+--- a/lib/ngtcp2_brutal.c
++++ b/lib/ngtcp2_brutal.c
+@@ -0,0 +1,208 @@
++/*
++ * ngtcp2
++ *
++ * Copyright (c) 2026 steer contributors (patch); ngtcp2 contributors (interfaces)
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining
++ * a copy of this software and associated documentation files (the
++ * "Software"), to deal in the Software without restriction, including
++ * without limitation the rights to use, copy, modify, merge, publish,
++ * distribute, sublicense, and/or sell copies of the Software, and to
++ * permit persons to whom the Software is furnished to do so, subject to
++ * the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be
++ * included in all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
++ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
++ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
++ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ */
++#include "ngtcp2_brutal.h"
++
++#include <assert.h>
++
++#include "ngtcp2_macro.h"
++#include "ngtcp2_conn_stat.h"
++
++/*
++ * Brutal из Hysteria 2 (apernet/hysteria, core/internal/congestion/brutal/brutal.go и
++ * common/pacer.go), перенесённый на интерфейс ngtcp2_cc. Соответствие эталону:
++ *
++ *   эталон                                     здесь
++ *   -----------------------------------------  ----------------------------------------
++ *   pktInfoSlotCount = 5 (слоты по секундам)   NGTCP2_BRUTAL_SLOTS
++ *   minSampleCount = 50                        NGTCP2_BRUTAL_MIN_SAMPLES
++ *   minAckRate = 0.8                           NGTCP2_BRUTAL_MIN_ACK_RATE_PM (в промилле)
++ *   congestionWindowMultiplier = 2             NGTCP2_BRUTAL_CWND_MULT
++ *   OnCongestionEventEx: счёт пакетов          on_pkt_acked / on_pkt_lost + on_ack_recv
++ *   GetCongestionWindow                        brutal_apply: cwnd
++ *   Pacer (bps / ackRate)                      brutal_apply: pacing_interval_m
++ *
++ * Отличия, и почему они не меняют поведение:
++ *   - Дробные числа заменены целыми (ack_rate — в промилле): у роутеров без FPU (mips soft-float)
++ *     дробные вычисления идут программно, а точности промилле хватает — эталон округляет
++ *     окно до байта, а скорость от сотой доли процента не меняется.
++ *   - Окно берётся от сглаженного RTT, как в эталоне (SmoothedRTT). До первого замера RTT эталон
++ *     держит 10240 байт; здесь — начальное окно ngtcp2 (10 пакетов, RFC 9002), то же по сути.
++ *   - Пейсер эталона — ведро токенов; в ngtcp2 своё ведро (ngtcp2_conn_update_pkt_tx_time), которому
++ *     нужен только интервал на байт (pacing_interval_m), его и выставляем. Пачка отправки —
++ *     send_quantum: миллисекунда на выбранной скорости, как у эталона (MinPacingDelay).
++ *   - Число пакетов в слотах считается по подтверждённым и потерянным пакетам с ответом на
++ *     запрос (ack-eliciting), а не по всем: в журнале потерь ngtcp2 других нет.
++ *
++ * Brutal не снижает скорость при потерях (on_persistent_congestion, congestion_event,
++ * on_spurious_congestion не заданы вовсе) — единственная реакция на потери: поправка ack_rate,
++ * то есть посылать больше, чтобы после потерь дошла заданная скорость.
++ */
++#define NGTCP2_BRUTAL_MIN_SAMPLES 50
++#define NGTCP2_BRUTAL_MIN_ACK_RATE_PM 800
++#define NGTCP2_BRUTAL_CWND_MULT 2
++
++static void brutal_apply(ngtcp2_cc_brutal *b, ngtcp2_conn_stat *cstat) {
++  uint64_t rate, cwnd, t;
++  size_t quantum;
++
++  /* Скорость отправки, байт/с: bps / ack_rate. */
++  rate = b->bps * 1000 / b->ack_rate_pm;
++  if (rate == 0) {
++    rate = 1;
++  }
++
++  /* ns на байт с десятью битами дробной части — единица pacing_interval_m. */
++  cstat->pacing_interval_m = ngtcp2_max((NGTCP2_SECONDS << 10) / rate, 1);
++
++  quantum = (size_t)ngtcp2_min(rate / 1000, (uint64_t)64 * 1024);
++  cstat->send_quantum =
++    ngtcp2_max(quantum, 10 * cstat->max_tx_udp_payload_size);
++
++  if (cstat->first_rtt_sample_ts == UINT64_MAX) {
++    cwnd = ngtcp2_cc_compute_initcwnd(cstat->max_tx_udp_payload_size);
++  } else {
++    /* bps * RTT * 2 / ack_rate: RTT в микросекундах, ack_rate в промилле.
++       bps до 2^31 и RTT до 10 с дают не больше 2^31 * 10^7 * 2 < 2^56: не переполняется. */
++    t = b->bps * (cstat->smoothed_rtt / NGTCP2_MICROSECONDS);
++    cwnd = t * NGTCP2_BRUTAL_CWND_MULT / (b->ack_rate_pm * 1000);
++    cwnd = ngtcp2_max(cwnd, cstat->max_tx_udp_payload_size);
++  }
++  cstat->cwnd = cwnd;
++}
++
++static void brutal_count(ngtcp2_cc_brutal *b, ngtcp2_tstamp ts, int lost) {
++  uint64_t sec = ts / NGTCP2_SECONDS;
++  size_t i = (size_t)(sec % NGTCP2_BRUTAL_SLOTS);
++
++  if (b->slot[i].sec != sec) {
++    /* Слот ещё не занят или слишком стар — сбросить. */
++    b->slot[i].sec = sec;
++    b->slot[i].ack = 0;
++    b->slot[i].loss = 0;
++  }
++  if (lost) {
++    ++b->slot[i].loss;
++  } else {
++    ++b->slot[i].ack;
++  }
++}
++
++static void brutal_update_ack_rate(ngtcp2_cc_brutal *b, ngtcp2_tstamp ts) {
++  uint64_t sec = ts / NGTCP2_SECONDS;
++  uint64_t ack = 0, loss = 0, total;
++  size_t i;
++
++  for (i = 0; i < NGTCP2_BRUTAL_SLOTS; ++i) {
++    if (b->slot[i].sec == UINT64_MAX || b->slot[i].sec + NGTCP2_BRUTAL_SLOTS < sec) {
++      continue;
++    }
++    ack += b->slot[i].ack;
++    loss += b->slot[i].loss;
++  }
++
++  total = ack + loss;
++  if (total < NGTCP2_BRUTAL_MIN_SAMPLES) {
++    b->ack_rate_pm = 1000;
++    return;
++  }
++  b->ack_rate_pm = ngtcp2_max(ack * 1000 / total,
++                              (uint64_t)NGTCP2_BRUTAL_MIN_ACK_RATE_PM);
++}
++
++static void brutal_on_pkt_acked(ngtcp2_cc *cc, ngtcp2_conn_stat *cstat,
++                                const ngtcp2_cc_pkt *pkt, ngtcp2_tstamp ts) {
++  ngtcp2_cc_brutal *b = ngtcp2_struct_of(cc, ngtcp2_cc_brutal, cc);
++  (void)cstat;
++  (void)pkt;
++
++  brutal_count(b, ts, 0);
++}
++
++static void brutal_on_pkt_lost(ngtcp2_cc *cc, ngtcp2_conn_stat *cstat,
++                               const ngtcp2_cc_pkt *pkt, ngtcp2_tstamp ts) {
++  ngtcp2_cc_brutal *b = ngtcp2_struct_of(cc, ngtcp2_cc_brutal, cc);
++  (void)cstat;
++  (void)pkt;
++
++  brutal_count(b, ts, 1);
++}
++
++static void brutal_on_ack_recv(ngtcp2_cc *cc, ngtcp2_conn_stat *cstat,
++                               const ngtcp2_cc_ack *ack, ngtcp2_tstamp ts) {
++  ngtcp2_cc_brutal *b = ngtcp2_struct_of(cc, ngtcp2_cc_brutal, cc);
++  (void)ack;
++
++  brutal_update_ack_rate(b, ts);
++  brutal_apply(b, cstat);
++}
++
++/* Потери, замеченные по таймеру, а не по ACK, тоже пересчитывают поправку: следующий ACK может
++   прийти нескоро. Скорость при этом не снижается — congestion_event у других алгоритмов
++   именно здесь режет окно. */
++static void brutal_congestion_event(ngtcp2_cc *cc, ngtcp2_conn_stat *cstat,
++                                    ngtcp2_tstamp sent_ts,
++                                    const ngtcp2_cc_ack *ack,
++                                    ngtcp2_tstamp ts) {
++  ngtcp2_cc_brutal *b = ngtcp2_struct_of(cc, ngtcp2_cc_brutal, cc);
++  (void)sent_ts;
++  (void)ack;
++
++  brutal_update_ack_rate(b, ts);
++  brutal_apply(b, cstat);
++}
++
++static void brutal_reset(ngtcp2_cc *cc, ngtcp2_conn_stat *cstat,
++                         ngtcp2_tstamp ts) {
++  ngtcp2_cc_brutal *b = ngtcp2_struct_of(cc, ngtcp2_cc_brutal, cc);
++  size_t i;
++  (void)ts;
++
++  for (i = 0; i < NGTCP2_BRUTAL_SLOTS; ++i) {
++    b->slot[i].sec = UINT64_MAX;
++    b->slot[i].ack = 0;
++    b->slot[i].loss = 0;
++  }
++  b->ack_rate_pm = 1000;
++
++  brutal_apply(b, cstat);
++}
++
++void ngtcp2_cc_brutal_init(ngtcp2_cc_brutal *brutal, ngtcp2_log *log,
++                           ngtcp2_conn_stat *cstat, uint64_t bps) {
++  *brutal = (ngtcp2_cc_brutal){
++    .cc =
++      {
++        .log = log,
++        .on_pkt_acked = brutal_on_pkt_acked,
++        .on_pkt_lost = brutal_on_pkt_lost,
++        .congestion_event = brutal_congestion_event,
++        .on_ack_recv = brutal_on_ack_recv,
++        .reset = brutal_reset,
++      },
++    .bps = ngtcp2_max(bps, (uint64_t)1),
++  };
++
++  brutal_reset(&brutal->cc, cstat, 0);
++}
+diff -ruN a/lib/ngtcp2_brutal.h b/lib/ngtcp2_brutal.h
+--- a/lib/ngtcp2_brutal.h
++++ b/lib/ngtcp2_brutal.h
+@@ -0,0 +1,67 @@
++/*
++ * ngtcp2
++ *
++ * Copyright (c) 2026 steer contributors (patch); ngtcp2 contributors (interfaces)
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining
++ * a copy of this software and associated documentation files (the
++ * "Software"), to deal in the Software without restriction, including
++ * without limitation the rights to use, copy, modify, merge, publish,
++ * distribute, sublicense, and/or sell copies of the Software, and to
++ * permit persons to whom the Software is furnished to do so, subject to
++ * the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be
++ * included in all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
++ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
++ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
++ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ */
++#ifndef NGTCP2_BRUTAL_H
++#define NGTCP2_BRUTAL_H
++
++#ifdef HAVE_CONFIG_H
++#  include <config.h>
++#endif /* defined(HAVE_CONFIG_H) */
++
++#include <ngtcp2/ngtcp2.h>
++
++#include "ngtcp2_cc.h"
++
++/* Number of one-second slots over which the ACK rate is sampled. */
++#define NGTCP2_BRUTAL_SLOTS 5
++
++/*
++ * ngtcp2_cc_brutal is the "Brutal" congestion controller of Hysteria 2
++ * (apernet/hysteria, core/internal/congestion/brutal): a fixed target
++ * rate that does not go down on loss.  The sending rate is
++ * bps / ack_rate, and the window is bps * RTT * 2 / ack_rate, where
++ * ack_rate is the share of packets acknowledged over the last
++ * NGTCP2_BRUTAL_SLOTS seconds (not lower than 0.8).
++ *
++ * All arithmetic is integer: routers without an FPU are targets too.
++ */
++typedef struct ngtcp2_cc_brutal {
++  ngtcp2_cc cc;
++  /* bps is the target rate in BYTES per second, as in Hysteria. */
++  uint64_t bps;
++  /* ack_rate_pm is the ACK rate in permille: 800..1000. */
++  uint64_t ack_rate_pm;
++  struct {
++    /* sec is the second (ts / NGTCP2_SECONDS) the slot belongs to;
++       UINT64_MAX if the slot is unused. */
++    uint64_t sec;
++    uint64_t ack;
++    uint64_t loss;
++  } slot[NGTCP2_BRUTAL_SLOTS];
++} ngtcp2_cc_brutal;
++
++void ngtcp2_cc_brutal_init(ngtcp2_cc_brutal *brutal, ngtcp2_log *log,
++                           ngtcp2_conn_stat *cstat, uint64_t bps);
++
++#endif /* !defined(NGTCP2_BRUTAL_H) */
+diff -ruN a/lib/ngtcp2_conn.c b/lib/ngtcp2_conn.c
+--- a/lib/ngtcp2_conn.c
++++ b/lib/ngtcp2_conn.c
+@@ -1253,6 +1253,7 @@
+   assert(settings->max_tx_udp_payload_size <= NGTCP2_MAX_TX_UDP_PAYLOAD_SIZE);
+   assert(settings->initial_pkt_num <= INT32_MAX);
+   assert(settings->initial_rtt);
++  assert(settings->cc_algo != NGTCP2_CC_ALGO_BRUTAL || settings->cc_brutal_bps);
+   assert(params->active_connection_id_limit >=
+          NGTCP2_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT);
+   assert(params->active_connection_id_limit <=
+@@ -1448,6 +1449,11 @@
+                        &(*pconn)->rst, settings->initial_ts, &(*pconn)->pcg);
+ 
+     break;
++  case NGTCP2_CC_ALGO_BRUTAL:
++    ngtcp2_cc_brutal_init(&(*pconn)->brutal, &(*pconn)->log, &(*pconn)->cstat,
++                          settings->cc_brutal_bps);
++
++    break;
+   default:
+     ngtcp2_unreachable();
+   }
+diff -ruN a/lib/ngtcp2_conn.h b/lib/ngtcp2_conn.h
+--- a/lib/ngtcp2_conn.h
++++ b/lib/ngtcp2_conn.h
+@@ -43,6 +43,7 @@
+ #include "ngtcp2_pq.h"
+ #include "ngtcp2_cc.h"
+ #include "ngtcp2_bbr.h"
++#include "ngtcp2_brutal.h"
+ #include "ngtcp2_pv.h"
+ #include "ngtcp2_pmtud.h"
+ #include "ngtcp2_cid.h"
+@@ -633,6 +634,7 @@
+     ngtcp2_cc_reno reno;
+     ngtcp2_cc_cubic cubic;
+     ngtcp2_cc_bbr bbr;
++    ngtcp2_cc_brutal brutal;
+   };
+   /* path_history remembers the paths that have been validated
+      successfully.  The path is added to this history when a local

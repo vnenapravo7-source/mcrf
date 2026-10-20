@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Executables must be installed by Android, never run from writable downloaded app data. -->
+    <application android:label="${engineLabel}" android:hasCode="false" android:allowBackup="false" android:extractNativeLibs="true">
+        <meta-data android:name="org.mcrf.engines.kind" android:value="${engineKind}" />
+        <meta-data android:name="org.mcrf.engines.interface" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.openflux" android:value="2" />
+        <meta-data android:name="org.mcrf.engines.swg" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.warp" android:value="1" />
+    </application>
+</manifest>

@@ -1,0 +1,68 @@
+package org.mcrf.client
+
+import android.content.Context
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Process
+import java.io.File
+
+/** Delivery identity only. Profile validation and loading belong to ClientPrimaryCore/host SPI. */
+object EngineUpdatePrimary {
+    data class Contract(val id:String,val packageName:String,val entry:String,val api:Int,val library:String,val abis:Set<String>)
+    val contracts=listOf(
+        Contract("sing-box","org.mcrf.engines.singbox","org.mcrf.engines.singbox.SingBoxEngine",1,"libbox.so",setOf("arm64-v8a","armeabi-v7a","x86_64")),
+        Contract("steer","org.mcrf.engines.steer","org.mcrf.engines.steer.SteerEngine",2,"libsteer_vpn.so",setOf("arm64-v8a","x86_64"))
+    )
+    val kinds=contracts.map{it.id}.toSet()
+    /** Host choice ID differs from the stable public package/asset kind for sing-box. */
+    fun choiceId(kind:String)=when(kind){"sing-box"->"singbox";"steer"->"steer";else->throw IllegalArgumentException("Unknown primary kind")}
+    fun kindForChoice(choiceId:String)=when(choiceId){"singbox"->"sing-box";"steer"->"steer";else->throw IllegalArgumentException("Unknown primary choice")}
+    fun contract(kind:String)=contracts.single{it.id==kind}
+    fun validate(kind:String,packageId:String,spi:Int,api:Int,entry:String,sourceHash:String,abis:Set<String>,abi:String) {
+        val expected=contract(kind)
+        require(packageId==expected.packageName&&spi==1&&api==expected.api&&entry==expected.entry){"Несовместимый интерфейс основного движка."}
+        require(sourceHash.matches(Regex("[0-9a-f]{64}"))){"Нет квитанции исходников основного движка."}
+        require(abis.isNotEmpty()&&expected.abis.containsAll(abis)&&abi in abis){"Основной движок не поддерживает эту архитектуру."}
+    }
+    fun validNativeEntries(kind:String,abi:String,entries:List<String>):Boolean {
+        val c=contract(kind)
+        return abi in c.abis&&entries.isNotEmpty()&&entries.distinct().size==entries.size&&
+            entries.all{it in c.abis.map{a->"lib/$a/${c.library}"}}&&"lib/$abi/${c.library}" in entries
+    }
+    private fun metadata(kind:String,info:ApplicationInfo,abi:String) {
+        val m=requireNotNull(info.metaData)
+        require(m.getInt("org.mcrf.engines.primary-core")==1&&m.getString("org.mcrf.engines.kind")==kind)
+        require(m.getInt("org.mcrf.engines.core-api")==m.getInt("org.mcrf.engine.core.api")&&m.getString("org.mcrf.engines.entry")==m.getString("org.mcrf.engine.entry")){"Метаданные загрузчика основного движка расходятся."}
+        require(!m.getString("org.mcrf.engines.source.repository").isNullOrBlank()&&!m.getString("org.mcrf.engines.source.version").isNullOrBlank())
+        val raw=requireNotNull(m.getString("org.mcrf.engine.abis"));val list=raw.split(',')
+        require(list.distinct().size==list.size)
+        validate(kind,info.packageName,m.getInt("org.mcrf.engine.spi.version"),m.getInt("org.mcrf.engine.core.api"),
+            m.getString("org.mcrf.engine.entry").orEmpty(),m.getString("org.mcrf.engines.source.sha256").orEmpty(),list.toSet(),abi)
+    }
+    fun installation(context:Context,kind:String):ApplicationInfo {
+        val pm=context.packageManager
+        val info=pm.getPackageInfo(contract(kind).packageName,PackageManager.GET_META_DATA or PackageManager.GET_SIGNING_CERTIFICATES)
+        val own=pm.getPackageInfo(context.packageName,PackageManager.GET_SIGNING_CERTIFICATES)
+        val signers=info.signingInfo?.apkContentsSigners?.map{it.toCharsString()}?.toSet()
+        require(!signers.isNullOrEmpty()&&signers==own.signingInfo?.apkContentsSigners?.map{it.toCharsString()}?.toSet()){"Подпись основного движка не совпадает с MCRF."}
+        val app=requireNotNull(info.applicationInfo);require(app.enabled)
+        require(app.minSdkVersion<=Build.VERSION.SDK_INT&&app.splitSourceDirs.isNullOrEmpty()){"Неподдержанная версия Android или отдельные split-пакеты основного движка."}
+        val abi=EnginePackage.abi(Build.SUPPORTED_ABIS.toList(),Process.is64Bit())
+        metadata(kind,app,abi)
+        verifyNative(File(app.sourceDir),kind,abi)
+        require(File(app.nativeLibraryDir,contract(kind).library).isFile){"Библиотека основного движка не установлена."}
+        return app
+    }
+    fun verifyArchive(context:Context,file:File,kind:String) {
+        val app=requireNotNull(context.packageManager.getPackageArchiveInfo(file.path,PackageManager.GET_META_DATA)?.applicationInfo)
+        // Archive ApplicationInfo.packageName is available without loading any module code.
+        val abi=EnginePackage.abi(Build.SUPPORTED_ABIS.toList(),Process.is64Bit())
+        metadata(kind,app,abi);verifyNative(file,kind,abi)
+    }
+    private fun verifyNative(file:File,kind:String,abi:String)=java.util.zip.ZipFile(file).use {zip->
+        val entries=zip.entries().asSequence().filter{!it.isDirectory&&it.name.startsWith("lib/")}.map{it.name}.toList()
+        require(validNativeEntries(kind,abi,entries)){"Неожиданные библиотеки основного движка или отсутствует ABI."}
+        require(zip.getEntry("classes.dex")!=null){"Нет адаптера основного движка."}
+    }
+}

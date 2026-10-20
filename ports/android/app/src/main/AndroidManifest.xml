@@ -1,0 +1,65 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+    <queries><package android:name="org.mcrf.engines" /><package android:name="org.mcrf.engines.xray" /><package android:name="org.mcrf.engines.tlscore" /><package android:name="org.mcrf.engines.singbox" /><package android:name="org.mcrf.engines.steer" /><package android:name="org.mcrf.engines.tgws" /><package android:name="org.mcrf.engines.s3bypass" /><package android:name="org.mcrf.engines.openflux.diagnostic" /><intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent><intent><action android:name="android.settings.VIEW_ADVANCED_POWER_USAGE_DETAIL" /><data android:scheme="package" /></intent></queries>
+    <application android:name=".McrfApplication" android:label="MCRF" android:icon="@drawable/mcrf_logo" android:theme="@style/AppTheme" android:allowBackup="false" android:usesCleartextTraffic="false">
+        <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop" android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" /><category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="openflux" /><data android:scheme="csqtt" /><data android:scheme="wdtt" /><data android:scheme="qwdtt" />
+                <data android:scheme="s3bypass" /><data android:scheme="olcrtc" /><data android:scheme="dnstt" /><data android:scheme="vless" /><data android:scheme="vmess" />
+                <data android:scheme="trojan" /><data android:scheme="ss" /><data android:scheme="socks" /><data android:scheme="hysteria2" />
+                <data android:scheme="hy2" /><data android:scheme="tuic" /><data android:scheme="wireguard" />
+                <data android:scheme="happ" /><data android:scheme="mcrf" /><data android:scheme="v2raytun" /><data android:scheme="wg" /><data android:scheme="awg" />
+                <data android:scheme="socks5" /><data android:scheme="hysteria" /><data android:scheme="anytls" /><data android:scheme="ssh" /><data android:scheme="naive+https" />
+            </intent-filter>
+        </activity>
+        <activity-alias android:name=".LauncherDefault" android:targetActivity=".MainActivity" android:exported="true" android:enabled="true" android:icon="@drawable/mcrf_logo"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity-alias>
+        <activity-alias android:name=".Launcher1" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:icon="@drawable/launcher_choice_1"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity-alias>
+        <activity-alias android:name=".Launcher4" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:icon="@drawable/launcher_choice_4"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity-alias>
+        <activity-alias android:name=".Launcher5" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:icon="@drawable/launcher_choice_5"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity-alias>
+        <activity-alias android:name=".Launcher6" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:icon="@drawable/launcher_choice_6"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity-alias>
+        <activity-alias android:name=".Launcher7" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:icon="@drawable/launcher_choice_7"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity-alias>
+        <activity-alias android:name=".Launcher11" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:icon="@drawable/launcher_choice_11"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity-alias>
+        <activity-alias android:name=".Launcher13" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:icon="@drawable/launcher_choice_13"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity-alias>
+        <activity android:name=".QrScanActivity" android:exported="false" />
+        <activity android:name=".CarrierCaptchaActivity" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden" android:windowSoftInputMode="adjustResize" />
+        <receiver android:name=".CarrierChallengeCancelReceiver" android:exported="false" />
+        <activity android:name=".VkRelayLoginActivity" android:exported="false" />
+        <provider android:name=".EnginePackageProvider" android:authorities="${applicationId}.engine-package" android:exported="false" android:grantUriPermissions="true" />
+        <service android:name=".McrfVpnService" android:exported="false" android:permission="android.permission.BIND_VPN_SERVICE" android:foregroundServiceType="specialUse" android:stopWithTask="false">
+            <intent-filter><action android:name="android.net.VpnService" /></intent-filter>
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="User initiated VPN and local proxy connection" />
+            <meta-data android:name="android.net.VpnService.SUPPORTS_ALWAYS_ON" android:value="true" />
+        </service>
+        <service android:name=".ProbeService" android:process=":probe" android:exported="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="User initiated server latency checks without changing the active VPN" />
+        </service>
+        <service android:name=".ClientPrimaryWorkerService" android:process=":primary" android:exported="false" />
+        <service android:name=".ClientPrimaryProbeWorkerService" android:process=":primaryProbe" android:exported="false" />
+        <service android:name=".ClientPrimaryWarpWorkerService" android:process=":primaryWarp" android:exported="false" />
+        <service android:name=".SubscriptionUpdateService" android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE" />
+        <service android:name=".EngineUpdateService" android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE" />
+        <service android:name=".RemoteRoutingJob" android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE" />
+        <service android:name=".WarpTraceService" android:process=":warpTrace" android:exported="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Verify selected WARP candidate via isolated native tunnel" />
+        </service>
+        <receiver android:name=".ClientBehaviorReceiver" android:exported="false">
+            <intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /><action android:name="android.intent.action.MY_PACKAGE_REPLACED" /></intent-filter>
+        </receiver>
+        <service android:name=".TelegramProxyService" android:process=":telegram" android:exported="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="User initiated local Telegram SOCKS to WebSocket bridge" />
+        </service>
+    </application>
+</manifest>

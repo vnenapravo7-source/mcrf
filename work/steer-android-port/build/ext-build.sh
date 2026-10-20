@@ -1,0 +1,44 @@
+#!/bin/sh
+# Собрать внешний модуль steer под одну архитектуру: build/ext-build.sh АРХ ВЫХОД ИМЯ:ИСХОДНИКИ
+#
+# Внешний модуль — бинарник из исходников вне этого дерева, связанный с libsteer (сейчас один:
+# steer-box-connector, github.com/splify2/steer-box-connector). Собирается тем же образом, той же
+# целью zig и тем же загрузчиком, что модули steer (build/arches.sh, build/build-libs.sh), — иначе
+# он встал бы рядом с libsteer из пакета steer-core с чужой ABI. В ВЫХОД ложатся libsteer той же
+# версии (только для компоновки — на роутере работает библиотека из steer-core) и сам бинарник.
+#
+# ВЫХОД и ИСХОДНИКИ — пути на этой машине внутри каталога MOUNT (умолчание — родитель дерева steer:
+# так steer подмодулем в репозитории модуля виден вместе с его исходниками).
+set -eu
+[ $# -ge 3 ] || { echo "usage: $0 АРХ ВЫХОД ИМЯ:ИСХОДНИКИ [ИМЯ:ИСХОДНИКИ…]" >&2; exit 2; }
+ARCH="$1"; OUTD="$2"; shift 2
+STEER="$(cd "$(dirname "$0")/.." && pwd -P)"
+MOUNT="$(cd "${MOUNT:-$STEER/..}" && pwd -P)"
+cd "$STEER"
+. ./build/arches.sh
+spec="$(printf '%s\n' "$ISAS" | grep "^$ARCH:" || true)"
+[ -n "$spec" ] || { echo "ext-build: неизвестная архитектура $ARCH" >&2; exit 2; }
+rest=${spec#*:}; target=${rest%%:*}; mcpu=${rest#*:}
+IMAGE="${STEER_BUILDER_IMAGE:-steer-builder:wolfssl}"
+if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
+    echo "ext-build: образа $IMAGE нет — собираю из build/Dockerfile"
+    docker build -t "$IMAGE" build/ >/dev/null
+fi
+VERSION="$(cat VERSION)"
+# Не на теге — номер из VERSION и коммит, как у build.sh.
+REV="$(git describe --tags --exact-match 2>/dev/null ||
+      { _h="$(git rev-parse --short HEAD 2>/dev/null)" && echo "$VERSION-g$_h"; } || echo неизвестна)"
+inside() {  # путь на машине -> путь в контейнере
+    _a="$(cd "$(dirname "$1")" && pwd -P)/$(basename "$1")"
+    case "$_a" in "$MOUNT"/*) echo "/w/${_a#"$MOUNT"/}" ;; *) echo "ext-build: $1 вне $MOUNT" >&2; exit 2 ;; esac
+}
+mkdir -p "$OUTD"
+apps=""
+for a in "$@"; do apps="$apps ${a%%:*}:$(inside "${a#*:}")"; done
+# Объектные файлы и владелец выхода — внутри контейнера: docker пишет от root, а снаружи (GitHub
+# Actions — не root) их не удалить.
+docker run --rm -v "$MOUNT:/w" -w "$(inside "$STEER")" --entrypoint sh \
+    -e CC="zig cc -target $target -mcpu=$mcpu" -e AR="zig ar" -e ZIG=1 \
+    -e INTERP="$(interp_of "$target" "$mcpu")" -e STEER_EXT_APPS="${apps# }" -e STEER_EXT_ONLY=1 "$IMAGE" -c \
+    'sh build/build-libs.sh "$1" "$2" "$3"; rc=$?; rm -rf "$1/obj"; chown -R "$4" "$1"; exit $rc' _ \
+    "$(inside "$OUTD")" "$VERSION" "$REV" "$(id -u):$(id -g)"

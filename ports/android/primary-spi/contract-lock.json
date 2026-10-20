@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "spiVersion": 1,
+  "sourceRoot": "work/steer-android-port/android-vpn/module-contract/src/main/java",
+  "scope": "Parent-only pure Java contract, no module runtime, Android API or native library",
+  "sources": [
+    {"path":"org/mcrf/engine/spi/v1/Engine.java","sha256":"a1041cd06efdac46445c80b086b0d1df7f8f3cb9f3cd033de364027d4f67788a"},
+    {"path":"org/mcrf/engine/spi/v1/Platform.java","sha256":"570d0728cafdbd80cad32ed1f8c272f141ff0489814e47eac9e3ca4ec30698e9"}
+  ]
+}

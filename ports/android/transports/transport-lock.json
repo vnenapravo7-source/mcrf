@@ -1,0 +1,13 @@
+{
+  "repository":"ttrroyy/qThroneMobile", "tag":"v1.0.0",
+  "archives":[
+    {"abi":"arm64-v8a","name":"qthrone-transports-arm64-v8a.tar.gz","sha256":"274b01300381ae15b775084de5e431cf679ab5ec727cd1e1673803d45b1e3f1b"},
+    {"abi":"armeabi-v7a","name":"qthrone-transports-armeabi-v7a.tar.gz","sha256":"7beb27f87df803a1e38ce30b2269402e8bac9165a52f374665b1df986908fb4b"},
+    {"abi":"x86_64","name":"qthrone-transports-x86_64.tar.gz","sha256":"89eba05556ef041ee4d083cfb6b413405d88c0b8a1764f68ded95d99014df2fa"}
+  ],
+  "dnstt":{"module":"www.bamsoftware.com/git/dnstt.git","version":"v1.20260501.0","sum":"h1:8i4tQWwBCrhsn6+c8fpjSIyaa+u0MOvdOa1FIxNOz6M="},
+  "openflux":{"repository":"p1neappleXpress/OpenFlux","commit":"74cac6d47bf4c27947348ee957538a2c0728a485","version":"v0.4.2"},
+  "qwdtt":{"repository":"ttrroyy/qThrone","checkout":"qthrone-desktop","commit":"93e4873c56c2285f647d0146a0df9c088f122910"},
+  "wdtt":{"repository":"Ivan4537/WDTT-Plus","checkout":"wdtt","commit":"f706ccd373685bbde20cae33b2b7f400e8335ecc"},
+  "telegram":{"repository":"y0sy4/telegram-proxy","commit":"cc6b7928e7306509bdeefbb6e0e29f2a982bdb48","version":"v2.0.7","adapter":"telegram/mobile.patch","distribution":"main Android APK; Linux engines/tgws"}
+}

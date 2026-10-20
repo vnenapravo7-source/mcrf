@@ -1,0 +1,91 @@
+// wolfSSL для сборки платформы — под криптографию steer (слой src/lib/scrypto.c).
+//
+// ЭТОТ ФАЙЛ — Android.bp БУДУЩЕГО РЕПОЗИТОРИЯ external/der-wolfssl (форк wolfSSL в der-exp, шаг 6
+// выпуска 1.10). Лежит он в steer, пока форка нет: `make ndk-check` кладёт его
+// рядом с исходниками того же выпуска (build/wolfssl/fetch.sh) и собирает steerd с ним — то есть
+// проверяется ровно то, что соберёт Soong, когда форк появится. При создании форка файл
+// переезжает туда как есть.
+//
+// Путь в дереве — external/der-wolfssl, а не external/wolfssl: тот занят копией AOSP (её тянет
+// wpa_supplicant на части устройств), и заменять её значило бы трогать то, от чего зависит чужой
+// код дерева. Так же прежде жила external/der-mbedtls.
+//
+// Библиотека здесь НЕ собирается. Здесь только исходники и заголовки, а собирает их steer своим
+// модулем libsteer_wolfssl (external/steer/Android.bp): опции wolfSSL — это заголовок
+// user_settings.h, который видят все её .c, и он принадлежит движку (build/wolfssl/user_settings.h)
+// — ровно тот же набор, что в роутерной сборке. Библиотека с чужими опциями рядом с нашим
+// scrypto.c означала бы разные размеры структур у вызывающего и у вызываемого.
+
+package {
+    default_applicable_licenses: ["external_der_wolfssl_license"],
+    default_visibility: ["//visibility:public"],
+}
+
+license {
+    name: "external_der_wolfssl_license",
+    visibility: [":__subpackages__"],
+    // wolfSSL с 5.8.2 распространяется под GPLv3 (или коммерческой лицензией wolfSSL Inc.).
+    license_kinds: ["SPDX-license-identifier-GPL-3.0"],
+    license_text: ["COPYING"],
+}
+
+cc_library_headers {
+    name: "libwolfssl_der_headers",
+    export_include_dirs: ["."],
+}
+
+// Список — тот же, что у build/wolfssl/build.sh (wolfssl_c_files), и сверяет их tests/buildmatch.sh.
+// Файлы .S (ассемблер x86_64) сюда не входят: телефону x86_64 (Cuttlefish) хватает переносимого
+// C, а aarch64 ускоряется без них.
+filegroup {
+    name: "libwolfssl_der_srcs",
+    srcs: [
+        "src/internal.c",
+        "src/keys.c",
+        "src/ssl.c",
+        "src/tls.c",
+        "src/tls13.c",
+        "src/quic.c",
+        "src/wolfio.c",
+        "wolfcrypt/src/aes.c",
+        "wolfcrypt/src/asn.c",
+        "wolfcrypt/src/chacha.c",
+        "wolfcrypt/src/chacha20_poly1305.c",
+        "wolfcrypt/src/coding.c",
+        "wolfcrypt/src/cpuid.c",
+        "wolfcrypt/src/curve25519.c",
+        "wolfcrypt/src/ecc.c",
+        "wolfcrypt/src/error.c",
+        "wolfcrypt/src/fe_operations.c",
+        "wolfcrypt/src/ge_operations.c",
+        "wolfcrypt/src/hash.c",
+        "wolfcrypt/src/hmac.c",
+        "wolfcrypt/src/kdf.c",
+        "wolfcrypt/src/logging.c",
+        "wolfcrypt/src/md5.c",
+        "wolfcrypt/src/memory.c",
+        "wolfcrypt/src/poly1305.c",
+        "wolfcrypt/src/random.c",
+        "wolfcrypt/src/rsa.c",
+        "wolfcrypt/src/sha.c",
+        "wolfcrypt/src/sha256.c",
+        "wolfcrypt/src/sha3.c",
+        "wolfcrypt/src/sha512.c",
+        "wolfcrypt/src/sp_int.c",
+        "wolfcrypt/src/wc_encrypt.c",
+        "wolfcrypt/src/wc_mldsa.c",
+        "wolfcrypt/src/wc_mlkem.c",
+        "wolfcrypt/src/wc_mlkem_poly.c",
+        "wolfcrypt/src/wc_port.c",
+        "wolfcrypt/src/wolfmath.c",
+        // Встроенный ассемблер aarch64 (WOLFSSL_ARMASM_INLINE в user_settings.h); на x86_64 эти
+        // файлы компилируются в пустоту.
+        "wolfcrypt/src/port/arm/armv8-aes-asm_c.c",
+        "wolfcrypt/src/port/arm/armv8-chacha-asm_c.c",
+        "wolfcrypt/src/port/arm/armv8-poly1305-asm_c.c",
+        "wolfcrypt/src/port/arm/armv8-sha256-asm_c.c",
+        "wolfcrypt/src/port/arm/armv8-sha512-asm_c.c",
+        "wolfcrypt/src/port/arm/armv8-curve25519_c.c",
+        "wolfcrypt/src/port/arm/armv8-sha3-asm_c.c",
+    ],
+}

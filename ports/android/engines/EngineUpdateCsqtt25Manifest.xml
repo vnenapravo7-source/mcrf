@@ -1,0 +1,5 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data android:name="org.mcrf.engines.csqtt_generation" android:value="@string/mcrf_csqtt_generation" />
+    </application>
+</manifest>

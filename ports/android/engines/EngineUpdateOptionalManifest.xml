@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data android:name="org.mcrf.engines.optional-core" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.optional-ingress" android:value="${optionalIngress}" />
+        <meta-data android:name="org.mcrf.engines.source.repository" android:value="${optionalSourceRepository}" />
+        <meta-data android:name="org.mcrf.engines.source.commit" android:value="${optionalSourceCommit}" />
+    </application>
+</manifest>

@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Inactive source overlay. Only whole-source-ready frozen P1 candidate
+         packaging selects it; it is not a declaration of device acceptance. -->
+    <application>
+        <meta-data android:name="org.mcrf.engine.protocol.managed-dns" android:value="owned_kernel_dns_nat_v1" />
+        <meta-data android:name="org.mcrf.engine.protocol.block-capture" android:value="atomic_tun_peer_v1" />
+    </application>
+</manifest>

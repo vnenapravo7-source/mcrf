@@ -1,0 +1,1094 @@
+[
+  {
+    "query": "Бургер Кинг",
+    "packageName": "ru.burgerking",
+    "card": "БУРГЕР КИНГ - Доставка, купоны Еда и напитки 4,3",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%91%D1%83%D1%80%D0%B3%D0%B5%D1%80%20%D0%9A%D0%B8%D0%BD%D0%B3"
+  },
+  {
+    "query": "Бургер Кинг",
+    "packageName": "com.tapston.burgerking",
+    "card": "Burger King Еда и напитки 2,9",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%91%D1%83%D1%80%D0%B3%D0%B5%D1%80%20%D0%9A%D0%B8%D0%BD%D0%B3"
+  },
+  {
+    "query": "Бургер Кинг",
+    "packageName": "com.ewt.burger",
+    "card": "Бургер Кинг Гов Аркады 3,8",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%91%D1%83%D1%80%D0%B3%D0%B5%D1%80%20%D0%9A%D0%B8%D0%BD%D0%B3"
+  },
+  {
+    "query": "Бургер Кинг",
+    "packageName": "ru.instamart",
+    "card": "Купер・доставка еды и продуктов Еда и напитки · Покупки 4,7",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%91%D1%83%D1%80%D0%B3%D0%B5%D1%80%20%D0%9A%D0%B8%D0%BD%D0%B3"
+  },
+  {
+    "query": "Rostic's",
+    "packageName": "ru.kfc.kfc_delivery",
+    "card": "Rostic's: ресторан, доставка и заказ еды Еда и напитки 3,9",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=Rostic%27s"
+  },
+  {
+    "query": "Rostic's",
+    "packageName": "ru.goulash.rockyrolls",
+    "card": "Рокки Роллс Еда и напитки",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=Rostic%27s"
+  },
+  {
+    "query": "Rostic's",
+    "packageName": "com.deliveryclub",
+    "card": "Деливери: еда и продукты Еда и напитки 4,2",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=Rostic%27s"
+  },
+  {
+    "query": "Rostic's",
+    "packageName": "com.apegroup.mcdonaldsrussia",
+    "card": "Вкусно — и точка: еда, доставка, скидки и акции Еда и напитки 4,2",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=Rostic%27s"
+  },
+  {
+    "query": "Теремок",
+    "packageName": "com.teremok.keys",
+    "card": "Теремок - программа лояльности КЛЮЧИ ОТ ТЕРЕМКА Еда и напитки 3,2",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A2%D0%B5%D1%80%D0%B5%D0%BC%D0%BE%D0%BA"
+  },
+  {
+    "query": "Теремок",
+    "packageName": "com.k_telecom.smart_home",
+    "card": "Теремок Полезные инструменты",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A2%D0%B5%D1%80%D0%B5%D0%BC%D0%BE%D0%BA"
+  },
+  {
+    "query": "Теремок",
+    "packageName": "com.knomary.hcm.teremok",
+    "card": "ПроТеремок Бизнес-сервисы 1,7",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A2%D0%B5%D1%80%D0%B5%D0%BC%D0%BE%D0%BA"
+  },
+  {
+    "query": "Теремок",
+    "packageName": "com.webcommand.teremol",
+    "card": "Теремок - Магазин игрушек Покупки",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A2%D0%B5%D1%80%D0%B5%D0%BC%D0%BE%D0%BA"
+  },
+  {
+    "query": "Тануки",
+    "packageName": "com.mobilemedia.tanuki",
+    "card": "TanukiFamily — доставка еды Еда и напитки 3,9",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A2%D0%B0%D0%BD%D1%83%D0%BA%D0%B8"
+  },
+  {
+    "query": "Тануки",
+    "packageName": "uk.com.yumapos.tanuki.customer",
+    "card": "о.Тануки Еда и напитки",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A2%D0%B0%D0%BD%D1%83%D0%BA%D0%B8"
+  },
+  {
+    "query": "Тануки",
+    "packageName": "skidki.tanuki",
+    "card": "Промокоды Тануки 2026 Покупки",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A2%D0%B0%D0%BD%D1%83%D0%BA%D0%B8"
+  },
+  {
+    "query": "Тануки",
+    "packageName": "ru.instamart",
+    "card": "Купер・доставка еды и продуктов Еда и напитки · Покупки 4,7",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A2%D0%B0%D0%BD%D1%83%D0%BA%D0%B8"
+  },
+  {
+    "query": "Якитория",
+    "packageName": "com.voltmobi.yakitoriya",
+    "card": "Якитория – доставка еды Еда и напитки · Образ жизни 3,7",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%AF%D0%BA%D0%B8%D1%82%D0%BE%D1%80%D0%B8%D1%8F"
+  },
+  {
+    "query": "Якитория",
+    "packageName": "com.uspeshnyy.yakitoriya",
+    "card": "Якитория Волгоград Еда и напитки",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%AF%D0%BA%D0%B8%D1%82%D0%BE%D1%80%D0%B8%D1%8F"
+  },
+  {
+    "query": "Якитория",
+    "packageName": "ru.tokyocity.tokyocity",
+    "card": "ТОКИО-CITY — заказ еды онлайн Еда и напитки 4,7",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%AF%D0%BA%D0%B8%D1%82%D0%BE%D1%80%D0%B8%D1%8F"
+  },
+  {
+    "query": "Якитория",
+    "packageName": "com.deliveryclub",
+    "card": "Деливери: еда и продукты Еда и напитки 4,2",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%AF%D0%BA%D0%B8%D1%82%D0%BE%D1%80%D0%B8%D1%8F"
+  },
+  {
+    "query": "Папа Джонс",
+    "packageName": "ru.papajohns.app",
+    "card": "Папа Джонс - доставка пиццы Еда и напитки 2,5",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%B0%D0%BF%D0%B0%20%D0%94%D0%B6%D0%BE%D0%BD%D1%81"
+  },
+  {
+    "query": "Папа Джонс",
+    "packageName": "ru.dodopizza.app",
+    "card": "Додо Пицца доставка и ресторан Еда и напитки 4,7",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%B0%D0%BF%D0%B0%20%D0%94%D0%B6%D0%BE%D0%BD%D1%81"
+  },
+  {
+    "query": "Папа Джонс",
+    "packageName": "com.foodpicasso.papjo",
+    "card": "Папа Джон Еда и напитки",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%B0%D0%BF%D0%B0%20%D0%94%D0%B6%D0%BE%D0%BD%D1%81"
+  },
+  {
+    "query": "Папа Джонс",
+    "packageName": "com.yumasoft.ypos.kraftpapa.customer",
+    "card": "Пиццерия Папа Крафт Еда и напитки",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%B0%D0%BF%D0%B0%20%D0%94%D0%B6%D0%BE%D0%BD%D1%81"
+  },
+  {
+    "query": "Пицца Синица",
+    "packageName": "com.sinizza",
+    "card": "Пицца Синица Еда и напитки",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%B8%D1%86%D1%86%D0%B0%20%D0%A1%D0%B8%D0%BD%D0%B8%D1%86%D0%B0"
+  },
+  {
+    "query": "Пицца Синица",
+    "packageName": "ru.dodopizza.app",
+    "card": "Додо Пицца доставка и ресторан Еда и напитки 4,7",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%B8%D1%86%D1%86%D0%B0%20%D0%A1%D0%B8%D0%BD%D0%B8%D1%86%D0%B0"
+  },
+  {
+    "query": "Пицца Синица",
+    "packageName": "ru.papajohns.app",
+    "card": "Папа Джонс - доставка пиццы Еда и напитки 2,5",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%B8%D1%86%D1%86%D0%B0%20%D0%A1%D0%B8%D0%BD%D0%B8%D1%86%D0%B0"
+  },
+  {
+    "query": "Пицца Синица",
+    "packageName": "ru.zharpizza.mobile",
+    "card": "Жар Пицца — акции в приложении. Еда и напитки 3,4",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%B8%D1%86%D1%86%D0%B0%20%D0%A1%D0%B8%D0%BD%D0%B8%D1%86%D0%B0"
+  },
+  {
+    "query": "ПиццаФабрика",
+    "packageName": "com.pizzafabrika.android",
+    "card": "ПиццаФабрика - Доставка пиццы Еда и напитки 3,6",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%B8%D1%86%D1%86%D0%B0%D0%A4%D0%B0%D0%B1%D1%80%D0%B8%D0%BA%D0%B0"
+  },
+  {
+    "query": "ПиццаФабрика",
+    "packageName": "ru.pizzasoft.courier",
+    "card": "ПиццаФабрика - Курьер Еда и напитки",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%B8%D1%86%D1%86%D0%B0%D0%A4%D0%B0%D0%B1%D1%80%D0%B8%D0%BA%D0%B0"
+  },
+  {
+    "query": "ПиццаФабрика",
+    "packageName": "ru.vsemedu.mobile.fabpizzakrd",
+    "card": "Фабрика Пицца Еда и напитки",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%B8%D1%86%D1%86%D0%B0%D0%A4%D0%B0%D0%B1%D1%80%D0%B8%D0%BA%D0%B0"
+  },
+  {
+    "query": "ПиццаФабрика",
+    "packageName": "ru.vsemedu.mobile.fapizza",
+    "card": "Фабрика пиццы | Доставк‪а‬ Еда и напитки",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%B8%D1%86%D1%86%D0%B0%D0%A4%D0%B0%D0%B1%D1%80%D0%B8%D0%BA%D0%B0"
+  },
+  {
+    "query": "MYBOX",
+    "packageName": "ru.mybox.app",
+    "card": "MYBOX: доставка еды, рестораны Еда и напитки 4,6",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=MYBOX"
+  },
+  {
+    "query": "MYBOX",
+    "packageName": "ru.mybox.courier.maui",
+    "card": "MYBOX Курьер Бизнес-сервисы 1,8",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=MYBOX"
+  },
+  {
+    "query": "MYBOX",
+    "packageName": "com.nhn.android.ndrive",
+    "card": "MYBOX Полезные инструменты",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=MYBOX"
+  },
+  {
+    "query": "MYBOX",
+    "packageName": "com.apegroup.mcdonaldsrussia",
+    "card": "Вкусно — и точка: еда, доставка, скидки и акции Еда и напитки 4,2",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=MYBOX"
+  },
+  {
+    "query": "Суши Вок",
+    "packageName": "ru.devcluster.sushiwok",
+    "card": "Суши Wok Еда и напитки 2,5",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A1%D1%83%D1%88%D0%B8%20%D0%92%D0%BE%D0%BA"
+  },
+  {
+    "query": "Суши Вок",
+    "packageName": "ru.dlvry.shosushi",
+    "card": "ШоЗа Суши | Роллы | ВОК Еда и напитки 4,5",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A1%D1%83%D1%88%D0%B8%20%D0%92%D0%BE%D0%BA"
+  },
+  {
+    "query": "Суши Вок",
+    "packageName": "kz.FoodSoul.PavlodarYakuza",
+    "card": "Yakuza Sushi & Wok Еда и напитки",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A1%D1%83%D1%88%D0%B8%20%D0%92%D0%BE%D0%BA"
+  },
+  {
+    "query": "Суши Вок",
+    "packageName": "ru.foodband",
+    "card": "FoodBand - Пиццы, WOK, Суши Еда и напитки 2,3",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A1%D1%83%D1%88%D0%B8%20%D0%92%D0%BE%D0%BA"
+  },
+  {
+    "query": "Суши Мастер",
+    "packageName": "com.sushimaster.ru",
+    "card": "Суши Мастер: доставка суши Еда и напитки 4,8",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A1%D1%83%D1%88%D0%B8%20%D0%9C%D0%B0%D1%81%D1%82%D0%B5%D1%80"
+  },
+  {
+    "query": "Суши Мастер",
+    "packageName": "cc.sellkit.mastersushi",
+    "card": "Мастер суши и дом пиццы Еда и напитки",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A1%D1%83%D1%88%D0%B8%20%D0%9C%D0%B0%D1%81%D1%82%D0%B5%D1%80"
+  },
+  {
+    "query": "Суши Мастер",
+    "packageName": "ru.devcluster.sushiwok",
+    "card": "Суши Wok Еда и напитки 2,5",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A1%D1%83%D1%88%D0%B8%20%D0%9C%D0%B0%D1%81%D1%82%D0%B5%D1%80"
+  },
+  {
+    "query": "Суши Мастер",
+    "packageName": "ru.FoodSoul.VelskSushiMarket",
+    "card": "СУШИ МАРКЕТ Еда и напитки",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A1%D1%83%D1%88%D0%B8%20%D0%9C%D0%B0%D1%81%D1%82%D0%B5%D1%80"
+  },
+  {
+    "query": "Токио Сити",
+    "packageName": "ru.tokyocity.tokyocity",
+    "card": "ТОКИО-CITY — заказ еды онлайн Еда и напитки 4,7",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A2%D0%BE%D0%BA%D0%B8%D0%BE%20%D0%A1%D0%B8%D1%82%D0%B8"
+  },
+  {
+    "query": "Токио Сити",
+    "packageName": "com.actonica.tokio",
+    "card": "Токио | Доставка Еды Еда и напитки",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A2%D0%BE%D0%BA%D0%B8%D0%BE%20%D0%A1%D0%B8%D1%82%D0%B8"
+  },
+  {
+    "query": "Токио Сити",
+    "packageName": "co.feip.tokyo",
+    "card": "ТОКИО l Доставка и Рестораны Еда и напитки 4,7",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A2%D0%BE%D0%BA%D0%B8%D0%BE%20%D0%A1%D0%B8%D1%82%D0%B8"
+  },
+  {
+    "query": "Токио Сити",
+    "packageName": "com.apegroup.mcdonaldsrussia",
+    "card": "Вкусно — и точка: еда, доставка, скидки и акции Еда и напитки 4,2",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A2%D0%BE%D0%BA%D0%B8%D0%BE%20%D0%A1%D0%B8%D1%82%D0%B8"
+  },
+  {
+    "query": "Достаевский",
+    "packageName": "ru.dostaevsky.android",
+    "card": "DOSTAЕВСКИЙ — Доставка еды Еда и напитки 3,9",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%94%D0%BE%D1%81%D1%82%D0%B0%D0%B5%D0%B2%D1%81%D0%BA%D0%B8%D0%B9"
+  },
+  {
+    "query": "Достаевский",
+    "packageName": "com.historic.app",
+    "card": "Лекторий «Достоевский» Образование · Образ жизни 3,8",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%94%D0%BE%D1%81%D1%82%D0%B0%D0%B5%D0%B2%D1%81%D0%BA%D0%B8%D0%B9"
+  },
+  {
+    "query": "Достаевский",
+    "packageName": "com.russlo.dostoevskyfm",
+    "card": "Достоевский Ф.М. Жизнь и творчество Образование · Книги Цена: 69,00 ₽",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%94%D0%BE%D1%81%D1%82%D0%B0%D0%B5%D0%B2%D1%81%D0%BA%D0%B8%D0%B9"
+  },
+  {
+    "query": "Достаевский",
+    "packageName": "ru.dostaevsky.courier.android",
+    "card": "Dostaевский Курьер Транспорт и навигация · Бизнес-сервисы",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%94%D0%BE%D1%81%D1%82%D0%B0%D0%B5%D0%B2%D1%81%D0%BA%D0%B8%D0%B9"
+  },
+  {
+    "query": "Chibbis",
+    "packageName": "ru.chibbis",
+    "card": "Чиббис – Доставка еды на дом Еда и напитки 4,7",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=Chibbis"
+  },
+  {
+    "query": "Chibbis",
+    "packageName": "club.chizhik",
+    "card": "Чижик – доставка продуктов Еда и напитки 3,9",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=Chibbis"
+  },
+  {
+    "query": "Chibbis",
+    "packageName": "com.apegroup.mcdonaldsrussia",
+    "card": "Вкусно — и точка: еда, доставка, скидки и акции Еда и напитки 4,2",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=Chibbis"
+  },
+  {
+    "query": "Chibbis",
+    "packageName": "ru.winelab",
+    "card": "Винлаб - алкогольные напитки Еда и напитки 3,3",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=Chibbis"
+  },
+  {
+    "query": "Бронибой",
+    "packageName": "com.broniboy.client",
+    "card": "Broniboy – быстрая доставка Еда и напитки · Покупки 4,0",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%91%D1%80%D0%BE%D0%BD%D0%B8%D0%B1%D0%BE%D0%B9"
+  },
+  {
+    "query": "Бронибой",
+    "packageName": "com.tankekjdz.rustore",
+    "card": "Священная Броня Шутеры · Стратегии 4,2",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%91%D1%80%D0%BE%D0%BD%D0%B8%D0%B1%D0%BE%D0%B9"
+  },
+  {
+    "query": "Бронибой",
+    "packageName": "com.DefaultCompany.Tank2",
+    "card": "Танки. Битва на Броне Шутеры",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%91%D1%80%D0%BE%D0%BD%D0%B8%D0%B1%D0%BE%D0%B9"
+  },
+  {
+    "query": "Бронибой",
+    "packageName": "ru.cifronomka.broniutki",
+    "card": "Брони-утки Аркады",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%91%D1%80%D0%BE%D0%BD%D0%B8%D0%B1%D0%BE%D0%B9"
+  },
+  {
+    "query": "Шоколадница",
+    "packageName": "ru.plazius.shokoladnica",
+    "card": "Шоколадница Еда и напитки 2,5",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A8%D0%BE%D0%BA%D0%BE%D0%BB%D0%B0%D0%B4%D0%BD%D0%B8%D1%86%D0%B0"
+  },
+  {
+    "query": "Шоколадница",
+    "packageName": "com.apegroup.mcdonaldsrussia",
+    "card": "Вкусно — и точка: еда, доставка, скидки и акции Еда и напитки 4,2",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A8%D0%BE%D0%BA%D0%BE%D0%BB%D0%B0%D0%B4%D0%BD%D0%B8%D1%86%D0%B0"
+  },
+  {
+    "query": "Шоколадница",
+    "packageName": "ru.kfc.kfc_delivery",
+    "card": "Rostic's: ресторан, доставка и заказ еды Еда и напитки 3,9",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A8%D0%BE%D0%BA%D0%BE%D0%BB%D0%B0%D0%B4%D0%BD%D0%B8%D1%86%D0%B0"
+  },
+  {
+    "query": "Шоколадница",
+    "packageName": "ru.pyaterochka.app.browser",
+    "card": "Пятёрочка: доставка продуктов Еда и напитки 3,5 Метка : Топ категории",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A8%D0%BE%D0%BA%D0%BE%D0%BB%D0%B0%D0%B4%D0%BD%D0%B8%D1%86%D0%B0"
+  },
+  {
+    "query": "Крошка Картошка",
+    "packageName": "com.kartoshka.app",
+    "card": "Крошка Картошка - доставка еды Еда и напитки 3,8",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9A%D1%80%D0%BE%D1%88%D0%BA%D0%B0%20%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%88%D0%BA%D0%B0"
+  },
+  {
+    "query": "Крошка Картошка",
+    "packageName": "ru.smartofood.kartoshka",
+    "card": "Картошка Еда и напитки",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9A%D1%80%D0%BE%D1%88%D0%BA%D0%B0%20%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%88%D0%BA%D0%B0"
+  },
+  {
+    "query": "Крошка Картошка",
+    "packageName": "com.example.potato",
+    "card": "Картошка кликер Казуальные 4,4",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9A%D1%80%D0%BE%D1%88%D0%BA%D0%B0%20%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%88%D0%BA%D0%B0"
+  },
+  {
+    "query": "Крошка Картошка",
+    "packageName": "com.apegroup.mcdonaldsrussia",
+    "card": "Вкусно — и точка: еда, доставка, скидки и акции Еда и напитки 4,2",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9A%D1%80%D0%BE%D1%88%D0%BA%D0%B0%20%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%88%D0%BA%D0%B0"
+  },
+  {
+    "query": "Перекрёсток",
+    "packageName": "com.YovoGames.BabyTrain",
+    "card": "Перекресток Казуальные",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%B5%D1%80%D0%B5%D0%BA%D1%80%D1%91%D1%81%D1%82%D0%BE%D0%BA"
+  },
+  {
+    "query": "Перекрёсток",
+    "packageName": "com.YOZHStudio.RailRoad",
+    "card": "Перекресток Симуляторы",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%B5%D1%80%D0%B5%D0%BA%D1%80%D1%91%D1%81%D1%82%D0%BE%D0%BA"
+  },
+  {
+    "query": "Перекрёсток",
+    "packageName": "ru.perekrestok.app",
+    "card": "Перекрёсток доставка продуктов на дом Еда и напитки 4,5 Метка : Событие внутри",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%B5%D1%80%D0%B5%D0%BA%D1%80%D1%91%D1%81%D1%82%D0%BE%D0%BA"
+  },
+  {
+    "query": "Перекрёсток",
+    "packageName": "ru.x5.perekrestok.darkstore",
+    "card": "Перекрёсток Впрок гипермаркет Покупки 4,0",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%B5%D1%80%D0%B5%D0%BA%D1%80%D1%91%D1%81%D1%82%D0%BE%D0%BA"
+  },
+  {
+    "query": "Ашан",
+    "packageName": "ru.myauchan.droid",
+    "card": "Мой АШАН доставка продуктов Еда и напитки 4,2",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%90%D1%88%D0%B0%D0%BD"
+  },
+  {
+    "query": "Ашан",
+    "packageName": "com.AshanCard.BossChief",
+    "card": "Карта Ашан Покупки 2,6",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%90%D1%88%D0%B0%D0%BD"
+  },
+  {
+    "query": "Ашан",
+    "packageName": "ru.topsobaka.ashan",
+    "card": "Промокоды Ашан 2026 Покупки 5,0",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%90%D1%88%D0%B0%D0%BD"
+  },
+  {
+    "query": "Ашан",
+    "packageName": "ru.instamart",
+    "card": "Купер・доставка еды и продуктов Еда и напитки · Покупки 4,7",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%90%D1%88%D0%B0%D0%BD"
+  },
+  {
+    "query": "ОКЕЙ",
+    "packageName": "ru.reksoft.okey",
+    "card": "О'КЕЙ Гипермаркеты и доставка Еда и напитки 3,3",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9E%D0%9A%D0%95%D0%99"
+  },
+  {
+    "query": "ОКЕЙ",
+    "packageName": "com.goroda.cities",
+    "card": "Окей Город Новости и события 4,2",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9E%D0%9A%D0%95%D0%99"
+  },
+  {
+    "query": "ОКЕЙ",
+    "packageName": "ru.okey.tv",
+    "card": "Окей ТВ - онлайн тв Развлечения 4,8",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9E%D0%9A%D0%95%D0%99"
+  },
+  {
+    "query": "ОКЕЙ",
+    "packageName": "ru.ok.android",
+    "card": "Одноклассники: социальная сеть Общение 4,7 Метка : Событие внутри",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9E%D0%9A%D0%95%D0%99"
+  },
+  {
+    "query": "Дикси",
+    "packageName": "com.ru.dixy",
+    "card": "Дикси: Клуб Друзей и доставка Еда и напитки 3,0",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%94%D0%B8%D0%BA%D1%81%D0%B8"
+  },
+  {
+    "query": "Дикси",
+    "packageName": "ru.dixy.personal",
+    "card": "Дикси.Staff Бизнес-сервисы 2,9",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%94%D0%B8%D0%BA%D1%81%D0%B8"
+  },
+  {
+    "query": "Дикси",
+    "packageName": "club.chizhik",
+    "card": "Чижик – доставка продуктов Еда и напитки 3,9",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%94%D0%B8%D0%BA%D1%81%D0%B8"
+  },
+  {
+    "query": "Дикси",
+    "packageName": "ru.tander.magnit",
+    "card": "Магнит: акции и доставка Еда и напитки 3,9 Метка : Топ категории",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%94%D0%B8%D0%BA%D1%81%D0%B8"
+  },
+  {
+    "query": "Азбука Вкуса",
+    "packageName": "ru.av.vkusomania",
+    "card": "Азбука вкуса Еда и напитки 3,6 Метка : Событие внутри",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%90%D0%B7%D0%B1%D1%83%D0%BA%D0%B0%20%D0%92%D0%BA%D1%83%D1%81%D0%B0"
+  },
+  {
+    "query": "Азбука Вкуса",
+    "packageName": "ru.vkusvill",
+    "card": "ВкусВилл: доставка продуктов на дом ・ заказ еды Еда и напитки 4,8 Метка : Событие внутри",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%90%D0%B7%D0%B1%D1%83%D0%BA%D0%B0%20%D0%92%D0%BA%D1%83%D1%81%D0%B0"
+  },
+  {
+    "query": "Азбука Вкуса",
+    "packageName": "com.yandex.lavka",
+    "card": "Яндекс Лавка: заказ продуктов Еда и напитки 3,6",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%90%D0%B7%D0%B1%D1%83%D0%BA%D0%B0%20%D0%92%D0%BA%D1%83%D1%81%D0%B0"
+  },
+  {
+    "query": "Азбука Вкуса",
+    "packageName": "com.apegroup.mcdonaldsrussia",
+    "card": "Вкусно — и точка: еда, доставка, скидки и акции Еда и напитки 4,2",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%90%D0%B7%D0%B1%D1%83%D0%BA%D0%B0%20%D0%92%D0%BA%D1%83%D1%81%D0%B0"
+  },
+  {
+    "query": "METRO",
+    "packageName": "www.metro.com",
+    "card": "METRO: продукты с доставкой Еда и напитки 4,8",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=METRO"
+  },
+  {
+    "query": "METRO",
+    "packageName": "ru.mosmetro.metro",
+    "card": "Метро Москвы – карта и схема Транспорт и навигация 3,6",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=METRO"
+  },
+  {
+    "query": "METRO",
+    "packageName": "ru.yandex.metro",
+    "card": "Яндекс Метро Транспорт и навигация 4,1",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=METRO"
+  },
+  {
+    "query": "METRO",
+    "packageName": "com.gdv.subway2055",
+    "card": "Метро 2055 Ролевые · Экшен 4,8 Метка : Событие внутри",
+    "category": "Доставка и продукты",
+    "source": "https://www.rustore.ru/catalog/search?query=METRO"
+  },
+  {
+    "query": "Достависта",
+    "packageName": "com.sebbia.delivery",
+    "card": "Достависта — работа курьером Бизнес-сервисы 4,1",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%94%D0%BE%D1%81%D1%82%D0%B0%D0%B2%D0%B8%D1%81%D1%82%D0%B0"
+  },
+  {
+    "query": "Достависта",
+    "packageName": "com.sebbia.delivery.client",
+    "card": "Достависта — сервис доставки Объявления и услуги 4,6",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%94%D0%BE%D1%81%D1%82%D0%B0%D0%B2%D0%B8%D1%81%D1%82%D0%B0"
+  },
+  {
+    "query": "Достависта",
+    "packageName": "ru.wb.courier",
+    "card": "WB Курьер Бизнес-сервисы 2,2",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%94%D0%BE%D1%81%D1%82%D0%B0%D0%B2%D0%B8%D1%81%D1%82%D0%B0"
+  },
+  {
+    "query": "Достависта",
+    "packageName": "ru.nevasoft.otkmoment",
+    "card": "Моменталка: выплаты курьерам Бизнес-сервисы 5,0",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%94%D0%BE%D1%81%D1%82%D0%B0%D0%B2%D0%B8%D1%81%D1%82%D0%B0"
+  },
+  {
+    "query": "DPD",
+    "packageName": "ru.dpd.recipient",
+    "card": "DPD: отслеживание посылок Объявления и услуги 2,8",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=DPD"
+  },
+  {
+    "query": "DPD",
+    "packageName": "ru.x5.omni",
+    "card": "5 POST Объявления и услуги 3,5",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=DPD"
+  },
+  {
+    "query": "DPD",
+    "packageName": "ru.dikidi",
+    "card": "DIKIDI Online Объявления и услуги 4,9",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=DPD"
+  },
+  {
+    "query": "DPD",
+    "packageName": "com.trackinglabs.parceltracker",
+    "card": "Parcel Tracker — Отслеживание посылок Объявления и услуги 4,7",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=DPD"
+  },
+  {
+    "query": "Деловые Линии",
+    "packageName": "ru.dellin.cabinet",
+    "card": "Деловые Линии — Грузоперевозки Объявления и услуги 3,8",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%94%D0%B5%D0%BB%D0%BE%D0%B2%D1%8B%D0%B5%20%D0%9B%D0%B8%D0%BD%D0%B8%D0%B8"
+  },
+  {
+    "query": "Деловые Линии",
+    "packageName": "ru.dellin.b2c",
+    "card": "Деловые Линии. Посылка Бизнес-сервисы 4,6",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%94%D0%B5%D0%BB%D0%BE%D0%B2%D1%8B%D0%B5%20%D0%9B%D0%B8%D0%BD%D0%B8%D0%B8"
+  },
+  {
+    "query": "Деловые Линии",
+    "packageName": "ru.dellin.delivery",
+    "card": "Деловые Линии. Рейс Бизнес-сервисы 3,4",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%94%D0%B5%D0%BB%D0%BE%D0%B2%D1%8B%D0%B5%20%D0%9B%D0%B8%D0%BD%D0%B8%D0%B8"
+  },
+  {
+    "query": "Деловые Линии",
+    "packageName": "com.trackinglabs.parceltracker",
+    "card": "Parcel Tracker — Отслеживание посылок Объявления и услуги 4,7",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%94%D0%B5%D0%BB%D0%BE%D0%B2%D1%8B%D0%B5%20%D0%9B%D0%B8%D0%BD%D0%B8%D0%B8"
+  },
+  {
+    "query": "ПЭК",
+    "packageName": "ru.pecom.android",
+    "card": "ПЭК: надежные перевозки Объявления и услуги 3,7",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%AD%D0%9A"
+  },
+  {
+    "query": "ПЭК",
+    "packageName": "com.octopod.russianpost.client.android",
+    "card": "Почта России Объявления и услуги 4,0",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%AD%D0%9A"
+  },
+  {
+    "query": "ПЭК",
+    "packageName": "com.logistic.sdek",
+    "card": "СДЭК: Доставка и Шопинг Объявления и услуги 3,1",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%AD%D0%9A"
+  },
+  {
+    "query": "ПЭК",
+    "packageName": "ru.domclick.mortgage",
+    "card": "Домклик. Ипотека, недвижимость Объявления и услуги 4,2",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%AD%D0%9A"
+  },
+  {
+    "query": "Байкал Сервис",
+    "packageName": "ru.oneme.app",
+    "card": "МАКС: общение, звонки, сервисы Общение 4,2 Метка : Событие внутри",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%91%D0%B0%D0%B9%D0%BA%D0%B0%D0%BB%20%D0%A1%D0%B5%D1%80%D0%B2%D0%B8%D1%81"
+  },
+  {
+    "query": "Байкал Сервис",
+    "packageName": "ru.baikalsr.app",
+    "card": "Байкал Сервис Бизнес-сервисы",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%91%D0%B0%D0%B9%D0%BA%D0%B0%D0%BB%20%D0%A1%D0%B5%D1%80%D0%B2%D0%B8%D1%81"
+  },
+  {
+    "query": "Байкал Сервис",
+    "packageName": "ru.baikalsr.lk_android",
+    "card": "Байкал Сервис: грузоперевозки Объявления и услуги · Транспорт и навигация 2,7",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%91%D0%B0%D0%B9%D0%BA%D0%B0%D0%BB%20%D0%A1%D0%B5%D1%80%D0%B2%D0%B8%D1%81"
+  },
+  {
+    "query": "Байкал Сервис",
+    "packageName": "taximaster.tmtaxicaller.id3053",
+    "card": "Такси-Байкал Транспорт и навигация · Объявления и услуги",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%91%D0%B0%D0%B9%D0%BA%D0%B0%D0%BB%20%D0%A1%D0%B5%D1%80%D0%B2%D0%B8%D1%81"
+  },
+  {
+    "query": "КСЭ",
+    "packageName": "ru.cse.mobile",
+    "card": "Калькулятор КСЭ Полезные инструменты",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9A%D0%A1%D0%AD"
+  },
+  {
+    "query": "КСЭ",
+    "packageName": "com.logistic.sdek",
+    "card": "СДЭК: Доставка и Шопинг Объявления и услуги 3,1",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9A%D0%A1%D0%AD"
+  },
+  {
+    "query": "КСЭ",
+    "packageName": "com.EugenGames.CS2fforAdults",
+    "card": "КС 2 для взрослых Шутеры · Экшен 3,0",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9A%D0%A1%D0%AD"
+  },
+  {
+    "query": "КСЭ",
+    "packageName": "com.lemon.lvoverseas",
+    "card": "CapCut Полезные инструменты 4,1",
+    "category": "Курьеры и логистика",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9A%D0%A1%D0%AD"
+  },
+  {
+    "query": "S7 Airlines",
+    "packageName": "ru.s7.android",
+    "card": "S7 Airlines: ваши путешествия Путешествия 4,8",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=S7%20Airlines"
+  },
+  {
+    "query": "S7 Airlines",
+    "packageName": "ru.aviasales",
+    "card": "Авиасейлс — авиабилеты дешево Путешествия 4,7",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=S7%20Airlines"
+  },
+  {
+    "query": "S7 Airlines",
+    "packageName": "ru.aeroflot",
+    "card": "Аэрофлот – купить билеты на самолет онлайн Путешествия 3,3",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=S7%20Airlines"
+  },
+  {
+    "query": "S7 Airlines",
+    "packageName": "com.aviasurf.app",
+    "card": "Aviasurf — дешевые авиабилеты Путешествия 5,0",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=S7%20Airlines"
+  },
+  {
+    "query": "Победа",
+    "packageName": "aero.pobeda.twa",
+    "card": "Победа Транспорт и навигация · Путешествия 2,4",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%BE%D0%B1%D0%B5%D0%B4%D0%B0"
+  },
+  {
+    "query": "Победа",
+    "packageName": "ru.tkleto.app.magazinpobeda",
+    "card": "ПОБЕДА честных цен Покупки 2,9",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%BE%D0%B1%D0%B5%D0%B4%D0%B0"
+  },
+  {
+    "query": "Победа",
+    "packageName": "com.ispringlearn.pobeda",
+    "card": "Pobeda Training Образование",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%BE%D0%B1%D0%B5%D0%B4%D0%B0"
+  },
+  {
+    "query": "Победа",
+    "packageName": "com.hero.roadofkings",
+    "card": "Путь Короля — Вечная Слава Стратегии · Ролевые 4,8 Метка : Событие внутри",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9F%D0%BE%D0%B1%D0%B5%D0%B4%D0%B0"
+  },
+  {
+    "query": "Utair",
+    "packageName": "ru.utair.android",
+    "card": "Уютное небо Путешествия 4,4",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=Utair"
+  },
+  {
+    "query": "Utair",
+    "packageName": "pro.bacca.uralairlines",
+    "card": "Ural Airlines Путешествия 3,3",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=Utair"
+  },
+  {
+    "query": "Utair",
+    "packageName": "ru.aviasales",
+    "card": "Авиасейлс — авиабилеты дешево Путешествия 4,7",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=Utair"
+  },
+  {
+    "query": "Utair",
+    "packageName": "ru.s7.android",
+    "card": "S7 Airlines: ваши путешествия Путешествия 4,8",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=Utair"
+  },
+  {
+    "query": "Уральские авиалинии",
+    "packageName": "pro.bacca.uralairlines",
+    "card": "Ural Airlines Путешествия 3,3",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A3%D1%80%D0%B0%D0%BB%D1%8C%D1%81%D0%BA%D0%B8%D0%B5%20%D0%B0%D0%B2%D0%B8%D0%B0%D0%BB%D0%B8%D0%BD%D0%B8%D0%B8"
+  },
+  {
+    "query": "Уральские авиалинии",
+    "packageName": "ru.aviasales",
+    "card": "Авиасейлс — авиабилеты дешево Путешествия 4,7",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A3%D1%80%D0%B0%D0%BB%D1%8C%D1%81%D0%BA%D0%B8%D0%B5%20%D0%B0%D0%B2%D0%B8%D0%B0%D0%BB%D0%B8%D0%BD%D0%B8%D0%B8"
+  },
+  {
+    "query": "Уральские авиалинии",
+    "packageName": "ru.aeroflot",
+    "card": "Аэрофлот – купить билеты на самолет онлайн Путешествия 3,3",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A3%D1%80%D0%B0%D0%BB%D1%8C%D1%81%D0%BA%D0%B8%D0%B5%20%D0%B0%D0%B2%D0%B8%D0%B0%D0%BB%D0%B8%D0%BD%D0%B8%D0%B8"
+  },
+  {
+    "query": "Уральские авиалинии",
+    "packageName": "ru.s7.android",
+    "card": "S7 Airlines: ваши путешествия Путешествия 4,8",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A3%D1%80%D0%B0%D0%BB%D1%8C%D1%81%D0%BA%D0%B8%D0%B5%20%D0%B0%D0%B2%D0%B8%D0%B0%D0%BB%D0%B8%D0%BD%D0%B8%D0%B8"
+  },
+  {
+    "query": "Островок",
+    "packageName": "ru.smartomato.marketplace.a44533",
+    "card": "Островок Еда и напитки",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9E%D1%81%D1%82%D1%80%D0%BE%D0%B2%D0%BE%D0%BA"
+  },
+  {
+    "query": "Островок",
+    "packageName": "ru.ostrovok.android",
+    "card": "Островок – Отели и Гостиницы Путешествия 4,6",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9E%D1%81%D1%82%D1%80%D0%BE%D0%B2%D0%BE%D0%BA"
+  },
+  {
+    "query": "Островок",
+    "packageName": "ru.ostrovok.extranet",
+    "card": "Островок! Экстранет Бизнес-сервисы · Путешествия 2,7",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9E%D1%81%D1%82%D1%80%D0%BE%D0%B2%D0%BE%D0%BA"
+  },
+  {
+    "query": "Островок",
+    "packageName": "ru.yandex.travel",
+    "card": "Яндекс Путешествия: Отели Путешествия 4,4",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%9E%D1%81%D1%82%D1%80%D0%BE%D0%B2%D0%BE%D0%BA"
+  },
+  {
+    "query": "Суточно",
+    "packageName": "ru.sutochno_redesign",
+    "card": "СУТОЧНО.РУ — отели, квартиры Путешествия · Объявления и услуги 4,8",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A1%D1%83%D1%82%D0%BE%D1%87%D0%BD%D0%BE"
+  },
+  {
+    "query": "Суточно",
+    "packageName": "ru.sutochno.rentap",
+    "card": "СДАВАЙСЯ: Экстранет Суточно.ру Путешествия 3,4",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A1%D1%83%D1%82%D0%BE%D1%87%D0%BD%D0%BE"
+  },
+  {
+    "query": "Суточно",
+    "packageName": "ru.ostrovok.android",
+    "card": "Островок – Отели и Гостиницы Путешествия 4,6",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A1%D1%83%D1%82%D0%BE%D1%87%D0%BD%D0%BE"
+  },
+  {
+    "query": "Суточно",
+    "packageName": "ru.cian.main",
+    "card": "Циан. Жилье посуточно или на долгий срок Объявления и услуги 4,4 Метка : Событие внутри",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%A1%D1%83%D1%82%D0%BE%D1%87%D0%BD%D0%BE"
+  },
+  {
+    "query": "Whoosh",
+    "packageName": "com.punicapp.whoosh",
+    "card": "Whoosh Транспорт и навигация · Образ жизни 3,1",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=Whoosh"
+  },
+  {
+    "query": "Whoosh",
+    "packageName": "bike.whoosh.wcma",
+    "card": "WCMA Бизнес-сервисы 4,3",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=Whoosh"
+  },
+  {
+    "query": "Whoosh",
+    "packageName": "ru.urentbike.app",
+    "card": "Юрент: аренда самокатов Транспорт и навигация · Образ жизни 3,0",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=Whoosh"
+  },
+  {
+    "query": "Whoosh",
+    "packageName": "ru.yandex.taxi",
+    "card": "Яндекс Go: Такси, Еда, Маркет, Самокаты, Доставка Транспорт и навигация · Путешествия 4,7 Метка : Топ категории",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=Whoosh"
+  },
+  {
+    "query": "Юрент",
+    "packageName": "ru.urentbike.app",
+    "card": "Юрент: аренда самокатов Транспорт и навигация · Образ жизни 3,0",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%AE%D1%80%D0%B5%D0%BD%D1%82"
+  },
+  {
+    "query": "Юрент",
+    "packageName": "ru.jsql.android.torrent",
+    "card": "jTorrent Полезные инструменты 4,1",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%AE%D1%80%D0%B5%D0%BD%D1%82"
+  },
+  {
+    "query": "Юрент",
+    "packageName": "com.utorrent.client",
+    "card": "µTorrent Полезные инструменты 4,7",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%AE%D1%80%D0%B5%D0%BD%D1%82"
+  },
+  {
+    "query": "Юрент",
+    "packageName": "org.InspireTorrent",
+    "card": "InspireTorrent Полезные инструменты 3,9",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=%D0%AE%D1%80%D0%B5%D0%BD%D1%82"
+  },
+  {
+    "query": "Citydrive",
+    "packageName": "com.DZDZ.CityDrive",
+    "card": "City Drive Симуляторы · Гоночные",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=Citydrive"
+  },
+  {
+    "query": "Citydrive",
+    "packageName": "com.gf.busdriving.publictransport.citypassenger.drivinggames",
+    "card": "City Coach Bus Classic Passenger Drive Симуляторы 3,4",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=Citydrive"
+  },
+  {
+    "query": "Citydrive",
+    "packageName": "com.fya.passengerbus.taxibus.pickanddrop",
+    "card": "City Bus Drive Challenge Стратегии",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=Citydrive"
+  },
+  {
+    "query": "Citydrive",
+    "packageName": "com.anu.touristbusdrivercitydrive3d",
+    "card": "Bus Driver: City Drive 3D Гоночные · Симуляторы",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=Citydrive"
+  },
+  {
+    "query": "BelkaCar",
+    "packageName": "ru.belkacar.belkacar",
+    "card": "Каршеринг BelkaCar — аренда авто Транспорт и навигация 4,1",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=BelkaCar"
+  },
+  {
+    "query": "BelkaCar",
+    "packageName": "com.carshering",
+    "card": "Делимобиль Транспорт и навигация 3,9",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=BelkaCar"
+  },
+  {
+    "query": "BelkaCar",
+    "packageName": "youdrive.today",
+    "card": "Ситидрайв: каршеринг и аренда авто. Мск +5 городов Транспорт и навигация · Путешествия 3,6",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=BelkaCar"
+  },
+  {
+    "query": "BelkaCar",
+    "packageName": "com.yandex.mobile.drive",
+    "card": "Яндекс Драйв — каршеринг Транспорт и навигация 3,8",
+    "category": "Транспорт и поездки",
+    "source": "https://www.rustore.ru/catalog/search?query=BelkaCar"
+  }
+]

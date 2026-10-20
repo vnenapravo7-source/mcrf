@@ -1,0 +1,15 @@
+qThrone 93e4873c56c2285f647d0146a0df9c088f122910
+olcRTC f3ad8fb7c0d0fa981423f83269526fa94077c23d
+OpenFlux 74cac6d47bf4c27947348ee957538a2c0728a485
+CSQTT 71712b07dbabe16fa43f5a248dc69e1ab9f3a270
+Android ABIs arm64-v8a, armeabi-v7a, x86_64; the APK contains only its selected ABI (or all three in universal).
+CSQTT minimum API 26
+MCRF maintained OpenFlux mobile bridge: ports/android/transports/openflux (GPL-3.0-or-later).
+OpenFlux binary is rebuilt from the revision above; it is not the prebuilt qThrone adapter.
+DNSTT www.bamsoftware.com/git/dnstt.git v1.20260501.0, source sum h1:8i4tQWwBCrhsn6+c8fpjSIyaa+u0MOvdOa1FIxNOz6M=.
+MCRF DNSTT authenticated private-config bridge: ports/android/transports/dnstt.
+WDTT Plus f706ccd373685bbde20cae33b2b7f400e8335ecc; repository and checksum in ports/android/transports/transport-lock.json.
+MCRF QWDTT/CSQTT and separate WDTT mobile adapters: ports/android/transports/swg (GPL-3.0-or-later).
+QWDTT preserves up to 64 reserve VK calls with at most 162 workers; CSQTT and WDTT accept six calls.
+The app, bridge patches, private configuration adapters and reproducible build scripts must accompany binary distribution.
+WarpScout Android: openwarpkit/warpscout-android android-v1.3.1 d35fa797e702cc1e930701568c184aa99459f692, MIT; upstream vernette/warpscout v0.16.0. Local private-file CLI and physical socket binding patches in ports/android/transports/warp.

@@ -1,0 +1,28 @@
+{
+  "dns": {"servers": [{"type": "local", "tag": "bootstrap"}], "final": "bootstrap"},
+  "outbounds": [
+    {"type": "direct", "tag": "direct"},
+    {"type": "vless", "tag": "vless-tcp", "server": "127.0.0.1", "server_port": 443, "uuid": "11111111-1111-4111-8111-111111111111"},
+    {"type": "vless", "tag": "vless-grpc", "server": "127.0.0.1", "server_port": 443, "uuid": "11111111-1111-4111-8111-111111111111", "transport": {"type": "grpc", "service_name": "mcrf"}},
+    {"type": "vless", "tag": "vless-ws", "server": "127.0.0.1", "server_port": 443, "uuid": "11111111-1111-4111-8111-111111111111", "transport": {"type": "ws", "path": "/mcrf"}},
+    {"type": "vless", "tag": "vless-httpupgrade", "server": "127.0.0.1", "server_port": 443, "uuid": "11111111-1111-4111-8111-111111111111", "transport": {"type": "httpupgrade", "path": "/mcrf"}},
+    {"type": "vless", "tag": "vless-xhttp", "server": "127.0.0.1", "server_port": 443, "uuid": "11111111-1111-4111-8111-111111111111", "transport": {"type": "xhttp", "path": "/mcrf"}},
+    {"type": "vless", "tag": "vless-reality", "server": "127.0.0.1", "server_port": 443, "uuid": "11111111-1111-4111-8111-111111111111", "tls": {"enabled": true, "server_name": "example.net", "utls": {"enabled": true, "fingerprint": "chrome"}, "reality": {"enabled": true, "public_key": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE", "short_id": "11223344"}}},
+    {"type": "vmess", "tag": "vmess", "server": "127.0.0.1", "server_port": 443, "uuid": "11111111-1111-4111-8111-111111111111", "security": "auto"},
+    {"type": "trojan", "tag": "trojan", "server": "127.0.0.1", "server_port": 443, "password": "fixture-only", "tls": {"enabled": true, "server_name": "example.net"}},
+    {"type": "shadowsocks", "tag": "shadowsocks", "server": "127.0.0.1", "server_port": 443, "method": "aes-128-gcm", "password": "fixture-only"},
+    {"type": "hysteria", "tag": "hysteria", "server": "127.0.0.1", "server_port": 443, "auth_str": "fixture-only", "up": "100 Mbps", "down": "100 Mbps", "tls": {"enabled": true, "server_name": "example.net"}},
+    {"type": "hysteria2", "tag": "hysteria2", "server": "127.0.0.1", "server_port": 443, "password": "fixture-only", "tls": {"enabled": true, "server_name": "example.net"}},
+    {"type": "tuic", "tag": "tuic", "server": "127.0.0.1", "server_port": 443, "uuid": "11111111-1111-4111-8111-111111111111", "password": "fixture-only", "tls": {"enabled": true, "server_name": "example.net"}},
+    {"type": "anytls", "tag": "anytls", "server": "127.0.0.1", "server_port": 443, "password": "fixture-only", "tls": {"enabled": true, "server_name": "example.net"}},
+    {"type": "naive", "tag": "naive", "server": "127.0.0.1", "server_port": 443, "username": "fixture", "password": "fixture-only", "tls": {"enabled": true, "server_name": "example.net"}},
+    {"type": "ssh", "tag": "ssh", "server": "127.0.0.1", "server_port": 22, "user": "fixture", "password": "fixture-only"},
+    {"type": "http", "tag": "http", "server": "127.0.0.1", "server_port": 8080},
+    {"type": "socks", "tag": "socks5", "server": "127.0.0.1", "server_port": 1080, "version": "5"}
+  ],
+  "endpoints": [
+    {"type": "wireguard", "tag": "wireguard", "address": ["10.0.0.2/32"], "private_key": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=", "peers": [{"address": "127.0.0.1", "port": 51820, "public_key": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=", "allowed_ips": ["0.0.0.0/0", "::/0"]}]},
+    {"type": "wireguard", "tag": "amneziawg", "address": ["10.0.0.3/32"], "private_key": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=", "jc": 4, "jmin": 10, "jmax": 50, "s1": 0, "s2": 0, "h1": 1, "h2": 2, "h3": 3, "h4": 4, "peers": [{"address": "127.0.0.1", "port": 51821, "public_key": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=", "allowed_ips": ["0.0.0.0/0", "::/0"]}]}
+  ],
+  "route": {"default_domain_resolver": "bootstrap", "final": "direct"}
+}

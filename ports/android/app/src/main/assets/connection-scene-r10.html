@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta name="based-on-approved-preview-sha256" content="4E89AEB8436869C9EA160ED53496CD69CB1198EA1A06BF8582D9A12FC78BD25D">
+<meta name="source-revision" content="R11: casting normal-disconnect explosion restored; other drawing geometry unchanged">
+<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}#scene{width:100%;height:100%;display:grid;place-items:center}canvas{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none}
+@keyframes shake-medium{0%,100%{transform:translate(0,0)}20%{transform:translate(-4px,5px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-3px,2px)}80%{transform:translate(2px,-2px)}}
+@keyframes shake-heavy{0%,100%{transform:translate(0,0) rotate(0)}15%{transform:translate(-7px,6px) rotate(-1.2deg)}30%{transform:translate(6px,-6px) rotate(1.1deg)}45%{transform:translate(-5px,-3px) rotate(-.8deg)}60%{transform:translate(4px,4px) rotate(.6deg)}75%{transform:translate(-3px,2px) rotate(-.3deg)}}
+.as-shake-medium{animation:shake-medium .32s cubic-bezier(.36,.07,.19,.97)}.as-shake-heavy{animation:shake-heavy .42s cubic-bezier(.36,.07,.19,.97)}
+@media(prefers-reduced-motion:reduce){#scene{animation:none!important}}</style></head><body>
+<div id="scene"><canvas id="art" width="900" height="650" aria-hidden="true"></canvas></div>
+<script>
+(()=>{
+'use strict';
+  const B='#0188ca',D='#013f78',HOT='#f0a154',GOLD='#dfbd65';
+  const defs={
+    blueprint:{name:'Чертёж',caption:'Трещины от ударов · раскол при успехе · центральные части остаются'},
+    steam:{name:'Паровой пресс',caption:'Рабочий тянет рычаг · пресс сжимает ромб · пар'},
+    plasma:{name:'Плазменный резак',caption:'Новая механика · робот-резак, три точных контура и отделение детали'},
+    magnet:{name:'Магнитный разбор',caption:'Три целых сегмента · сборка без пересечений'},
+    lathe:{name:'Токарный станок',caption:'Заготовка · точная обработка контура · освобождение детали'},
+    casting:{name:'Литейная форма',caption:'Заливка · охлаждение · раскрытие формы'},
+    welding:{name:'Робот-сварщик',caption:'Зажимы держат три детали · сварка швов'}
+  };
+  const coords=[[[106,0],[148,0],[190,42],[158,74],[126,42],[43,126],[74,158],[42,190],[0,148],[0,106]],null,[[83,127],[127,83],[171,127],[127,171]]];
+  coords[1]=coords[0].map(([x,y])=>[254-x,254-y]);
+  const paths=coords.map(points=>{let p=new Path2D();points.forEach(([x,y],i)=>i?p.lineTo(x,y):p.moveTo(x,y));p.closePath();return p});
+  const whole=new Path2D();paths.forEach(p=>whole.addPath(p));
+  const wedges=Array.from({length:8},(_,i)=>{let p=new Path2D(),a=i*Math.PI/4,b=(i+1)*Math.PI/4;p.moveTo(127,127);p.lineTo(127+Math.cos(a)*400,127+Math.sin(a)*400);p.lineTo(127+Math.cos(b)*400,127+Math.sin(b)*400);p.closePath();return p});
+  const cracks=[[[63,79],[91,88],[80,107]],[[153,64],[169,88],[146,103]],[[125,92],[116,119],[139,145]],[[51,135],[73,153],[61,179]],[[188,133],[162,149],[176,175]],[[109,187],[129,172],[143,195]],[[98,31],[119,48],[133,20]],[[185,199],[159,183],[150,216]]];
+  function clipAtY(poly,y,above){
+    const out=[];
+    for(let i=0;i<poly.length;i++){
+      const a=poly[i],b=poly[(i+1)%poly.length],ina=above?a[1]>=y:a[1]<=y,inb=above?b[1]>=y:b[1]<=y;
+      if(ina)out.push(a);
+      if(ina!==inb){const u=(y-a[1])/(b[1]-a[1]);out.push([a[0]+u*(b[0]-a[0]),y]);}
+    }
+    return out;
+  }
+  // Disjoint cuts partition the actual logo. Every seam is a shared piece boundary.
+  const pieceDefs=[[0,-1,66],[0,66,128],[0,128,255],[1,-1,126],[1,126,190],[1,190,255],[2,-1,127],[2,127,255]];
+  const pieces=pieceDefs.map(([part,lo,hi])=>{
+    const poly=clipAtY(clipAtY(coords[part],lo,true),hi,false),path=new Path2D();
+    poly.forEach(([x,y],i)=>i?path.lineTo(x,y):path.moveTo(x,y));path.closePath();
+    const center=poly.reduce((v,[x,y])=>[v[0]+x/poly.length,v[1]+y/poly.length],[0,0]);
+    const length=Math.hypot(center[0]-127,center[1]-127)||1;
+    return {path,poly,part,center,dx:(center[0]-127)/length,dy:(center[1]-127)/length};
+  });
+  const scenes=[];let raf=0,interiorPulse=1,connectedScene=false;
+  const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+  const mix=(a,b,t)=>a+(b-a)*t;
+  const ease=t=>1-Math.pow(1-clamp(t),3);
+  const smooth=t=>{const u=clamp(t);return u*u*(3-2*u);};
+  function smoother(t){t=clamp(t);return t*t*t*(t*(t*6-15)+10);}
+  function stroke(c,xy,color,w=1){c.beginPath();xy.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle=color;c.lineWidth=w;c.lineCap='round';c.lineJoin='round';c.stroke()}
+  function box(c,x,y,w,h,color,r=2){c.fillStyle=color;c.beginPath();c.roundRect(x,y,w,h,r);c.fill()}
+  function dot(c,x,y,r,color){c.fillStyle=color;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill()}
+  function word(c,label,x,y,size,color){c.fillStyle=color;c.font='500 '+size+'px system-ui';c.textAlign='center';c.textBaseline='middle';c.fillText(label,x,y)}
+  function mark(c,x,y,size,{outline=false,flag=false,crack=0,part=-1,tint=null,alpha=1}={}){
+    c.save();c.globalAlpha*=alpha;c.translate(x-size/2,y-size/2);let scale=size/254;c.scale(scale,scale);
+    if(flag){c.save();c.clip(part>=0?paths[part]:whole);['#f4f5f7','#1768b8','#d64248'].forEach((color,i)=>box(c,-1,i*254/3,256,86,color,0));c.restore()}
+    else paths.forEach((p,i)=>{if(part>=0&&part!==i)return;let color=tint??(i===0?B:D);
+      if(!outline||connectedScene){c.save();c.globalAlpha*=connectedScene?interiorPulse:1;c.fillStyle=color;c.fill(p);c.restore();}
+      if(outline||connectedScene){c.save();c.globalAlpha*=.19;c.strokeStyle=color;c.lineWidth=7/scale;c.stroke(p);c.restore();c.strokeStyle=color;c.lineWidth=1.6/scale;c.stroke(p)}
+    });
+    if(crack){c.save();c.clip(whole);cracks.slice(0,Math.min(8,crack)).forEach(xy=>stroke(c,xy,'#95c8e4',1.1/scale));c.restore()}
+    c.restore();
+  }
+  function floor(c,p){stroke(c,[[28,226],[334,226]],p.line,1)}
+  function anvil(c,p){stroke(c,[[173,185],[300,185],[276,198],[250,198],[250,215],[269,224],[207,224],[229,215],[229,198],[198,198],[173,185]],p.muted,1.5)}
+  function worker(c,p,pose,{hammer=true,operator=false,alpha=1}={}){
+    c.save();c.globalAlpha*=alpha;const blue=B;
+    stroke(c,[[88,149],[83,181],[72,218],[92,218]],blue,2);stroke(c,[[105,150],[117,182],[122,218],[142,218]],blue,2);
+    stroke(c,[[83,98],[109,98],[117,151],[85,151],[83,98]],blue,2);
+    stroke(c,[[88,105],[105,107],[113,160],[86,160],[88,105]],D,2);
+    dot(c,96,79,13,p.bg);stroke(c,[[85,76],[87,88],[102,93],[110,82]],blue,1.7);
+    stroke(c,[[80,76],[82,65],[92,59],[104,62],[112,70],[112,76],[80,76]],blue,2);stroke(c,[[96,61],[96,70]],blue,1);
+    let hit={x:231,y:134};
+    if(hammer){let a=mix(-1.96,-.20,pose),hx=109+Math.cos(a)*124,hy=159+Math.sin(a)*124,gx=109+Math.cos(a)*35,gy=159+Math.sin(a)*35;
+      stroke(c,[[109,159],[hx,hy]],blue,2.5);stroke(c,[[109,109],[125,135],[gx,gy]],blue,2);stroke(c,[[87,112],[109,141],[gx+4,gy+3]],blue,2);
+      c.save();c.translate(hx,hy);c.rotate(a+Math.PI/2);stroke(c,[[-17,-8],[17,-8],[17,8],[-17,8],[-17,-8]],blue,2);c.restore();hit={x:hx,y:hy};
+    }else if(operator){stroke(c,[[108,110],[126,127],[137,123]],blue,2);stroke(c,[[87,111],[89,143],[103,151]],blue,2)}
+    else{stroke(c,[[109,110],[122,138],[111,159]],blue,2);stroke(c,[[87,111],[88,141],[105,159]],blue,2)}
+    c.restore();return hit;
+  }
+  function fragments(c,q,{spread=1,kick=0,assembly=false}={}){
+    for(let i=0;i<8;i++){let a=i*Math.PI/4,t=assembly?1-q:q;
+      c.save();c.translate(242+Math.cos(a+.3)*19*t*spread+kick*(i%3-1)*6,140+t*47+(Math.sin(i)*6*t)-kick*(i%2)*8);c.rotate((i%2*2-1)*t*.38);
+      c.scale(88/254,88/254);c.translate(-127,-127);c.clip(wedges[i]);c.translate(127,127);c.scale(254/88,254/88);mark(c,0,0,88,{outline:true,crack:8});c.restore();
+    }
+  }
+  function segmented(c,x,y,size,gap,{outline=true,offsets=null,flag=false,fillAlpha=null}={}){
+    if(gap<.01&&!offsets){mark(c,x,y,size,{outline,flag});return;}
+    const scale=size/254;
+    pieces.forEach((piece,i)=>{
+      const force=offsets?.[i]??{x:0,y:0},dx=piece.dx*gap+force.x,dy=piece.dy*gap+force.y;
+      c.save();c.translate(x+dx,y+dy);c.scale(scale,scale);c.translate(-127,-127);
+      const color=piece.part===0?B:D;
+      c.save();c.globalAlpha*=fillAlpha??(connectedScene?interiorPulse:outline?.12:1);
+      if(flag){c.clip(piece.path);['#f4f5f7','#1768b8','#d64248'].forEach((v,i)=>box(c,-1,i*254/3,256,86,v,0));}
+      else{c.fillStyle=color;c.fill(piece.path);}c.restore();
+      c.strokeStyle=color;c.lineWidth=(outline?1.35:.7)/scale;c.lineJoin='miter';
+      if(outline){c.shadowColor=color;c.shadowBlur=3/scale;}c.stroke(piece.path);c.restore();
+    });
+  }
+  function operator(c,p,t,{x=96,y=218,scale=1,activity=1,success=0,lever=null}={}){
+    const pull=lever??(.5-.5*Math.cos(t*2.6))*activity,hand={x:137-pull*10,y:130+pull*13};
+    c.save();c.translate(x-96*scale,y-218*scale);c.scale(scale,scale);
+    // Fixed boots, bending knees and a working arm: no hammer and no sliding body.
+    const lean=pull*3;
+    stroke(c,[[88,151],[82,184],[78,218],[94,218]],B,2);stroke(c,[[105,151],[116,184],[121,218],[136,218]],D,2);
+    c.save();c.translate(lean,0);stroke(c,[[83,100],[108,100],[114,151],[85,151],[83,100]],B,2);stroke(c,[[88,106],[104,106],[109,155],[87,155]],D,1.8);
+    dot(c,96,81,12,p.bg);stroke(c,[[85,79],[88,91],[102,94],[109,84]],B,1.8);stroke(c,[[81,78],[84,67],[93,62],[105,65],[112,78],[81,78]],B,2);
+    stroke(c,[[107,111],[119+pull*2,128],[hand.x,hand.y]],B,2);stroke(c,[[87,112],[91,137],[108+success*8,146-success*12]],D,2);c.restore();
+    box(c,130,151,24,42,p.steel,3);stroke(c,[[142,151],[hand.x,hand.y]],p.metal,2.5);dot(c,hand.x,hand.y,3,B);dot(c,137,166,2.2,activity?HOT:B);stroke(c,[[129,194],[154,194]],p.metal,2);
+    c.restore();
+  }
+  function chips(c,x,y,age,s){if(!s.options.sparks||age<0||age>.46)return;for(let i=0;i<16;i++){let a=i*2.39996,v=45+i%6*15,px=x+Math.cos(a)*v*age,py=y-Math.abs(Math.sin(a))*v*age+95*age*age;c.save();c.globalAlpha=1-age/.46;stroke(c,[[px,py],[px+Math.cos(a)*5,py-Math.abs(Math.sin(a))*3]],i%3?HOT:'#f7d7a5',1.2);c.restore()}}
+  const kickOrder=[5,0,2,4,3,1];
+  function permanentKickOffsets(age){
+    return pieces.map((piece,index)=>{
+      const visit=kickOrder.indexOf(index);if(visit<0)return{x:0,y:0};
+      const contact=3+visit*12+3.7,q=smooth((age-contact)/.55);
+      return {x:piece.dx*25*q,y:piece.dy*25*q-Math.sin(q*Math.PI)*4};
+    });
+  }
+  function helperPhase(age){
+    const elapsedAge=Math.max(0,age-3),visit=Math.floor(elapsedAge/12),t=elapsedAge-visit*12,index=kickOrder[Math.min(kickOrder.length-1,visit)],piece=pieces[index];
+    const target={x:242+(piece.center[0]-127)*90/254+piece.dx*3.2,y:140+(piece.center[1]-127)*90/254+piece.dy*3.2};
+    const side=visit===0?1:piece.dx>.1?1:-1,stand={x:target.x+side*37,y:target.y+20},entry={x:side>0?340:155,y:38};
+    const incoming=smooth(t/2.6),outgoing=smooth((t-4.8)/2.7),travel=incoming*(1-outgoing);
+    return {t,piece:index,target,side,entry,stand,x:mix(entry.x,stand.x,travel),footY:mix(entry.y,stand.y,travel),
+      walking:t<2.6||t>4.8,kick:t>=3.2&&t<=4.2?Math.sin((t-3.2)*Math.PI):0,
+      visible:age>=3&&visit<kickOrder.length&&t<=7.5};
+  }
+  function helper(c,p,age,moving){
+    const h=helperPhase(age);if(!h.visible)return h;
+    // A real stair route from above/aside, instead of a sliding figure on the table.
+    c.save();c.globalAlpha=.42;
+    for(let i=0;i<9;i++){const u=i/8,x=mix(h.entry.x,h.stand.x,u),y=mix(h.entry.y,h.stand.y,u);stroke(c,[[x-5,y],[x+5,y]],p.line,.8);}
+    c.restore();
+    const phase=h.t*Math.PI*2*1.5,swing=h.walking?Math.sin(phase):0,bob=h.walking?Math.abs(swing)*1.6:0;
+    c.save();c.translate(h.x,h.footY);c.scale(h.side*.68,.68);c.translate(0,-bob);
+    const leg=(side)=>{
+      const wave=h.walking?Math.sin(phase+side*Math.PI):0;
+      let ankleX=(side?5:-5)+wave*10,ankleY=h.walking?-Math.max(0,Math.cos(phase+side*Math.PI))*7:0;
+      if(side===0){ankleX-=h.kick*43;ankleY-=h.kick*29;}
+      stroke(c,[[side?5:-5,-38],[(ankleX+(side?5:-5))/2-5,-20],[ankleX,ankleY],[ankleX-9,ankleY]],D,2.4);
+    };
+    leg(1);leg(0);
+    dot(c,0,-101,9,p.bg);stroke(c,[[-10,-103],[-8,-111],[1,-115],[9,-110],[11,-103],[-10,-103]],B,2);
+    stroke(c,[[-8,-101],[-5,-92],[5,-91],[10,-99]],B,1.6);
+    stroke(c,[[-8,-87],[7,-87],[12,-39],[-10,-39],[-8,-87]],B,2);
+    stroke(c,[[-5,-83],[4,-83],[8,-37],[-7,-37]],D,1.7);
+    stroke(c,[[-7,-80],[-15-swing*4,-62],[-10-swing*8,-45]],B,2);
+    stroke(c,[[7,-80],[15+swing*4,-63],[11+swing*8,-45]],D,2);c.restore();return h;
+  }
+  function flow(c,value,t,moving){
+    if(!Number.isFinite(value)||value<=0)return;
+    const strength=Math.sqrt(clamp(value/128))*ease(t/.9),arch=9+strength*69;
+    c.save();c.globalAlpha=.12+strength*.55;c.strokeStyle=GOLD;c.lineWidth=.5+strength*2.2;
+    c.setLineDash([1+strength*10,10*(1-strength)+1]);c.lineDashOffset=moving?-t*(9+strength*40):0;
+    const endX=197+strength*84,endY=189-strength*25;
+    c.beginPath();c.moveTo(111,159);c.quadraticCurveTo(170,159-arch,endX,endY);c.stroke();
+    c.setLineDash([]);
+    if(moving)for(let i=0;i<3+Math.floor(strength*5);i++){
+      const u=(t*(.4+strength*.8)+i/8)%1,w=1-u;
+      dot(c,w*w*111+2*w*u*170+u*u*endX,w*w*159+2*w*u*(159-arch)+u*u*endY,.45+strength*.7,GOLD);
+    }
+    c.restore();
+  }
+  function press(c,p,depth,x=242){let y=29+depth*70;box(c,x-61,15,122,12,p.metal);stroke(c,[[x-49,29],[x-49,184]],p.metal,4);stroke(c,[[x+49,29],[x+49,184]],p.metal,4);box(c,x-9,27,18,y-12,p.steel);box(c,x-47,y,94,19,p.steel);stroke(c,[[x-47,y+19],[x+47,y+19]],D,2);for(let i=0;i<7;i++)stroke(c,[[x-44+i*14,y+2],[x-38+i*14,y+12]],p.metal,1)}
+  function steam(c,p,t,x=242){for(let i=0;i<8;i++){let q=(t+i*.13)%1;c.save();c.globalAlpha=(1-q)*.24;c.beginPath();c.ellipse(x+(i-3.5)*12+Math.sin(q*4+i)*9,172-q*78,4+q*12,3+q*9,0,0,Math.PI*2);c.strokeStyle=p.muted;c.lineWidth=1.4;c.stroke();c.restore()}}
+  function turn(c,center,angle,r,color){c.save();c.translate(...center);c.rotate(angle);stroke(c,[[-r,0],[r,0]],color,2);stroke(c,[[0,-r],[0,r]],color,2);c.beginPath();c.arc(0,0,r,0,Math.PI*2);c.strokeStyle=color;c.lineWidth=1.5;c.stroke();c.restore()}
+  function furnace(c,p,t,ready,idle,s){
+    const phase=t%2.5/2.5,hot=!idle&&!ready;
+    stroke(c,[[136,224],[136,203],[291,203],[291,224]],p.metal,3);box(c,149,215,128,10,p.steel);
+    for(let i=0;i<5;i++){let y=108+i*20;c.save();c.beginPath();c.ellipse(218,y,65,13,0,0,Math.PI*2);c.strokeStyle=hot?HOT:p.metal;c.lineWidth=hot?2.5:1.7;if(hot){c.shadowColor=HOT;c.shadowBlur=8}c.stroke();c.restore()}
+    mark(c,218,137,88,{outline:idle,tint:hot?'#dba068':null});
+    if(hot){c.save();c.globalAlpha=.3+Math.sin(t*4)*.12;mark(c,218,137,94,{outline:true,tint:HOT});c.restore();chips(c,218,160,phase*.55,s)}
+    c.save();c.translate(-10,13);c.scale(.88,.88);worker(c,p,0,{hammer:false,operator:true});c.restore();box(c,112,137,25,31,p.steel);dot(c,120,146,2,hot?HOT:B);stroke(c,[[118,156],[130,156]],p.metal,1.5);
+    if(ready){let q=(t%2)/2;c.save();c.globalAlpha=(1-q)*.4;c.beginPath();c.ellipse(218,191,68+q*15,15+q*4,0,0,Math.PI*2);c.strokeStyle=B;c.lineWidth=1;c.stroke();c.restore()}
+  }
+  function plasma(c,p,t,ready,idle,s,mode='forge'){
+    t=Number.isFinite(t)?Math.max(0,t):0;
+    const progress=Math.min(1,t/5.4),complete=progress>=1,part=Math.min(2,Math.floor(progress*3)),local=complete?1:progress*3-part,points=coords[part];
+    const edgeLengths=points.map((a,i)=>Math.hypot(points[(i+1)%points.length][0]-a[0],points[(i+1)%points.length][1]-a[1]));
+    const distance=local*edgeLengths.reduce((a,b)=>a+b,0);let edge=0,used=0;
+    while(edge<edgeLengths.length-1&&used+edgeLengths[edge]<distance){used+=edgeLengths[edge];edge++;}
+    const a=points[edge],b=points[(edge+1)%points.length],u=clamp((distance-used)/(edgeLengths[edge]||1));
+    const laser={x:180+(mix(a[0],b[0],u)-127)*.39,y:121+(mix(a[1],b[1],u)-127)*.39};
+    const done=ready?plasmaSuccessPhase(t,mode):0;
+    if(idle){mark(c,180,119,116,{outline:true});return;}
+    // A compact work cell: articulated cutting arm, thin plate, four clamps.
+    c.save();c.globalAlpha=1-done*.78;
+    stroke(c,[[86,196],[276,196],[293,209],[69,209],[86,196]],p.metal,1.8);
+    box(c,119,62+done*32,122,122,p.steel,3);
+    if(ready){c.save();c.translate(0,done*32);c.globalCompositeOperation='destination-out';c.save();c.translate(130.5,71.5);c.scale(.39,.39);c.fill(whole);c.restore();c.restore();}
+    for(const [x,y] of [[114,69],[241,69],[114,173],[241,173]]){
+      stroke(c,[[x+(x<180?-done*8:done*8),y],[x+(x<180?5:0),y+7],[x+5,y+14]],p.metal,3);
+    }
+    c.restore();
+    if(!ready){
+      c.save();c.translate(130.5,71.5);c.scale(.39,.39);
+      paths.forEach((path,i)=>{c.strokeStyle=i<part||complete?'#94dcec':p.metal;c.globalAlpha=i<part||complete?1:.3;c.lineWidth=i<part||complete?3:2;c.stroke(path);});
+      if(!complete){c.globalAlpha=1;c.strokeStyle='#94dcec';c.lineWidth=3;c.beginPath();c.moveTo(points[0][0],points[0][1]);
+      for(let i=0;i<=edge;i++)c.lineTo(points[i][0],points[i][1]);c.lineTo(mix(a[0],b[0],u),mix(a[1],b[1],u));c.stroke();}c.restore();
+    }
+    const tip=ready||complete?{x:86,y:70}:laser,base={x:62,y:199},joint={x:83+(tip.x-140)*.18,y:73+(tip.y-110)*.24};
+    stroke(c,[[base.x,base.y],[joint.x,joint.y],[tip.x,tip.y-12]],p.metal,8);
+    stroke(c,[[base.x,base.y],[joint.x,joint.y],[tip.x,tip.y-12]],p.steel,4);
+    for(const at of [base,joint]){dot(c,at.x,at.y,7,p.steel);dot(c,at.x,at.y,3,B);}
+    box(c,tip.x-5,tip.y-16,10,10,p.metal,2);
+    if(!ready&&!complete){c.save();c.shadowColor='#9ce6ff';c.shadowBlur=10;stroke(c,[[tip.x,tip.y-6],[tip.x,tip.y]],'#a6e8fc',2);dot(c,tip.x,tip.y,2,'#dcf6ff');c.restore();chips(c,tip.x,tip.y,t%.20,s);}
+    if(ready){
+      mark(c,180,121-done*9,99,{outline:false});
+      if(mode==='break'){c.save();c.globalAlpha=(1-clamp((t-1)/.8))*.7;c.strokeStyle=B;c.lineWidth=1.3;c.beginPath();c.ellipse(180,174,30+done*35,5+done*5,0,0,Math.PI*2);c.stroke();c.restore();}
+    }
+    operator(c,p,t,{x:291,y:225,scale:.58,activity:ready?1-done:1,success:done});
+  }
+  function plasmaSuccessPhase(t,mode){return mode==='break'?ease(t/1.2):1;}
+  function magnet(c,p,t,ready,idle,mode='forge',startAssembly=.25){
+    const cx=180,cy=119,radius=71;
+    if(idle){mark(c,cx,cy,108,{outline:true});return;}
+    const settling=mode==='break',lock=settling?ease(t/1.2):ready?1:0,assembly=ready?mix(startAssembly,1,lock):(.5-.5*Math.cos(t%4.2/4.2*Math.PI*2))*.88;
+    // One common origin for the ring, coils and eight true logo pieces.
+    c.save();c.globalAlpha=ready?1-lock*.55:1;
+    c.beginPath();c.arc(cx,cy,radius,0,Math.PI*2);c.strokeStyle=p.metal;c.lineWidth=1.4;c.stroke();
+    const turn=t*.65;
+    for(let i=0;i<4;i++){
+      const angle=-Math.PI/4+i*Math.PI/2,x=cx+Math.cos(angle)*(radius+10+lock*9),y=cy+Math.sin(angle)*(radius+10+lock*9);
+      c.save();c.translate(x,y);c.rotate(angle);box(c,-6,-14,12,28,p.steel,2);stroke(c,[[-3,-10],[-3,10]],B,1.4);stroke(c,[[1,-10],[1,10]],B,1.4);c.restore();
+    }
+    if(!ready)for(let i=0;i<2;i++){c.beginPath();c.arc(cx,cy,radius-9+i*4,turn+i*Math.PI,turn+i*Math.PI+.8);c.strokeStyle=B;c.lineWidth=1;c.stroke();}
+    c.restore();
+    // Largest spread is 8px; even corner pieces stay inside the working ring.
+    // Three integral logo components, not Blueprint's eight fracture pieces.
+    magnetOffsets(assembly).forEach(([dx,dy],part)=>{
+      c.save();c.translate(cx+dx,cy+dy);
+      mark(c,0,0,94,{part,outline:true});
+      if(ready)mark(c,0,0,94,{part,outline:false,alpha:lock});c.restore();
+    });
+    if(ready){
+      if(settling){c.save();c.globalAlpha=1-lock;c.beginPath();c.arc(cx,cy,49+lock*20,0,Math.PI*2);c.strokeStyle=B;c.lineWidth=1.8;c.stroke();c.restore();}
+    }
+    operator(c,p,t,{x:61,y:229,scale:.48,activity:ready?1-lock:1,success:lock});
+  }
+  function magnetOffsets(assembly){const d=(1-clamp(assembly))*14;return[[-d,-d],[d,d],[0,0]];}
+  function blueprintFall(c,p,q,fromForge){
+    q=clamp(q);const fade=clamp((q-.86)/.14),hopEnd=.27;
+    let x,y;
+    if(q<hopEnd){
+      const u=ease(q/hopEnd);x=mix(fromForge?242:180,180,u);y=mix(fromForge?140:119,49,u)-Math.sin(u*Math.PI)*17;
+    }else{
+      const u=clamp((q-hopEnd)/.33);x=180;y=mix(49,128,u*u);
+      if(q>.60)y-=Math.sin(clamp((q-.60)/.18)*Math.PI)*9;
+    }
+    mark(c,x,y,fromForge?mix(90,112,ease(q/.6)):112,{flag:true,alpha:1-fade});
+    if(fade){c.save();c.globalAlpha=fade;c.fillStyle=p.bg;c.fillRect(50,170,260,45);c.restore();mark(c,180,119,116,{outline:true,alpha:fade});}
+  }
+  function settledFlag(c,p,desaturate){
+    const u=smooth(desaturate),outline=smooth((u-.35)/.65);
+    mark(c,180,119,116,{flag:true,alpha:1-u});
+    mark(c,180,119,116,{tint:p.muted,alpha:u*(1-outline)});
+    mark(c,180,119,116,{outline:true,alpha:outline});
+  }
+  const armoredPaths=[
+    new Path2D('M87 12L113 12L136 35L112 59L100 47L47 100L82 135L58 159L12 113L12 87Z'),
+    new Path2D('M142 41L188 87L188 113L113 188L87 188L64 165L88 141L100 153L153 100L118 65Z'),
+    new Path2D('M100 66L134 100L100 134L66 100Z')
+  ];
+  const armoredRim=new Path2D('M87 10L113 10L190 87L190 113L113 190L87 190L10 113L10 87Z');
+  function cssEaseIn(x){
+    x=clamp(x);let u=x;
+    for(let i=0;i<8;i++){const bx=3*(1-u)*(1-u)*u*.42+3*(1-u)*u*u+u*u*u,dx=1.26*(1-u)*(1-u)+3.48*(1-u)*u; if(dx>.0001)u=clamp(u-(bx-x)/dx);}
+    return 3*(1-u)*u*u+u*u*u;
+  }
+  function armoredDoor(c,p,age){
+    const scale=144/200;
+    c.save();c.translate(108,47);c.scale(scale,scale);c.shadowColor='#000000b8';c.shadowBlur=18;c.shadowOffsetY=9;
+    c.fillStyle='#0f172a';c.strokeStyle='#94a3b8';c.lineWidth=3;c.fill(armoredRim);c.stroke(armoredRim);c.shadowBlur=0;c.shadowOffsetY=0;
+    armoredPaths.forEach((path,i)=>{
+      const u=cssEaseIn((age-i*.18)/.42),bounds=i===0?[12,159]:i===1?[41,188]:[66,134];
+      c.save();c.globalAlpha=u;c.translate(0,-220*(1-u));if(i===2)c.scale(1+.6*(1-u),1+.6*(1-u));
+      const gradient=c.createLinearGradient(0,bounds[0]+(bounds[1]-bounds[0])*.08,0,bounds[0]+(bounds[1]-bounds[0])*.92);
+      const stops=i===2?[[0,'#1d56c9'],[.55,'#0039a6'],[1,'#002266']]:[[0,'#ffffff'],[.36,'#e2e8f0'],[.365,'#0039a6'],[.65,'#002b7f'],[.655,'#d52b1e'],[1,'#9e1b12']];
+      stops.forEach(([at,color])=>gradient.addColorStop(at,color));c.fillStyle=gradient;c.fill(path);c.strokeStyle='#ffffff';c.lineWidth=i===2?2.5:2;c.stroke(path);c.restore();
+    });c.restore();
+  }
+  function sourceFall(c,p,q,kind){
+    if(['lock','cryo'].includes(kind)){newExitScene(c,p,q,kind);return;}
+    q=clamp(q);const desaturate=smooth((q-.69)/.31);
+    if(q>=.69){
+      if(kind==='door'){
+        c.save();c.globalAlpha=1-desaturate;c.translate(180,119);const k=mix(1,116/144,desaturate);c.scale(k,k);c.translate(-180,-119);armoredDoor(c,p,2);c.restore();
+        mark(c,180,119,116,{tint:p.muted,alpha:desaturate*(1-desaturate)});mark(c,180,119,116,{outline:true,alpha:desaturate});
+      }else settledFlag(c,p,desaturate);return;
+    }
+    if(kind==='door'){
+      armoredDoor(c,p,q*3.85);
+    }else{
+      // A single clean vertical arrival, no elastic stretching or giant spinning letters.
+      const u=smooth(q/.46);mark(c,180,mix(-66,119,u),116,{flag:true,alpha:smooth(u/.18)});
+    }
+  }
+  const exitNames={lock:'Поворотный замок',cryo:'Криозакалка'};
+  function metalDiamond(c,p,{x=180,y=119,size=144,angle=0,gray=0,alpha=1,age=2}={}){
+    c.save();c.globalAlpha*=alpha;c.translate(x,y);c.rotate(angle);c.scale(size/144,size/144);c.translate(-180,-119);
+    if(gray)c.filter='grayscale('+clamp(gray)+')';armoredDoor(c,p,age);c.restore();
+  }
+  function inkMix(a,b,q){
+    const rgb=v=>v[0]==='#'?(v.length===4?v.slice(1).split('').map(x=>parseInt(x+x,16)):[1,3,5].map(i=>parseInt(v.slice(i,i+2),16))):(v.match(/[\d.]+/g)||[128,128,128]).slice(0,3).map(Number);
+    const x=rgb(a),y=rgb(b);return 'rgb('+x.map((v,i)=>Math.round(mix(v,y[i],clamp(q)))).join(',')+')';
+  }
+  function fixedExitStyle(style){return ['welding','casting','magnet','plasma'].includes(style);}
+  function exitDuration(s){return s.style==='casting'?4.4:fixedExitStyle(s.style)?3:4.4;}
+  function continuousPose(origin,t){return{x:origin.x,y:origin.y,size:origin.size,u:smoother(t/.85)};}
+  function exitLogoPlan(s,t,isError=false){
+    const at=s.exitOrigin??originFor(s),q=clamp(t/4.4);
+    return {at,kind:s.style==='steam'?'door':s.exitKind??'door',q,
+      flag:isError?1:smooth(t/.65),gray:smooth((t-2.75)/1.65),
+      pulse:s.exitPulse??1,outline:s.exitBrandOutline??true,
+      offsets:s.style==='blueprint'&&s.exitWasReady?s.exitPieces:null};
+  }
+  function doorPartLift(t,part){
+    // Each EXISTING segment lifts and locks back into its own slot; never add a second logo.
+    const u=clamp((t-.72-part*.18)/.42);
+    return u<.22?-13*smoother(u/.22):-13*(1-cssEaseIn((u-.22)/.78));
+  }
+  function paintExitLogo(c,p,plan){
+    const {at,flag,gray,offsets}=plan,items=offsets?pieces.map((piece,i)=>({...piece,offset:offsets[i],i})):coords.map((poly,part)=>({poly,part,offset:null,i:part}));
+    const fill=mix(mix(plan.outline?.04:plan.pulse,1,flag),.25,gray);
+    for(const item of items){
+      const part=item.part,base=part===0?B:D,path=new Path2D();
+      item.poly.forEach(([x,y],i)=>i?path.lineTo(x,y):path.moveTo(x,y));path.closePath();
+      const lift=plan.kind==='door'?doorPartLift(plan.q*4.4,part):0;
+      const ox=item.offset?.x??0,oy=item.offset?.y??0;
+      c.save();c.translate(at.x+ox+(item.dx??0)*3.2,at.y+oy+(item.dy??0)*3.2+lift);c.scale(at.size/254,at.size/254);c.translate(-127,-127);
+      const gradient=c.createLinearGradient(0,0,0,254),rf=['#f4f5f7','#1768b8','#d64248'];
+      for(const [pos,i] of [[0,0],[.333,0],[.334,1],[.666,1],[.667,2],[1,2]])gradient.addColorStop(pos,inkMix(inkMix(base,rf[i],flag),p.muted,gray));
+      const alpha=c.globalAlpha;c.globalAlpha=alpha*fill;c.fillStyle=gradient;c.fill(path);c.globalAlpha=alpha;
+      c.strokeStyle=inkMix(inkMix(base,'#dce6ed',flag),p.muted,gray);c.lineWidth=mix(1.5,1.1,gray)*254/at.size;c.lineJoin='round';c.stroke(path);c.restore();
+    }
+  }
+  function exitEffects(c,p,q,kind,at={x:180,y:119,size:116}){
+    const visibility=smooth(q/.05)*(1-smooth((q-.77)/.21));
+    if(!visibility||!['lock','cryo'].includes(kind))return;
+    c.save();c.translate(at.x,at.y);c.scale(at.size/116,at.size/116);c.translate(-180,-119);c.globalAlpha=visibility;
+    if(kind==='lock'){
+      // The mechanism lives INSIDE the mark: four guided bolts and one quarter-turn rotor.
+      c.save();c.translate(180,119);c.scale(116/254,116/254);c.translate(-127,-127);c.clip(whole);c.restore();
+      for(let i=0;i<4;i++){
+        const a=Math.PI/4+i*Math.PI/2,travel=smoother((q-.25)/.35)*9;
+        c.save();c.translate(180+Math.cos(a)*44,119+Math.sin(a)*44);c.rotate(a);
+        box(c,-12,-6,23,12,p.steel,2);stroke(c,[[-10,-6],[11,-6],[11,6],[-10,6]],p.metal,1);
+        box(c,-11+travel,-3,13,6,'#b3c8d9',1);stroke(c,[[-8+travel,-2],[-8+travel,2]],B,1.1);c.restore();
+      }
+      c.save();c.translate(180,119);c.rotate(Math.PI/2*smoother((q-.08)/.42));
+      dot(c,0,0,12,p.steel);c.beginPath();c.arc(0,0,12,0,Math.PI*2);c.strokeStyle=p.metal;c.lineWidth=1.2;c.stroke();
+      stroke(c,[[-7,0],[7,0]],'#d9e5ef',3);dot(c,7,0,2.4,B);c.restore();
+    }else{
+      const frost=smooth((q-.06)/.62),melt=1-smooth((q-.76)/.22);
+      // Dense crystalline growth is clipped to the actual three logo components.
+      c.save();c.translate(122,61);c.scale(116/254,116/254);c.clip(whole);
+      c.fillStyle='rgba(182,229,248,'+(frost*.42*melt)+')';c.fillRect(0,254*(1-frost),254,254*frost);
+      for(let i=0;i<38;i++){
+        const seed=(i*73)%254,y=254-((i*47)%254),u=smooth((q-.025-(i%7)*.025)/.48),len=(13+i%5*5)*u;
+        stroke(c,[[seed,y],[seed+Math.sin(i)*len*.35,y-len]],'#e0f8ff',2);
+        for(let j=1;j<=3;j++){
+          const yy=y-len*j/4,dx=Math.sin(i)*len*.35*j/4;
+          stroke(c,[[seed+dx-len*.24,yy+len*.06],[seed+dx,yy],[seed+dx+len*.24,yy-len*.12]],'#aedff8',1.3);
+        }
+      }c.restore();
+      for(let i=0;i<34;i++){
+        const u=clamp((q-(i%9)*.013)/.8),a=i*2.3999,r=53+u*(15+i%5*3);
+        c.save();c.globalAlpha*=Math.sin(u*Math.PI)*.65;
+        dot(c,180+Math.cos(a)*r,127+Math.sin(a)*r*.8-u*18,.7+i%3*.55,'#caefff');c.restore();
+      }
+      for(let i=0;i<9;i++){
+        const u=(q*1.5+i*.137)%1;
+        c.save();c.globalAlpha*=.19*Math.sin(u*Math.PI);
+        dot(c,140+i*10+Math.sin(i+q*5)*9,169-u*49,9+u*12,'#b7dfee');c.restore();
+      }
+      c.save();c.shadowColor='#93dcff';c.shadowBlur=12;c.globalAlpha*=frost*.7;
+      c.translate(122,61);c.scale(116/254,116/254);c.strokeStyle='#a3e5ff';c.lineWidth=2.5;paths.forEach(path=>c.stroke(path));c.restore();
+    }c.restore();
+  }
+  function newExitScene(c,p,q,kind){
+    q=clamp(q);const plan={at:{x:180,y:119,size:116},q,kind,flag:1,gray:smooth((q-.28)/.72),pulse:1,outline:false,offsets:null};
+    paintExitLogo(c,p,plan);exitEffects(c,p,q,kind,plan.at);
+  }
+  function inPlaceExit(c,p,t,s){
+    const plan=exitLogoPlan(s,t,false);plan.kind='fixed';plan.gray=smooth((t-1.05)/1.65);
+    if(s.exitSnapshot)sceneSnapshot(c,s,1-smooth(t/.70));
+    paintExitLogo(c,p,plan);
+  }
+  function exitScene(c,p,t,s,isError){
+    if(s.style==='casting'){castingFailure(c,p,t,s);return;}
+    if(fixedExitStyle(s.style)){inPlaceExit(c,p,t,s);return;}
+    const plan=returningExitPlan(s,t,isError);
+    if(s.exitSnapshot&&!isError)sceneSnapshot(c,s,1-smooth(t/.7),s.style==='blueprint');
+    // One piece set returns to center and repairs in place, never a replacement logo.
+    paintExitLogo(c,p,plan);exitEffects(c,p,plan.q,plan.kind,plan.at);
+  }
+  function exitReturnProgress(s,t){
+    const local=Number.isFinite(t)?Math.max(0,t):0,age=(s.exitMoveElapsed??0)+local;
+    return s.options?.motion===false||age>=1.15?1:smoother((age-.10)/1.05);
+  }
+  function centeredExitPosition(s,t){
+    const from=s.exitOrigin??originFor(s);
+    if(!['blueprint','steam'].includes(s.style))return from;
+    const u=exitReturnProgress(s,t);return {x:mix(from.x,180,u),y:mix(from.y,119,u),size:from.size};
+  }
+  function returningExitPlan(s,t,isError=false,kindOverride=null){
+    const plan=exitLogoPlan(s,t,isError);plan.at=centeredExitPosition(s,t);
+    if(kindOverride)plan.kind=kindOverride;
+    if(s.style==='blueprint'&&plan.offsets){
+      const heal=exitReturnProgress(s,t);
+      // Connected kicks remain permanent UNTIL exit; during return the same eight pieces reunite.
+      if(heal===1){plan.offsets=null;if(plan.kind==='door')plan.kind='fixed';}
+      else plan.offsets=plan.offsets.map((offset,i)=>{
+        const piece=pieces[i],lift=plan.kind==='door'?doorPartLift(plan.q*4.4,piece.part):0;
+        return{x:offset.x*(1-heal)-piece.dx*3.2*heal,
+          y:offset.y*(1-heal)-(piece.dy*3.2+lift)*heal};
+      });
+      plan.repair=heal;
+    }
+    return plan;
+  }
+  function sceneSnapshot(c,s,alpha,hideWorker=false){
+    const origin=s.exitOrigin??originFor(s),half=origin.size/2+15;
+    const spread=s.exitPieces??[],halfX=half+Math.max(0,...spread.map(v=>Math.abs(v.x)))+4,halfY=half+Math.max(0,...spread.map(v=>Math.abs(v.y)))+4;
+    c.save();c.globalAlpha=alpha;c.beginPath();c.rect(hideWorker?160:0,0,hideWorker?200:360,260);c.clip();
+    // Exclude the old logo so the moving one never becomes a doubled ghost.
+    c.beginPath();c.rect(0,0,360,260);c.rect(origin.x-halfX,origin.y-halfY,halfX*2,halfY*2);c.clip('evenodd');
+    c.drawImage(s.exitSnapshot,0,0,360,260);c.restore();
+  }
+  function machineCheck(c,p,x,y,q){
+    c.save();c.globalAlpha=smooth(q);dot(c,x,y,10,p.panel);stroke(c,[[x-5,y],[x-1,y+4],[x+6,y-5]],B,2);c.restore();
+  }
+  function steamPressScene(c,p,t,s,ready,mode){
+    const success=ready?(mode==='break'?clamp(t/successDuration(s)):1):0,cycle=t%4/4;
+    const crush=ready?steamCrush(success):0,retract=ready?smooth((success-.72)/.28):0;
+    const startY=72+(s.steamAtSuccess??.5)*22;
+    const platenY=ready?mix(mix(startY,94,smoother(success/.20))+crush*78,72,retract):72+steamDepth(t)*22;
+    const depth=ready?clamp((platenY-72)/90):steamDepth(t);
+    // The die breaks brittle metal into compact fragments and dust, not a rubber-scaled icon.
+    box(c,170,40,130,13,p.steel,3);stroke(c,[[182,54],[182,210]],p.metal,3);stroke(c,[[289,54],[289,210]],p.metal,3);
+    box(c,173,208,124,12,p.steel,3);box(c,197,184,76,10,p.metal,2);
+    box(c,225,53,20,platenY-52,p.metal,2);box(c,193,platenY,84,9,p.steel,2);stroke(c,[[193,platenY+9],[277,platenY+9]],p.metal,1.7);
+    c.beginPath();c.arc(166,83,12,0,Math.PI*2);c.strokeStyle=p.metal;c.lineWidth=1.1;c.stroke();
+    const needle=-2.5+depth*3.1;stroke(c,[[166,83],[166+Math.cos(needle)*8,83+Math.sin(needle)*8]],B,1.4);
+    const jaw=retract*15;
+    stroke(c,[[193-jaw,113],[193-jaw,178],[201-jaw,178]],p.metal,2);stroke(c,[[277+jaw,113],[277+jaw,178],[269+jaw,178]],p.metal,2);
+    const powder=ready?steamPowder(success):0;
+    if(ready)steamCrushMaterial(c,p,success,crush,powder);else mark(c,235,142,78,{outline:true});
+    if(ready&&powder>0){
+      for(let i=0;i<62;i++){
+        const seed=Math.sin(i*91.71)*.5+.5,side=(i%2?1:-1),age=clamp((success-.48)/.52),travel=smooth(age);
+        const x=235+(seed-.5)*66+side*travel*(8+(i%9)*3),y=Math.min(181,177-travel*(5+i%13*1.7)+age*age*12);
+        c.save();c.globalAlpha=powder*(1-smooth((age-.6)/.4))*(.35+seed*.5);dot(c,x,y,.45+seed*.9,i%3?B:D);c.restore();
+      }
+    }
+    if(mode==='ready'){
+      // The crushed metal is gone; a separate light indicator carries the connected-state pulse.
+      const projection=smooth(t/.55);c.save();c.globalAlpha=projection*.13;
+      stroke(c,[[208,184],[201,139]],B,1);stroke(c,[[262,184],[269,139]],B,1);c.restore();
+      mark(c,235,133,68,{outline:true,alpha:projection});
+    }
+    if(!ready&&depth>.97){c.save();c.globalAlpha=.4;stroke(c,[[209,107],[261,107]],B,1);c.restore();}
+    if((!ready&&cycle>.43&&cycle<.70)||(ready&&success<.85)){
+      c.save();c.globalAlpha=ready?1-success:1;steam(c,p,ready?success:(cycle-.43)/.27,235);c.restore();
+    }
+    operator(c,p,t,{x:91,y:225,scale:.83,activity:ready?1-success:1,success,lever:depth*.85});
+    stroke(c,[[139,192],[157,192],[157,105],[174,105]],p.line,1);
+    dot(c,281,47,2.5,ready&&success>.72?B:HOT);
+  }
+  function successDuration(s){return s.style==='steam'?1.55:1.2;}
+  function steamCrush(progress){return .82*smoother((progress-.20)/.48);}
+  function steamPowder(progress){return smooth((progress-.61)/.20);}
+  function steamFragmentPolygons(crush){
+    const pressure=clamp(crush/.82),fracture=smooth(pressure/.38),unit=78/254;
+    return pieces.map((piece,i)=>{
+      const cx=235+(piece.center[0]-127)*unit,cy=142+(piece.center[1]-127)*unit;
+      const centerX=cx+(i%2?1:-1)*fracture*(1+i%3)*1.1;
+      const centerY=mix(cy,177-(i%3)*2,pressure),angle=(i%2?1:-1)*fracture*(.025+i%3*.018);
+      const co=Math.cos(angle),si=Math.sin(angle),localHeight=1-pressure*.18;
+      return piece.poly.map(([x,y])=>{
+        const dx=(x-piece.center[0])*unit,dy=(y-piece.center[1])*unit*localHeight;
+        return[centerX+dx*co-dy*si,centerY+dx*si+dy*co];
+      });
+    });
+  }
+  function steamCrushMaterial(c,p,progress,crush,powder){
+    if(powder>=1)return;
+    const pressure=clamp(crush/.82),fracture=smooth(pressure/.38),top=181-78*(1-crush);
+    c.save();c.globalAlpha=1-powder;
+    // Rigid chips retain thickness. The physical ram/die cavity clips their broken edges.
+    c.beginPath();c.rect(194,top,82,181-top);c.clip();
+    if(fracture<.001)mark(c,235,142,78,{outline:false});
+    else steamFragmentPolygons(crush).forEach((poly,i)=>{
+      c.beginPath();poly.forEach(([x,y],k)=>k?c.lineTo(x,y):c.moveTo(x,y));c.closePath();
+      c.fillStyle=inkMix(pieces[i].part===0?B:D,p.metal,pressure*.35);c.fill();
+      c.save();c.globalAlpha*=fracture*.75;c.strokeStyle=p.bg;c.lineWidth=.65;c.stroke();c.restore();
+      if(i%2===0){const [x,y]=poly[0],end=poly[1];stroke(c,[[x,y],[mix(x,end[0],.6),mix(y,end[1],.6)]],p.metal,.65);}
+    });
+    if(pressure>.02){c.save();c.globalAlpha*=Math.sin(pressure*Math.PI)*.5;
+      stroke(c,[[203,top+.8],[267,top+.8]],HOT,.8);c.restore();}
+    c.restore();
+  }
+  function latheScene(c,p,t,s,ready,mode){
+    const q=ready?(mode==='break'?clamp(t/1.2):1):0,release=ready?smooth((q-.5)/.5):0;
+    const progress=ready?1:latheProgress(t),colorFill=ready?smooth((q-.29)/.65):0;
+    const load=ready?1:smooth(t/.65),cx=mix(277,190,load),cy=119;
+    box(c,93,67,40,126,p.steel,4);box(c,132,101,8,36,p.metal,2);
+    stroke(c,[[89,198],[304,198],[304,212],[89,212],[89,198]],p.metal,2);
+    c.save();c.globalAlpha=1-release;dot(c,cx,cy,53,p.steel);
+    c.beginPath();c.arc(cx,cy,53,0,Math.PI*2);c.strokeStyle=p.metal;c.lineWidth=1.4;c.stroke();
+    const spin=!ready&&t<.8?t*8:0;
+    for(let i=0;i<3;i++){c.save();c.translate(cx,cy);c.rotate(spin+i*Math.PI*2/3);box(c,44+release*13,-5,16,10,p.metal,2);c.restore();}c.restore();
+    if(load>=.99){
+      const map=([x,y])=>[cx+(x-127)*88/254,cy+(y-127)*88/254];
+      let tip=map(coords[0][0]);
+      coords.forEach((points,part)=>{
+        const u=clamp(progress*3-part);if(u<=0)return;
+        const edges=points.map((a,i)=>Math.hypot(points[(i+1)%points.length][0]-a[0],points[(i+1)%points.length][1]-a[1]));
+        let left=u*edges.reduce((a,b)=>a+b,0),outline=[map(points[0])];
+        for(let i=0;i<points.length;i++){
+          const a=points[i],b=points[(i+1)%points.length],f=Math.min(1,left/edges[i]);
+          tip=map([mix(a[0],b[0],f),mix(a[1],b[1],f)]);outline.push(tip);left-=edges[i];if(left<=0)break;
+        }
+        if(u>=1&&!ready)mark(c,cx,cy,88,{part,tint:'#77b6d9',alpha:.2});
+        stroke(c,outline,part===0?'#77c9f4':'#63a9da',1.8);
+      });
+      if(ready){
+        c.save();c.beginPath();c.rect(cx-44,cy-44,88*colorFill,88);c.clip();
+        for(let part=0;part<3;part++)mark(c,cx,cy,88,{part,tint:part===0?'#28b7f1':'#2879c9'});c.restore();
+      }
+      const tool=latheToolPose(tip,ready,q,progress),tx=tool.x,ty=tool.y;
+      box(c,270,194,28,10,p.steel,2);stroke(c,[[286,194],[286,ty+11],[tx+7,ty+7],[tx,ty]],p.metal,2);
+      if(!ready&&progress>0&&progress<1)chips(c,tx,ty,t%.3,s);
+    }
+    if(release>0)stroke(c,[[146,194],[234,194]],B,1.5);
+    word(c,ready?(q>.99?'Готово':'Окрашивание детали'):t<.8?'Подача заготовки':progress<1?'Обработка контура':'Чистовая обработка',193,39,11,p.muted);
+    operator(c,p,t,{x:53,y:233,scale:.51,activity:1-release,success:release});
+  }
+  function latheToolPose(tip,ready,q,progress){const park=ready?smooth(q/.25):progress>=1?1:0;return{x:mix(tip[0],290,park),y:mix(tip[1],170,park)};}
+  function latheProgress(t){return clamp((t-.8)/5.4);}
+  function castingScene(c,p,t,s,ready,mode){
+    const q=ready?(mode==='break'?clamp(t/1.2):1):0,fill=clamp(t/3.5),heat=ready?1-q:Math.max(.15,1-clamp((t-3.5)/3));
+    const cool=ready?smooth(q/.4):0,open=ready?smooth((q-.3)/.4):0;
+    box(c,112-open*58,69,68,114,p.steel,4);box(c,180+open*58,69,68,114,p.steel,4);
+    stroke(c,[[106-open*58,187],[254+open*58,187]],p.metal,2);
+    if(!ready)mark(c,180,126,88,{outline:true,tint:p.metal});
+    if(!ready){c.save();c.beginPath();c.rect(120,171-fill*95,120,100);c.clip();mark(c,180,126,88,{tint:heat>.2?HOT:B});c.restore();}
+    else{
+      mark(c,180,126,88,{tint:HOT,alpha:1-cool});
+      mark(c,180,126,88,{alpha:cool});
+    }
+    if(!ready&&fill<1){
+      c.save();c.translate(167,35);c.rotate(.48);stroke(c,[[-17,-10],[17,-10],[13,10],[-13,10],[-17,-10]],p.metal,2);c.restore();
+      stroke(c,[[179,43],[180,78]],HOT,2+fill);dot(c,180,78,2,HOT);
+    }
+    if(ready&&q<1){c.save();c.globalAlpha=1-q;steam(c,p,q,180);c.restore();}
+    operator(c,p,t,{x:58,y:232,scale:.53,activity:1-q,success:q});
+  }
+  function castingFailure(c,p,t,s){
+    const at=s.exitOrigin??originFor(s),q=smooth(t/1.1),off=smooth((t-2.2)/2.2);
+    for(const side of [-1,1]){
+      c.save();c.globalAlpha=1-smooth((q-.42)/.58);c.translate(180+side*q*94,126+q*q*40);c.rotate(side*q*.45);
+      box(c,side<0?-68:0,-57,68,114,p.steel,4);c.restore();
+    }
+    if(t<.38)chips(c,at.x,at.y,t,s);
+    const logo={at,q:1,kind:'fixed',flag:smooth(t/.5),gray:off,pulse:1,outline:false,offsets:null};
+    paintExitLogo(c,p,logo);
+    for(let i=0;i<18;i++){
+      const a=i*2.3999,r=10+q*(22+i%4*8);c.save();c.globalAlpha=(1-smooth((t-.7)/.9))*.36;
+      dot(c,at.x+Math.cos(a)*r,at.y+Math.sin(a)*r*.7-q*23,9+q*14,p.metal);c.restore();
+    }
+    for(let i=0;i<48;i++){
+      const a=i*2.3999,age=clamp(t/1.5),r=age*(22+i%9*5);
+      c.save();c.globalAlpha=(1-smooth((t-.45)/1.1))*(.4+i%3*.15);
+      dot(c,at.x+Math.cos(a)*r,at.y+Math.sin(a)*r*.6+age*age*22,.55+i%4*.4,i%3? p.metal:HOT);c.restore();
+    }
+  }
+  function weldingScene(c,p,t,s,ready,mode){
+    const q=ready?(mode==='break'?smooth(t/1.2):1):0,separation=(1-q)*8;
+    [[-separation,-separation],[separation,separation],[0,0]].forEach(([dx,dy],part)=>{
+      mark(c,180+dx,119+dy,94,{part,outline:!ready});
+    });
+    for(const x of [117,243]){stroke(c,[[x,84],[x+(x<180?-q*16:q*16),84],[x,157]],p.metal,3);}
+    const seam=Math.floor(t/1.6)%3,points=[[145,98],[212,141],[180,119]],tip=ready?{x:283,y:79}:{x:points[seam][0]+Math.sin(t*3)*6,y:points[seam][1]+Math.cos(t*3)*6};
+    stroke(c,[[298,210],[285,60],[tip.x,tip.y-12]],p.metal,7);stroke(c,[[298,210],[285,60],[tip.x,tip.y-12]],p.steel,3);
+    for(const [x,y] of [[298,210],[285,60]]){dot(c,x,y,6,p.steel);dot(c,x,y,2,B);}
+    if(!ready){c.save();c.shadowColor='#9ce6ff';c.shadowBlur=12;stroke(c,[[tip.x,tip.y-8],[tip.x,tip.y]],'#c2f3ff',2.2);c.restore();chips(c,tip.x,tip.y,t%.25,s);}
+    operator(c,p,t,{x:57,y:232,scale:.53,activity:1-q,success:q});
+    if(ready)machineCheck(c,p,180,200,q);
+  }
+  function originFor(s){
+    if(['failure','fall','errorfall'].includes(s.mode)&&s.exitOrigin)return s.exitOrigin;
+    if(s.mode==='idle'||s.mode==='error')return s.offPose??(fixedExitStyle(s.style)?originFor({...s,mode:'ready'}):{x:180,y:119,size:116});
+    if(s.style==='blueprint')return{x:242,y:140,size:90};
+    if(s.style==='steam')return{x:235,y:s.mode==='ready'?133:142,size:s.mode==='ready'?68:78};
+    if(s.style==='plasma')return{x:180,y:s.mode==='ready'?112:121,size:99};
+    if(s.style==='lathe')return{x:190,y:119,size:88};
+    if(s.style==='casting')return{x:180,y:126,size:88};
+    if(s.style==='welding')return{x:180,y:119,size:94};
+    return{x:180,y:119,size:94};
+  }
+  function steamDepth(t){const cycle=t%4/4;return cycle<.3?smooth(cycle/.3):cycle<.56?1:cycle<.88?1-smooth((cycle-.56)/.32):0;}
+  function elapsed(s,now){
+    // A queued RAF timestamp can precede a state change made later in that frame.
+    const t=s.frozen??(now-s.start)/1000*s.options.tempo;
+    return Number.isFinite(t)?Math.max(0,t):0;
+  }
+  function forgeGap(t){return 0;} // Pending cracks do not displace the eight pieces.
+  function connectedPulse(t){return .5+.5*Math.cos(Math.max(0,t)*Math.PI*2/3.2);}
+  function forgeCrackProgress(t){
+    const strikes=Math.max(0,(t-.594)/1.1),done=Math.floor(strikes);
+    return clamp((done+smooth((strikes-done)/.25))*.12);
+  }
+  function forgeCracks(c,p,progress){
+    // Every seam is an actual edge of the eight-piece partition, never random zigzags.
+    const seams=[[0,66],[0,128],[1,126],[1,190],[2,127]];
+    c.save();c.translate(242,140);c.scale(90/254,90/254);c.translate(-127,-127);
+    seams.forEach(([part,y],i)=>{
+      const reveal=clamp(progress*1.45-i*.065);if(!reveal)return;
+      const intersections=coords[part].flatMap((a,k)=>{const b=coords[part][(k+1)%coords[part].length];return(a[1]<=y&&b[1]>y)||(b[1]<=y&&a[1]>y)?[a[0]+(y-a[1])*(b[0]-a[0])/(b[1]-a[1])]:[];});
+      const left=Math.min(...intersections),right=Math.max(...intersections),end=mix(left,right,reveal);
+      c.save();c.clip(paths[part]);stroke(c,[[left,y],[end,y]],p.bg,4.6);stroke(c,[[left,y+2],[end,y+2]],part===0?B:D,1.5);c.restore();
+    });c.restore();
+  }
+  function drawing(s,now){
+    const c=s.c,p=s.palette;c.setTransform(s.canvas.width/360,0,0,s.canvas.height/260,0,0);c.clearRect(0,0,360,260);
+    let t=elapsed(s,now),mode=s.mode,moving=s.options.motion&&!s.paused;
+    connectedScene=mode==='ready';interiorPulse=connectedScene&&s.options.motion?connectedPulse(t):1;
+    if(s.phone){
+      const door=(mode==='fall'||mode==='errorfall')&&!fixedExitStyle(s.style)&&(s.style==='steam'||s.exitKind==='door'),age=t-.72;
+      if(door&&moving){
+        s.doorHits??=new Set();for(const [index,at] of [.38,.56,.76].entries())if(age>=at&&!s.doorHits.has(index)){
+          s.doorHits.add(index);s.phone.classList.remove('as-shake-heavy','as-shake-medium');void s.phone.offsetWidth;s.phone.classList.add(index===2?'as-shake-heavy':'as-shake-medium');
+        }
+      }else if(!door)s.phone.classList.remove('as-shake-heavy','as-shake-medium');
+    }
+    if(!s.options.motion&&s.frozen==null)t=mode==='forge'?1.69:mode==='break'?.7:mode==='failure'?.50:mode==='fall'?1.5:mode==='ready'?9.8:0;
+    if(s.autocycle&&moving){
+      const hold=s.style==='blueprint'?20:4;
+      if(mode==='forge'&&t>=5.5)return transition(s,'break',now,true);
+      if(mode==='break'&&t>=successDuration(s))return transition(s,'ready',now,true);
+      if(mode==='ready'&&t>=hold)return transition(s,'fall',now,true);
+    }
+    if(mode==='break'&&t>=successDuration(s)&&moving)return transition(s,'ready',now,s.autocycle);
+    if(mode==='failure'&&fixedExitStyle(s.style)&&t>=(s.style==='casting'?4.4:3)&&moving)return transition(s,'error',now,false);
+    if(mode==='failure'&&!fixedExitStyle(s.style)&&t>=1.1&&moving)return transition(s,'errorfall',now,false);
+    if((mode==='fall'||mode==='errorfall')&&t>=exitDuration(s)&&moving)return transition(s,mode==='errorfall'?'error':'idle',now,false);
+    const ready=mode==='ready'||mode==='break',idle=mode==='idle'||mode==='error';
+    // Exits have no style machinery at all; the canvas is cleared before this branch.
+    if(mode==='fall'||mode==='errorfall'){exitScene(c,p,t,s,mode==='errorfall');return;}
+    if(mode==='failure'){
+      if(s.style==='casting'){castingFailure(c,p,t,s);return;}
+      if(fixedExitStyle(s.style)){inPlaceExit(c,p,t,s);return;}
+      const q=smooth(t/1.1),isBlueprint=s.style==='blueprint';
+      if(s.exitSnapshot)sceneSnapshot(c,s,1-q,isBlueprint);
+      if(isBlueprint){c.save();c.globalAlpha=1-q;c.translate(-q*54,q*20);c.translate(96,159);c.rotate(-q*.8);c.translate(-96,-159);worker(c,p,s.poseAtFailure??1,{hammer:q<.22});c.restore();}
+      // The failure lead-in uses the SAME piece set as errorfall/idle, never two full-logo layers.
+      const plan=returningExitPlan(s,t,false,'fixed');plan.flag=q;
+      paintExitLogo(c,p,plan);return;
+    }
+    if(idle){const at=s.offPose??originFor(s);if(s.offPose)paintExitLogo(c,p,{at,q:1,kind:'fixed',flag:1,gray:1,pulse:1,outline:false,offsets:s.offPieces});else mark(c,at.x,at.y,at.size,{outline:true});return;}
+    if(s.style==='plasma'){plasma(c,p,t,ready,idle,s,mode);return;}
+    if(s.style==='magnet'){magnet(c,p,t,ready,idle,mode,s.magAtSuccess??.25);return;}
+    const machines={lathe:latheScene,casting:castingScene,welding:weldingScene};
+    if(machines[s.style]){machines[s.style](c,p,t,s,ready,mode);return;}
+    floor(c,p);
+    if(s.style==='steam'){steamPressScene(c,p,t,s,ready,mode);return;}
+    if(ready){
+      const settling=mode==='break',q=settling?smooth((t-.25)/.95):1;
+      if(settling&&t<.25){c.save();c.globalAlpha=1-smooth(t/.25);anvil(c,p);c.restore();}
+      segmented(c,242,140,90,3.2*q,{outline:true,offsets:mode==='ready'?permanentKickOffsets(t):null});
+      if(settling&&q<.01)forgeCracks(c,p,s.crackAtSuccess??1);
+      worker(c,p,0,{hammer:false});
+      // Hammer is set down beside the boot, not thrown through the logo.
+      c.save();c.translate(mix(160,147,q),mix(161,219,q));c.rotate(mix(-.4,0,q));
+      stroke(c,[[0,0],[38,0],[38,-6],[51,-6],[51,6],[38,6],[38,0]],B,2);c.restore();
+      // Decorative fixed44MB/s reference; never interpret real traffic as body motion.
+      if(mode==='ready'){flow(c,44,t,moving);helper(c,p,t,moving);}
+      return;
+    }
+    anvil(c,p);
+    const cycle=1.1,local=t%cycle/cycle,pose=local<.35?mix(.28,0,local/.35):local<.54?(local-.35)/.19:mix(1,.28,(local-.54)/.46);
+    const impact=local>.54&&local<.76?Math.sin((local-.54)/.22*Math.PI):0;
+    mark(c,242,140,90,{outline:true});
+    forgeCracks(c,p,forgeCrackProgress(t));
+    const hit=worker(c,p,pose);if(moving)chips(c,hit.x,hit.y,(local-.54)*cycle,s);
+  }
+
+  const canvas=document.getElementById('art'),phone=document.getElementById('scene');
+  const s={canvas,c:canvas.getContext('2d'),phone,style:'blueprint',exitKind:'door',mode:'idle',start:performance.now(),speed:0,paused:false,frozen:null,autocycle:false,options:{tempo:1,motion:true,sparks:true},
+    palette:{bg:'#171820',panel:'#252630',text:'#eeeeef',muted:'#a5a9b5',line:'#333741',metal:'#8295a6',steel:'#303c4b'}};
+  let signal=null,visible=false,lastFrame=0,drawCount=0,lastError='',fixture=false;
+  function transition(view,mode,now=performance.now(),autocycle=false){
+    if(['failure','fall','errorfall'].includes(mode)){
+      const continuing=view.exitOrigin&&['failure','fall','errorfall','error'].includes(view.mode);
+      view.exitMoveElapsed=continuing?(view.exitMoveElapsed??0)+elapsed(view,now):0;
+    }
+    if((mode==='idle'||mode==='error')&&['failure','fall','errorfall'].includes(view.mode)){
+      view.offPose=centeredExitPosition(view,elapsed(view,now));view.offPieces=null;
+    }
+    if(mode==='fall'||mode==='errorfall')view.doorHits=new Set();
+    if(mode==='break'){
+      const prior=elapsed(view,now);view.gapAtSuccess=forgeGap(prior);view.crackAtSuccess=forgeCrackProgress(prior);view.latheAtSuccess=latheProgress(prior);
+      view.magAtSuccess=(.5-.5*Math.cos(prior%4.2/4.2*Math.PI*2))*.88;view.steamAtSuccess=steamDepth(prior);
+    }
+    if((mode==='failure'||mode==='fall')&&!['failure','fall','errorfall','error'].includes(view.mode)){
+      const prior=elapsed(view,now);view.exitWasReady=view.mode==='ready';view.exitPulse=view.exitWasReady?connectedPulse(prior):1;
+      view.exitPieces=view.exitWasReady&&view.style==='blueprint'?permanentKickOffsets(prior):null;view.exitOrigin=originFor(view);
+      view.exitBrandOutline=view.style==='blueprint'||!['break','ready'].includes(view.mode);
+      const snapshot=document.createElement('canvas');snapshot.width=canvas.width;snapshot.height=canvas.height;snapshot.getContext('2d').drawImage(canvas,0,0);view.exitSnapshot=snapshot;
+      const local=prior%1.1/1.1;view.poseAtFailure=local<.35?mix(.28,0,local/.35):local<.54?(local-.35)/.19:mix(1,.28,(local-.54)/.46);
+    }
+    view.mode=mode;view.start=now;view.autocycle=false;view.paused=false;view.frozen=null;
+    if(!view.options.motion){
+      const end={break:'ready',failure:'error',errorfall:'error',fall:'idle'}[mode];
+      if(end){view.offPose=centeredExitPosition(view,10);view.offPieces=null;view.mode=end;}
+    }
+    draw(now);
+  }
+  function draw(now){
+    try{drawing(s,now);drawCount++;}catch(error){lastError=String(error);stop();}
+  }
+  function stop(){if(raf)cancelAnimationFrame(raf);raf=0;}
+  function schedule(){
+    if(!raf&&!lastError&&visible&&!fixture&&s.options.motion&&!document.hidden&&['forge','break','ready','failure','errorfall','fall'].includes(s.mode))raf=requestAnimationFrame(tick);
+  }
+  function tick(now){raf=0;if(!visible||fixture)return;if(now-lastFrame>=40){lastFrame=now;draw(now);}schedule();}
+  function update(input){
+    fixture=false;
+    const now=performance.now(),style=Object.prototype.hasOwnProperty.call(defs,input.style)?input.style:'blueprint';
+    if(style!==s.style){s.style=style;s.mode='idle';s.start=now;s.exitOrigin=null;s.offPose=null;s.exitPieces=null;signal=null;}
+    s.exitKind=['door','orbital','lock','cryo'].includes(input.exit)?input.exit:'door';
+    s.speed=Number.isFinite(input.speed)?Math.max(0,input.speed):0;s.options.motion=Boolean(input.motion);s.options.sparks=s.options.motion;
+    s.paused=false;s.frozen=null;visible=Boolean(input.visible);
+    if(input.palette)for(const key of Object.keys(s.palette))if(/^#[0-9a-f]{6}$/i.test(input.palette[key]??''))s.palette[key]=input.palette[key];
+    if(!visible){stop();return inspect(false);}
+    const next=['IDLE','CONNECTING','CONNECTED','STOPPING','FAILED'].includes(input.signal)?input.signal:'IDLE';
+    if(next!==signal){
+      const old=signal;signal=next;
+      if(next==='CONNECTING')transition(s,'forge',now);
+      else if(next==='CONNECTED')transition(s,old==='CONNECTING'?'break':'ready',now);
+      else if(next==='FAILED')transition(s,old==null?'error':'failure',now);
+      else if(next==='STOPPING')transition(s,old!=null&&old!=='IDLE'?'fall':'idle',now);
+      else if(!(old==='STOPPING'&&s.mode==='fall'))transition(s,old==='CONNECTED'||old==='CONNECTING'?'fall':'idle',now);
+    }
+    draw(now);schedule();return inspect(false);
+  }
+  // Pure scene-only inspection. No JavaScript/Java bridge, network, preferences, or service callbacks.
+  function inspect(pixels=true){
+    let ink=0,hash=2166136261;
+    if(pixels){const data=s.c.getImageData(0,0,canvas.width,canvas.height).data;for(let i=0;i<data.length;i+=16){if(data[i+3])ink++;hash=Math.imul(hash^data[i],16777619);hash=Math.imul(hash^data[i+1],16777619);hash=Math.imul(hash^data[i+2],16777619);}}
+    return {revision:'R11',source:'4E89AEB8436869C9EA160ED53496CD69CB1198EA1A06BF8582D9A12FC78BD25D',style:s.style,mode:s.mode,drawCount,error:lastError,ink,hash:hash>>>0,visible,looping:Boolean(raf),speed:s.speed};
+  }
+  function testFrame(mode,age,motion){
+    fixture=true;stop();s.options.motion=Boolean(motion);s.options.sparks=Boolean(motion);s.mode='ready';s.start=performance.now();s.paused=true;s.frozen=18.7;
+    s.exitOrigin=null;s.offPose=null;s.exitPieces=null;s.offPieces=null;s.exitMoveElapsed=0;s.exitWasReady=false;draw(performance.now());
+    if(['failure','errorfall','fall','idle','error'].includes(mode)){
+      transition(s,mode==='failure'||mode==='errorfall'||mode==='error'?'failure':'fall');
+      if(mode==='errorfall'){s.frozen=1.1;transition(s,'errorfall');}
+      if(mode==='idle'||mode==='error'){s.frozen=4.4;transition(s,mode);}
+    }else if(mode==='break'){
+      s.mode='forge';s.frozen=3.9;transition(s,'break');
+    }else{s.mode=mode;s.start=performance.now();}
+    s.paused=true;s.frozen=Math.max(0,Number(age)||0);draw(performance.now());return inspect();
+  }
+  function capture(){return canvas.toDataURL('image/png');}
+  window.McrfScene=Object.freeze({update,inspect,testFrame,capture});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else schedule();});
+  draw(performance.now());
+})();
+</script></body></html>
+

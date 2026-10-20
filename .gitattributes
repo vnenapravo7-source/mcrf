@@ -1,0 +1,8 @@
+# Android source/contract manifests pin exact file bytes across operating systems.
+/ports/android/** -text
+/ports/catalogue/** -text
+/ports/fixtures/** -text
+/work/steer-android-port/** -text
+/README.md -text
+/docs/ANDROID-GUIDE.md -text
+*.gif binary
