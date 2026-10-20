@@ -10,9 +10,6 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | Android 10+ | [0.1.0-preview.20261020.1](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.1.0-preview.20261020.1) |
 | Linux | В разработке |
 
-**Основной пул Android:** [sing-box, Steer и компактный WG/AWG](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.1.0-preview.20261020.1).
-**Дополнительный пул:** [транспорты и модули Windows/Android](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1).
-
 Всё управляется из приложения. Если для подключения нужен отсутствующий движок, MCRF предложит скачать его.
 
 | Компонент | Происхождение |
