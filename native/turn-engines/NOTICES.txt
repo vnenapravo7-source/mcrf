@@ -7,6 +7,15 @@ License: PolyForm Noncommercial 1.0.0. Noncommercial use only.
 Only backend code is included. The FOCSQ UI, assets and brand are not included.
 The MCRF stdin/loopback bridge is in the accompanying source archive.
 
+CSQTT 2.5: amurcanov/csqtt commit d02da9bd9d8926969b766e197c434d830a83dbd8,
+the upstream pin used by SanityProtocol/swg-panel's CSQTT 2.5.1 server line.
+License: PolyForm Noncommercial 1.0.0 (root license, noncommercial use only).
+Separate Windows process, not a replacement for the legacy 2.1 transport.
+MCRF adds only the bounded private-stdin bootstrap; wire protocol is unchanged.
+Client domain routing is not enabled: MCRF's main engine owns routing and DNS.
+The shared-link GCM envelope follows swg-panel/turn-artifacts.js; its fixed key
+is public and must not be presented as password-protected subscription storage.
+
 WDTT-Plus: https://github.com/Ivan4537/WDTT-Plus/tree/68bc4af
 License: GNU GPL version 3. Source archive includes go_client, pathprobe,
 go.mod/go.sum, build instructions and the GPL license. Modified main.go adds

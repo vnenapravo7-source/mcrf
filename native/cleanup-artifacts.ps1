@@ -4,19 +4,31 @@ $projectRoot = [IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot)).TrimEn
 $outputRoot = Join-Path $projectRoot 'outputs\native'
 $workRoot = Join-Path $projectRoot 'work'
 $targets = [Collections.Generic.List[string]]::new()
-$releases = @(Get-ChildItem -LiteralPath $outputRoot -Directory | Where-Object { $_.Name -match '^release-\d+\.\d+\.\d+$' } | Sort-Object { [version]($_.Name.Substring(8)) } -Descending)
-$kept = @($releases | Select-Object -First 3)
-foreach ($item in ($releases | Select-Object -Skip 3)) { $targets.Add($item.FullName) }
+$releases = @(Get-ChildItem -LiteralPath $outputRoot -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^release-\d+\.\d+\.\d+$' } | Sort-Object { [version]($_.Name.Substring(8)) } -Descending)
+$kept = @()
+foreach ($familyPattern in @('^release-0\.3\.\d+$','^release-1\.0\.\d+$')) {
+    $family = @($releases | Where-Object {$_.Name -match $familyPattern})
+    $kept += @($family | Select-Object -First 2)
+    foreach ($item in ($family | Select-Object -Skip 2)) { $targets.Add($item.FullName) }
+}
+# New product/version families need an explicit classification, not accidental
+# cross-family deletion based solely on a larger numeric version.
+$kept += @($releases | Where-Object {$_.Name -notmatch '^release-(0\.3|1\.0)\.\d+$'})
 # Only agent-generated local builds with these known names are disposable.
 foreach ($item in (Get-ChildItem -LiteralPath $outputRoot -Directory)) {
     if ($item.Name -match '^(routing-tools-local|discord-narrow-local|game-filter-local|game-filter-split-local|hotkeys-local|preset-autosave-local|tray-restore|zapret-restart-local)-\d{4}-\d{2}-\d{2}$') { $targets.Add($item.FullName) }
 }
 foreach ($item in (Get-ChildItem -LiteralPath $workRoot -Directory)) {
-    if ($item.Name -match '^(routing-tools-test|game-split-regression|discord-capture-test|hotkey-test|autosave-regression|zapret-restart-test)-\d{4}-\d{2}-\d{2}([a-z]|-[a-z]+)?$') { $targets.Add($item.FullName) }
+    if ($item.Name -match '^(routing-tools-test|game-split-regression|discord-capture-test|hotkey-test|autosave-regression|zapret-restart-test|ports-test)-\d{4}-\d{2}-\d{2}([a-z]|-[a-z]+)?$') { $targets.Add($item.FullName) }
     if ($item.Name -match '^cleanup-\d{4}-\d{2}-\d{2}$') {
         $binary = Join-Path $item.FullName 'build-verification.exe'
         if (Test-Path -LiteralPath $binary -PathType Leaf) { $targets.Add($binary) }
     }
+}
+# Explicit generated port build paths only. Toolchains, cached dependencies and delivery packages are retained.
+foreach ($relative in @('ports/linux/bin','ports/linux/obj','ports/portable/bin','ports/portable/obj','ports/deployment/bin','ports/deployment/obj','ports/tests/bin','ports/tests/obj','ports/tools/bin','ports/tools/obj','ports/live-tests/server/bin','ports/live-tests/server/obj','ports/live-tests/linux/bin','ports/live-tests/linux/obj','ports/ui-tests/linux/bin','ports/ui-tests/linux/obj','ports/android/app/build','ports/android/engines/build','ports/android/build','ports/android/.gradle')) {
+    $generated = Join-Path $projectRoot $relative
+    if (Test-Path -LiteralPath $generated -PathType Container) { $targets.Add($generated) }
 }
 foreach ($name in @('discord-capture-check.exe','hotkey-check.exe','game-split-regression.exe','autosave-regression.exe')) {
     $binary = Join-Path $workRoot $name

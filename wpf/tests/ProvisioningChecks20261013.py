@@ -1,4 +1,6 @@
 import base64
+import ast
+import os
 import copy
 import hashlib
 import importlib.util
@@ -44,6 +46,9 @@ class FakePanel:
     def listener_ready(self, port):
         return not self.not_running
 
+    def server_resources(self):
+        return getattr(self, "occupied_ports", set()), getattr(self, "occupied_networks", [])
+
     def request(self, method, path, body=None, **kwargs):
         self.requests.append((method, path, copy.deepcopy(body), kwargs))
         if self.kind == "3xui":
@@ -78,8 +83,8 @@ class FakePanel:
                 self.rows.append(dict(body, id="fixture-connection"))
                 return self.rows[-1]
             if path == "/api/state":
-                return {"connections": [dict(self.rows[-1], running=not self.not_running,
-                        yandex_auth_required=self.auth_required, client_code="fixture-room-code")]}
+                return {"connections": [dict(row, running=not self.not_running,
+                        yandex_auth_required=self.auth_required, client_code="fixture-room-code") for row in self.rows]}
             if path.endswith("/share"):
                 payload = {"name": "Fixture OpenFlux", "negotiate": True, "secret": "fixture-secret-key-1234567890",
                            "context": "direct", "transports": [{"type": "direct", "dial": "192.0.2.1:5443", "priority": 100}]}
@@ -92,7 +97,8 @@ class FakePanel:
             if path == "/api/state":
                 group = "csqtt" if any("csqtt/set" in q[1] for q in self.requests) else "wdtt"
                 return {"ok": True, "data": {"nodes": [] if self.no_nodes else [{"id": "fixture-node"}],
-                    "snapshots": {"fixture-node": {group: [{"iface": self.iface,
+                    "snapshots": {"fixture-node": {"csqtt_lines": getattr(self, "csqtt_lines", ["2.1", "2.5"]), group: [{"iface": self.iface,
+                    "line": getattr(self, "csqtt_line", "2.5"), "version": getattr(self, "csqtt_build", "2.5.1-2"),
                     "active": "inactive" if self.not_running else "active", "passwords": {self.password: {}}}]}}}}
             if path.endswith("/set"):
                 self.iface = body["iface"]
@@ -255,8 +261,8 @@ class ProvisioningTests(unittest.TestCase):
         api = FakePanel("3xui")
         api.rows = [{"port": 12325, "tag": "existing"}]
         r, _ = self.configure("3xui", api=api)
-        self.assertFalse(r["provision_complete"])
-        self.assertFalse(any(q[0] == "POST" for q in api.requests))
+        self.assertTrue(r["provision_complete"])
+        self.assertEqual(12326, r["ports"]["tcp_port"])
         self.assertEqual("existing", api.rows[0]["tag"])
 
     def test_partial_success_keeps_confirmed_tcp_without_retry(self):
@@ -341,7 +347,7 @@ class ProvisioningTests(unittest.TestCase):
                 updates = [q[2] for q in api.requests if q[1] == "/api/users/update"]
                 self.assertEqual(1, len(updates))
                 self.assertEqual(calls, updates[0]["vk_links"])
-                exported = urllib.parse.parse_qs(urllib.parse.urlsplit(r["connections"][0]).query)["hashes"][0].split(",")
+                exported = urllib.parse.parse_qs(urllib.parse.urlsplit(r["connections"][0]).query)["hashes"][0].split("+" if kind == "csqtt" else ",")
                 self.assertEqual([call.rsplit("/", 1)[1] for call in calls], exported)
                 self.assertFalse(any("vk.ru" in q[1] or "calls.start" in q[1] for q in api.requests))
 
@@ -354,6 +360,87 @@ class ProvisioningTests(unittest.TestCase):
     def test_csqtt_does_not_require_hidden_wg_port(self):
         r, _ = self.configure("swg", options(relay_kind="csqtt", wg_port=None))
         self.assertTrue(r["provision_complete"])
+        self.assertEqual("2.5", r["csqtt_line"])
+
+    def test_csqtt25_line_is_requested_and_observed(self):
+        r, api = self.configure("swg", options(relay_kind="csqtt"))
+        self.assertTrue(r["provision_complete"])
+        body = next(q[2] for q in api.requests if q[1] == "/api/csqtt/set")
+        self.assertEqual("2.5", body["line"])
+        self.assertEqual("2.5", r["csqtt_line"])
+
+    def test_csqtt25_old_node_never_creates(self):
+        api = FakePanel("swg")
+        api.csqtt_lines = ["2.1"]
+        r, api = self.configure("swg", options(relay_kind="csqtt"), api=api)
+        self.assertFalse(r["provision_complete"])
+        self.assertFalse(any(q[1].endswith("/set") for q in api.requests))
+
+    def test_csqtt25_wrong_running_line_or_unknown_build_is_not_success(self):
+        for line, build in [("2.1", "2.1.9-4"), ("2.5", ""), ("2.5", "2.1.9-4")]:
+            api = FakePanel("swg")
+            api.csqtt_line, api.csqtt_build = line, build
+            r, _ = self.configure("swg", options(relay_kind="csqtt"), api=api)
+            self.assertFalse(r["provision_complete"])
+            self.assertEqual([], r["connections"])
+
+    def test_csqtt25_seven_calls_rejected_without_creation(self):
+        calls = ["https://vk.ru/call/join/" + base64.urlsafe_b64encode(bytes([i + 1]) * 32).decode().rstrip("=") for i in range(7)]
+        r, api = self.configure("swg", options(relay_kind="csqtt", vk_calls=calls))
+        self.assertFalse(r["provision_complete"])
+        self.assertFalse(any(q[1].endswith("/set") for q in api.requests))
+
+    def test_csqtt21_selected_explicitly_and_keeps_plain_legacy_link(self):
+        api = FakePanel("swg")
+        api.csqtt_line, api.csqtt_build = "2.1", "2.1.9-4"
+        calls = ["https://vk.ru/call/join/" + base64.urlsafe_b64encode(bytes([i + 1]) * 32).decode().rstrip("=") for i in range(7)]
+        r, api = self.configure("swg", options(relay_kind="csqtt", csqtt_line="2.1", wg_port=None, vk_calls=calls), api=api)
+        self.assertTrue(r["provision_complete"], r["provision_error"])
+        self.assertEqual("2.1", r["csqtt_line"])
+        body = next(q[2] for q in api.requests if q[1] == "/api/csqtt/set")
+        self.assertEqual("2.1", body["line"])
+        self.assertNotIn("wg_port", body)
+        self.assertTrue(r["connections"][0].startswith("csqtt://connect?"))
+        query = urllib.parse.parse_qs(urllib.parse.urlsplit(r["connections"][0]).query)
+        self.assertEqual([c.rsplit("/", 1)[1] for c in calls], query["hashes"][0].split(","))
+
+    def test_csqtt21_wrong_line_or_build_is_not_success(self):
+        for line, build in [("2.5", "2.5.1-2"), ("2.1", ""), ("2.1", "2.5.1-2")]:
+            api = FakePanel("swg")
+            api.csqtt_line, api.csqtt_build = line, build
+            r, _ = self.configure("swg", options(relay_kind="csqtt", csqtt_line="2.1"), api=api)
+            self.assertFalse(r["provision_complete"])
+            self.assertEqual([], r["connections"])
+
+    def test_csqtt_invalid_line_never_mutates(self):
+        for line in ("2.0", "", None):
+            r, api = self.configure("swg", options(relay_kind="csqtt", csqtt_line=line))
+            self.assertFalse(r["provision_complete"])
+            self.assertEqual([], api.requests)
+
+    @unittest.skipUnless(os.environ.get("MCRF_SWG_PINNED_SOURCE"), "pinned upstream source not provided")
+    def test_csqtt21_builds_match_pinned_panel_contract(self):
+        upstream = pathlib.Path(os.environ["MCRF_SWG_PINNED_SOURCE"])
+        panel = ast.parse((upstream / "swg-panel-server").read_text(encoding="utf-8"))
+        assignment = next(n for n in panel.body if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "CSQTT_BUILDS" for t in n.targets))
+        self.assertEqual(["2.1.9-4", "2.1.9-3", "2.1.9-2", "2.1.9", "2.0.1"], [v for v, tag in ast.literal_eval(assignment.value)])
+
+    @unittest.skipUnless(os.environ.get("MCRF_SWG_PINNED_SOURCE"), "pinned upstream source not provided")
+    def test_csqtt25_actual_pinned_panel_version_contract(self):
+        # Independent source oracle: the release tag has a `csqtt-` prefix,
+        # the node's observed version does NOT. Do not let our own mock invent it.
+        upstream = pathlib.Path(os.environ["MCRF_SWG_PINNED_SOURCE"])
+        panel = ast.parse((upstream / "swg-panel-server").read_text(encoding="utf-8"))
+        lines = next(n for n in panel.body if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "CSQTT_LINES" for t in n.targets))
+        builds = next(ast.literal_eval(v) for k, v in zip(lines.value.keys, lines.value.values) if isinstance(k, ast.Constant) and k.value == "2.5")
+        self.assertEqual(["2.5.1-2", "2.5.1"], [v for v, tag in builds])
+        version_fn = next(n for n in panel.body if isinstance(n, ast.FunctionDef) and n.name == "_csqtt_current_version")
+        context = {"CSQTT_DEFAULT_LINE": "2.1", "CSQTT_LINES": {"2.5": builds}}
+        exec(compile(ast.Module(body=[version_fn], type_ignores=[]), "pinned-swg-contract", "exec"), context)
+        self.assertEqual("2.5.1-2", context["_csqtt_current_version"]("2.5"))
+        node = ast.parse((upstream / "swg-noded").read_text(encoding="utf-8"))
+        snapshot = next(n for n in node.body if isinstance(n, ast.FunctionDef) and n.name == "csqtt_snapshot")
+        self.assertTrue(any(isinstance(n, ast.Dict) and any(isinstance(k, ast.Constant) and k.value == "version" and isinstance(v, ast.Call) and isinstance(v.func, ast.Name) and v.func.id == "_csqtt_installed_ver" for k, v in zip(n.keys, n.values)) for n in ast.walk(snapshot)))
 
     def test_missing_call_and_nodes_have_no_creation(self):
         r, api = self.configure("swg", options(vk_call="invalid"))

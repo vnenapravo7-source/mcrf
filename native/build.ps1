@@ -1,6 +1,9 @@
-param([string]$OutputPath,[string[]]$TestSources,[string]$TestEntryPoint,[switch]$Wpf)
+param([string]$OutputPath,[string[]]$TestSources,[string]$TestEntryPoint,[switch]$Wpf,[string]$DependencyRoot,[string]$WinDivertDll)
 $ErrorActionPreference = 'Stop'
 $project = Split-Path -Parent $PSScriptRoot
+$taskDependencyPrefix=[IO.Path]::GetFullPath((Join-Path $project 'work')).TrimEnd('\')+'\'
+if($DependencyRoot){$DependencyRoot=[IO.Path]::GetFullPath($DependencyRoot);if(!(Test-Path -LiteralPath $DependencyRoot -PathType Container)){throw 'Dependency directory is unavailable'}}
+function Resolve-TaskDependency([string]$Path){$full=[IO.Path]::GetFullPath($Path);if($DependencyRoot -and $full.StartsWith($taskDependencyPrefix,[StringComparison]::OrdinalIgnoreCase)){return Join-Path $DependencyRoot $full.Substring($taskDependencyPrefix.Length)};return $Path}
 if (-not $OutputPath) { $OutputPath = Join-Path $project 'outputs\native\mcrf.exe' }
 New-Item -ItemType Directory -Path (Split-Path -Parent ([System.IO.Path]::GetFullPath($OutputPath))) -Force | Out-Null
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
@@ -48,7 +51,8 @@ $resources = @(
   @((Join-Path $project 'work\zapret\LICENSE.zapret'), 'SplifyWin.Zapret.LICENSE.zapret'),
   @((Join-Path $project 'work\zapret\winws-mcrf.exe'), 'SplifyWin.Zapret.apps.winws.exe'),
   @((Join-Path $project 'work\zapret\cygwin-sdk\usr\bin\cygwin1.dll'), 'SplifyWin.Zapret.apps.cygwin1.dll'),
-  @((Join-Path $project 'work\zapret\WinDivert.dll'), 'SplifyWin.Zapret.apps.WinDivert.dll'),
+  @($(if($WinDivertDll){[IO.Path]::GetFullPath($WinDivertDll)}else{Join-Path $project 'work\windivert-mrcf-wd\WinDivert.dll'}), 'SplifyWin.Zapret.apps.WinDivert.dll'),
+  @((Join-Path $PSScriptRoot 'windivert-service\README.md'), 'SplifyWin.Zapret.MRCF_WD.NOTICES.md'),
   @((Join-Path $project 'work\zapret\WinDivert64.sys'), 'SplifyWin.Zapret.apps.WinDivert64.sys'),
   @((Join-Path $PSScriptRoot 'zapret-engine\README.md'), 'SplifyWin.Zapret.apps.NOTICES.md'),
   @((Join-Path $PSScriptRoot 'zapret-engine\LICENSE.MCRF'), 'SplifyWin.Zapret.apps.LICENSE.MCRF'),
@@ -57,7 +61,7 @@ $resources = @(
   @((Join-Path $PSScriptRoot 'assets\blue-glass-backdrop.png'), 'SplifyWin.UI.BlueGlassBackdrop.png')
 )
 if ($Wpf) {
-  $qrLibrary=Join-Path $project 'work/qrcode/qrcoder-1.6.0/package/lib/net40/QRCoder.dll'
+  $qrLibrary=Resolve-TaskDependency (Join-Path $project 'work/qrcode/qrcoder-1.6.0/package/lib/net40/QRCoder.dll')
   if ((Get-FileHash -LiteralPath $qrLibrary -Algorithm SHA256).Hash -ne '5AE2792C76262943A4E34140BBD64B2AA7D9ED5C5822680C00D9EAA322412680') { throw 'QRCoder dependency checksum changed.' }
   $resources+=,@($qrLibrary,'Mcrf.Managed.QRCoder.dll')
   $resources+=,@((Join-Path $project 'work/qrcode/qrcoder-1.6.0/LICENSE.txt'),'Mcrf.Managed.LICENSE.QRCoder.txt')
@@ -70,8 +74,9 @@ Add-Type -AssemblyName System.IO.Compression
 $packedRoot=Join-Path $project 'work/packed-resources'
 New-Item -ItemType Directory -Path $packedRoot -Force | Out-Null
 foreach ($item in $resources) {
+  if($item[1] -ne 'SplifyWin.Zapret.apps.WinDivert.dll'){$item[0]=Resolve-TaskDependency $item[0]}
   # Optional transports are downloaded on demand, never embedded in mcrf.exe.
-  if ([IO.Path]::GetFileName($item[0]) -match '^(openflux(?:-windows-amd64)?|csqtt-client|wdtt-client|qwdtt-client|libunwind)\.(exe|dll)$') {
+  if ([IO.Path]::GetFileName($item[0]) -match '^(openflux(?:-windows-amd64)?|csqtt(?:25)?-client|wdtt-client|qwdtt-client|libunwind)\.(exe|dll)$') {
     throw "Optional engine must not be bundled: $($item[0])"
   }
   if (-not (Test-Path $item[0])) { throw "Missing bundled resource: $($item[0])" }
@@ -83,6 +88,7 @@ foreach ($item in $resources) {
   } else { $arguments += "/resource:$($item[0]),$($item[1])" }
 }
 $arguments += @((Join-Path $PSScriptRoot 'AssemblyInfo.cs'), (Join-Path $PSScriptRoot 'AppBrand.cs'), (Join-Path $PSScriptRoot 'ClientModel.cs'), (Join-Path $PSScriptRoot 'PresetStorage.cs'), (Join-Path $PSScriptRoot 'Qwdtt.cs'), (Join-Path $PSScriptRoot 'VkCalls.cs'), (Join-Path $PSScriptRoot 'TurnProfile.cs'), (Join-Path $PSScriptRoot 'TurnEngines.cs'), (Join-Path $PSScriptRoot 'NetworkCore.cs'), (Join-Path $PSScriptRoot 'RouteCompiler.cs'), (Join-Path $PSScriptRoot 'SecondPart.cs'), (Join-Path $PSScriptRoot 'Zapret.cs'), (Join-Path $PSScriptRoot 'OwnedJob.cs'), (Join-Path $PSScriptRoot 'WarpScout.cs'), (Join-Path $PSScriptRoot 'SystemProxy.cs'), (Join-Path $PSScriptRoot 'BrandArt.cs'), (Join-Path $PSScriptRoot 'BlueGlassDashboard.cs'), (Join-Path $PSScriptRoot 'NativeClient.cs'))
+$arguments += (Join-Path $PSScriptRoot 'WinDivertService.cs')
 $arguments += (Join-Path $PSScriptRoot 'ClientJournal.cs')
 $arguments += (Join-Path $PSScriptRoot 'ChangeConfirmation.cs')
 $arguments += (Join-Path $PSScriptRoot 'HostsRepair.cs')
@@ -107,6 +113,7 @@ $arguments += (Join-Path $PSScriptRoot 'VpnPresetConstructor.cs')
 $arguments += (Join-Path $PSScriptRoot 'NativeZapretResults.cs')
 $arguments += (Join-Path $PSScriptRoot 'BundledResources.cs')
 $arguments += (Join-Path $PSScriptRoot 'OptionalEngines.cs')
+$arguments += (Join-Path $PSScriptRoot 'Csqtt25Link.cs')
 $arguments += (Join-Path $PSScriptRoot 'NativeEngineDownloads.cs')
 $arguments += (Join-Path $PSScriptRoot 'ZapretResultTable.cs')
 $arguments += (Join-Path $PSScriptRoot 'NativeZapretProfiles.cs')
@@ -166,6 +173,7 @@ if ($TestSources) {
   $arguments = @('/target:exe', "/main:$TestEntryPoint") + @($arguments | Where-Object { $_ -ne '/target:winexe' -and $_ -notlike '/win32manifest:*' })
   $arguments += $TestSources
 }
+$arguments=@($arguments | ForEach-Object {if($_ -like '/r:*'){'/r:'+(Resolve-TaskDependency $_.Substring(3))}else{$_}})
 & $compiler @arguments
 if ($LASTEXITCODE -ne 0) { throw "C# build failed: $LASTEXITCODE" }
 $built = Get-Item -LiteralPath $OutputPath

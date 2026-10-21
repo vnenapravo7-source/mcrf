@@ -50,6 +50,7 @@ public bool DiscordVoiceEnabled{get;set;}public string DiscordInterfaceStrategy{
     public bool Available{get{return String.IsNullOrEmpty(UnavailableReason);}}
   }
   public sealed class ZapretProfile {
+    public string WizardServiceId{get;set;}
     public string Id{get;set;} public string Name{get;set;} public bool Enabled{get;set;} public ZapretSettings Settings{get;set;} public string Hotkey{get;set;}
     public ZapretProfile(){Id=Guid.NewGuid().ToString("N");Name="Новый профиль";Enabled=true;Settings=new ZapretSettings();}
   }
@@ -155,11 +156,11 @@ public bool DiscordVoiceEnabled{get;set;}public string DiscordInterfaceStrategy{
     public string DirectoryPath{get;private set;} public string ActiveStrategy{get;private set;}public string Status{get;private set;}
     public bool Running{get{lock(sync){try{return process==null?autoPausedProfiles.Count>0:!process.HasExited&&extraProcesses.All(p=>!p.HasExited);}catch{return false;}}}}
     public bool ProfileApplied(string profileId,string strategyId){lock(sync){string current;return Running&&(String.IsNullOrEmpty(profileId)?ActiveStrategy==strategyId:activeProfiles.TryGetValue(profileId,out current)&&current==strategyId);}}
-public ZapretRuntime(NetworkCore core){hostsCore=core;root=core.DataRoot;curl=core.CurlExecutable;cert=Path.Combine(root,"core","curl-ca-bundle.crt");DirectoryPath=Path.Combine(root,"core","zapret-1.10.3");Status="Выключен";logTimer=new System.Threading.Timer(s=>FlushLog(),null,250,250);}
+public ZapretRuntime(NetworkCore core){hostsCore=core;root=core.DataRoot;curl=core.CurlExecutable;cert=Path.Combine(root,"core","curl-ca-bundle.crt");DirectoryPath=Path.Combine(root,"core","zapret-1.10.3-mrcf-wd");Status="Выключен";logTimer=new System.Threading.Timer(s=>FlushLog(),null,250,250);}
     public static string Quote(string value){if(value==null||value.IndexOfAny(new[]{'\r','\n','\0'})>=0)throw new FormatException("Недопустимый аргумент");return "\""+value.Replace("\"","\\\"")+"\"";}
-    public void ReloadUpdates(){lock(sync){if(Running)throw new InvalidOperationException("Сначала выключите Zapret");string archive=AppUpdates.ActiveFile(root,"zapret",null);DirectoryPath=archive==null?Path.Combine(root,"core","zapret-1.10.3"):Path.GetDirectoryName(archive);prepared=false;engineValidated=false;}Prepare();}
+    public void ReloadUpdates(){lock(sync){if(Running)throw new InvalidOperationException("Сначала выключите Zapret");string archive=AppUpdates.ActiveFile(root,"zapret",null);DirectoryPath=archive==null?Path.Combine(root,"core","zapret-1.10.3-mrcf-wd"):Path.GetDirectoryName(archive);prepared=false;engineValidated=false;}Prepare();}
     public void Prepare(){lock(sync){if(disposed)throw new ObjectDisposedException("Zapret");if(prepared&&File.Exists(Path.Combine(DirectoryPath,"winws.exe")))return;Directory.CreateDirectory(DirectoryPath);
-      string active=AppUpdates.ActiveFile(root,"zapret",null);if(active!=null){DirectoryPath=Path.GetDirectoryName(active);foreach(var name in new[]{"tls_clienthello_vk_com.bin","tls_clienthello_gosuslugi_ru.bin"})if(!File.Exists(Path.Combine(DirectoryPath,name)))using(var source=Assembly.GetExecutingAssembly().GetManifestResourceStream("SplifyWin.Zapret."+name))using(var output=File.Create(Path.Combine(DirectoryPath,name)))source.CopyTo(output);prepared=true;return;}
+      string active=AppUpdates.ActiveFile(root,"zapret",null);if(active!=null){DirectoryPath=Path.GetDirectoryName(active);foreach(var name in new[]{"tls_clienthello_vk_com.bin","tls_clienthello_gosuslugi_ru.bin"})if(!File.Exists(Path.Combine(DirectoryPath,name)))using(var source=Assembly.GetExecutingAssembly().GetManifestResourceStream("SplifyWin.Zapret."+name))using(var output=File.Create(Path.Combine(DirectoryPath,name)))source.CopyTo(output);WinDivertService.Prepare(DirectoryPath);prepared=true;return;}
       using(var input=Assembly.GetExecutingAssembly().GetManifestResourceStream("SplifyWin.Zapret.flowseal.zip"))using(var zip=new ZipArchive(input,ZipArchiveMode.Read))foreach(var entry in zip.Entries){
         string name=Path.GetFileName(entry.FullName);if(!entry.FullName.Contains("/bin/")&&!name.StartsWith("LICENSE",StringComparison.OrdinalIgnoreCase))continue;
         if(!Regex.IsMatch(name,@"^[a-zA-Z0-9_.-]+$")||name.Length==0)continue;var target=Path.Combine(DirectoryPath,name);
@@ -168,7 +169,7 @@ public ZapretRuntime(NetworkCore core){hostsCore=core;root=core.DataRoot;curl=co
       using(var license=Assembly.GetExecutingAssembly().GetManifestResourceStream("SplifyWin.Zapret.LICENSE.WinDivert"))using(var output=File.Create(Path.Combine(DirectoryPath,"LICENSE.WinDivert")))license.CopyTo(output);
       using(var license=Assembly.GetExecutingAssembly().GetManifestResourceStream("SplifyWin.Zapret.LICENSE.zapret"))using(var output=File.Create(Path.Combine(DirectoryPath,"LICENSE.zapret")))license.CopyTo(output);
       foreach(var name in new[]{"tls_clienthello_vk_com.bin","tls_clienthello_gosuslugi_ru.bin"})using(var source=Assembly.GetExecutingAssembly().GetManifestResourceStream("SplifyWin.Zapret."+name))using(var output=File.Create(Path.Combine(DirectoryPath,name)))source.CopyTo(output);
-      prepared=true;
+      WinDivertService.Prepare(DirectoryPath);prepared=true;
     }}
     public string BuildArguments(ZapretSettings settings,ZapretStrategy strategy,string runDirectory){
       string arguments=ApplicationExclusions.ZapretArgument(settings.ExcludedApplications,runDirectory)+BuildScopedArguments(settings,strategy,runDirectory);
@@ -228,7 +229,7 @@ public ZapretRuntime(NetworkCore core){hostsCore=core;root=core.DataRoot;curl=co
       string help=(stdout??"")+"\n"+(stderr??"");
       return (exitCode==0||exitCode==1)&&help.Contains("--dpi-desync")&&help.Contains("--hostlist")&&help.Contains("--wf-tcp");
     }
-    public string AppExecutable(){Prepare();string directory=Path.Combine(root,"core","zapret-apps-v1");Directory.CreateDirectory(directory);foreach(var name in new[]{"winws.exe","cygwin1.dll","WinDivert.dll","WinDivert64.sys","NOTICES.md","LICENSE.MCRF"})BundledResources.Install("SplifyWin.Zapret.apps."+name,Path.Combine(directory,name));foreach(var name in new[]{"LICENSE.zapret","LICENSE.WinDivert"})BundledResources.Install("SplifyWin.Zapret."+name,Path.Combine(directory,name));return Path.Combine(directory,"winws.exe");}
+    public string AppExecutable(){Prepare();string directory=Path.Combine(root,"core","zapret-apps-mrcf-wd-v1");Directory.CreateDirectory(directory);foreach(var name in new[]{"winws.exe","cygwin1.dll","WinDivert.dll","WinDivert64.sys","NOTICES.md","LICENSE.MCRF"})BundledResources.Install("SplifyWin.Zapret.apps."+name,Path.Combine(directory,name));foreach(var name in new[]{"LICENSE.zapret","LICENSE.WinDivert"})BundledResources.Install("SplifyWin.Zapret."+name,Path.Combine(directory,name));WinDivertService.Prepare(directory);return Path.Combine(directory,"winws.exe");}
     public async Task CheckEngine(CancellationToken cancellation,bool applications=false){
       cancellation.ThrowIfCancellationRequested();if(applications?appEngineValidated:engineValidated)return;string executable=await Task.Run(()=>{Prepare();return applications?AppExecutable():Path.Combine(DirectoryPath,"winws.exe");},cancellation);
       var info=new ProcessStartInfo(executable,"--help"){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,WorkingDirectory=Path.GetDirectoryName(executable)};

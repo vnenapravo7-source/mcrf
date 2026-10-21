@@ -9,6 +9,7 @@ Windows-интерфейс на WPF, общий сетевой код — в `..
 - `Route*.cs`, `RoutingHosts.cs`, `ProcessCapture.cs` — маршруты, hosts и захват процесса.
 - `ServerPages.cs`, `ServersWorkspace.cs`, `ModulePages.cs` — серверы, WARP и обновления.
 - `ZapretWorkspace.cs`, `StrategyPages.cs`, `SetupPages.cs` — профили, редактор, генератор и проверки.
+- `SetupWizard.cs`, `SetupWizardFlow.cs`, `SetupServiceTrial.cs` — предложение конфигураций после поиска, последовательные очные проверки выбранных сервисов и подтверждение сохранения. Жёлтые результаты доступны для ручной проверки; её можно продолжить по сохранённому отчёту.
 - `Deployment*.cs`, `Provisioning.py` — SSH-установка и создание подключений.
 - `VkBrowser.cs`, `VkCallFields.cs` — вход VK и ссылки звонков.
 - `JournalView.cs`, `ProfileActions.cs`, `HotkeyCapture.cs`, `Tray.cs` — журнал, профиль, горячие клавиши и трей.

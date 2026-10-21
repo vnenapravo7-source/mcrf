@@ -1,0 +1,37 @@
+diff --git a/dll/windivert.c b/dll/windivert.c
+--- a/dll/windivert.c
++++ b/dll/windivert.c
+@@ -52,4 +52,5 @@
+ #define WINDIVERT_DRIVER_NAME           L"WinDivert"
++#define MCRF_SERVICE_NAME               L"MRCF_WD"
+ #define WINDIVERT_DRIVER32_SYS          L"\\" WINDIVERT_DRIVER_NAME L"32.sys"
+ #define WINDIVERT_DRIVER64_SYS          L"\\" WINDIVERT_DRIVER_NAME L"64.sys"
+ #define WINDIVERT_VERSION_MAJOR_MIN     2
+@@ -324,7 +325,7 @@
+     }
+ 
+     // Check if the WinDivert service already exists; if so, start it.
+-    service = OpenService(manager, WINDIVERT_DEVICE_NAME, SERVICE_ALL_ACCESS);
++    service = OpenService(manager, MCRF_SERVICE_NAME, SERVICE_ALL_ACCESS);
+     if (service != NULL)
+     {
+         goto WinDivertDriverInstallExit;
+@@ -337,15 +338,15 @@
+     }
+ 
+     // Create the service:
+-    service = CreateService(manager, WINDIVERT_DEVICE_NAME,
+-        WINDIVERT_DEVICE_NAME, SERVICE_ALL_ACCESS, SERVICE_KERNEL_DRIVER,
++    service = CreateService(manager, MCRF_SERVICE_NAME,
++        MCRF_SERVICE_NAME, SERVICE_ALL_ACCESS, SERVICE_KERNEL_DRIVER,
+         SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL, windivert_sys, NULL, NULL,
+         NULL, NULL, NULL);
+     if (service == NULL)
+     {
+         if (GetLastError() == ERROR_SERVICE_EXISTS) 
+         {
+-            service = OpenService(manager, WINDIVERT_DEVICE_NAME,
++            service = OpenService(manager, MCRF_SERVICE_NAME,
+                 SERVICE_ALL_ACCESS);
+         }
+         goto WinDivertDriverInstallExit;

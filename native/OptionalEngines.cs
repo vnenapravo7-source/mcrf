@@ -35,7 +35,13 @@ namespace SplifyWin {
     public IEnumerable<EnginePackage> Packages{get{return catalog.Engines;}}
     public string StorageRoot{get{return root;}}
     public OptionalEngines(string dataRoot):this(dataRoot,ReadActiveCatalog(dataRoot)){}
-    static EngineCatalog ReadActiveCatalog(string dataRoot){try{var data=new JavaScriptSerializer().Deserialize<EngineCatalog>(File.ReadAllText(Path.Combine(dataRoot,"optional-engines-v2","active-catalog.json")));ValidateCatalog(data);return data;}catch(IOException){}catch(ArgumentException){}catch(InvalidDataException){}return ReadCatalog();}
+    static EngineCatalog ReadActiveCatalog(string dataRoot){try{var data=new JavaScriptSerializer().Deserialize<EngineCatalog>(File.ReadAllText(Path.Combine(dataRoot,"optional-engines-v2","active-catalog.json")));ValidateCatalog(data);return MergeEmbeddedRequirements(data,ReadCatalog());}catch(IOException){}catch(ArgumentException){}catch(InvalidDataException){}return ReadCatalog();}
+    // An old downloaded catalogue must not shadow a new executable required by
+    // this application. Keep every unrelated active package and old directory.
+    public static EngineCatalog MergeEmbeddedRequirements(EngineCatalog active,EngineCatalog embedded){
+      ValidateCatalog(active);ValidateCatalog(embedded);var old=active.Engines.Single(p=>p.Id=="csqtt");var next=embedded.Engines.Single(p=>p.Id=="csqtt");
+      if(next.Files.Any(f=>f.Name=="csqtt25-client.exe")&&!old.Files.Any(f=>f.Name=="csqtt25-client.exe"))return new EngineCatalog{Version=1,Engines=active.Engines.Select(p=>p.Id=="csqtt"?next:p).ToList()};return active;
+    }
     public static void ValidateCatalog(EngineCatalog data){if(data==null||data.Version!=1||data.Engines==null||data.Engines.Count<3||data.Engines.Count>4||data.Engines.Select(p=>p.Id).Distinct().Count()!=data.Engines.Count||new[]{"csqtt","openflux","wdtt"}.Any(id=>!data.Engines.Any(p=>p.Id==id))||data.Engines.Any(p=>!new[]{"csqtt","openflux","wdtt","qwdtt"}.Contains(p.Id)))throw new InvalidDataException("Некорректный каталог движков");foreach(var p in data.Engines)Validate(p);}
     public OptionalEngines(string dataRoot,EngineCatalog data){root=Path.Combine(dataRoot,"optional-engines-v2");legacy=Path.Combine(dataRoot,"core");if(data!=null&&data.Engines!=null&&!data.Engines.Any(p=>p.Id=="qwdtt")){var q=ReadCatalog().Engines.FirstOrDefault(p=>p.Id=="qwdtt");if(q!=null)data.Engines.Add(q);}catalog=RelocateLegacyCatalog(data);}
     static EngineCatalog ReadCatalog(){using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("SplifyWin.Core.engine-catalog.json"))using(var reader=new StreamReader(stream))return new JavaScriptSerializer().Deserialize<EngineCatalog>(reader.ReadToEnd());}

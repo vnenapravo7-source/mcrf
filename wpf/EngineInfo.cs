@@ -17,7 +17,7 @@ namespace Mcrf.Wpf {
     new ProtocolRow{Name="Транспорт и защита",Features="TCP · gRPC · WebSocket · XHTTP · TLS · REALITY",Engine="Зависит от сервера",Source="https://github.com/vnenapravo7-source/3x-ui-tunnels"},
     new ProtocolRow{Name="WARP / WireGuard",Features="WireGuard · AmneziaWG · выход Cloudflare WARP",Engine="sing-box / WarpScout",Source="https://github.com/vnenapravo7-source/3x-ui-tunnels"},
     new ProtocolRow{Name="OpenFlux",Features="TCP через Yandex Docs, Volga, Board, Telemost, Mail.ru, Cups.online или Direct",Optional="openflux",Source="https://github.com/vnenapravo7-source/openflux-deploy"},
-    new ProtocolRow{Name="CSQTT",Features="TURN/RTP · отдельный Windows-клиент · некоммерческая лицензия",Optional="csqtt",Source="https://github.com/amurcanov/csqtt"},
+    new ProtocolRow{Name="CSQTT 2.1 / 2.5",Features="TURN/RTP · отдельные совместимые движки · некоммерческая лицензия",Optional="csqtt",Source="https://github.com/amurcanov/csqtt"},
     new ProtocolRow{Name="WDTT",Features="WireGuard через DTLS/TURN · SOCKS5-выход",Optional="wdtt",Source="https://github.com/Ivan4537/WDTT-Plus"},
     new ProtocolRow{Name="QWDTT",Features="Вариант SpaceNeuroX · свой SOCKS5-движок · не заменяется WDTT",Optional="qwdtt",Source="https://github.com/SpaceNeuroX/proxy-turn-vk-android"}
    };foreach(var row in rows)if(row.Optional!=null)row.Engine=session.Core.Engines.Installed(row.Optional)?"Установлен отдельно":"Не установлен";

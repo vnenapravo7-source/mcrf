@@ -22,7 +22,7 @@ namespace SplifyWin {
     public string Link {get;set;} public string Host {get;set;} public int Port {get;set;} public string Source {get;set;}
     public int Latency {get;set;} public bool Healthy {get;set;}
     public ServerNode(){Id=Guid.NewGuid().ToString("N");Name="";Protocol="";Link="";Host="";Port=443;Latency=-1;}
-    public string TransportLabel {get{if(Protocol=="wireguard"||Protocol=="awg"||Protocol=="csqtt"||Protocol=="wdtt"||Protocol=="qwdtt")return Protocol.ToUpperInvariant();try{var u=new Uri(Link);var q=HttpUtility.ParseQueryString(u.Query);var transport=q["type"]??q["network"]??"tcp";var security=q["security"];return Protocol.ToUpperInvariant()+" · "+transport.ToUpperInvariant()+(String.IsNullOrEmpty(security)||security=="none"?"":" · "+security.ToUpperInvariant());}catch{return Protocol.ToUpperInvariant();}}}
+    public string TransportLabel {get{if(Protocol=="csqtt")return Csqtt25Link.IsSealed(Link)?"CSQTT 2.5":"CSQTT 2.1";if(Protocol=="wireguard"||Protocol=="awg"||Protocol=="wdtt"||Protocol=="qwdtt")return Protocol.ToUpperInvariant();try{var u=new Uri(Link);var q=HttpUtility.ParseQueryString(u.Query);var transport=q["type"]??q["network"]??"tcp";var security=q["security"];return Protocol.ToUpperInvariant()+" · "+transport.ToUpperInvariant()+(String.IsNullOrEmpty(security)||security=="none"?"":" · "+security.ToUpperInvariant());}catch{return Protocol.ToUpperInvariant();}}}
   }
   public static class SubscriptionMerge {
     static string Identity(ServerNode node){try{var uri=new Uri(node.Link);var query=HttpUtility.ParseQueryString(uri.Query);return node.Protocol+"|"+node.Host.ToLowerInvariant()+"|"+node.Port+"|"+(query["type"]??query["network"]??"tcp");}catch{return node.Protocol+"|"+node.Host+"|"+node.Port;}}

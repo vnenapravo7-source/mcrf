@@ -5,4 +5,6 @@
 /work/steer-android-port/** -text
 /README.md -text
 /docs/ANDROID-GUIDE.md -text
+/native/** -text
+/wpf/** -text
 *.gif binary

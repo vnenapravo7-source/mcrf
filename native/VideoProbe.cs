@@ -46,9 +46,13 @@ namespace SplifyWin {
     internal Task<ZapretEndpointResult> Run(CancellationToken token){return RunMediaFor(Target,token);}
     internal async Task<ZapretEndpointResult> RunMediaFor(string target,CancellationToken token){
       var normal=await RunSingle(target,token);if(target!=Target||normal.Access!=ServiceAccess.Available)return normal;
-      var shorts=await RunSingle(selectedShorts,token);if(shorts.Access==ServiceAccess.Available&&shorts.Url.StartsWith("https://www.youtube.com/shorts/",StringComparison.Ordinal))selectedShorts=shorts.Url;shorts.Url=Target;shorts.Milliseconds+=normal.Milliseconds;
-      shorts.Detail=shorts.Access==ServiceAccess.Available?"Обычное видео и случайный Shorts воспроизводятся: время и кадры растут.":"Обычное видео работает. Shorts: "+shorts.Detail;
-      return shorts;
+      var shorts=await RunSingle(selectedShorts,token);if(shorts.Access==ServiceAccess.Available&&shorts.Url.StartsWith("https://www.youtube.com/shorts/",StringComparison.Ordinal))selectedShorts=shorts.Url;
+      return CombineYouTube(normal,shorts);
+    }
+    internal static ZapretEndpointResult CombineYouTube(ZapretEndpointResult normal,ZapretEndpointResult shorts){
+      return new ZapretEndpointResult{Url=Target,Access=normal.Access==ServiceAccess.Available?shorts.Access:normal.Access,Milliseconds=normal.Milliseconds+shorts.Milliseconds,
+       Detail="Обычное видео: "+ZapretChecks.Label(normal.Access)+" · "+normal.Detail+"\nShorts: "+ZapretChecks.Label(shorts.Access)+" · "+shorts.Detail+
+       (normal.Access==ServiceAccess.Available&&shorts.Access==ServiceAccess.Available?"":"\nНеподтверждённые результаты можно проверить очно в мастере; они не исключают стратегию из ручного выбора.")};
     }
     internal async Task<ZapretEndpointResult> RunSingle(string target,CancellationToken token){
       await isolated.WaitAsync(token);BrowserVideoProbe fresh=null;try{lock(sync){if(disposed)throw new ObjectDisposedException("VideoProbe");fresh=new BrowserVideoProbe(proxy,target);active.Add(fresh);}return await fresh.Run(token);}finally{if(fresh!=null){lock(sync)active.Remove(fresh);fresh.Dispose();}isolated.Release();}

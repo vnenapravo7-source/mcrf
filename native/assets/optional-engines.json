@@ -47,13 +47,18 @@
       ]
     },
     {
-      "Name": "CSQTT",
+      "Name": "CSQTT 2.1 / 2.5",
       "Id": "csqtt",
-      "Sha256": "8f5f3ec81a8505517ca749f768f3da865dba80a7277ff94e606f94727889bf6c",
-      "Size": 12709783,
-      "Version": "engines-2026-10-02-1",
-      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-csqtt-windows-amd64.zip",
+      "Sha256": "fa02639b98a26a099186ae2e2596c18c445c54af901a59f49a1b16a224798b1e",
+      "Size": 17246177,
+      "Version": "csqtt25-2.5.0-mcrf1",
+      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-csqtt25-windows-amd64.zip",
       "Files": [
+        {
+          "Size": 9261568,
+          "Name": "csqtt25-client.exe",
+          "Sha256": "414539a7dc8af5d4401dd15e5ca030f2c725ca4468f9225bc85aaea00e2ee961"
+        },
         {
           "Size": 10883584,
           "Name": "csqtt-client.exe",
@@ -70,14 +75,19 @@
           "Sha256": "5de310284e361c8d10a92e0a18f8b17d2d5a0de1d091d9e3c0b92d86f9f6c7c2"
         },
         {
-          "Size": 1301,
+          "Size": 1926,
           "Name": "NOTICES.txt",
-          "Sha256": "82a3ff19cfc1785a4ba959d92ef7a9c2fcd761b1d66efc70e7002b154f164094"
+          "Sha256": "bff9298ded3376e436235dbbfe5b151df0962d11d12bc370fc07e8a3fe9281bd"
         },
         {
           "Size": 4563,
           "Name": "LICENSE.csqtt",
           "Sha256": "ffcca38841adb694b6f380647e15f17c446a4d1656fed51a1e2041d064c94cc8"
+        },
+        {
+          "Size": 4977,
+          "Name": "LICENSE.csqtt25",
+          "Sha256": "a40d2e77c55592d930e593cea8143a634487225af511aec2da2910e8502c8c71"
         },
         {
           "Size": 35149,

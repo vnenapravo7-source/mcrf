@@ -72,8 +72,10 @@ namespace SplifyWin {
     public string QwdttExecutable {get{return Engines.Executable("qwdtt","qwdtt-client.exe");}}
     public string OpenFluxExecutable {get{return Engines.Executable("openflux","openflux.exe");}}
     public string CSQTTExecutable{get{return Engines.Executable("csqtt","csqtt-client.exe");}}
+    public string CSQTT25Executable{get{return Engines.Executable("csqtt","csqtt25-client.exe");}}
+    public string CSQTTExecutableFor(ServerNode node){return node!=null&&node.Protocol=="csqtt"&&Csqtt25Link.IsSealed(node.Link)?CSQTT25Executable:CSQTTExecutable;}
     public string WDTTExecutable{get{return Engines.Executable("wdtt","wdtt-client.exe")??Engines.Executable("csqtt","wdtt-client.exe");}}
-    public bool HasEngine(ServerNode node){return node!=null&&(node.Protocol=="csqtt"?Engines.Installed("csqtt"):node.Protocol=="wdtt"?WDTTExecutable!=null:node.Protocol=="openflux"?OpenFluxExecutable!=null:node.Protocol=="qwdtt"?Engines.Installed("qwdtt"):true);}
+    public bool HasEngine(ServerNode node){return node!=null&&(node.Protocol=="csqtt"?CSQTTExecutableFor(node)!=null&&WDTTExecutable!=null:node.Protocol=="wdtt"?WDTTExecutable!=null:node.Protocol=="openflux"?OpenFluxExecutable!=null:node.Protocol=="qwdtt"?Engines.Installed("qwdtt"):true);}
     public string ByeTubeExecutable {get{return AppUpdates.ActiveFile(store.Root,"byetube",Path.Combine(store.Root,"core","ciadpi.exe"));}}
     public string TelegramExecutable {get{return AppUpdates.ActiveFile(store.Root,"telegram",Path.Combine(store.Root,"core","tgws.exe"));}}
     public string CurlExecutable {get{return Path.Combine(store.Root,"core","curl.exe");}}
@@ -128,7 +130,7 @@ namespace SplifyWin {
       if(state.ByeTubeEnabled){ByeTube.Validate(state.ByeTubeStrategy);outputs.Add(D("type","socks","tag","byetube","server","127.0.0.1","server_port",ByeTube.Port,"version","5"));}
       if(state.Lists.Any(x=>x.Enabled&&x.Target=="tgws"))outputs.Add(D("type","socks","tag","tgws","server","127.0.0.1","server_port",routingTelegramPort,"version","5"));
       bool systemDns=state.DnsProvider=="Системный"&&(state.ExitDns==null||!state.ExitDns.Any(d=>ExitDnsRouting.Active(state,d.Target)))&&!state.Lists.Any(l=>l.Enabled&&l.Target!="tgws"&&l.Target!="block"&&l.Dns!=null&&l.Dns.Provider!="Общий DNS"&&ExitDnsRouting.Active(state,l.Target));
-      var rules=new List<object>();if(ApplicationExclusions.Normalize(state.ExcludedApplications).Length>0)rules.Add(ApplicationExclusions.DirectRule(state.ExcludedApplications));var helperPaths=new[]{ByeTubeExecutable,TelegramExecutable,QwdttExecutable,OpenFluxExecutable,CSQTTExecutable,WDTTExecutable}.Where(p=>!String.IsNullOrEmpty(p)&&File.Exists(p)).Distinct().ToArray();if(helperPaths.Length>0)rules.Add(D("process_path",helperPaths,"action","route","outbound","direct"));if(!systemDns)rules.Add(D("protocol","dns","action","hijack-dns"));rules.Add(D("action","sniff"));if(tags.Count>0)rules.Add(D("inbound",new[]{"diagnostic"},"action","route","outbound",proxy));if(state.Mode=="tun"&&tags.Count>0)rules.Add(D("inbound",new[]{"tun-in"},"domain",new[]{"connectivitycheck.gstatic.com","www.gstatic.com","www.cloudflare.com"},"action","route","outbound",proxy));
+      var rules=new List<object>();if(ApplicationExclusions.Normalize(state.ExcludedApplications).Length>0)rules.Add(ApplicationExclusions.DirectRule(state.ExcludedApplications));var helperPaths=new[]{ByeTubeExecutable,TelegramExecutable,QwdttExecutable,OpenFluxExecutable,CSQTTExecutable,CSQTT25Executable,WDTTExecutable}.Where(p=>!String.IsNullOrEmpty(p)&&File.Exists(p)).Distinct().ToArray();if(helperPaths.Length>0)rules.Add(D("process_path",helperPaths,"action","route","outbound","direct"));if(!systemDns)rules.Add(D("protocol","dns","action","hijack-dns"));rules.Add(D("action","sniff"));if(tags.Count>0)rules.Add(D("inbound",new[]{"diagnostic"},"action","route","outbound",proxy));if(state.Mode=="tun"&&tags.Count>0)rules.Add(D("inbound",new[]{"tun-in"},"domain",new[]{"connectivitycheck.gstatic.com","www.gstatic.com","www.cloudflare.com"},"action","route","outbound",proxy));
       bool exclusionsAdded=false;
       foreach(var list in state.Lists.Where(x=>x.Enabled)){if(list.Target=="proxy"&&state.IndependentWarpOutputs&&!state.VpnEnabled)continue;if(list.Target=="proxy"&&!exclusionsAdded){rules.AddRange(VpnPresetRules.DirectRules(state.Lists));exclusionsAdded=true;}var target=list.Target=="direct"||list.Target=="zapret"?"direct":list.Target=="block"?"block":list.Target=="tgws"?"tgws":list.Target=="byetube"?(state.ByeTubeEnabled?"byetube":"block"):WarpOutputs.IsTarget(list.Target)?(state.WarpEnabled?list.Target:"block"):proxy;foreach(var rule in RouteCompiler.Compile(list,target)){if(list.Target=="byetube"&&state.ByeTubeEnabled){var match=new Dictionary<string,object>(rule);match.Remove("action");match.Remove("outbound");rules.Add(D("type","logical","mode","and","rules",new[]{match,D("network","udp")},"action","route","outbound","block"));}rules.Add(rule);}}
       var tun=D("type","tun","tag","tun-in","interface_name","mcrf","address",new[]{"172.19.0.1/30"},"dns_mode",systemDns?"disabled":"hijack","stack","gvisor","auto_route",true,"strict_route",true);
@@ -172,7 +174,7 @@ namespace SplifyWin {
           if(TurnEngines.IsTurn(node)||node.Protocol=="openflux"){
             listener.Start();int helperPort=((IPEndPoint)listener.LocalEndpoint).Port;listener.Stop();
             var outputs=(IEnumerable)config["outbounds"];foreach(var raw in outputs){var dial=raw as Dictionary<string,object>;if(dial!=null&&Convert.ToString(dial["tag"])=="node-1")dial["server_port"]=helperPort;}
-            if(node.Protocol=="qwdtt")QwdttEngine.Start(this,node,helperPort,child=>helpers.Add(child),WriteCoreLog,cancellation);else if(TurnEngines.IsTurn(node))TurnEngines.Start(node,CSQTTExecutable,WDTTExecutable,helperPort,child=>helpers.Add(child),WriteCoreLog,cancellation);else helpers.Add(StartOpenFlux(node,helperPort,helperPort));
+            if(node.Protocol=="qwdtt")QwdttEngine.Start(this,node,helperPort,child=>helpers.Add(child),WriteCoreLog,cancellation);else if(TurnEngines.IsTurn(node))TurnEngines.Start(node,CSQTTExecutableFor(node),WDTTExecutable,helperPort,child=>helpers.Add(child),WriteCoreLog,cancellation,ManualTurnCaptcha);else helpers.Add(StartOpenFlux(node,helperPort,helperPort));
           }
           SecretStorage.WriteRuntime(file,json.Serialize(config));Check(file);cancellation.ThrowIfCancellationRequested();
           var engineErrors=new Queue<string>();var errorGate=new object();
@@ -208,7 +210,7 @@ namespace SplifyWin {
           int i=0;foreach(var node in nodes){token.ThrowIfCancellationRequested();i++;
             if(node.Protocol=="openflux")register(StartOpenFlux(node,19080+i,i));
             else if(node.Protocol=="qwdtt")QwdttEngine.Start(this,node,19080+i,register,WriteCoreLog,token);
-            else if(TurnEngines.IsTurn(node))TurnEngines.Start(node,CSQTTExecutable,WDTTExecutable,19080+i,register,WriteCoreLog,token);
+            else if(TurnEngines.IsTurn(node))TurnEngines.Start(node,CSQTTExecutableFor(node),WDTTExecutable,19080+i,register,WriteCoreLog,token,ManualTurnCaptcha);
             if(node.Protocol=="openflux"||node.Protocol=="qwdtt"||TurnEngines.IsTurn(node))phase("Готовность транспорта "+node.Protocol.ToUpperInvariant()+" · "+i+"/"+nodes.Count);
           }
           token.ThrowIfCancellationRequested();
