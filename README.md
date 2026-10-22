@@ -10,7 +10,7 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | Android 10+ | [0.6](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.6) |
 | Linux | В разработке |
 
-Для Android скачайте [универсальный APK](https://github.com/vnenapravo7-source/mcrf/releases/download/android-v0.6/mcrf-android-universal-release.apk) — один файл для всех поддерживаемых архитектур. Движки докачиваются отдельно из [единого каталога](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1), без дубликатов в выпусках приложения.
+Для Android скачайте [универсальный APK](https://github.com/vnenapravo7-source/mcrf/releases/download/android-v0.6/mcrf-android-universal-release.apk). Движки докачиваются отдельно из [единого каталога](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1).
 
 В Android 0.6 ускорены подготовка подключений и переключение серверов. Добавлены разные выходы по маршрутам, основной и запасной движки, три именованные группы маршрутов, расширенный Vk Turn и автодеплой с сохранением серверов, панелей и нескольких установок одного протокола. Сокращена фоновая работа: настраиваемый опрос счётчиков уведомления, без опроса при выключенном экране, с возможностью полного отключения.
 
