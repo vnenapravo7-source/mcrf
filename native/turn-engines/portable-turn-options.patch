@@ -1,0 +1,21 @@
+diff --git a/lib.rs b/lib.rs
+--- a/lib.rs
++++ b/lib.rs
+@@ -97,6 +97,7 @@ pub struct ClientConfig {
+     pub captcha_mode: String,
+     pub fingerprint: String,
+     pub client_ids: String,
++    pub turn_transport: String,
+     pub obfs: String,
+     pub generation: u64,
+     pub salt: String,
+@@ -124,5 +125,6 @@ impl Default for ClientConfig {
+             fingerprint: "chrome".to_string(),
+             client_ids: "".to_string(),
++            turn_transport: "udp".to_string(),
+             obfs: "audio".to_string(),
+             generation: 0,
+             salt: "".to_string(),
+@@ -331,1 +333,1 @@
+-    let turn_transport = TurnTransportMode::parse("udp")?;
++    let turn_transport = TurnTransportMode::parse(&arguments.turn_transport)?;

@@ -42,14 +42,18 @@ Windows x64 и .NET Framework 4.8 с компилятором
 После подготовки ресурсов:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File native/build.ps1 -Wpf -OutputPath outputs/native/mcrf.exe
+powershell -NoProfile -ExecutionPolicy Bypass -File native/build.ps1 -Wpf -CoreExecutable path/to/private-core/sing-box.exe -WinDivertDll path/to/MRCF_WD/WinDivert.dll -OutputPath outputs/native/mcrf.exe
 ```
 
 Результат: `outputs/native/mcrf.exe`. Скрипт создаёт иконку и сжимает встроенные
 EXE/DLL без потери данных. Для компиляции запуск самого MCRF не требуется.
 
-Для сохранённой версии релиза используется `outputs/native/release-1.0.11/mcrf.exe`.
-`AssemblyVersion`/`AssemblyFileVersion` — 1.0.11.0, `AssemblyInformationalVersion` — 1.0.11.
+Для 1.1 нужен core с закрытым stdin-каналом остановки, собираемый
+`native/singbox-host/build.ps1`; обычный сторонний core его не заменяет.
+DLL службы `MRCF_WD` собирается по инструкции `native/windivert-service/`.
+При внешнем каталоге бинарных зависимостей задайте `-DependencyRoot`.
+
+`AssemblyVersion`/`AssemblyFileVersion` — 1.1.0.0, `AssemblyInformationalVersion` — 1.1.
 Приложение и тестовые EXE собираются последовательно: генератор значка общий.
 
 Локальные проверки: `wpf/tests/ReleaseVerification20261013.ps1`. Тесты используют отдельные профили и не устанавливают панели на сервер. Для воспроизведения проверки закреплённого OpenFlux-установщика нужен `work/deployment-sources/openflux/deploy.sh` с ревизии, указанной в `wpf/Deployment.cs`; живые тесты запускаются отдельно только на разрешённом сервере.

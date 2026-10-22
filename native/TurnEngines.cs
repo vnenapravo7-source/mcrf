@@ -31,17 +31,20 @@ namespace SplifyWin {
     }
     public static bool IsTurn(ServerNode node){return node!=null&&(node.Protocol=="csqtt"||node.Protocol=="wdtt");}
     public static string Redact(string line,TurnProfile profile){
-      string value=line??"";foreach(var secret in profile.Hashes.Concat(new[]{profile.Password}).Where(x=>!String.IsNullOrEmpty(x)))value=value.Replace(secret,"<скрыто>");
+      string value=line??"";foreach(var secret in profile.Hashes.Concat(new[]{profile.Password,profile.VkToken}).Where(x=>!String.IsNullOrEmpty(x)))value=value.Replace(secret,"<скрыто>");
       value=Regex.Replace(value,@"[a-zA-Z0-9_+/=-]{32,}","<скрыто>");
       return value.Length>500?value.Substring(0,500):value;
     }
     static string Address(string host,int port){return (host.Contains(":")?"["+host+"]":host)+":"+port;}
     static int UdpPort(){using(var socket=new Socket(AddressFamily.InterNetwork,SocketType.Dgram,ProtocolType.Udp)){socket.Bind(new IPEndPoint(IPAddress.Loopback,0));return ((IPEndPoint)socket.LocalEndPoint).Port;}}
     static void SendPrivate(Process process,string command){var bytes=Encoding.UTF8.GetBytes(command+"\n");try{lock(process){process.StandardInput.BaseStream.Write(bytes,0,bytes.Length);process.StandardInput.BaseStream.Flush();}}finally{Array.Clear(bytes,0,bytes.Length);}}
-    static Process Spawn(string executable,string arguments,Action<string> line,Action<Process> register){
+    public static bool HasWorkerControl(string executable){if(String.IsNullOrEmpty(executable)||!File.Exists(executable))return false;return Encoding.ASCII.GetString(File.ReadAllBytes(executable)).Contains("MCRF_CSQTT_WORKERS");}
+    static Process Spawn(string executable,string arguments,Action<string> line,Action<Process> register,int workers=0,string captcha=null){
       if(!File.Exists(executable))throw new FileNotFoundException("Не найден встроенный клиентский движок туннеля");
       var info=new ProcessStartInfo(executable,arguments){UseShellExecute=false,CreateNoWindow=true,WorkingDirectory=Path.GetDirectoryName(executable),RedirectStandardInput=true,RedirectStandardOutput=true,RedirectStandardError=true,StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8};
       info.EnvironmentVariables["CSQTT_EVENTS"]="1";
+      if(workers>0)info.EnvironmentVariables["MCRF_CSQTT_WORKERS"]=workers.ToString(System.Globalization.CultureInfo.InvariantCulture);
+      if(!String.IsNullOrEmpty(captcha))info.EnvironmentVariables["MCRF_CSQTT_CAPTCHA_MODE"]=captcha;
       var process=new Process{StartInfo=info};process.OutputDataReceived+=(s,e)=>{if(e.Data!=null)line(e.Data);};process.ErrorDataReceived+=(s,e)=>{if(e.Data!=null)line(e.Data);};
       try{if(!process.Start())throw new IOException("Движок туннеля не запустился");OwnedJob.Attach(process);register(process);process.BeginOutputReadLine();process.BeginErrorReadLine();return process;}
       catch{try{if(!process.HasExited)process.Kill();}catch{}process.Dispose();throw;}
@@ -54,11 +57,11 @@ namespace SplifyWin {
       }
       cancellation.ThrowIfCancellationRequested();
     }
-    public static void Start(ServerNode node,string csqttExecutable,string wdttExecutable,int port,Action<Process> register,Action<string> log,CancellationToken cancellation,Func<string,CancellationToken,System.Threading.Tasks.Task<string>> manualCaptcha=null){
+    public static void Start(ServerNode node,string csqttExecutable,string wdttExecutable,int port,Action<Process> register,Action<string> log,CancellationToken cancellation,Func<string,CancellationToken,System.Threading.Tasks.Task<string>> manualCaptcha=null,VkTurnPreferences vkSettings=null,string dataRoot=null,bool probeOnly=false){
       var json=new JavaScriptSerializer{MaxJsonLength=32768};
-      cancellation.ThrowIfCancellationRequested();if(port<1024||port>65535)throw new FormatException("Некорректный локальный порт туннеля");var profile=TurnProfile.Parse(node.Link);string lastError="";int ready=0,captchaWaiting=0;string configIP=null,configDNS=null;object gate=new object();Process transport=null;
+      cancellation.ThrowIfCancellationRequested();if(port<1024||port>65535)throw new FormatException("Некорректный локальный порт туннеля");var settingsForNode=VkTurnOptions.ForNode(vkSettings??new VkTurnPreferences(),node);var nodeOptions=VkTurnSettings.Server(settingsForNode,node.Id);var profile=VkTurnOptions.Apply(node,TurnProfile.Parse(node.Link),nodeOptions);if(node.Protocol=="csqtt")profile.Csqtt25=CsqttGenerations.For(node).Id=="2.5";bool autoJs=VkTurnOptions.Value(nodeOptions,"vk_hash_mode")=="auto_js";if(autoJs&&!profile.Csqtt25&&String.IsNullOrEmpty(profile.VkToken)){if(!settingsForNode.Linked)throw new InvalidOperationException("Для Auto VK привяжите аккаунт в разделе VK TURN.");profile.VkToken=settingsForNode.Token;}if(autoJs&&probeOnly)throw new InvalidOperationException("Фоновый замер не создаёт сессию Auto JS; сначала выполните ручное подключение.");if(String.IsNullOrEmpty(profile.Password))throw new InvalidOperationException("Добавьте пароль подключения CSQTT перед запуском.");if(!autoJs){if(dataRoot!=null)profile.Hashes=VkTurnSettings.ResolveCalls(dataRoot,node.Id,node.Protocol,profile.Hashes,probeOnly,manualCaptcha,cancellation,profile.VkToken,nodeOptions).GetAwaiter().GetResult();else VkTurnSettings.Apply(profile,settingsForNode);}if(profile.Hashes.Length==0&&!autoJs)throw new InvalidOperationException("Добавьте звонки VK или включите автоматические звонки для этого сервера в разделе VK TURN.");string lastError="";int ready=0,captchaWaiting=0;string configIP=null,configDNS=null;object gate=new object();Process transport=null;
       Action<string> output=line=>{
-        if(profile.Csqtt25&&line.StartsWith("CAPTCHA_SOLVE|",StringComparison.Ordinal)){
+        if(profile.Protocol=="csqtt"&&line.StartsWith("CAPTCHA_SOLVE|",StringComparison.Ordinal)){
           var parts=line.Split(new[]{'|'},4);
           if(parts.Length!=4||!VkCalls.AllowedPage(parts[2])||manualCaptcha==null){lock(gate)lastError="VK требует ручную капчу. Откройте подключение из главного окна MCRF.";return;}
           if(Interlocked.CompareExchange(ref captchaWaiting,1,0)!=0)return;
@@ -84,18 +87,28 @@ namespace SplifyWin {
       };
       Func<string> error=()=>{lock(gate)return lastError;};
       if(profile.Protocol=="wdtt"){
-        string args="-startup-config-stdin -mode socks5 -socks-listen 127.0.0.1:"+port+" -listen 127.0.0.1:0 -peer "+ZapretRuntime.Quote(Address(profile.Host,profile.Port))+" -device-id "+ZapretRuntime.Quote(DeviceId())+" -n 18 -hash-fallback=true";
-        var process=Spawn(wdttExecutable,args,output,register);string payload=json.Serialize(new{vk_hashes=String.Join(",",profile.Hashes),connection_password=profile.Password});
+        var settings=settingsForNode;var server=VkTurnSettings.Server(settings,node.Id);VkMasqueRuntime masque=null;
+        string args="-startup-config-stdin -mode socks5 -socks-listen 127.0.0.1:"+port+" -listen 127.0.0.1:0 -peer "+ZapretRuntime.Quote(Address(profile.Host,profile.Port))+" -device-id "+ZapretRuntime.Quote(VkTurnOptions.Value(server,"device_id",DeviceId()))+" -n "+VkTurnSettings.ServerWorkers(settings,node.Id,"wdtt",profile.Hashes.Length,18)+" -hash-fallback=true -captcha-mode "+(server.CaptchaMode=="manual"?"wv":server.CaptchaMode=="rjs"?"rjs":"auto")+VkTurnOptions.Arguments(server,"wdtt");
+        if(!String.IsNullOrEmpty(server.TurnSni))args+=" -turn-sni "+ZapretRuntime.Quote(server.TurnSni);if(server.Masque){if(!settings.MasqueAccepted||String.IsNullOrEmpty(dataRoot))throw new InvalidOperationException("Примите условия MASQUE в разделе VK TURN.");if(Uri.CheckHostName(server.TurnSni??"")!=UriHostNameType.Dns)throw new FormatException("Для MASQUE укажите внешний SNI в настройках WDTT-сервера.");masque=new VkMasqueRuntime(dataRoot,probeOnly);args+=" -rt-masque=true -rt-masque-config "+ZapretRuntime.Quote(masque.Config)+" -rt-masque-accept-tos="+(masque.AllowEnrollment?"true":"false");}
+        Process process;try{process=Spawn(wdttExecutable,args,output,register);if(masque!=null)masque.Attach(process);}catch{if(masque!=null)masque.Dispose();throw;}string payload=json.Serialize(new{vk_hashes=String.Join(",",profile.Hashes),connection_password=profile.Password,custom_vk_client_id=VkTurnOptions.Value(server,"custom_vk_client_id"),custom_vk_client_secret=VkTurnOptions.Value(server,"custom_vk_client_secret")});
         SendPrivate(process,"START_CONFIG|"+Convert.ToBase64String(Encoding.UTF8.GetBytes(payload)).TrimEnd('=').Replace('+','-').Replace('/','_'));
-        Wait(process,()=>Volatile.Read(ref ready)!=0,error,cancellation,"WDTT");return;
+        Wait(process,()=>Volatile.Read(ref ready)!=0,error,cancellation,"WDTT");if(masque!=null)masque.Checkpoint();return;
       }
-      if(profile.Csqtt25&&(String.IsNullOrEmpty(csqttExecutable)||!String.Equals(Path.GetFileName(csqttExecutable),"csqtt25-client.exe",StringComparison.OrdinalIgnoreCase)))throw new FileNotFoundException("Для CSQTT 2.5 требуется обновлённый дополнительный движок. Старый CSQTT 2.1 для этого подключения не подходит.");
-      int rawPort=UdpPort();var csqtt=Spawn(csqttExecutable,profile.Csqtt25?"--mcrf-config-stdin":"",output,register);transport=csqtt;
-      SendPrivate(csqtt,json.Serialize(new{peer=Address(profile.Host,profile.Port),listen="127.0.0.1:"+rawPort,password=profile.Password,hashes=profile.Hashes,device_id=DeviceId(),generation=NextGeneration(),salt=Guid.NewGuid().ToString("N")}));
+      if(profile.Protocol=="csqtt"){var generation=CsqttGenerations.For(node);if(String.IsNullOrEmpty(csqttExecutable)||!String.Equals(Path.GetFileName(csqttExecutable),generation.Executable,StringComparison.OrdinalIgnoreCase))throw new FileNotFoundException("Скачайте движок "+generation.Label+". Другое поколение для этого подключения не используется.");}
+      int workers=VkTurnSettings.ServerWorkers(settingsForNode,node.Id,profile.Csqtt25?"csqtt25":"csqtt",autoJs?6:profile.Hashes.Length,profile.Workers);
+      if(workers!=18&&!HasWorkerControl(csqttExecutable))throw new InvalidOperationException("Для изменения потоков CSQTT обновите его Windows-модуль; старый движок настройку не поддерживает.");
+      string captcha=VkTurnSettings.Server(vkSettings??new VkTurnPreferences(),node.Id).CaptchaMode;if(!String.IsNullOrEmpty(captcha)&&!Encoding.ASCII.GetString(File.ReadAllBytes(csqttExecutable)).Contains("MCRF_CSQTT_CAPTCHA_MODE"))throw new InvalidOperationException("Для выбора режима капчи обновите Windows-модуль CSQTT.");
+      bool advanced=VkTurnOptions.NativeOptions(nodeOptions);if(advanced)VkTurnOptions.RequireModule(csqttExecutable);int rawPort=UdpPort();var csqtt=Spawn(csqttExecutable,CsqttGenerations.For(node).Id=="2.1.9"?"":"--mcrf-config-stdin",output,register,workers,String.IsNullOrEmpty(captcha)?"auto":captcha);transport=csqtt;
+      var startup=new Dictionary<string,object>{{"peer",Address(profile.Host,profile.Port)},{"listen","127.0.0.1:"+rawPort},{"password",profile.Password},{"hashes",profile.Hashes},{"device_id",VkTurnOptions.Value(nodeOptions,"device_id",DeviceId())},{"generation",NextGeneration()},{"salt",Guid.NewGuid().ToString("N")}};var privateOptions=new Dictionary<string,string>(nodeOptions.Options);if(autoJs)privateOptions["vk_token"]=profile.VkToken;if(advanced)startup["options"]=privateOptions.Where(p=>!new[]{"server","server_port","password","hashes","device_id"}.Contains(p.Key)).ToDictionary(p=>p.Key,p=>p.Value);SendPrivate(csqtt,json.Serialize(startup));
+      if(autoJs&&profile.Csqtt25)SendPrivate(csqtt,"VK_JS_BOOTSTRAP:"+Convert.ToBase64String(Encoding.UTF8.GetBytes(json.Serialize(new{token=profile.VkToken}))));
       Wait(csqtt,()=>{lock(gate)return configIP!=null;},error,cancellation,"CSQTT");
       string ipText,dnsText;lock(gate){ipText=configIP;dnsText=configDNS;}
-      var proxy=Spawn(wdttExecutable,"-csqtt-raw-peer 127.0.0.1:"+rawPort+" -csqtt-ip "+ZapretRuntime.Quote(ipText)+" -csqtt-dns "+ZapretRuntime.Quote(dnsText)+" -socks-listen 127.0.0.1:"+port,output,register);
-      Wait(proxy,()=>Volatile.Read(ref ready)!=0,error,cancellation,"CSQTT");
+      StartRawBridge(wdttExecutable,rawPort,ipText,dnsText,port,register,log,cancellation);
+    }
+    public static void StartRawBridge(string executable,int rawPort,string ip,string dns,int socksPort,Action<Process> register,Action<string> log,CancellationToken cancellation,int mtu=1300){
+      if(String.IsNullOrEmpty(executable)||!String.Equals(Path.GetFileName(executable),"csqtt-netstack.exe",StringComparison.OrdinalIgnoreCase))throw new FileNotFoundException("Скачайте компонент «Локальный IP-адаптер». Пакет WDTT не требуется.");
+      int ready=0;string error="";var child=Spawn(executable,"-csqtt-raw-peer 127.0.0.1:"+rawPort+" -csqtt-ip "+ZapretRuntime.Quote(ip)+" -csqtt-dns "+ZapretRuntime.Quote(dns)+" -socks-listen 127.0.0.1:"+socksPort+" -mtu "+mtu,line=>{if(line.Contains("PROXY_READY|"))Interlocked.Exchange(ref ready,1);else if(line.Contains("FATAL"))error="FATAL: локальный IP-адаптер не запустился";},register);
+      Wait(child,()=>Volatile.Read(ref ready)!=0,()=>error,cancellation,"Локальный IP-адаптер");log("Локальный IP-адаптер: SOCKS5 готов");
     }
   }
 }

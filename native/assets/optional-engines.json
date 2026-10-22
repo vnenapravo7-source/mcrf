@@ -47,27 +47,20 @@
       ]
     },
     {
-      "Name": "CSQTT 2.1 / 2.5",
-      "Id": "csqtt",
-      "Sha256": "fa02639b98a26a099186ae2e2596c18c445c54af901a59f49a1b16a224798b1e",
-      "Size": 17246177,
-      "Version": "csqtt25-2.5.0-mcrf1",
-      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-csqtt25-windows-amd64.zip",
+      "Sha256": "d2fbbcdfba7efebbf60511645c0652db2625bed0020758d9b15766a459d8c797",
+      "Name": "CSQTT 2.0",
+      "Id": "csqtt20",
+      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-csqtt20-windows-amd64-vkturn-options-20261022-1.zip",
       "Files": [
         {
-          "Size": 9261568,
-          "Name": "csqtt25-client.exe",
-          "Sha256": "414539a7dc8af5d4401dd15e5ca030f2c725ca4468f9225bc85aaea00e2ee961"
+          "Size": 8402944,
+          "Name": "csqtt20-client.exe",
+          "Sha256": "f190a01d3f1fc14121a4394e69552a0061853aa37251145f1ffb8db45025ca94"
         },
         {
-          "Size": 10883584,
-          "Name": "csqtt-client.exe",
-          "Sha256": "0bc7ba4ae4daf308b2dd5604301078a00358a56899d807a533c0947091c64da6"
-        },
-        {
-          "Size": 19125248,
-          "Name": "wdtt-client.exe",
-          "Sha256": "d1a3227aa0a1561c96dad473be3f3830ec4e4aa6a8516b517d30fcfcce305452"
+          "Size": 2447,
+          "Name": "NOTICES.txt",
+          "Sha256": "01ec051b7b08b6590c01315dce4a63f33a172e6c508b20bd3bb36bee613e0ca3"
         },
         {
           "Size": 185856,
@@ -75,54 +68,151 @@
           "Sha256": "5de310284e361c8d10a92e0a18f8b17d2d5a0de1d091d9e3c0b92d86f9f6c7c2"
         },
         {
-          "Size": 1926,
+          "Size": 4563,
+          "Name": "LICENSE.transport",
+          "Sha256": "ffcca38841adb694b6f380647e15f17c446a4d1656fed51a1e2041d064c94cc8"
+        }
+      ],
+      "Version": "vkturn-options-20261022-1",
+      "Size": 4214578
+    },
+    {
+      "Sha256": "07e9d85732abb8396404952f9b331d62d916d02352a26192dfde4a971ba24b0a",
+      "Name": "CSQTT 2.1.5",
+      "Id": "csqtt215",
+      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-csqtt215-windows-amd64-vkturn-options-20261022-1.zip",
+      "Files": [
+        {
+          "Size": 8690688,
+          "Name": "csqtt215-client.exe",
+          "Sha256": "974120dfd4aad56d8907f110904313a8f54722b0b1eaebc69ee91ea2de6a8328"
+        },
+        {
+          "Size": 2447,
           "Name": "NOTICES.txt",
-          "Sha256": "bff9298ded3376e436235dbbfe5b151df0962d11d12bc370fc07e8a3fe9281bd"
+          "Sha256": "01ec051b7b08b6590c01315dce4a63f33a172e6c508b20bd3bb36bee613e0ca3"
+        },
+        {
+          "Size": 185856,
+          "Name": "libunwind.dll",
+          "Sha256": "5de310284e361c8d10a92e0a18f8b17d2d5a0de1d091d9e3c0b92d86f9f6c7c2"
         },
         {
           "Size": 4563,
-          "Name": "LICENSE.csqtt",
+          "Name": "LICENSE.transport",
           "Sha256": "ffcca38841adb694b6f380647e15f17c446a4d1656fed51a1e2041d064c94cc8"
+        }
+      ],
+      "Version": "vkturn-options-20261022-1",
+      "Size": 4352954
+    },
+    {
+      "Sha256": "79d3c8fe513b78fec6180aefa1d084a9de0f967b26ed7b31507399522a7ddb7a",
+      "Name": "CSQTT 2.1.9 (WIRE-3)",
+      "Id": "csqtt",
+      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-csqtt-windows-amd64-vkturn-options-20261022-1.zip",
+      "Files": [
+        {
+          "Size": 10849280,
+          "Name": "csqtt-client.exe",
+          "Sha256": "98a689b8f8b9e446b2026b9e4b9abd2e14d0614476d947e05e95913b8a6231d5"
+        },
+        {
+          "Size": 2447,
+          "Name": "NOTICES.txt",
+          "Sha256": "01ec051b7b08b6590c01315dce4a63f33a172e6c508b20bd3bb36bee613e0ca3"
+        },
+        {
+          "Size": 185856,
+          "Name": "libunwind.dll",
+          "Sha256": "5de310284e361c8d10a92e0a18f8b17d2d5a0de1d091d9e3c0b92d86f9f6c7c2"
+        },
+        {
+          "Size": 4563,
+          "Name": "LICENSE.transport",
+          "Sha256": "ffcca38841adb694b6f380647e15f17c446a4d1656fed51a1e2041d064c94cc8"
+        }
+      ],
+      "Version": "vkturn-options-20261022-1",
+      "Size": 5151895
+    },
+    {
+      "Sha256": "e04e096925c91abc05380682291d7b3d147849818a28c9fdeb8c66109307f9c9",
+      "Name": "CSQTT 2.5 / Rebirth",
+      "Id": "csqtt25",
+      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-csqtt25-windows-amd64-vkturn-options-20261022-1.zip",
+      "Files": [
+        {
+          "Size": 9282560,
+          "Name": "csqtt25-client.exe",
+          "Sha256": "3cccbd96265e5553519c33bb13f074d536fd2e93429d3f13030fc0dd1e86477e"
+        },
+        {
+          "Size": 2447,
+          "Name": "NOTICES.txt",
+          "Sha256": "01ec051b7b08b6590c01315dce4a63f33a172e6c508b20bd3bb36bee613e0ca3"
+        },
+        {
+          "Size": 185856,
+          "Name": "libunwind.dll",
+          "Sha256": "5de310284e361c8d10a92e0a18f8b17d2d5a0de1d091d9e3c0b92d86f9f6c7c2"
         },
         {
           "Size": 4977,
-          "Name": "LICENSE.csqtt25",
+          "Name": "LICENSE.transport",
           "Sha256": "a40d2e77c55592d930e593cea8143a634487225af511aec2da2910e8502c8c71"
+        }
+      ],
+      "Version": "vkturn-options-20261022-1",
+      "Size": 4615563
+    },
+    {
+      "Sha256": "d8af7e1bca003dc4cf21a2873dea5136d5531806a8978d79482f67a04352f7ab",
+      "Size": 2331046,
+      "Version": "vkturn-20261022-1",
+      "Id": "csqtt-bridge",
+      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-csqtt-bridge-windows-amd64-20261022.zip",
+      "Name": "Локальный IP-адаптер · CSQTT / QWDTT RAW",
+      "Files": [
+        {
+          "Name": "csqtt-netstack.exe",
+          "Sha256": "095d478b5d84f5a4dfdb3567cbc11bd7b4b870fd6c4957b6984a6ab0cad8f73c",
+          "Size": 5888512
         },
         {
-          "Size": 35149,
-          "Name": "LICENSE.wdtt",
-          "Sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+          "Name": "LICENSE",
+          "Sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+          "Size": 35149
         },
         {
-          "Size": 15141,
-          "Name": "LICENSE.llvm.txt",
-          "Sha256": "8d85c1057d742e597985c7d4e6320b015a9139385cff4cbae06ffc0ebe89afee"
+          "Name": "THIRD-PARTY-NOTICES.txt",
+          "Sha256": "2b7e0aad51d4a235a6cf5404072543cbeee0e2c0662822b7489b9bb07e99cc72",
+          "Size": 124186
         }
       ]
     },
     {
+      "Sha256": "4f754ce9cc4788287e9cd372f9b8d2e73006c3c66814070b3d245a50d6f70844",
+      "Size": 6904341,
+      "Version": "vkturn-options-20261022-1",
       "Id": "qwdtt",
-      "Name": "QWDTT",
-      "Version": "engines-2026-10-13-1",
-      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-qwdtt-windows-amd64.zip",
-      "Size": 6752962,
-      "Sha256": "c74a009922d32d600fcb4df8fb9b45a2d32dc68235e4b7f5ce280a7317b6018c",
+      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-qwdtt-windows-amd64-vkturn-options-20261022-1.zip",
+      "Name": "QWDTT · RAW / WireGuard",
       "Files": [
         {
+          "Size": 17418240,
           "Name": "qwdtt-client.exe",
-          "Size": 17413632,
-          "Sha256": "948e55d4fccc79842a2b4f512851a1badab7ce3ff55e262c81d28c3dad0e2735"
+          "Sha256": "300b1109358684166733da1d67fa5da66aeb939022eae9e755cab8d9fc25de8a"
         },
         {
-          "Name": "LICENSE.qwdtt",
-          "Size": 35823,
-          "Sha256": "230184f60bae2feaf244f10a8bac053c8ff33a183bcc365b4d8b876d2b7f4809"
-        },
-        {
+          "Size": 2447,
           "Name": "NOTICES.txt",
-          "Size": 1194,
-          "Sha256": "60aa7b3324e3fb07b6a41ab4c3747dabbaf5282fa27d183c222f5ad5d1dd2565"
+          "Sha256": "01ec051b7b08b6590c01315dce4a63f33a172e6c508b20bd3bb36bee613e0ca3"
+        },
+        {
+          "Size": 35823,
+          "Name": "LICENSE.transport",
+          "Sha256": "230184f60bae2feaf244f10a8bac053c8ff33a183bcc365b4d8b876d2b7f4809"
         }
       ]
     }

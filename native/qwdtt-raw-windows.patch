@@ -1,0 +1,16 @@
+diff --git a/go_client/main.go b/go_client/main.go
+--- a/go_client/main.go
++++ b/go_client/main.go
+@@ -200,1 +200,1 @@
+-	if activeConnMode != "socks" && activeConnMode != "rawtun" {
++	if activeConnMode != "socks" && activeConnMode != "rawtun" && activeConnMode != "rawsocks" {
+@@ -290,1 +290,1 @@
+-		RawMode:      activeConnMode == "rawtun",
++		RawMode:      activeConnMode == "rawtun" || activeConnMode == "rawsocks",
+@@ -409,1 +409,5 @@
+-				if *tunFdSock == "" {
++				if activeConnMode == "rawsocks" {
++					fmt.Printf("MCRF_QWDTT_RAW_CONFIG|%s|%s|%s\n", ip, dnsCSV, mtuStr)
++					return
++				}
++				if *tunFdSock == "" {

@@ -1,5 +1,6 @@
-param([string]$OutputPath,[string[]]$TestSources,[string]$TestEntryPoint,[switch]$Wpf,[string]$DependencyRoot,[string]$WinDivertDll)
+param([string]$OutputPath,[string[]]$TestSources,[string]$TestEntryPoint,[switch]$Wpf,[string]$DependencyRoot,[string]$WinDivertDll,[string]$CoreExecutable)
 $ErrorActionPreference = 'Stop'
+if(!$CoreExecutable){throw 'Build native/singbox-host first, then pass -CoreExecutable. The old bundled core lacks private STOP support.'}
 $project = Split-Path -Parent $PSScriptRoot
 $taskDependencyPrefix=[IO.Path]::GetFullPath((Join-Path $project 'work')).TrimEnd('\')+'\'
 if($DependencyRoot){$DependencyRoot=[IO.Path]::GetFullPath($DependencyRoot);if(!(Test-Path -LiteralPath $DependencyRoot -PathType Container)){throw 'Dependency directory is unavailable'}}
@@ -74,9 +75,10 @@ Add-Type -AssemblyName System.IO.Compression
 $packedRoot=Join-Path $project 'work/packed-resources'
 New-Item -ItemType Directory -Path $packedRoot -Force | Out-Null
 foreach ($item in $resources) {
+  if($CoreExecutable -and $item[1] -eq 'SplifyWin.Core.sing-box.exe'){$item[0]=[IO.Path]::GetFullPath($CoreExecutable);if(!$item[0].StartsWith('D:\MCRF\Work\Windows\',[StringComparison]::OrdinalIgnoreCase)){throw 'Private core must be Windows-task-owned'}}
   if($item[1] -ne 'SplifyWin.Zapret.apps.WinDivert.dll'){$item[0]=Resolve-TaskDependency $item[0]}
   # Optional transports are downloaded on demand, never embedded in mcrf.exe.
-  if ([IO.Path]::GetFileName($item[0]) -match '^(openflux(?:-windows-amd64)?|csqtt(?:25)?-client|wdtt-client|qwdtt-client|libunwind)\.(exe|dll)$') {
+  if ([IO.Path]::GetFileName($item[0]) -match '^(openflux(?:-windows-amd64)?|csqtt(?:20|215|25)?-client|wdtt-client|qwdtt-client|libunwind)\.(exe|dll)$') {
     throw "Optional engine must not be bundled: $($item[0])"
   }
   if (-not (Test-Path $item[0])) { throw "Missing bundled resource: $($item[0])" }
@@ -89,6 +91,13 @@ foreach ($item in $resources) {
 }
 $arguments += @((Join-Path $PSScriptRoot 'AssemblyInfo.cs'), (Join-Path $PSScriptRoot 'AppBrand.cs'), (Join-Path $PSScriptRoot 'ClientModel.cs'), (Join-Path $PSScriptRoot 'PresetStorage.cs'), (Join-Path $PSScriptRoot 'Qwdtt.cs'), (Join-Path $PSScriptRoot 'VkCalls.cs'), (Join-Path $PSScriptRoot 'TurnProfile.cs'), (Join-Path $PSScriptRoot 'TurnEngines.cs'), (Join-Path $PSScriptRoot 'NetworkCore.cs'), (Join-Path $PSScriptRoot 'RouteCompiler.cs'), (Join-Path $PSScriptRoot 'SecondPart.cs'), (Join-Path $PSScriptRoot 'Zapret.cs'), (Join-Path $PSScriptRoot 'OwnedJob.cs'), (Join-Path $PSScriptRoot 'WarpScout.cs'), (Join-Path $PSScriptRoot 'SystemProxy.cs'), (Join-Path $PSScriptRoot 'BrandArt.cs'), (Join-Path $PSScriptRoot 'BlueGlassDashboard.cs'), (Join-Path $PSScriptRoot 'NativeClient.cs'))
 $arguments += (Join-Path $PSScriptRoot 'WinDivertService.cs')
+$arguments += (Join-Path $PSScriptRoot 'VkTurnSettings.cs')
+$arguments += (Join-Path $PSScriptRoot 'VkTurnOptions.cs')
+$arguments += (Join-Path $PSScriptRoot 'VkTurnProfileImport.cs')
+$arguments += (Join-Path $PSScriptRoot 'CsqttGenerations.cs')
+$arguments += (Join-Path $PSScriptRoot 'VkMasqueRuntime.cs')
+$arguments += (Join-Path $PSScriptRoot 'CoreProcessHost.cs')
+$arguments += (Join-Path $PSScriptRoot 'TunIdentity.cs')
 $arguments += (Join-Path $PSScriptRoot 'ClientJournal.cs')
 $arguments += (Join-Path $PSScriptRoot 'ChangeConfirmation.cs')
 $arguments += (Join-Path $PSScriptRoot 'HostsRepair.cs')

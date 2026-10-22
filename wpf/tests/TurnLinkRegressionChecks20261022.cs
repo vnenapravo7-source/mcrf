@@ -1,0 +1,5 @@
+using System;
+using SplifyWin;
+class TurnLinkRegressionChecks {
+ static int Main(){try{string hash=Convert.ToBase64String(new byte[32]);string link="wdtt://connect?v=1&host=192.0.2.1&dtls=56002&wg=56004&local=9000&password=allowed%20spaces&hashes="+Uri.EscapeDataString(hash);if(TurnProfile.Parse(link).Password!="allowed spaces")return 1;Console.WriteLine("PASS CSQTT validation does not restrict valid WDTT password spaces");bool rejected=false;try{TurnProfile.Parse("csqtt://connect?v=2&host=192.0.2.1&peer=56000&password=bad%20space");}catch(FormatException){rejected=true;}if(!rejected)return 1;Console.WriteLine("PASS invalid CSQTT password whitespace rejected");rejected=false;try{TurnProfile.Parse("csqtt://connect?v=2&host=192.0.2.1&peer=56000&password=fixture&hashes=,,,");}catch(FormatException){rejected=true;}if(!rejected)return 1;Console.WriteLine("PASS separator-only hashes rejected, distinct from omitted owner hashes");Console.WriteLine("RESULT 3 checks PASS");return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}}
+}

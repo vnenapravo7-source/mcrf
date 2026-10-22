@@ -18,6 +18,14 @@ if ($LASTEXITCODE -ne 0) {
   & git -C $qwdttRoot apply $patchPath
   if ($LASTEXITCODE -ne 0) { throw 'QWDTT adaptation failed.' }
 }
+$rawPatch=Join-Path $PSScriptRoot 'qwdtt-raw-windows.patch'
+& git -C $qwdttRoot apply --unidiff-zero --reverse --check $rawPatch 2>$null
+if($LASTEXITCODE -ne 0){
+ & git -C $qwdttRoot apply --unidiff-zero --check $rawPatch
+ if($LASTEXITCODE -ne 0){throw 'QWDTT RAW patch overlaps source changes'}
+ & git -C $qwdttRoot apply --unidiff-zero $rawPatch
+ if($LASTEXITCODE -ne 0){throw 'QWDTT RAW patch failed'}
+}
 if (!$GoPath) { $GoPath=Join-Path $project 'work/toolchains/go1.26.8/go/bin/go.exe' }
 if (!(Test-Path -LiteralPath $GoPath)) { throw 'Pass -GoPath for Go 1.26.8 or a compatible toolchain.' }
 $env:GOPATH=Join-Path $project 'work/toolchains/go-cache'

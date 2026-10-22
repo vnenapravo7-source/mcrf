@@ -23,7 +23,7 @@ namespace SplifyWin {
   public static bool ValidProof(string value){return Regex.IsMatch(value??"",@"^[A-Za-z0-9._~+/=-]{1,16384}$");}
   public static string[] CallLinks(string raw){var calls=Regex.Split(raw??"",@"[\s,;]+").Where(v=>!String.IsNullOrWhiteSpace(v)).Select(v=>"https://vk.ru/call/join/"+CallHash(v)).Distinct().ToArray();if(calls.Length==0||calls.Length>32)throw new FormatException("Добавьте от 1 до 32 ссылок звонков VK.");return calls;}
   public static async Task<string[]> CreateBatch(int count,Func<Task<string>> create,Action<string[]> progress,CancellationToken cancellation){
-   if(count<1||count>6)throw new ArgumentOutOfRangeException("count");var calls=new List<string>();
+   if(count<1||count>50)throw new ArgumentOutOfRangeException("count");var calls=new List<string>();
    try{for(int i=0;i<count;i++){cancellation.ThrowIfCancellationRequested();string link="https://vk.ru/call/join/"+CallHash(await create());if(calls.Contains(link))throw new InvalidOperationException("VK вернул повторную ссылку; создание остановлено.");calls.Add(link);if(progress!=null)progress(calls.ToArray());if(i+1<count)await Task.Delay(500,cancellation);}return calls.ToArray();}
    catch(Exception ex){if(calls.Count==0)throw;throw new InvalidOperationException("Создано звонков: "+calls.Count+" из "+count+". Полученные ссылки сохранены в поле; автоматического повтора нет. "+(ex is OperationCanceledException?"Создание отменено.":ex.Message));}
   }

@@ -1,0 +1,26 @@
+using System;
+using System.Linq;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using SplifyWin;
+namespace Mcrf.Wpf {
+ public sealed partial class MainWindow {
+  bool CompleteCsqttPasswords(IEnumerable<ServerNode> servers,bool allowDefer){foreach(var node in servers.Where(n=>n.Protocol=="csqtt"&&String.IsNullOrEmpty(TurnProfile.Parse(n.Link).Password))){var window=Dialog("Пароль CSQTT",600,310);var panel=new StackPanel{Margin=new Thickness(24)};panel.Children.Add(Text("В ссылке "+node.Host+" нет пароля подключения. Укажите пароль сервера; случайный пароль не подставляется."));var password=new PasswordBox{Name="csqttImportPassword"};panel.Children.Add(Field("Пароль подключения",password));bool skip=false;var accept=Button("Продолжить",()=>{if(String.IsNullOrWhiteSpace(password.Password)||password.Password.Any(Char.IsWhiteSpace)){Notice("Введите пароль без пробелов.","CSQTT");return;}window.DialogResult=true;});var actions=allowDefer?new[]{accept,Button("Добавить без пароля",()=>{skip=true;window.DialogResult=true;}),Button("Отмена",()=>window.DialogResult=false)}:new[]{accept,Button("Отмена",()=>window.DialogResult=false)};panel.Children.Add(Toolbar(actions));window.Content=panel;if(window.ShowDialog()!=true)return false;if(skip)continue;bool sealedLink=Csqtt25Link.IsSealed(node.Link);string plain=sealedLink?Csqtt25Link.Open(node.Link):TurnProfile.NormalizeLegacy(node.Link);var uri=new Uri(plain);var fields=System.Web.HttpUtility.ParseQueryString(uri.Query);fields["password"]=password.Password;plain="csqtt://connect?"+fields.ToString();node.Link=sealedLink?Csqtt25Link.Seal(plain):plain;}return true;}
+  bool ChooseCsqttGenerations(IEnumerable<ServerNode> servers){
+   var nodes=servers.Where(CsqttGenerations.NeedsChoice).ToArray();if(nodes.Length==0)return true;
+   var window=Dialog("Поколение CSQTT",720,540);var host=new DockPanel{Margin=new Thickness(24)};var rows=new StackPanel();var selectors=new Dictionary<ServerNode,ComboBox>();
+   rows.Children.Add(Text("Старые ссылки не содержат версию протокола. Выберите поколение сервера; пробные подключения не выполняются, одноразовый пароль не расходуется."));
+   foreach(var node in nodes){var options=new[]{new Choice{Key="",Label="Выберите поколение"}}.Concat(CsqttGenerations.All.Select(g=>new Choice{Key=g.Id,Label=g.Label})).ToArray();var select=new ComboBox{Name="csqttImportGeneration",ItemsSource=options,SelectedIndex=0};selectors[node]=select;rows.Children.Add(Field(node.Name+" · "+node.Host+":"+node.Port,select));}
+   var note=Text("");var accept=Button("Продолжить",()=>{if(selectors.Values.Any(c=>String.IsNullOrEmpty(((Choice)c.SelectedItem).Key))){note.Text="Выберите поколение для каждого подключения.";return;}window.DialogResult=true;});var footer=new StackPanel();footer.Children.Add(note);footer.Children.Add(Toolbar(accept,Button("Отмена",()=>window.DialogResult=false)));DockPanel.SetDock(footer,Dock.Bottom);host.Children.Add(footer);host.Children.Add(new ScrollViewer{Content=rows,VerticalScrollBarVisibility=ScrollBarVisibility.Auto});window.Content=host;
+   if(window.ShowDialog()!=true)return false;foreach(var pair in selectors)pair.Key.CsqttGeneration=((Choice)pair.Value.SelectedItem).Key;return true;
+  }
+  Task<bool> DownloadCsqttRequirements(IEnumerable<ServerNode> servers,bool allowDefer){
+   var nodes=servers.ToArray();var ids=CsqttGenerations.RequiredPackages(session.Core,nodes);if(ids.Length==0)return Task.FromResult(true);
+   var packages=ids.Select(id=>session.Core.Engines.Packages.SingleOrDefault(p=>p.Id==id)).ToArray();if(packages.Any(p=>p==null))throw new InvalidOperationException("Каталог движков ещё не содержит выбранное поколение CSQTT.");
+   var window=Dialog("Дополнительные компоненты",680,460);var panel=new StackPanel{Margin=new Thickness(24)};panel.Children.Add(Text("Для этих подключений нужны дополнительные движки. Основной EXE не содержит их; загрузка потребуется один раз."));foreach(var p in packages)panel.Children.Add(Text(p.Name+" · "+(p.Size/1000000d).ToString("0.0")+" МБ"));var state=Text("");panel.Children.Add(state);string active=null;bool loading=false,closed=false,download=false,defer=false;window.Closed+=(s,e)=>{closed=true;if(active!=null)session.Core.Engines.Cancel(active);};
+   Button get=null,later=null;get=Button("Скачать и продолжить",async()=>{if(loading)return;loading=true;get.IsEnabled=false;if(later!=null)later.IsEnabled=false;try{foreach(string id in ids){active=id;state.Text="Скачиваем "+session.Core.Engines.Package(id).Name+"…";await session.Core.Engines.Install(id);if(closed)return;}active=null;download=true;window.DialogResult=true;}catch(Exception error){if(!closed)state.Text=error.Message;}finally{loading=false;if(!closed){get.IsEnabled=true;if(later!=null)later.IsEnabled=true;}}});if(allowDefer)later=Button("Добавить без скачивания",()=>{if(!loading){defer=true;window.DialogResult=true;}});var buttons=later==null?new[]{get,Button("Отмена",()=>window.DialogResult=false)}:new[]{get,later,Button("Отмена",()=>window.DialogResult=false)};panel.Children.Add(Toolbar(buttons));window.Content=panel;window.ShowDialog();return Task.FromResult(download||defer);
+  }
+ }
+}

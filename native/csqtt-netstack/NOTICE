@@ -1,0 +1,6 @@
+Local IP adapter for MCRF. No WDTT transport/client code is linked.
+The SOCKS5 server is derived from Ivan4537/WDTT-Plus 68bc4af (GPL-3.0).
+Networking uses golang.zx2c4.com/wireguard/tun/netstack ecfc5a8d5446
+(MIT) and gvisor.dev/gvisor 39ed1f5ac29c (Apache-2.0).
+Third-party license texts are supplied in THIRD-PARTY-NOTICES.txt.
+Matching source, go.mod and go.sum are in the companion source archive.

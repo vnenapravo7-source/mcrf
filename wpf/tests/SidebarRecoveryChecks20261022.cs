@@ -1,0 +1,29 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media;
+using System.Windows.Threading;
+using Mcrf.Wpf;
+using SplifyWin;
+class SidebarRecoveryChecks {
+ static readonly BindingFlags F=BindingFlags.Instance|BindingFlags.NonPublic;static MainWindow main;static int count;
+ static object Get(string name){return typeof(MainWindow).GetField(name,F).GetValue(main);}static void Set(string name,object value){typeof(MainWindow).GetField(name,F).SetValue(main,value);}static object Call(string name,params object[] args){return typeof(MainWindow).GetMethod(name,F).Invoke(main,args);}
+ static void Check(bool value,string label){if(!value)throw new Exception(label);Console.WriteLine("PASS "+label);count++;}
+ static void Pump(){var frame=new DispatcherFrame();Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,new Action(()=>frame.Continue=false));Dispatcher.PushFrame(frame);}
+ static void Wait(Func<bool> done){var end=DateTime.UtcNow.AddSeconds(20);while(!done()&&DateTime.UtcNow<end){Pump();Thread.Sleep(5);}if(!done())throw new Exception("Timeout");}
+ static IEnumerable<T> All<T>(DependencyObject root)where T:DependencyObject{for(int i=0;i<VisualTreeHelper.GetChildrenCount(root);i++){var child=VisualTreeHelper.GetChild(root,i);if(child is T)yield return (T)child;foreach(var x in All<T>(child))yield return x;}}
+ [STAThread]static int Main(string[] args){Application app=null;try{
+  string root=Path.GetFullPath(args[0]);if(Directory.Exists(root))throw new Exception("Fresh fixture required");var program=typeof(MainWindow).Assembly.GetType("Mcrf.Wpf.Program");app=new Application{ShutdownMode=ShutdownMode.OnExplicitShutdown};program.GetMethod("LoadTheme",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,new object[]{app});SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());main=new MainWindow(new[]{"--data",root}){ShowActivated=false,WindowStartupLocation=WindowStartupLocation.Manual,Left=-10000,Top=-10000};main.Show();Wait(()=>Get("session")!=null);((DispatcherTimer)Get("health")).Stop();var session=(ClientSession)Get("session");typeof(ClientSession).GetField("catalogTask",F).SetValue(session,Task.FromResult(new ZapretStrategy[0]));Call("Page","Маршрутизация");main.UpdateLayout();var body=(Grid)Get("body");var original=body.Children[0];double width=main.ActualWidth,height=main.ActualHeight;var checks=(Dictionary<string,CheckBox>)Get("moduleChecks");var knob=checks["@tun"];var nav=(StackPanel)Get("navigation");
+  if(args.Length==1){Set("pendingModule","@tun");Set("pendingModuleValue",true);var held=new TaskCompletionSource<bool>();var operation=(Task)Call("Run",(Func<Task>)(()=>held.Task),null);Pump();Check(knob.IsChecked==true&&knob.IsEnabled&&knob.Opacity==1,"pending switch stays ON without disabled/faded style");Check(nav.IsEnabled&&nav.Opacity==1&&!nav.IsHitTestVisible,"navigation is not dimmed while operation serialized");Call("SyncModules");Pump();Check(knob.IsChecked==true&&Object.ReferenceEquals(body.Children[0],original),"health sync preserves pending knob and same page instance");Check(main.ActualWidth==width&&main.ActualHeight==height,"switch leaves window bounds unchanged");held.SetResult(true);Wait(()=>operation.IsCompleted);operation.GetAwaiter().GetResult();Set("pendingModule",null);Call("SyncModules");Check(nav.IsHitTestVisible&&knob.IsHitTestVisible,"input restored without recreating sidebar after operation");
+  var failure=new InvalidOperationException("An ItemsControl is inconsistent with its items source.");held=new TaskCompletionSource<bool>();operation=(Task)Call("Run",(Func<Task>)(()=>held.Task),null);Call("RecoverUiFailure",failure);Pump();Check(body.Children.Count==0,"invalid ItemsControl detached before any nested message pump");held.SetResult(true);Wait(()=>operation.IsCompleted);Check(body.Children.Count>0&&All<DataGrid>(main).Single(g=>g.Name=="routeGrid").ItemsSource is RouteList[],"delayed recovery rebuilds stable route snapshot when transaction ends");}
+  // Exercise the application rule save that failed in the supplied video.
+  Exception dialogError=null;var timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(20)};timer.Tick+=(s,e)=>{var edit=app.Windows.Cast<Window>().FirstOrDefault(w=>w!=main&&All<TextBox>(w).Any(t=>t.Name=="routeEditorEntries"));if(edit==null)return;timer.Stop();try{edit.Left=-10000;edit.Top=-10000;All<TextBox>(edit).Single(t=>t.Name=="routeEditorEntries").Text="app:discord.exe";All<ComboBox>(edit).First(c=>c.Items.Cast<object>().Any(x=>Convert.ToString(x)=="Только приложения")).SelectedItem=All<ComboBox>(edit).First(c=>c.Items.Cast<object>().Any(x=>Convert.ToString(x)=="Только приложения")).Items.Cast<object>().Single(x=>Convert.ToString(x)=="Только приложения");All<Button>(edit).Single(b=>Convert.ToString(b.Content)=="Сохранить").RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));}catch(Exception ex){dialogError=ex;edit.Close();}};timer.Start();var save=(Task)Call("RouteEditor",(object)null);Wait(()=>save.IsCompleted);save.GetAwaiter().GetResult();timer.Stop();if(dialogError!=null)throw dialogError;Pump();main.UpdateLayout();var grid=All<DataGrid>(main).Single(g=>g.Name=="routeGrid");typeof(ItemContainerGenerator).GetMethod("Verify",F).Invoke(grid.ItemContainerGenerator,null);Check(session.State.Lists.Any(r=>r.Text=="app:discord.exe"),"video discord.exe rule saves with consistent WPF item generator");Check(!session.Core.Running,"UI regression fixture never starts a VPN or modifies adapters");main.Close();Wait(()=>!main.IsVisible);app.Shutdown();Console.WriteLine("RESULT "+count+" checks PASS");return 0;
+ }catch(Exception e){Console.Error.WriteLine(e);if(main!=null)main.Close();return 1;}}
+}

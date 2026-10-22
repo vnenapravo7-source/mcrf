@@ -6,7 +6,7 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 
 | Платформа | Версия |
 | --- | --- |
-| Windows x64 | [1.0.12](https://github.com/vnenapravo7-source/mcrf/releases/tag/v1.0.12) |
+| Windows x64 | [1.1](https://github.com/vnenapravo7-source/mcrf/releases/tag/v1.1) |
 | Android 10+ | [0.1.0-preview.20261020.1](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.1.0-preview.20261020.1) |
 | Linux | В разработке |
 
@@ -92,9 +92,11 @@ APK — размер загрузки для Android arm64. SS — Shadowsocks, 
 
 ## Windows
 
-В 1.0.12: CSQTT 2.1/2.5, сохранение нескольких панелей и серверов, повторное создание именованных подключений со свободными портами. Мастер предлагает конфигурации и очные проверки YouTube/Discord, позволяет повторить их по сохранённым результатам и обновляет свои маршруты без дублирования.
+В 1.1: режимы «Весь функционал» и «Только VPN», компактный конструктор маршрутов, расширенный редактор VK TURN и отдельные поколения CSQTT, включая Rebirth. Движки скачиваются по необходимости. Исправлены управление TUN и добавление приложений в маршруты; списки процессов можно обновлять кнопкой.
 
-![Windows — главная](docs/screenshots/home-wpf-1.0.11.png)
+![Windows — главная](docs/screenshots/home-windows-1.1.png)
+
+![Windows — конструктор](docs/screenshots/constructor-windows-1.1.png)
 
 [Все разделы Windows](docs/WINDOWS-GUIDE.md).
 

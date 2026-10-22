@@ -9,7 +9,7 @@ namespace SplifyWin {
   // the GCM tag before parsing anything, and never expose payloads in errors.
   public static class Csqtt25Link {
     const string Prefix="csqtt://";
-    public static bool IsSealed(string link){return link!=null&&link.StartsWith(Prefix,StringComparison.OrdinalIgnoreCase)&&!link.Substring(Prefix.Length).StartsWith("connect?",StringComparison.OrdinalIgnoreCase);}
+    public static bool IsSealed(string link){if(link==null||!link.StartsWith(Prefix,StringComparison.OrdinalIgnoreCase))return false;string tail=link.Substring(Prefix.Length);return tail.IndexOfAny(new[]{'?','@',':','#'})<0;}
     public static string Seal(string link){
       if(link==null||!link.StartsWith(Prefix+"connect?v=2&",StringComparison.Ordinal)||link.Length>16000||link.IndexOfAny(new[]{'\r','\n','\0','#'})>=0)throw new FormatException("Некорректные данные подключения CSQTT 2.5");
       // Parse before sealing so an unrelated or malformed panel result cannot
@@ -43,16 +43,17 @@ namespace SplifyWin {
       if(!IsSealed(link)||link.Length>32768)throw new FormatException("Некорректная ссылка CSQTT 2.5");
       byte[] bytes=null,key=null,plain=null;
       try{
-        string encoded=link.Substring(Prefix.Length);
+        string encoded=link.Substring(Prefix.Length).TrimEnd('=');
         if(encoded.Length<38||encoded.Length%4==1)throw new FormatException();
-        foreach(char c in encoded)if(!(c>='a'&&c<='z'||c>='A'&&c<='Z'||c>='0'&&c<='9'||c=='-'||c=='_'))throw new FormatException();
+        foreach(char c in encoded)if(!(c>='a'&&c<='z'||c>='A'&&c<='Z'||c>='0'&&c<='9'||c=='-'||c=='_'||c=='+'||c=='/'))throw new FormatException();
         bytes=Convert.FromBase64String(encoded.Replace('-','+').Replace('_','/').PadRight((encoded.Length+3)/4*4,'='));
         if(bytes.Length<=28)throw new FormatException();
         using(var sha=SHA256.Create())key=sha.ComputeHash(Encoding.UTF8.GetBytes("csqtt-chiper-key"));
         plain=Decrypt(key,bytes);
         string payload=new UTF8Encoding(false,true).GetString(plain);
-        if(!payload.StartsWith("connect?v=2&",StringComparison.Ordinal)||payload.IndexOfAny(new[]{'\r','\n','\0','#'})>=0)throw new FormatException();
-        return Prefix+payload;
+        if(payload.IndexOfAny(new[]{'\r','\n','\0','#'})>=0)throw new FormatException();
+        string candidate=payload.StartsWith(Prefix,StringComparison.OrdinalIgnoreCase)?payload:payload.StartsWith("connect?",StringComparison.OrdinalIgnoreCase)?Prefix+payload:Prefix+"connect?"+payload;
+        candidate=TurnProfile.NormalizeLegacy(candidate);if(!candidate.StartsWith(Prefix+"connect?",StringComparison.OrdinalIgnoreCase))throw new FormatException();TurnProfile.Parse(candidate);return candidate;
       }catch(FormatException){throw new FormatException("Некорректная или повреждённая ссылка CSQTT 2.5");}
       catch(CryptographicException){throw new FormatException("Некорректная или повреждённая ссылка CSQTT 2.5");}
       catch(DecoderFallbackException){throw new FormatException("Некорректная или повреждённая ссылка CSQTT 2.5");}

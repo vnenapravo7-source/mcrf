@@ -1,5 +1,13 @@
 MCRF tunnel engines (separate processes; no third-party UI or branding reused)
 
+Additional original CSQTT generations (Windows private-stdin entry only):
+2.0: amurcanov/csqtt 2ff8a1a4fbe031fb76b799e172dce25cfe1ca942.
+2.1.5: amurcanov/csqtt de7afc23cec7481f98845bf24fc8943af19b4cf8.
+The old wire implementations are retained separately, not simulated by changing
+the version label. PolyForm Noncommercial 1.0.0. See included original license.
+Rebirth 2.5/2.5.0-legacy currently shares the original 2.5 native protocol and
+uses the same compatible 2.5 module; no duplicate engine download is required.
+
 CSQTT core 2.1.9: copyright 2026 amurcanov; Windows portability by luminescq.
 Source: https://github.com/luminescq/focsq/tree/bfa176f/backend
 Protocol: https://github.com/amurcanov/csqtt
