@@ -29,6 +29,11 @@ int sl_host_leads_nowhere(const char *h);
 int sl_host_is_name(const char *h);
 void sl_pct_decode(char *s);
 void sl_set_field(char *dst, size_t n, const char *src, size_t len);
+void sl_set_fp49(struct vless_node *n, const char *value);
+void sl_set_sni49(struct vless_node *n, const char *value);
+void sl_vmess_tls49(const char *json,struct vless_node *n);
+void sl_set_alpn49(struct vless_node *n, const char *value);
+void sl_set_alpn_csv49(struct vless_node *n,const char *value);
 /* Поле в процентной форме: раскодировать, потом обрезать по полю. */
 void sl_set_pct(char *dst, size_t n, const char *src, size_t len);
 /* Снять с конца строки неполную последовательность UTF-8. */
@@ -112,6 +117,8 @@ static inline void sl_tr_node(const struct vless_node *n, struct tr_node *t) {
     t->security = n->security;
     t->sni = n->sni;
     t->fp = n->fp;
+    t->profile_alpn = n->alpn_set ? n->alpn : NULL;
+    t->runtime_epoch49 = n->runtime_epoch49;
     t->pbk = n->pbk;
     t->sid = n->sid;
     t->path = n->path;

@@ -50,7 +50,7 @@ data class EnginePackage(val abi: String, val version: String, val url: URI, val
                     return EnginePackage(abi, tag, uri, size, digest,engine,code)
                 }
             }
-            throw Unpublished("Пакет ${engine?.uppercase()?:"движков"} для $abi ещё не опубликован в репозитории. Повтори проверку позже.")
+            throw Unpublished("Пакет ${engine?.let(CsqttGenerations::engineLabel)?:"движков"} для $abi ещё не опубликован в репозитории. Повтори проверку позже.")
         }
         fun allowed(uri: URI) = uri.scheme == "https" && uri.userInfo == null && uri.port == -1 && uri.fragment == null &&
             (uri.host == "github.com" || uri.host in setOf("release-assets.githubusercontent.com", "objects.githubusercontent.com"))

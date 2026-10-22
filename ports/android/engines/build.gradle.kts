@@ -5,6 +5,18 @@ import java.util.zip.ZipFile
 import java.util.zip.ZipInputStream
 
 plugins { id("com.android.application") }
+// A release promotion requires the separately verified completed phone/runtime
+// receipt. Merely supplying a historical native stage never enables publishing.
+val historicalReleaseAllowed=providers.gradleProperty("historicalCsqttReleaseReceipt").orNull?.let {path->
+    val receipt=file(path)
+    val digest=MessageDigest.getInstance("SHA-256").digest(receipt.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+    require(digest==providers.gradleProperty("historicalCsqttReleaseSha256").orNull)
+    val proof=groovy.json.JsonSlurper().parse(receipt) as Map<*,*>
+    require(proof["state"]=="P2_RELEASE_PROMOTION_READY"&&proof["versionCode"].toString()=="10043"&&proof["versionName"]=="0.6")
+    require((proof["protocolTrafficPassed"] as List<*>).map {it.toString()}.sorted()==listOf("2.0","2.1.5","2.1.9","2.5"))
+    require(proof["managementChecks"].toString()=="5"&&proof["accordionChecks"].toString()=="7")
+    true
+}?:false
 abstract class StageEngineJni:DefaultTask(){
     @get:InputDirectory abstract val inputDirectory:org.gradle.api.file.DirectoryProperty
     @get:OutputDirectory abstract val outputDirectory:org.gradle.api.file.DirectoryProperty
@@ -24,7 +36,7 @@ abstract class StageEngineProviderNotices:DefaultTask(){
 abstract class StageEngineCsqtt25Notices:DefaultTask(){
     @get:InputDirectory abstract val inputDirectory:org.gradle.api.file.DirectoryProperty
     @get:OutputDirectory abstract val outputDirectory:org.gradle.api.file.DirectoryProperty
-    @TaskAction fun stage(){project.sync{from(inputDirectory){include("CSQTT-LICENSE","qwdtt-LICENSE");into("licenses")};into(outputDirectory)}}
+    @TaskAction fun stage(){project.sync{from(inputDirectory){include("CSQTT-LICENSE","qwdtt-LICENSE","swg-panel-reference.json");into("licenses")};into(outputDirectory)}}
 }
 abstract class StageEngineSwgNotices:DefaultTask(){
     @get:InputDirectory abstract val inputDirectory:org.gradle.api.file.DirectoryProperty
@@ -90,7 +102,22 @@ val primaryDescriptors=if(primaryStage!=null){
             ZipFile(input).use {zip->
                 val native=zip.entries().asSequence().filter{!it.isDirectory&&it.name.startsWith("jni/")}.map{it.name}.toSet()
                 val library = if (flavor == "singbox") "libbox.so" else "libsteer_vpn.so"
-                require(native == if (name == "runtime.aar") abis.map{"jni/$it/$library"}.toSet() else emptySet<String>()){"Unexpected primary native payload"}
+                // P049_TLS_SHARED_BEGIN
+                val tls49=d["tls49"] as? Map<*,*>
+                val helperHashes=tls49?.get("abiSha256") as? Map<*,*>
+                if(tls49!=null) {
+                    require(flavor=="steer"&&tls49.keys==setOf("library","abiSha256")&&tls49["library"]=="libmcrf_utls49.so")
+                    require(helperHashes!=null&&helperHashes.keys==abis.toSet()&&helperHashes.values.all{it.toString().matches(Regex("[0-9a-f]{64}"))})
+                }
+                val libraries=setOf(library)+(if(tls49!=null)setOf("libmcrf_utls49.so") else emptySet<String>())
+                require(native == if (name == "runtime.aar") abis.flatMap{abi->libraries.map{"jni/$abi/$it"}}.toSet() else emptySet<String>()){"Unexpected primary native payload"}
+                if(name=="runtime.aar"&&tls49!=null)abis.forEach{abi->
+                    val helper=requireNotNull(zip.getEntry("jni/$abi/libmcrf_utls49.so"))
+                    val hash=zip.getInputStream(helper).use{MessageDigest.getInstance("SHA-256").digest(it.readBytes())}
+                        .joinToString(""){"%02x".format(it.toInt()and 255)}
+                    require(helperHashes!![abi]==hash){"Steer TLS helper digest mismatch"}
+                }
+                // P049_TLS_SHARED_END
                 val classes=requireNotNull(zip.getEntry("classes.jar"))
                 val names=zip.getInputStream(classes).use{stream->ZipInputStream(stream).use{jar->buildSet<String>{while(true){val item=jar.nextEntry?:break;add(item.name)}}}}
                 if(name=="adapter.aar")require(entry.replace('.','/')+".class" in names)
@@ -122,7 +149,7 @@ csqtt25Stage?.let {root->
         require(input.isFile&&input.length()==row["bytes"].toString().toLong())
         val hash=MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
         require(hash==row["sha256"]){"CSQTT2.5 stage digest mismatch"}
-        if(name=="libcsqtt25_transport.so")require(hash=="e658334976cb79f90f1d0e22ff5c435ee2f6562685add9bed4e9f967769fcb59"){"Wrong supplied generation/ABI"}
+        if(name=="libcsqtt25_transport.so")require(hash=="9dad51554bafb2e6cf386a48cc278fb08c434a78ece40baff00fb51f203b237c"){"Wrong swg-panel 2.5.1 generation/ABI"}
     }
     listOf("CSQTT-LICENSE","qwdtt-LICENSE").forEach{require(root.resolve("licenses/$it").isFile)}
 }
@@ -157,7 +184,34 @@ swgStages.forEach{(kind,root)->
     }
     require(root.resolve("licenses/$kind-LICENSE").isFile)
 }
-val engineKinds=listOf("csqtt","csqtt25","qwdtt","wdtt","openflux","olcrtc","dnstt","warpscout","tgws","s3bypass")+optionalKinds+primaryKinds
+val historicalKinds=setOf("csqtt20","csqtt215")
+val historicalStages=historicalKinds.mapNotNull {kind->providers.gradleProperty("${kind}Stage").orNull?.let {kind to file(it)}}.toMap()
+val historicalDescriptors=historicalStages.mapValues {(kind,root)->
+    require(providers.gradleProperty("historicalCsqttCandidateGate").orNull=="true"){"Historical CSQTT requires an explicit frozen stage"}
+    val d=groovy.json.JsonSlurper().parse(root.resolve("receipt.json")) as Map<*,*>
+    val generation = if (kind == "csqtt20") "2.0" else "2.1.5"
+    val revision = if (kind == "csqtt20") "2ff8a1a4fbe031fb76b799e172dce25cfe1ca942" else "de7afc23cec7481f98845bf24fc8943af19b4cf8"
+    require(d["state"]=="HISTORICAL_ENGINE_INPUTS_READY"&&d["sourceStable"]==true&&d["kind"]==kind&&d["generation"]==generation&&d["revision"]==revision)
+    fun digest(file:File):String {require(file.isFile&&!Files.isSymbolicLink(file.toPath()));return MessageDigest.getInstance("SHA-256").digest(file.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}}
+    require(digest(root.resolve("wrapper-receipt.json"))==d["wrapperReceiptSha256"]&&digest(root.resolve("native-receipt.json"))==d["nativeReceiptSha256"])
+    val wrapper=groovy.json.JsonSlurper().parse(root.resolve("wrapper-receipt.json")) as Map<*,*>
+    require(wrapper["kind"]=="csqtt"&&wrapper["sourceStable"]==true&&wrapper["state"]=="COMPILED_NOT_EXECUTED"&&wrapper["processGroupContract"]==1&&wrapper["turnHashPoolContract"]==1&&wrapper["captchaWaiterCapability"]=="csqtt-id48-v1")
+    val native=groovy.json.JsonSlurper().parse(root.resolve("native-receipt.json")) as Map<*,*>
+    require(native["engine"]==kind&&native["generation"]==generation&&native["revision"]==revision&&native["state"]=="COMPILED_NOT_EXECUTED"&&native["sourceStable"]==true)
+    val abis=setOf("arm64-v8a","armeabi-v7a","x86_64")
+    val rows=(d["artifacts"] as List<*>).map {it as Map<*,*>}
+    val paths=abis.flatMap {abi->listOf("$abi/lib$kind.so","$abi/libcsqtt_transport.so")}.toSet()
+    require(rows.size==6&&rows.map {it["path"]}.toSet()==paths)
+    rows.forEach {row->
+        val file=root.resolve(row["path"].toString());require(file.length()==row["bytes"].toString().toLong()&&digest(file)==row["sha256"])
+        val rust=row["path"].toString().endsWith("/libcsqtt_transport.so")
+        val original=((if(rust)native else wrapper)["artifacts"] as List<*>).map {it as Map<*,*>}.single {it["abi"]==row["abi"]&&(rust||it["file"].toString().replace('\\','/').endsWith("/libqwdtt.so"))}
+        require(original["sha256"]==row["sha256"]&&original["bytes"].toString()==row["bytes"].toString())
+    }
+    require(root.resolve("licenses/CSQTT-LICENSE").isFile&&root.resolve("licenses/qwdtt-LICENSE").isFile)
+    d
+}
+val engineKinds=listOf("csqtt","csqtt25","qwdtt","wdtt","openflux","olcrtc","dnstt","warpscout","tgws","s3bypass")+historicalKinds+optionalKinds+primaryKinds
 val s3BypassStage=providers.gradleProperty("s3BypassStage").orNull?.let {file(it)}
 s3BypassStage?.let {root->
     require(providers.gradleProperty("s3BypassCandidateGate").orNull=="true"){"S3 requires a frozen external stage"}
@@ -322,13 +376,17 @@ val openfluxScriptUpdater=openfluxCandidate?.resolve("script-updater-capability.
 }?:0
 val engineStages=engineKinds.filter{it !in primaryKinds}.associateWith {kind->tasks.register<StageEngineJni>("prepare${kind.replaceFirstChar{it.uppercase()}}Jni"){
     inputDirectory.set(swgStages[kind]?:if(kind=="s3bypass"&&s3BypassStage!=null)s3BypassStage else if(kind=="csqtt"&&csqttLegacyStage!=null)csqttLegacyStage else if(kind=="csqtt25"&&csqtt25Stage!=null)csqtt25Stage else if(kind=="tgws")telegramNative else if(kind=="warpscout"&&warpScannerStage!=null)warpScannerStage.resolve("candidates") else if(kind in optionalKinds&&optionalStage!=null)optionalStage.resolve("candidates/${moduleKind(kind)}")else if(kind=="openflux"&&(openfluxProvider!=null||openfluxAck!=null||openfluxPromotion!=null||openfluxCandidate!=null))requireNotNull(openfluxProvider?:openfluxAck?:openfluxPromotion?:openfluxCandidate) else file("src/main/jniLibs"));outputDirectory.set(layout.buildDirectory.dir("generated/engine-jni/$kind"))
-    libraries.set(if(kind=="csqtt")listOf("libqwdtt.so","libcsqtt_transport.so")else if(kind=="csqtt25")listOf("libcsqtt25.so","libcsqtt25_transport.so")else listOf(moduleLibrary(kind)))
+    if(kind in historicalStages)inputDirectory.set(historicalStages.getValue(kind))
+    libraries.set(if(kind=="csqtt")listOf("libqwdtt.so","libcsqtt_transport.so")else if(kind in historicalKinds)listOf("lib$kind.so","libcsqtt_transport.so")else if(kind=="csqtt25")listOf("libcsqtt25.so","libcsqtt25_transport.so")else listOf(moduleLibrary(kind)))
 }}
 val csqtt25Notices=csqtt25Stage?.let{stage->tasks.register<StageEngineCsqtt25Notices>("prepareCsqtt25Notices"){
     inputDirectory.set(stage.resolve("licenses"));outputDirectory.set(layout.buildDirectory.dir("generated/csqtt25-assets"))
 }}
 val csqttLegacyNotices=csqttLegacyStage?.let{stage->tasks.register<StageEngineCsqtt25Notices>("prepareCsqttLegacyNotices"){
     inputDirectory.set(stage.resolve("licenses"));outputDirectory.set(layout.buildDirectory.dir("generated/csqtt-legacy-assets"))
+}}
+val historicalNotices=historicalStages.mapValues {(kind,stage)->tasks.register<StageEngineCsqtt25Notices>("prepare${kind.replaceFirstChar {it.uppercase()}}Notices"){
+    inputDirectory.set(stage.resolve("licenses"));outputDirectory.set(layout.buildDirectory.dir("generated/$kind-assets"))
 }}
 val swgNotices=swgStages.mapValues{(kind,stage)->tasks.register<StageEngineSwgNotices>("prepare${kind.replaceFirstChar{it.uppercase()}}Notices"){
     inputDirectory.set(stage.resolve("licenses"));outputDirectory.set(layout.buildDirectory.dir("generated/$kind-assets"))
@@ -346,18 +404,201 @@ val providerNotices=openfluxProvider?.let{stage->tasks.register<StageEngineProvi
 android {
     namespace = "org.mcrf.engines"
     compileSdk = 34
-    defaultConfig { applicationId = "org.mcrf.engines"; minSdk = 29; targetSdk = 34; versionCode = 4; versionName = "0.1.0-dev.4" }
+    buildFeatures { resValues = true }
+    defaultConfig { applicationId = "org.mcrf.engines"; minSdk = 29; targetSdk = 34; versionCode = 4; versionName = "0.1.0-dev.4";manifestPlaceholders["csqttProcessGroupContract"]=0;manifestPlaceholders["wdttProviderOptionsContract"]=0;manifestPlaceholders["csqtt25PanelContract"]=0;manifestPlaceholders["csqttAccountOptionsContract"]=0 }
     flavorDimensions += "engine"
+    defaultConfig {manifestPlaceholders["qwdttFingerprintContract"]=0;manifestPlaceholders["wdttMasqueContract"]=0;manifestPlaceholders["turnHashPoolContract"]=0;manifestPlaceholders["wdttDualFamilyContract"]=0}
     productFlavors {
         engineKinds.forEach {kind->create(kind){dimension="engine";applicationId="org.mcrf.engines.$kind";manifestPlaceholders["engineKind"]=moduleKind(kind);manifestPlaceholders["engineLabel"]="MCRF · ${moduleKind(kind).uppercase()}"
             if(kind=="s3bypass"){versionCode=1;versionName="0.1.0-s3bypass.1"}
             if(kind=="warpscout"&&warpScannerStage!=null){versionCode=5;versionName="1.3.1-mcrf-fast.5"}
             if(kind=="csqtt25"){versionCode=1;versionName="2.5.0-mcrf-candidate.1";manifestPlaceholders["engineLabel"]="MCRF · CSQTT 2.5"}
+            if(kind in historicalKinds){
+                val generation = if (kind == "csqtt20") "2.0" else "2.1.5"
+                versionCode=if(historicalReleaseAllowed)2 else 1;versionName="$generation-mcrf.${if(historicalReleaseAllowed)2 else 1}";manifestPlaceholders["engineLabel"]="MCRF · CSQTT $generation"
+                resValue("string","mcrf_csqtt_generation",generation)
+                resValue("string","mcrf_csqtt_revision",if (kind == "csqtt20") "2ff8a1a4fbe031fb76b799e172dce25cfe1ca942" else "de7afc23cec7481f98845bf24fc8943af19b4cf8")
+                if(kind in historicalDescriptors){manifestPlaceholders["csqttProcessGroupContract"]=1;manifestPlaceholders["turnHashPoolContract"]=1}
+            }
             if(kind=="csqtt"&&csqttLegacyStage!=null){versionCode=5;versionName="2.1.9-mcrf-captcha.5"}
             if(kind in swgStages){versionCode=5;versionName="0.1.0-captcha.5"}
-            val packageStage=when(kind){"csqtt"->csqttLegacyStage;"csqtt25"->csqtt25Stage;else->swgStages[kind]}
+            val packageStage=when(kind){"csqtt"->csqttLegacyStage;"csqtt25"->csqtt25Stage;in optionalKinds->optionalStage;else->swgStages[kind]}
             if(packageStage!=null){
                 val descriptor=groovy.json.JsonSlurper().parse(packageStage.resolve("receipt.json")) as Map<*,*>
+                if(descriptor["turnHashPoolContract"]==1){
+                    val expected=when(kind){
+                        "qwdtt"->setOf("bridge_config.go")
+                        "csqtt"->setOf("csqtt_bridge.go","internal/csqtt/config.go")
+                        "csqtt25"->setOf("csqtt_bridge.go","internal/csqtt/config.go","internal/csqtt25/profile.go")
+                        "wdtt"->setOf("mcrf_wdtt.go","socks5_server.go","http_connect_server.go")
+                        else->error("Unexpected TURN feature producer")
+                    }
+                    val rows=(descriptor["turnFeatureInputs"] as List<*>).map {it as Map<*,*>}
+                    require(rows.size==expected.size&&rows.map {it["file"]}.toSet()==expected)
+                    val manifest=(groovy.json.JsonSlurper().parse(packageStage.resolve("source-manifest.json")) as List<*>).map {it as Map<*,*>}
+                    rows.forEach {row->
+                        val name=row["file"] as String
+                        val input=packageStage.resolve("turn-feature-inputs/$name")
+                        require(input.isFile&&!Files.isSymbolicLink(input.toPath()))
+                        val digest=MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+                        require(digest==row["sha256"]&&manifest.single {it["path"].toString().replace('\\','/')==name}["sha256"]==digest)
+                    }
+                    manifestPlaceholders["turnHashPoolContract"]=1
+                    if(kind=="wdtt"&&descriptor["wdttDualFamilyContract"]==1)manifestPlaceholders["wdttDualFamilyContract"]=1
+                }
+                providers.gradleProperty("p2ExpansionSourceReadySha256").orNull?.let {readySha->
+                    val origin=groovy.json.JsonSlurper().parse(packageStage.resolve("prepared-expansion-source.json")) as Map<*,*>
+                    require(descriptor["expansionAuthority"]=="human-20261021-expanded-p2-whole-source-before-common-verification"&&origin["sourceReadySha256"]==readySha&&origin["kind"]==kind)
+                    val compiled=groovy.json.JsonSlurper().parse(packageStage.resolve("source-manifest.json")) as List<*>
+                    fun sourceRows(rows:List<*>)=rows.map {it as Map<*,*>}.map {it["path"].toString().replace('\\','/')+"="+it["sha256"]}.sorted()
+                    require(sourceRows(compiled)==sourceRows(origin["inputs"] as List<*>)){"Retained native input set differs from current frozen source"}
+                }
+                if(kind=="qwdtt"&&descriptor["fingerprintContract"]==1){
+                    val expected=setOf("mcrf_qwdtt_fingerprint.go","bridge_config.go","creds.go","creds_vkcalls.go","profiles.go","captcha_v2.go","main.go")
+                    val rows=(descriptor["fingerprintInputs"] as List<*>).map {it as Map<*,*>}
+                    require(rows.size==expected.size&&rows.map {it["file"]}.toSet()==expected)
+                    val manifest=(groovy.json.JsonSlurper().parse(packageStage.resolve("source-manifest.json")) as List<*>).map {it as Map<*,*>}
+                    rows.forEach {row->
+                        val name=row["file"] as String
+                        val input=packageStage.resolve("fingerprint-inputs/$name")
+                        require(input.isFile&&!Files.isSymbolicLink(input.toPath()))
+                        val sha=MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+                        require(sha==row["sha256"]&&manifest.single {it["path"].toString().replace('\\','/')==name}["sha256"]==sha)
+                    }
+                    manifestPlaceholders["qwdttFingerprintContract"]=1
+                }
+                if(kind=="csqtt"&&descriptor["accountOptionsContract"]==1){
+                    val archive=packageStage.resolve("account-options-inputs")
+                    val adapter=archive.resolve("prepare_csqtt.py")
+                    require(adapter.isFile&&!Files.isSymbolicLink(adapter.toPath()))
+                    val sha=MessageDigest.getInstance("SHA-256").digest(adapter.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+                    require(sha==descriptor["accountAdapterSha256"]&&sha=="27ca4d970f34cedd8f44e6cf0a8dbbcc51010ee24a33f238a2850688371dbd00")
+                    val rows=(descriptor["accountBridgeInputs"] as List<*>).map {it as Map<*,*>}
+                    require(rows.map {it["file"]}.toSet()==setOf("csqtt_bridge.go","bridge_config.go")&&rows.size==2)
+                    val manifest=(groovy.json.JsonSlurper().parse(packageStage.resolve("source-manifest.json")) as List<*>).map {it as Map<*,*>}
+                    rows.forEach {row->
+                        val name=row["file"] as String
+                        val input=archive.resolve(name)
+                        require(input.isFile&&!Files.isSymbolicLink(input.toPath()))
+                        val digest=MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+                        require(digest==row["sha256"]&&manifest.single {it["path"].toString().replace('\\','/')==name}["sha256"]==digest)
+                    }
+                    manifestPlaceholders["csqttAccountOptionsContract"]=1
+                }
+                if(kind=="csqtt25"){
+                    require(csqtt25Stage!=null&&descriptor["packageVersionCode"].toString().toInt()>=4)
+                    manifestPlaceholders["csqtt25PanelContract"]=1
+                }
+                if(kind=="wdtt"&&descriptor["providerOptionsContract"]==1){
+                    val input=packageStage.resolve("provider-options-input.go")
+                    require(input.isFile&&!Files.isSymbolicLink(input.toPath()))
+                    val sha=MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+                    require(sha==descriptor["providerOptionsInputSha256"])
+                    val inputs=(groovy.json.JsonSlurper().parse(packageStage.resolve("source-manifest.json")) as List<*>).map {it as Map<*,*>}
+                    require(inputs.single {it["path"].toString().replace('\\','/')=="mcrf_wdtt.go"}["sha256"]==sha)
+                    manifestPlaceholders["wdttProviderOptionsContract"]=1
+                    if(descriptor["masqueContract"]==1){
+                        val main=packageStage.resolve("masque-main-input.go")
+                        require(main.isFile&&!Files.isSymbolicLink(main.toPath()))
+                        val digest=MessageDigest.getInstance("SHA-256").digest(main.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+                        require(digest==descriptor["masqueMainInputSha256"]&&inputs.single {it["path"].toString().replace('\\','/')=="main.go"}["sha256"]==digest)
+                        manifestPlaceholders["wdttMasqueContract"]=1
+                    }
+                }
+                if(kind in setOf("csqtt","csqtt25")&&descriptor["processGroupContract"]==1) {
+                    val inputs=(descriptor["processGroupInputs"] as? List<*>)?.map {it as Map<*,*>}?:error("CSQTT group input proof missing")
+                    val expected=setOf("mcrf_process_group.go","mcrf_process_group_linux.go","mcrf_process_group_other.go","mcrf_child_input.go","csqtt_bridge.go")
+                    require(inputs.map {it["file"]}.toSet()==expected&&inputs.size==expected.size)
+                    val manifest=(groovy.json.JsonSlurper().parse(packageStage.resolve("source-manifest.json")) as List<*>).map {it as Map<*,*>}
+                    inputs.forEach {input->
+                        val name=input["file"] as String
+                        val file=packageStage.resolve("process-group-inputs/$name")
+                        require(file.isFile&&!Files.isSymbolicLink(file.toPath()))
+                        val sha=MessageDigest.getInstance("SHA-256").digest(file.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+                        require(sha==input["sha256"]&&manifest.single {it["path"].toString().replace('\\','/')==name}["sha256"]==sha)
+                    }
+                    val bridge=packageStage.resolve("process-group-inputs/csqtt_bridge.go").readText()
+                    require(bridge.contains("mcrfPrepareProcessGroup()")&&bridge.contains("processOwner.await(ctx)"))
+                    if(descriptor["expansionAuthority"]!=null){
+                        fun sha(path:java.io.File):String {
+                            require(path.isFile&&!Files.isSymbolicLink(path.toPath()))
+                            return MessageDigest.getInstance("SHA-256").digest(path.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+                        }
+                        val closureFile=packageStage.resolve("retained-owned-closure.json")
+                        require(sha(closureFile)==descriptor["retainedOwnerClosureSha256"])
+                        val closure=groovy.json.JsonSlurper().parse(closureFile) as Map<*,*>
+                        require(closure["newExecution"]==false&&sha(packageStage.resolve("retained-owned-bridge.go"))==closure["oldBridgeSha256"])
+                        (closure["acceptedExecution"] as? Map<*,*>)?.let {accepted->
+                            val prior=file(accepted["stage"].toString())
+                            val allowed=if(kind=="csqtt25")"csqtt25-captcha-3826488249184e138badc91ec899e8b8" else "csqtt-captcha-d31a14c4338e4bbb96ef5def4e8dc80e"
+                            require(prior.canonicalFile.parentFile==file("D:/MCRF/Builds/Android").canonicalFile&&prior.name==allowed)
+                            require(sha(prior.resolve("receipt.json"))==accepted["receiptSha256"]&&
+                                sha(prior.resolve("retained-owned-closure.json"))==accepted["closureSha256"]&&
+                                sha(prior.resolve("expansion-affected-tests.jsonl"))==accepted["logSha256"])
+                            require(sha(prior.resolve("process-group-inputs/csqtt_bridge.go"))==closure["oldBridgeSha256"])
+                        }
+                        val old=packageStage.resolve("retained-owned-bridge.go").readText()
+                        fun execution(body:String):String {
+                            val parser=body.indexOf("func readCSQTTConfig(");val run=body.indexOf("func runCSQTTBridge(")
+                            require(parser>=0&&run>parser)
+                            return body.substring(0,parser)+body.substring(run)
+                        }
+                        var currentExecution=execution(bridge).replace("\r\n","\n")
+                        if(closure["requiresAffectedBridgeRecheck"]==true){
+                            val start="return fmt.Errorf(\"cannot start bundled CSQTT transport: %s\", mcrfPublicChildFailure(c, err.Error()))"
+                            val wait="""
+	go func() {
+		waitErr := command.Wait()
+		if waitErr != nil && ctx.Err() == nil && command.ProcessState != nil { fmt.Printf("[CSQTT] child failure stage=transport exit=%d\n", command.ProcessState.ExitCode()) }
+		writer.Close()
+		select { case <-scanDone: case <-time.After(250 * time.Millisecond): }
+		close(done)
+	}()
+""".trimIndent().prependIndent("\t")
+                            val scan="""
+		// Keep only bounded, sanitized failures, never a config/challenge dump.
+		if message := mcrfPublicChildFailure(c, line); message != "" {
+			fmt.Printf("[CSQTT] child error: %s\n", message)
+		}
+""".trimIndent().prependIndent("\t\t")
+                            val oldScan="\t\t// Raw transport logs may contain hashes and captcha session tokens.\n\t\t// Only explicit public lifecycle messages are emitted by this adapter."
+                            val tunnel="\tif c.NormalizeTunnel != nil {\n\t\tconfig, err = c.NormalizeTunnel(config)\n\t\tif err != nil { return err }\n\t}\n"
+                            require(listOf(start,wait,scan,tunnel).all {currentExecution.contains(it)}){"Only the exact reviewed diagnostics/tunnel delta may retain helper evidence"}
+                            currentExecution=currentExecution.replace(tunnel,"")
+                            currentExecution=currentExecution.replace(start,"return errors.New(\"cannot start bundled CSQTT transport\")")
+                                .replace(wait,"\tgo func() { command.Wait(); writer.Close(); close(done) }()").replace(scan,oldScan)
+                            val freshStage=requireNotNull(csqtt25Stage)
+                            val fresh=groovy.json.JsonSlurper().parse(freshStage.resolve("receipt.json")) as Map<*,*>
+                            val freshCases=(fresh["affectedCases"] as List<*>).map {it.toString()}
+                            require(fresh["sourceStable"]==true&&sha(freshStage.resolve("expansion-affected-tests.jsonl"))==fresh["affectedLogSha256"]&&
+                                freshCases.containsAll(listOf("Test25SharedBridgeWaitsForOwnedTransportAndGrandchildCleanupAfterStop","Test25SharedBridgeSendsPrivateBootstrapAndHonorsOwnedStopCleanup","Test25TunnelOptionalPolicyDoesNotBecomeRevisionOrRouting","Test25TunnelIPv6DnsAndMalformedFramesAreHandledWithoutSecrets"))){"Changed diagnostic/tunnel execution requires NEW shared-bridge and frame evidence"}
+                        }
+                        require(execution(old).replace("\r\n","\n")==currentExecution){"Changed owner execution cannot retain old acceptance"}
+                        val helpers=(closure["helpers"] as List<*>).map {it as Map<*,*>}
+                        require(helpers.size==4&&helpers.map {it["file"]}.toSet()==expected-"csqtt_bridge.go")
+                        helpers.forEach {helper->require(sha(packageStage.resolve("process-group-inputs/${helper["file"]}"))==helper["sha256"])}
+                        val oldProof=packageStage.resolve("retained-owned-evidence.json")
+                        require(sha(oldProof)==closure["retainedReceiptSha256"])
+                        val proof=groovy.json.JsonSlurper().parse(oldProof) as Map<*,*>
+                        require(proof["passed"]==true&&proof["sourceStable"]==true&&(proof["cases"] as List<*>).size==8)
+                    }
+                    if(descriptor["priority"]==2){
+                        val readySha=providers.gradleProperty("p2SourceReadySha256").orNull
+                        require(readySha!=null&&descriptor["sourceReadySha256"]==readySha){"CSQTT belongs to the SAME whole-P2 source batch"}
+                        val proofFile=packageStage.resolve("process-group-evidence.json")
+                        val hash=MessageDigest.getInstance("SHA-256").digest(proofFile.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+                        require(hash==descriptor["processGroupEvidenceSha256"])
+                        val proof=groovy.json.JsonSlurper().parse(proofFile) as Map<*,*>
+                        require(proof["priority"]==2&&proof["passed"]==true&&proof["sourceStable"]==true&&proof["sourceReadySha256"]==readySha&&
+                            proof["state"] in setOf("OWNED_LINUX_GROUP_AND_INPUT_PASS_NOT_ANDROID","OWNED_ANDROID_KERNEL_PASS_APP_UNVERIFIED"))
+                        if(proof["state"]=="OWNED_ANDROID_KERNEL_PASS_APP_UNVERIFIED")require(proof["newExecution"]==false&&proof["kernelEvidenceSha256"].toString().matches(Regex("[0-9a-f]{64}")))
+                        val cases=(proof["cases"] as List<*>).map {it as String}
+                        require(cases.size==8&&cases.distinct().size==8&&"TestMcrfProcessGroupLinuxRealAckAndWholeTreeRetirement" in cases)
+                        val logSha=MessageDigest.getInstance("SHA-256").digest(packageStage.resolve("process-group-tests.log").readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+                        require(logSha==proof["logSha256"])
+                    }
+                    manifestPlaceholders["csqttProcessGroupContract"]=1
+                }
                 require((descriptor["packageVersionCode"]==null)==(descriptor["packageVersionName"]==null)){"Incomplete frozen package version"}
                 descriptor["packageVersionCode"]?.let {value->
                     val code=value.toString().toInt()
@@ -391,6 +632,11 @@ android {
         }}
     }
     sourceSets.getByName("csqtt25").manifest.srcFile("EngineUpdateCsqtt25Manifest.xml")
+    historicalKinds.forEach {kind->
+        val historicalManifest=file("EngineUpdateCsqttHistoricalManifest.xml")
+        require(historicalManifest.isFile){"Historical CSQTT generation/source manifest must be in the frozen integration snapshot"}
+        sourceSets.getByName(kind).manifest.srcFile(historicalManifest)
+    }
     sourceSets.getByName("s3bypass").manifest.srcFile("EngineUpdateS3BypassManifest.xml")
     if(csqttLegacyStage!=null)sourceSets.getByName("csqtt").manifest.srcFile("EngineUpdateCsqttLegacyManifest.xml")
     swgStages.keys.forEach{kind->sourceSets.getByName(kind).manifest.srcFile("EngineUpdateSwgManifest.xml")}
@@ -406,10 +652,12 @@ android {
 androidComponents {
     // A candidate can never leak into a release build or the other engine packages.
     beforeVariants(selector().all()){variant->
+        if(variant.productFlavors.any {it.second in historicalKinds&&(it.second !in historicalStages||(variant.buildType!="debug"&&!historicalReleaseAllowed))})variant.enable=false
         if(variant.productFlavors.any{it.second=="csqtt25"}&&(csqtt25Stage==null||!csqtt25Gate))variant.enable=false
         if(variant.productFlavors.any{it.second=="s3bypass"}&&s3BypassStage==null)variant.enable=false
         if(variant.productFlavors.any{it.second in optionalKinds}&&(optionalStage==null||!optionalGate))variant.enable=false
         if(variant.productFlavors.any{it.second in primaryKinds&&(!primaryGate||moduleKind(it.second) !in primaryDescriptors)})variant.enable=false
+        if(providers.gradleProperty("p2SteerCandidate").orNull=="true"&&variant.productFlavors.any {it.second=="steer"}&&variant.buildType!="debug"&&!historicalReleaseAllowed)variant.enable=false
         if(variant.productFlavors.any{it.second=="tgws"}&&!telegramGate)variant.enable=false
         if(openfluxCandidate!=null&&(variant.buildType!="debug"||variant.productFlavors.none{it.second=="openflux"}))variant.enable=false
         if(openfluxProvider!=null&&variant.productFlavors.none{it.second=="openflux"})variant.enable=false
@@ -420,6 +668,7 @@ androidComponents {
     if(variant.buildType=="debug"&&(kind in swgStages||kind=="csqtt"&&csqttLegacyStage!=null||kind=="csqtt25"&&csqtt25Stage!=null))
         captchaMergedAssets[kind]=variant.artifacts.get(com.android.build.api.artifact.SingleArtifact.ASSETS)
     if(kind=="csqtt"&&csqttLegacyNotices!=null)variant.sources.assets?.addGeneratedSourceDirectory(csqttLegacyNotices,StageEngineCsqtt25Notices::outputDirectory)
+    historicalNotices[kind]?.let {notices->variant.sources.assets?.addGeneratedSourceDirectory(notices,StageEngineCsqtt25Notices::outputDirectory)}
     swgNotices[kind]?.let{notices->variant.sources.assets?.addGeneratedSourceDirectory(notices,StageEngineSwgNotices::outputDirectory)}
     if(kind=="csqtt25"){
         variant.outputs.forEach{output->output.enabled.set(output.filters.any{it.filterType==com.android.build.api.variant.FilterConfiguration.FilterType.ABI&&it.identifier=="arm64-v8a"})}
@@ -460,25 +709,33 @@ if(primaryStage!=null&&primaryGate){
 val steerDescriptor=primaryDescriptors["steer"] as? Map<*,*>
 val steerRuntimePin=(steerDescriptor?.get("artifacts") as? List<*>)?.map{it as Map<*,*>}?.singleOrNull{it["file"]=="runtime.aar"}?.get("sha256")
 val reviewedFatSteerRuntimePins=setOf(
+    // P049 parser-only native correction; non-JNI contents equal the accepted P1 runtime.
+    "3e8141dc96ec6a924c10262c56a99eccf24ab68448653d4ab351984b9f23fd43",
     "38958fba063b2fcc8633e55aa69489585429f60c2ed5118478b3242d35bfab11",
     // dev.5 changes only the runtime manifest namespace; all 13 other entries match dev.4.
     "fdc3e44e638a8df4cd9ac5b85654148af8c5ca83e18a7e14b8ef11c2bcd2423c"
 )
 val p1SteerCandidate = providers.gradleProperty("p1SteerCandidate").orNull == "true"
-val p1FatRuntimeVerified = if(p1SteerCandidate){
+val p2SteerCandidate = providers.gradleProperty("p2SteerCandidate").orNull == "true"
+require(!(p1SteerCandidate&&p2SteerCandidate)){"Candidate priorities cannot be combined"}
+require(steerDescriptor?.get("p2Candidate")!=true||p2SteerCandidate){"P2 primary stage requires its own common candidate gate"}
+val candidateFatRuntimeVerified = if(p1SteerCandidate||p2SteerCandidate){
+    val priority=if(p2SteerCandidate)2 else 1
+    val prefix="p$priority"
     val directory=requireNotNull(primaryStage)
     val descriptor=requireNotNull(steerDescriptor)
-    val gateFile=file(requireNotNull(providers.gradleProperty("p1SourceReadyReceipt").orNull))
-    val expectedSha=requireNotNull(providers.gradleProperty("p1SourceReadySha256").orNull)
+    val gateFile=file(requireNotNull(providers.gradleProperty("${prefix}SourceReadyReceipt").orNull))
+    val expectedSha=requireNotNull(providers.gradleProperty("${prefix}SourceReadySha256").orNull)
     require(expectedSha.matches(Regex("[0-9a-f]{64}"))&&gateFile.isAbsolute&&gateFile.absoluteFile.normalize()==gateFile.canonicalFile&&
         gateFile.canonicalFile.parentFile==rootProject.file("coordination").canonicalFile&&
-        gateFile.name.matches(Regex("p1-progress-[0-9]{4}-[0-9]{2}-[0-9]{2}\\.json"))&&gateFile.isFile&&gateFile.length() in 1L..262144L&&
+        (if(p2SteerCandidate)gateFile.name=="p2-progress-2026-10-20.json" else gateFile.name.matches(Regex("p1-progress-[0-9]{4}-[0-9]{2}-[0-9]{2}\\.json")))&&gateFile.isFile&&gateFile.length() in 1L..262144L&&
         !Files.isSymbolicLink(gateFile.toPath()))
     val gateBytes=gateFile.readBytes()
     require(MessageDigest.getInstance("SHA-256").digest(gateBytes).joinToString(""){"%02x".format(it.toInt()and 255)}==expectedSha)
     val gate=groovy.json.JsonSlurper().parse(gateBytes) as Map<*,*>
-    val nativeGateSha=descriptor["p1ReadinessSha256"]
+    val nativeGateSha=descriptor["${prefix}ReadinessSha256"]
     if(nativeGateSha!=expectedSha){
+        require(!p2SteerCandidate){"P2 candidate requires the exact frozen common-source gate"}
         val original=file(requireNotNull(providers.gradleProperty("p1NativeSourceReadyReceipt").orNull))
         val originalSha=requireNotNull(providers.gradleProperty("p1NativeSourceReadySha256").orNull)
         require(originalSha==nativeGateSha&&originalSha.matches(Regex("[0-9a-f]{64}"))&&
@@ -490,8 +747,15 @@ val p1FatRuntimeVerified = if(p1SteerCandidate){
         val deviceMetadata=setOf("allowCommonDeviceVerification","commonVerificationReceipt","deviceVerificationAuthority","humanDeviceReply","phase")
         require(before.filterKeys {it !in deviceMetadata}==gate.filterKeys {it !in deviceMetadata})
     }
-    require(primaryGate&&descriptor["p1Candidate"]==true&&gate["priority"].toString()=="1"&&
+    require(primaryGate&&descriptor["${prefix}Candidate"]==true&&descriptor["p${3-priority}Candidate"]!=true&&gate["priority"].toString()==priority.toString()&&
+        gate["verificationAuthority"]==(if(p2SteerCandidate)"human-20261020-p2-whole-source-before-common-verification" else "human-20261019-p1-whole-source-before-common-verification")&&
         listOf("sourceReady","readyForBuild","allowCommonVerification","nativeSourceReady","allowNativeCandidateBuild","allowApkBuild").all {gate[it]==true})
+    if(p2SteerCandidate){
+        val candidateCode=gate["steerCandidateVersionCode"].toString().toInt()
+        require(candidateCode>=13&&descriptor["versionCode"].toString()==candidateCode.toString()&&descriptor["moduleVersion"]=="0.3.3-p2-candidate.$candidateCode")
+        val items=(gate["items"] as List<*>).map {it as Map<*,*>}
+        require(items.map {it["id"].toString()}.sorted()==listOf("11","2","20","6","7")&&items.all {it["sourceReady"]==true})
+    }
     val pins=mapOf(
         "com.squareup.okhttp3:okhttp:4.12.0" to "b1050081b14bb7a3a7e55a4d3ef01b5dcfabc453b4573a4fc019767191d5f4e0",
         "com.squareup.okio:okio-jvm:3.6.0" to "67543f0736fc422ae927ed0e504b98bc5e269fda0d3500579337cb713da28412",
@@ -503,6 +767,13 @@ val p1FatRuntimeVerified = if(p1SteerCandidate){
     require(dependencies.size==pins.size&&dependencies.map{it["coordinate"]}.toSet()==pins.keys)
     val owned=hashSetOf<String>()
     ZipFile(directory.resolve("steer/runtime.aar")).use {aar->
+        if(p2SteerCandidate){
+            val caps=aar.getInputStream(requireNotNull(aar.getEntry("assets/steer-capabilities.json"))).use {stream->
+                groovy.json.JsonSlurper().parse(stream) as Map<*,*>
+            }
+            require(caps["mcrf_snapshot_model"].toString()=="2"&&caps["candidate_only"]==true&&caps["runtime_accepted"]==false&&
+                caps["independent_probe"]=="native_https_204_fresh_worker_v1"){"Exact unaccepted P2 independent-probe candidate required"}
+        }
         val runtime=aar.getInputStream(requireNotNull(aar.getEntry("classes.jar"))).use {stream->ZipInputStream(stream).use {jar->
             buildMap<String,ByteArray>{while(true){val entry=jar.nextEntry?:break;if(entry.name.endsWith(".class")&&(entry.name.startsWith("kotlin/")||entry.name.startsWith("org/jetbrains/annotations/")))put(entry.name,jar.readBytes())}}
         }}
@@ -520,13 +791,20 @@ val p1FatRuntimeVerified = if(p1SteerCandidate){
     }
     true
 }else false
-if(primaryGate&&(steerRuntimePin in reviewedFatSteerRuntimePins||p1FatRuntimeVerified)){
+if(primaryGate&&(steerRuntimePin in reviewedFatSteerRuntimePins||candidateFatRuntimeVerified)){
     configurations.configureEach {
         if(name.startsWith("steer")){
             listOf("kotlin-stdlib","kotlin-stdlib-jdk7","kotlin-stdlib-jdk8","kotlin-stdlib-common").forEach{module->exclude(group="org.jetbrains.kotlin",module=module)}
             exclude(group="org.jetbrains",module="annotations")
         }
     }
+}
+if(p2SteerCandidate&&historicalReleaseAllowed){
+    android.productFlavors.getByName("steer").apply {versionCode=14;versionName="0.3.3-mcrf.14"}
+}
+if(optionalStage!=null&&historicalReleaseAllowed){
+    android.productFlavors.getByName("xray").apply {versionCode=6;versionName="0.1.0-mcrf.6"}
+    android.productFlavors.getByName("tlscore").apply {versionCode=7;versionName="0.1.0-mcrf.7"}
 }
 if(swgStages.isNotEmpty()){
     tasks.register("verifySwgNativeCandidates"){

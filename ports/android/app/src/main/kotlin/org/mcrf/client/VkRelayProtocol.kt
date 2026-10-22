@@ -50,14 +50,12 @@ object VkRelayProtocol {
     }
     fun count(value: Int,kind: String): Int {
         require(kind in setOf("qwdtt","wdtt","csqtt"))
-        require(value in 1..if(kind=="qwdtt") 32 else 6) { "Количество звонков вне диапазона протокола" };return value
+        require(value>0) { "Количество звонков должно быть положительным" };return value
     }
     fun calls(values: List<String>, kind: String): List<String> {
         require(kind in setOf("qwdtt","wdtt","csqtt")) { "Неизвестный протокол звонков" }
-        val max=if(kind=="qwdtt") 32 else 6
-        require(values.size in 1..max) { "Для ${kind.uppercase()} укажите от 1 до $max звонков" }
-        val hashes = values.map { hash(it,kind) }
-        require(hashes.distinct().size == hashes.size) { "Ссылки звонков повторяются" }
+        require(values.isNotEmpty()) { "Добавьте звонки VK" }
+        val hashes = VkHashPool.unique(values).map { hash(it,kind) }.distinct()
         return hashes.map { "https://vk.ru/call/join/$it" }
     }
 }

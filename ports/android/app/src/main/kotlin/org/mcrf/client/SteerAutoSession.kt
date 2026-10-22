@@ -1,8 +1,9 @@
 package org.mcrf.client
 
 /** Bounded control-plane state for Steer probes/failover, without another native core.
- * The future probe executor must report actual tunnel HTTPS results, never TCP reachability.
- * Deliberately not wired to enable automatic mode until that executor passes device tests.
+ * The P2 candidate executor reports native tunneled HTTPS results, never TCP reachability.
+ * Source wiring is not admission: the legacy installed module has no probe
+ * capability and stays refused until a fresh candidate passes affected tests.
  * No persisted generic/sing-box probe cache is accepted here. */
 class SteerAutoSession(ids:List<String>,marked:Set<String>,private val generation:Long) {
     val measurementIds:List<String> = java.util.Collections.unmodifiableList(ids.toList())

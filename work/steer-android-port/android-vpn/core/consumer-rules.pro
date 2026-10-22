@@ -3,6 +3,8 @@
 # or field/class renaming across host/module copies. Actual R8 proof still due.
 -keep class org.mcrf.steerprep.json.** { *; }
 -keep interface org.steer.core.SteerCore$SocketProtector { *; }
+-keep interface org.steer.core.SteerCore$RelayObserver { *; }
+-keepclassmembers class * implements org.steer.core.SteerCore$RelayObserver { public void completed(boolean); public boolean cancelled(); }
 -keep interface org.steer.core.SteerCore$FlowRouter { *; }
 -keep interface org.steer.core.SteerCore$PortFlowRouter { *; }
 -keepclassmembers class * implements org.steer.core.SteerCore$PortFlowRouter { public boolean portFlowsEnabled(); public long routeFlowPort(int,int,int); }

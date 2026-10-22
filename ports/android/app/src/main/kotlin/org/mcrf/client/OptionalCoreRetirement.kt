@@ -47,21 +47,34 @@ class OptionalCoreRetirement(resources:List<AutoCloseable>):AutoCloseable {
 
 /** Return means observed process death, never merely a successful kill request. */
 object OptionalCoreTermination {
+    // A failed attempt retains the same exact stdin owner for the retry. No
+    // global PID registry or repeated STOP writes into a replacement process.
+    private val writers=java.util.IdentityHashMap<Process,CarrierIpcWriter>()
+    private fun writer(child:Process):CarrierIpcWriter=synchronized(writers){
+        writers[child]?:CarrierIpcWriter(child.outputStream).also {writers[child]=it}
+    }
+    private fun drainWriter(child:Process) {
+        val ipc=synchronized(writers){writers[child]}?:return
+        ipc.childExited()
+        check(ipc.awaitCompletion(1000).writerExited){"Optional core stdin ещё освобождается; требуется повторная очистка."}
+        synchronized(writers){if(writers[child]===ipc)writers.remove(child)}
+    }
     fun release(child:Process,graceful:Boolean) {
         stop(child,graceful)
         OptionalCoreRetirement(listOf(child.outputStream,child.inputStream,child.errorStream)).close()
     }
     fun stop(child:Process,graceful:Boolean) {
-        if(!child.isAlive)return
         try {
+            if(!child.isAlive){drainWriter(child);return}
             if(graceful) {
-                try {child.outputStream.write("STOP\n".toByteArray());child.outputStream.flush();child.outputStream.close()}catch(_:Exception){}
-                if(child.waitFor(3,TimeUnit.SECONDS)&&!child.isAlive)return
+                writer(child).requestStop()
+                if(child.waitFor(3,TimeUnit.SECONDS)&&!child.isAlive){drainWriter(child);return}
             }
             child.destroy()
-            if(child.waitFor(1,TimeUnit.SECONDS)&&!child.isAlive)return
+            if(child.waitFor(1,TimeUnit.SECONDS)&&!child.isAlive){drainWriter(child);return}
             child.destroyForcibly()
             check(child.waitFor(3,TimeUnit.SECONDS)&&!child.isAlive){"Optional core ещё работает; требуется повторная очистка."}
+            drainWriter(child)
         }catch(error:InterruptedException) {
             try {child.destroyForcibly()}catch(kill:Throwable){error.addSuppressed(kill)}
             Thread.currentThread().interrupt()

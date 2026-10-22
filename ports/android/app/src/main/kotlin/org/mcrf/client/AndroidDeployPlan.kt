@@ -12,7 +12,7 @@ data class AndroidDeployRecipe(val id: String,val repository: String,val commit:
         val all=listOf(
             AndroidDeployRecipe("3xui","MHSanaei/3x-ui","74c3cc38821cabd66ad316ea562851422d0b0063","install.sh","9684bae4f769b2127fcceceb4f200045657381311867529e6ba76c6b58e2825d","v3.10.0"),
             AndroidDeployRecipe("openflux","vnenapravo7-source/openflux-deploy","6e1b5a995d5fd1c00c6ff372d25f5f88b9e7e636","deploy.sh","91f7a699faf930740eda0d0eadf81e7c6012ffe8ac41ff57c09d40838c413417","6e1b5a9"),
-            AndroidDeployRecipe("swg","SanityProtocol/swg-panel","e58d2a96ac88f06cfb349de542ab4c9b8eb6f747","bootstrap.sh","6ff4914ae5434f7fd7addbfb33930d0b5967f3430c1af7f35bf7b584737eaec5","e58d2a9"),
+            AndroidDeployRecipe("swg","SanityProtocol/swg-panel","9c4a59d523ae4ec42fb8205198678c8a7ffc6263","bootstrap.sh","a64586c2a49acc3bab520a28c86903aa6291c213e3cac79485696edf5c2e2fd5","1.8.10-beta"),
             AndroidDeployRecipe(S3BypassProfile.KIND,S3BypassProfile.REPOSITORY,S3BypassProfile.COMMIT,"","","embedded-1")
         )
     }
@@ -22,7 +22,8 @@ data class AndroidDeployTarget(
     val privateKey: String="",val keyPassword: String="",val panelPort: Int=8443,
     val panelUser: String="mcrf",val panelPassword: String=AndroidDeployPlan.secret(),val domain: String="",
     val options: JSONObject=JSONObject().put("create",true),val allowExisting: Boolean=false,
-    val operationId: String=java.util.UUID.randomUUID().toString()
+    val operationId: String=java.util.UUID.randomUUID().toString(),
+    val deploymentId:String="",val deploymentName:String=""
 ) {
     // Never expose credentials through a generated data-class toString.
     override fun toString()="AndroidDeployTarget(host=$host, sshPort=$sshPort)"
@@ -37,6 +38,10 @@ object AndroidDeployPlan {
     }.getOrDefault(false)
     fun validate(recipe: String,target: AndroidDeployTarget) {
         require(Regex("[a-f0-9-]{36}").matches(target.operationId)) { "Некорректный идентификатор деплоя" }
+        if(target.deploymentId.isNotEmpty()){
+            require(Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").matches(target.deploymentId))
+            AndroidDeployInventory.name(target.deploymentName)
+        }
         require(AndroidDeployRecipe.all.any { it.id==recipe }) { "Неизвестный установщик" }
         require(host(target.host) && target.sshPort in 1..65535 &&
             (recipe==S3BypassProfile.KIND || (target.panelPort in 1024..65535 && target.panelPort!=target.sshPort))) { "Проверьте адрес и порты SSH/панели" }
@@ -68,10 +73,11 @@ object AndroidDeployPlan {
                     AndroidDeploySwg.validateCalls(o)
                     return
                 }
-                val kind=o.optString("relay_kind","qwdtt");VkRelayProtocol.count(integer(o,"call_count",6),kind);require(kind in listOf("qwdtt","wdtt","csqtt"))
-                val p=port("relay_port",56000);if(kind!="csqtt") require(p!=port("wg_port",51820))
+                val kind=o.optString("relay_kind","qwdtt");VkRelayProtocol.count(integer(o,"call_count",6),AndroidDeploySwg.callKind(kind));require(kind in AndroidDeploySwg.kinds)
+                val p=port("relay_port",56000);if(!AndroidDeploySwg.isCsqtt(kind)) require(p!=port("wg_port",51820))
                 val a=o.optJSONArray("vk_calls") ?: JSONArray()
-                if(a.length()>0) VkRelayProtocol.calls((0 until a.length()).map(a::getString),kind)
+                AndroidDeploySwg.validateCallArray(a)
+                if(a.length()>0) VkRelayProtocol.calls((0 until a.length()).map(a::getString),AndroidDeploySwg.callKind(kind))
                 else require(o.optBoolean("automatic_calls")) { "Укажите звонки VK или выберите автоматическое создание" }
             }
         }

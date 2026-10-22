@@ -5,8 +5,24 @@ import org.json.JSONObject
 
 /** Separate listeners and call groups for each selected protocol; never reuse one-use calls implicitly. */
 object AndroidDeploySwg {
-    val kinds=listOf("qwdtt","wdtt","csqtt")
-    fun drafts(options:JSONObject):JSONArray = options.optJSONArray("swg_profiles")?.let {JSONArray(it.toString())} ?: JSONArray().apply {
+    val kinds=listOf("qwdtt","wdtt","csqtt","csqtt25")
+    fun isCsqtt(kind:String)=kind in setOf("csqtt","csqtt25")
+    fun callKind(kind:String)=if(kind=="csqtt25")"csqtt"else kind
+    fun label(kind:String)=when(kind){"csqtt"->"CSQTT 2.1.9";"csqtt25"->"CSQTT 2.5";else->kind.uppercase()}
+    fun validateCallArray(calls:JSONArray) {
+        require(calls.toString().toByteArray(Charsets.UTF_8).size<=65536) {"Список звонков больше 64 КБ"}
+        repeat(calls.length()){require(calls.get(it) is String && calls.getString(it).length<=1024)}
+    }
+    fun drafts(options:JSONObject):JSONArray = options.optJSONArray("swg_profiles")?.let {previous->
+        JSONArray(previous.toString()).apply {
+            if((0 until length()).none {getJSONObject(it).optString("kind")=="csqtt25"}){
+                val occupied=(0 until length()).flatMap {index->listOf("relay_port","wg_port").map {getJSONObject(index).optString(it)}}.toSet()
+                var relay=56003;while(relay.toString() in occupied)relay+=10
+                var wg=51823;while(wg.toString() in occupied||wg==relay)wg+=10
+                put(JSONObject().put("kind","csqtt25").put("enabled",false).put("relay_port",relay.toString()).put("wg_port",wg.toString()).put("call_count",6).put("vk_calls",JSONArray()))
+            }
+        }
+    } ?: JSONArray().apply {
         val legacy=options.optString("relay_kind","qwdtt")
         val reserved=mutableSetOf(options.optString("relay_port","56000"),options.optString("wg_port","51820"))
         fun available(start:Int):String {var port=start;while(port.toString() in reserved)port+=10;return port.toString().also(reserved::add)}
@@ -20,7 +36,7 @@ object AndroidDeploySwg {
         }
     }
     fun validateDrafts(array:JSONArray,allowGroups:Boolean=false) {
-        require(array.length() in 1..3) {"Выберите от одного до трёх протоколов SWG"}
+        require(array.length() in 1..4) {"Выберите от одного до четырёх вариантов SWG"}
         val seen=hashSetOf<String>()
         repeat(array.length()) { i ->
             val p=array.getJSONObject(i)
@@ -28,12 +44,9 @@ object AndroidDeploySwg {
             val kind=p.getString("kind");require(kind in kinds && seen.add(kind)) {"Повторяющийся или неизвестный протокол SWG"}
             require(p.get("enabled") is Boolean)
             for(key in listOf("relay_port","wg_port"))require((p.get(key) is Int || p.get(key) is String)&&p.get(key).toString().length<=8)
-            require(p.get("call_count") is Int);VkRelayProtocol.count(p.getInt("call_count"),kind)
-            // Drafts retain legacy/manual input, including a protocol switched after
-            // entering QWDTT calls. Enforce the selected protocol limit at execution,
-            // never discard links or crash while merely opening its editor.
-            val calls=p.getJSONArray("vk_calls");require(calls.length()<=32)
-            repeat(calls.length()) {require(calls.get(it) is String && calls.getString(it).length<=1024)}
+            require(p.get("call_count") is Int);VkRelayProtocol.count(p.getInt("call_count"),callKind(kind))
+            // Bound payload bytes, not the number of calls; opening a draft never truncates it.
+            validateCallArray(p.getJSONArray("vk_calls"))
             if(p.has("call_group"))require(p.get("call_group") is String&&Regex("[A-Za-z0-9_.:-]{1,128}").matches(p.getString("call_group")))
         }
     }
@@ -43,20 +56,19 @@ object AndroidDeploySwg {
         require(selected.isNotEmpty()) {"Выберите хотя бы один протокол SWG"}
         val ports=hashSetOf<Int>()
         return selected.map { raw -> JSONObject(raw.toString()).apply {
-            require(getJSONArray("vk_calls").length()<=if(getString("kind")=="qwdtt")32 else 6) {"Для ${getString("kind").uppercase()} допустимо не более 6 звонков. Исправь черновик перед запуском."}
-            for(key in if(getString("kind")=="csqtt")listOf("relay_port") else listOf("relay_port","wg_port")) {
+            for(key in if(isCsqtt(getString("kind")))listOf("relay_port") else listOf("relay_port","wg_port")) {
                 val port=get(key).toString().toIntOrNull()
                 require(port!=null && port in 1024..65535 && ports.add(port)) {"У протоколов SWG должны быть разные свободные порты (1024–65535)"}
                 put(key,port)
             }
         } }
     }
-    fun ports(options:JSONObject)=profiles(options).flatMap { p -> listOf(p.getInt("relay_port")) + if(p.getString("kind")=="csqtt")emptyList() else listOf(p.getInt("wg_port")) }
+    fun ports(options:JSONObject)=profiles(options).flatMap { p -> listOf(p.getInt("relay_port")) + if(isCsqtt(p.getString("kind")))emptyList() else listOf(p.getInt("wg_port")) }
     fun validateCalls(options:JSONObject) {
         val used=hashSetOf<String>()
         profiles(options).forEach { p ->
             val calls=p.getJSONArray("vk_calls")
-            if(calls.length()>0)VkRelayProtocol.calls((0 until calls.length()).map(calls::getString),p.getString("kind")).forEach {require(used.add(VkRelayProtocol.hash(it))) {"Для разных протоколов нужны отдельные звонки VK"}}
+            if(calls.length()>0)VkRelayProtocol.calls((0 until calls.length()).map(calls::getString),callKind(p.getString("kind"))).forEach {require(used.add(VkRelayProtocol.hash(it))) {"Для разных протоколов нужны отдельные звонки VK"}}
             else require(options.optBoolean("automatic_calls")) {"Укажите звонки для ${p.getString("kind").uppercase()} или включите их автоматическое создание"}
         }
     }
@@ -69,7 +81,7 @@ object AndroidDeploySwg {
             if(p.has("call_group")) {
                 val id=p.getString("call_group");require(id==groupId(operation,p.getString("kind")))
                 val group=groups.getJSONObject(id);val hashes=group.getJSONArray("hashes");val calls=p.getJSONArray("vk_calls")
-                require(group.getString("kind")==p.getString("kind")&&group.optInt("count",6)==p.getInt("call_count")&&hashes.length()==calls.length())
+                require(group.getString("kind")==callKind(p.getString("kind"))&&group.optInt("count",6)==p.getInt("call_count")&&hashes.length()==calls.length())
                 require((0 until calls.length()).all {VkRelayProtocol.hash(calls.getString(it))==hashes.getString(it)})
             }
         }

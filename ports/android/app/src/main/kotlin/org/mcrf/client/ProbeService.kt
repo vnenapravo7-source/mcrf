@@ -77,6 +77,8 @@ class ProbeService : ClientPrimaryHostPlatform() {
             var providerDiagnostic=false
             var providerVersion=1
             val providerStage=AtomicReference("")
+            val completedAt=java.util.concurrent.ConcurrentHashMap<String,Long>()
+            var backend="singbox";var moduleSha="";var probeNetwork=0L
             try {
                 val file = File(input ?: throw IOException("PROBE_INPUT"))
                 require(file.canonicalFile.parentFile == cacheDir.canonicalFile &&
@@ -89,6 +91,7 @@ class ProbeService : ClientPrimaryHostPlatform() {
                     item.getString("id") to item.getString("tag").also { tag -> require(tag.isNotEmpty() && tag.length <= 8192) }
                 }
                 val ledger = ClientPrimaryProbeResults(servers.map { it.first }) { count, id, delay ->
+                    completedAt[id]=SystemClock.elapsedRealtime()
                     receiver?.send(2, Bundle().apply { putInt("completed", count); putString("id", id); putLong("delay", delay) })
                 }
                 results = ledger
@@ -112,6 +115,34 @@ class ProbeService : ClientPrimaryHostPlatform() {
                 require(url.length <= 8192 && java.net.URI(url).scheme in setOf("https", "http")) { "PROBE_URL" }
                 engineUsage = EngineUpdateGate.acquireUsage(this) ?: throw IOException("PROBE_MODULE_UPDATE")
                 ensureActive()
+                backend=request.optString("backend","singbox")
+                require(backend in setOf("singbox","steer")) {"PROBE_BACKEND"}
+                if(backend=="steer") {
+                    errorText="Не удалось проверить серверы собственным движком Steer. Замена на sing-box не выполнялась."
+                    require(!providerDiagnostic&&carriers.isEmpty()) {"STEER_PROBE_NO_CARRIER"}
+                    moduleSha=request.getString("moduleSha256");probeNetwork=request.getLong("networkHandle")
+                    require(request.opt("protectSockets") is Boolean) {"STEER_PROBE_PROTECTION"}
+                    val installed=EngineUpdatePrimary.installation(this,"steer")
+                    require(ClientPrimarySelection.steerContract(this).independentProbe&&
+                        ClientPrimaryWorkerWire.hashFile(File(installed.sourceDir))==moduleSha&&probeNetwork>0) {"STEER_PROBE_MODULE_IDENTITY"}
+                    val profiles=request.getJSONArray("steerProfiles")
+                    require(profiles.length()==servers.size) {"STEER_PROBE_PROFILES"}
+                    val captured=(0 until profiles.length()).map {profiles.getJSONObject(it)}
+                    require(captured.map {it.getString("id")}.toSet()==servers.map {it.first}.toSet()&&captured.size==captured.map {it.getString("id")}.toSet().size) {"STEER_PROBE_IDS"}
+                    for(item in captured) {
+                        ensureActive();require(DirectAccessCheck.physical(this)?.networkHandle==probeNetwork) {"STEER_PROBE_NETWORK_CHANGED"}
+                        val profile=item.getString("profile");val host=item.getString("host");val id=item.getString("id")
+                        SteerProbePlan.captured(item)
+                        var delay=-1L
+                        try {delay=withSteerCore(profile,host,url,probeNetwork,request.getBoolean("protectSockets"))}
+                        catch(error:Exception){
+                            diagnostic.set("Steer HTTPS: unavailable")
+                            check(core==null) {"STEER_PROBE_CLEANUP_PENDING"}
+                            if(cancelled||DirectAccessCheck.physical(this)?.networkHandle!=probeNetwork)throw error
+                        }
+                        ensureActive();ledger.record(id,delay)
+                    }
+                }else {
                 // Probes explicitly require the real installed sing-box, independent of VPN choice.
                 // This loads no native code into this service and never falls back to a base core.
                 try { EngineUpdatePrimary.installation(this, "sing-box") } catch (_: Exception) {
@@ -185,6 +216,7 @@ class ProbeService : ClientPrimaryHostPlatform() {
                         if (core == null) { transport?.close(); transport = null }
                     }
                 }
+                }
                 completionCode = if (cancelled) 3 else 0
             } catch (_: Exception) {
                 completionCode = if (cancelled) 3 else 1
@@ -219,6 +251,8 @@ class ProbeService : ClientPrimaryHostPlatform() {
                 val values = results?.finish().orEmpty()
                 val delays = Bundle().apply { values.forEach { (id, delay) -> putLong(id, delay) } }
                 val completion = Bundle().apply {
+                    putString("backend",backend);if(backend=="steer"){putString("moduleSha256",moduleSha);putLong("networkHandle",probeNetwork)}
+                    if(backend=="steer")putBundle("completedAt",Bundle().apply {completedAt.forEach {(id,at)->putLong(id,at)}})
                     putBundle("delays", delays)
                     if (completionCode != 0) putString("error", if (completionCode == 3)
                         "Замер отменён. Предыдущие результаты сохранены." else errorText)
@@ -238,6 +272,40 @@ class ProbeService : ClientPrimaryHostPlatform() {
 
     private fun ensureActive() { if (cancelled) throw CancellationException("PROBE_CANCELLED") }
 
+    private fun withSteerCore(profile:String,host:String,url:String,network:Long,protectSockets:Boolean):Long {
+        ensureActive();check(core==null) {"STEER_PROBE_PRIMARY_STILL_RUNNING"}
+        val runGeneration=generation.incrementAndGet()
+        var physicalPinned=false
+        val platform=forRun(runGeneration,{cancelled||physicalPinned&&underlying?.networkHandle!=network},
+            {throw IOException("STEER_PROBE_TUN_DISABLED")},{_,_->},protectSockets)
+        try {
+            require(underlying?.networkHandle==network) {"STEER_PROBE_NETWORK_CHANGED"}
+            physicalPinned=true
+            fun resolve(name:String,v4:Boolean):String {
+                RouteRules.literal(name)?.let {literal->
+                    require(!v4||literal is java.net.Inet4Address) {"STEER_PROBE_IPV4_DIAL"}
+                    return requireNotNull(literal.hostAddress)
+                }
+                for(type in if(v4)listOf(1)else listOf(1,28)) {
+                    ensureActive()
+                    val query=PacketDnsWire.query(name.trimEnd('.'),type,java.security.SecureRandom().nextInt(65536))
+                    val answer=platform.exchangeDns(runGeneration,org.mcrf.engine.spi.v1.Platform.DnsQuery(
+                        generation.incrementAndGet(),query,5000))
+                    if(answer.errno==0&&answer.rcode==0)PacketDnsWire.addresses(query,answer.packet()).firstOrNull()?.hostAddress?.let {return it}
+                }
+                throw IOException("STEER_PROBE_DNS_UNAVAILABLE")
+            }
+            val target=SteerProbeSpec(url,"192.0.2.1")
+            val dial=resolve(host,true);val spec=SteerProbeSpec(url,resolve(target.host,false))
+            val primary=try {ClientPrimaryWorker.connect(this,"steer",runGeneration,platform,ClientPrimaryProbeWorkerService::class.java)}
+                catch(pending:ClientPrimaryWorker.CleanupPending){core=pending.worker;throw pending}
+            core=primary;ensureActive()
+            return primary.probeSteer(profile,spec,dial)
+        }finally {
+            check(closePrimary()) {"STEER_PROBE_PRIMARY_CLEANUP"}
+            closePlatform()
+        }
+    }
     private fun <T> withCore(config: JSONObject, action: (ClientPrimaryWorker) -> T): T {
         ensureActive()
         check(core == null) { "PROBE_PRIMARY_STILL_RUNNING" }

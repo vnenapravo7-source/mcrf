@@ -9,6 +9,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class CarrierIpcWriterTest {
+    @Test fun knownDeadChildClosesWriterWithoutSendingStop() {
+        val output=ByteArrayOutputStream();val writer=CarrierIpcWriter(output)
+        writer.childExited()
+        val completion=writer.awaitCompletion(5000)
+        assertTrue(completion.writerExited);assertFalse(completion.stopWritten)
+        assertFalse(completion.failed);assertEquals(0,output.size())
+    }
     private fun command(value:String)="CAPTCHA_RESULT|$value\n".toByteArray(Charsets.UTF_8)
     private class Blocked:OutputStream() {
         val entered=CountDownLatch(1);val release=CountDownLatch(1)

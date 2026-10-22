@@ -16,6 +16,7 @@ import java.io.ByteArrayInputStream
 class ConnectionScene(context:Context):WebView(context) {
     private var loaded=false
     private var disposed=false
+    private var viewPaused=false
     private var pending:JSONObject?=null
     private var sent=""
     var rendererError:String?=null
@@ -48,6 +49,7 @@ class ConnectionScene(context:Context):WebView(context) {
     }
     fun present(style:String,exit:String,signal:ConnectionMotion.Signal,speed:Double,motion:Boolean,visible:Boolean){
         if(disposed)return
+        if(visible&&viewPaused){onResume();viewPaused=false}
         fun hex(color:Int)=String.format(java.util.Locale.ROOT,"#%06X",color and 0xffffff)
         pending=JSONObject().put("style",ConnectionAppearance.canvasStyle(style)).put("exit",ConnectionAppearance.canvasExit(exit))
             .put("signal",signal.name).put("speed",if(speed.isFinite())speed.coerceAtLeast(0.0)else 0.0)
@@ -56,6 +58,9 @@ class ConnectionScene(context:Context):WebView(context) {
                 .put("text",hex(Loft.INK)).put("muted",hex(Loft.MUTED)).put("line",hex(Loft.LINE))
                 .put("metal",hex(Loft.MUTED)).put("steel",hex(Loft.FIELD)))
         flush()
+        // Per-view pause only: pauseTimers() would also suspend VK CAPTCHA and
+        // other WebViews in this process. The renderer also receives visible=false.
+        if(!visible&&!viewPaused){onPause();viewPaused=true}
     }
     private fun flush(){
         val payload=pending?.toString()?:return

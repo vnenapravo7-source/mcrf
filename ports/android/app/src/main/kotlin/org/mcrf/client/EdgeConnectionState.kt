@@ -6,6 +6,10 @@ class EdgeConnectionState {
 
     enum class Action { NONE, START, STOP, SWITCH }
     companion object {
+        fun indicator(whitelists:Boolean,active:Boolean,pending:Boolean,activeWhitelists:Boolean,pendingWhitelists:Boolean?):Boolean {
+            if(pending&&pendingWhitelists!=null)return whitelists==pendingWhitelists
+            return checked(whitelists,active,activeWhitelists)
+        }
         fun checked(whitelists:Boolean,active:Boolean,activeWhitelists:Boolean)=active&&whitelists==activeWhitelists
         fun action(whitelists:Boolean,wanted:Boolean,active:Boolean,activeWhitelists:Boolean,available:Boolean):Action {
             if(!available)return Action.NONE

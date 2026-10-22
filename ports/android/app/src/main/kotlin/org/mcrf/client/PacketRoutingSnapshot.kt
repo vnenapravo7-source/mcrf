@@ -26,6 +26,7 @@ object PacketRoutingSnapshot {
     }
     fun prepare(state:JSONObject,plan:CompactWireGuardPlan.Plan,ipv4Only:Boolean=false):Prepared {
         RoutingStore.validate(state)
+        RouteServerPlan.requireSingleServerCore(state)
         require(state.getString("defaultTarget")=="proxy") {"Компактный WG: выход по умолчанию должен быть VPN."}
         require(state.optString("appMode","all")=="all") {"Компактный WG: режим «только выбранные приложения» пока недоступен."}
         require((state.optJSONArray("vpnApps")?.length()?:0)==0) {"Компактный WG: принудительный VPN отдельных приложений пока недоступен."}

@@ -90,6 +90,7 @@ object UserThemeColorsUi {
             }},space(0,12))
             divider(this,0,12)
             addView(button("Стандартные цвета",false).apply {tag="theme-colors-reset";setOnClickListener {
+                if(UserThemeColors.keys.none {prefs.contains(it)}){toast("Уже используются стандартные цвета");return@setOnClickListener}
                 if(!working())this@with.run({
                     val edit=prefs.edit();UserThemeColors.keys.forEach(edit::remove)
                     check(edit.commit()){"Не удалось восстановить цвета."};""
@@ -116,8 +117,10 @@ object UserThemeColorsUi {
                 addView(content,space(0,12));divider(this,0,12)
             }
             addView(separated(actions),0,space(0,0))
-            addView(separated(SettingsUiNodes(this@with).actionRow("Минимализм","Выбор функций и скрытие ненужных разделов","arrow","Открыть: Минимализм"){navigate(ClientSettingsNavigation.MINIMALISM)}.apply {tag="settings-page-${ClientSettingsNavigation.MINIMALISM}"}),1,space(0,0))
+            addView(separated(SettingsUiNodes(this@with).actionRow("Скрыть разделы","","arrow","Открыть: Скрыть разделы"){navigate(ClientSettingsNavigation.MINIMALISM)}.apply {tag="settings-page-${ClientSettingsNavigation.MINIMALISM}"}),1,space(0,0))
             addView(separated(connectionEditor.view),2,space(0,0))
+            addView(separated(EdgePanelAppearance.view(this@with)),3,space(0,0))
+            addView(separated(NotificationTrafficUi.view(this@with)),4,space(0,0))
             LauncherIconsUi.add(this@with,this)
         }
     }

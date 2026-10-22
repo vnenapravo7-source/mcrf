@@ -7,7 +7,15 @@ android {
     defaultConfig {
         minSdk = 29
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
-        externalNativeBuild { cmake { arguments += "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON" } }
+        externalNativeBuild { cmake {
+            arguments += "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+            providers.gradleProperty("p049TlsManifest").orNull?.let {
+                arguments += "-DMCRF_TLS49_MANIFEST=" + file(it).canonicalPath.replace('\\','/')
+            }
+            providers.gradleProperty("p049CodecArchives").orNull?.let {
+                arguments += "-DMCRF_CODEC49_ARCHIVES=" + file(it).canonicalPath.replace('\\','/')
+            }
+        } }
         consumerProguardFiles("consumer-rules.pro")
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
@@ -19,7 +27,7 @@ dependencies { api("com.squareup.okhttp3:okhttp:4.12.0") }
 if (providers.gradleProperty("steerP1Candidate").orNull == "true") {
     val nativeScratch = file(requireNotNull(providers.gradleProperty("p1NativeScratch").orNull))
     require(nativeScratch.isAbsolute && nativeScratch.absoluteFile.normalize() == nativeScratch.canonicalFile &&
-        nativeScratch.name == "cxx" && nativeScratch.parentFile.name.matches(Regex("p1s-[0-9a-f]{12}")) &&
+        nativeScratch.name == "cxx" && nativeScratch.parentFile.name.matches(Regex("p[12]s-[0-9a-f]{12}")) &&
         nativeScratch.parentFile.parentFile.canonicalFile == file("D:/MCRF/Builds/Android").canonicalFile)
     android {
         // Keep FetchContent/Ninja generated paths below Windows MAX_PATH.
@@ -27,7 +35,8 @@ if (providers.gradleProperty("steerP1Candidate").orNull == "true") {
         externalNativeBuild { cmake { buildStagingDirectory = nativeScratch } }
         defaultConfig { externalNativeBuild { cmake {
             arguments += "-DCMAKE_OBJECT_PATH_MAX=180"
-            targets += listOf("steer_vpn", "ip6_packet_test", "host_routing_test", "host_dualstack_flow_test", "host_dualstack_wire_test")
+            targets += if(providers.gradleProperty("steerP2Candidate").orNull=="true")listOf("steer_vpn","host_probe_policy_test","host_probe_tls_test","host_route_relay_test")
+                else listOf("steer_vpn", "ip6_packet_test", "host_routing_test", "host_dualstack_flow_test", "host_dualstack_wire_test")
         } } }
     }
     val generated = layout.buildDirectory.dir("generated/p1-candidate-assets")

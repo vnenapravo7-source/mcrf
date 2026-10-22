@@ -144,6 +144,7 @@ class ConnectionCatalogue(source: String) {
         data.put("autoServers", JSONArray(pool))
     }
     fun probes(): JSONObject = JSONObject((data.optJSONObject("probes") ?: JSONObject()).toString())
+    fun clearProbes(){data.remove("probes")}
     fun edited(id: String) = data.optJSONObject("edits")?.has(id) == true
     fun edit(id: String, options: JSONObject?) {
         val entry = entries().firstOrNull { it.id == id } ?: throw IllegalArgumentException("Подключение уже удалено.")

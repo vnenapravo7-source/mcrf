@@ -8,11 +8,11 @@ class CarrierRuntimeHealthTest {
         for(kind in listOf("csqtt","wdtt","qwdtt","olcrtc","dnstt"))
             assertNull(CarrierRuntimeHealth.failure(kind,false,true,null))
     }
-    @Test fun everyStoppedCarrierProducesFixedUsefulFailureWithoutRawNativeOutput() {
-        for(kind in listOf("csqtt","wdtt","qwdtt","olcrtc","dnstt")) {
+    @Test fun everyStoppedCarrierProducesObservationWithoutGuessingServerCause() {
+        for(kind in listOf("csqtt","csqtt25","wdtt","qwdtt","olcrtc","dnstt","warpscout")) {
             val message=CarrierRuntimeHealth.failure(kind,false,false,null)!!
             assertTrue(message.contains("процесс транспорта завершился"))
-            assertTrue(message.contains("логи"))
+            assertFalse(message.contains("проверь сервер"))
         }
         assertFalse(CarrierRuntimeHealth.failure("secret-kind",false,false,null)!!.contains("secret-kind"))
     }

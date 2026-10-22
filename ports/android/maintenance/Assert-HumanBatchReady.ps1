@@ -1,6 +1,38 @@
 param([ValidateSet('build','test','native-build','native-package')][string]$Operation='build')
 $ErrorActionPreference='Stop'
 $taskCurrent=Get-Content -LiteralPath (Join-Path $PSScriptRoot '../coordination/current.json') -Raw|ConvertFrom-Json
+if($taskCurrent.activeBatch -ceq 'p2-expansion-2026-10-21.json'){
+    $taskExpanded=Get-Content -LiteralPath (Join-Path $PSScriptRoot '../coordination/p2-expansion-2026-10-21.json') -Raw|ConvertFrom-Json
+    if($taskExpanded.priority -ne 2 -or $taskExpanded.verificationAuthority -cne 'human-20261021-expanded-p2-whole-source-before-common-verification'){
+        throw 'Exact NEW expanded-P2 authority required; completed P2 grants do not reopen'
+    }
+    foreach($taskFlag in @('sourceReady','readyForBuild','allowCommonVerification')){
+        if($taskExpanded.$taskFlag -isnot [bool] -or !$taskExpanded.$taskFlag){throw "Finish ALL new P2 source tasks51-57 before $Operation; no per-fix compiler/parser/host/JVM/native runs"}
+    }
+    $taskIds=@($taskExpanded.tasks|ForEach-Object {$_.id}|Sort-Object)
+    if(($taskIds -join ',') -cne '51,52,53,54,55,56,57' -or @($taskExpanded.tasks|Where-Object {$_.source -cne 'ready'}).Count){throw 'Every expanded-P2 task must be source-ready before common verification'}
+    if($taskExpanded.commonRecipe -cne 'maintenance/Build-ExpandedP2Common.ps1'){throw 'Explicit NEW expanded-P2 common coordinator required'}
+    if($Operation -eq 'build' -and ($taskExpanded.allowApkBuild -isnot [bool] -or !$taskExpanded.allowApkBuild)){throw 'Expanded-P2 APK gate closed'}
+    if($Operation -in @('native-build','native-package') -and
+       ($taskExpanded.nativeSourceReady -isnot [bool] -or !$taskExpanded.nativeSourceReady -or $taskExpanded.allowNativeCandidateBuild -isnot [bool] -or !$taskExpanded.allowNativeCandidateBuild)){throw 'Expanded-P2 native source gate closed'}
+    return
+}
+if($taskCurrent.activeBatch -ceq 'p2-progress-2026-10-20.json'){
+    $taskP2=Get-Content -LiteralPath (Join-Path $PSScriptRoot '../coordination/p2-progress-2026-10-20.json') -Raw|ConvertFrom-Json
+    if($taskP2.priority -ne 2 -or $taskP2.verificationAuthority -cne 'human-20261020-p2-whole-source-before-common-verification'){
+        throw 'Exact common-P2 authority required; closed P0/P1 grants do not apply'
+    }
+    foreach($taskFlag in @('sourceReady','readyForBuild','allowCommonVerification')){
+        if($taskP2.$taskFlag -isnot [bool] -or !$taskP2.$taskFlag){throw "Finish ALL P2 source tasks before $Operation; no compiler/parser/host/JVM/native micro-runs"}
+    }
+    $taskP2Ids=@($taskP2.items|ForEach-Object {$_.id}|Sort-Object)
+    if(($taskP2Ids -join ',') -cne '2,6,7,11,20' -or @($taskP2.items|Where-Object {$_.sourceReady -isnot [bool] -or !$_.sourceReady}).Count){throw 'Every named P2 item must be source-ready; a top-level flag alone is not whole-package readiness'}
+    if($Operation -eq 'build' -and ($taskP2.allowApkBuild -isnot [bool] -or !$taskP2.allowApkBuild)){throw 'Common-P2 APK build gate is closed'}
+    if($Operation -in @('native-build','native-package') -and
+        ($taskP2.nativeSourceReady -isnot [bool] -or !$taskP2.nativeSourceReady -or
+         $taskP2.allowNativeCandidateBuild -isnot [bool] -or !$taskP2.allowNativeCandidateBuild)){throw 'Common-P2 external native source/package gate is closed'}
+    return
+}
 if($taskCurrent.activeBatch -ceq 'p0-progress-2026-10-19.json'){
     $taskP046=Get-Content -LiteralPath (Join-Path $PSScriptRoot '../coordination/p0-progress-2026-10-19.json') -Raw|ConvertFrom-Json
     if($taskP046.priority -ne 0 -or $taskP046.verificationAuthority -cne 'human-20261019-p046-startup-bs-additive-minute-monitor'){

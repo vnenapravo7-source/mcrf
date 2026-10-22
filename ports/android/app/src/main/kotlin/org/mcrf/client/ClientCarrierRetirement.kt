@@ -10,6 +10,8 @@ import java.util.concurrent.TimeUnit
 internal class ClientCarrierRetirement(
     private val child: Process,
     private val graceSeconds: Long,
+    /** Shared with replies: one FIFO and one stdin writer for this exact child. */
+    private val ipc: CarrierIpcWriter = CarrierIpcWriter(child.outputStream),
     private val pause: (Long) -> Unit = { Thread.sleep(it) }
 ) : AutoCloseable {
     @Volatile var requested = false
@@ -34,12 +36,10 @@ internal class ClientCarrierRetirement(
         fun dead(): Boolean = try { !child.isAlive } catch (_: Exception) { false }
         try {
             if (!dead()) {
-                operation {
-                    child.outputStream.write("STOP\n".toByteArray(Charsets.US_ASCII))
-                    child.outputStream.flush()
-                    child.outputStream.close()
-                    child.waitFor(graceSeconds, TimeUnit.SECONDS)
-                }
+                // STOP admission never touches a full/blocking stdin pipe. The
+                // existing grace belongs to native cleanup, not to a write lock.
+                ipc.requestStop()
+                operation { child.waitFor(graceSeconds, TimeUnit.SECONDS) }
                 if (!dead()) {
                     forced = true // Sticky even if destroy throws or death is delayed.
                     operation { child.destroy(); child.waitFor(1, TimeUnit.SECONDS) }
@@ -53,6 +53,12 @@ internal class ClientCarrierRetirement(
                     operation { pause(delay) }
                     delay = (delay * 2).coerceAtMost(3200L)
                 }
+            }
+            ipc.childExited()
+            // No writer is abandoned on a replacement child. Process death and
+            // writer exit are different barriers; neither implies the other.
+            while (!ipc.awaitCompletion(0).writerExited) {
+                operation { ipc.awaitCompletion(100) }
             }
             complete = true
         } finally {

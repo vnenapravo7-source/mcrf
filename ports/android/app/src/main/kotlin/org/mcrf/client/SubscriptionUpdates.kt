@@ -69,6 +69,7 @@ object SubscriptionUpdates {
         val expected = snapshot.associate { it.getString("url") to it.getString("id") }
         snapshot.forEach { sub -> fetched[sub.getString("url")] = fetch(context, sub.getString("url")) }
         val changes = catalogue.refreshFetched(fetched, expected)
+        if(fetched.isNotEmpty())SubscriptionOpenRefresh.completed(context)
         ClientEvents.record(context, "Подписки", changes.summary())
         return changes
     }
@@ -86,7 +87,7 @@ object SubscriptionUpdates {
     @JvmStatic fun scheduleMinutes(context: Context, minutes: Int) {
         SubscriptionSchedule.validateMinutes(minutes)
         val scheduler = context.getSystemService(JobScheduler::class.java)
-        if (minutes == 0) { scheduler.cancel(JOB); return }
+        if (minutes == 0) { scheduler.cancel(JOB);scheduler.cancel(SubscriptionOpenRefresh.JOB);return }
         val interval = minutes * 60_000L
         // Opening the app must not postpone the next scheduled update indefinitely.
         if (scheduler.getPendingJob(JOB)?.intervalMillis == interval) return
@@ -99,25 +100,35 @@ object SubscriptionUpdates {
 
 /** Android batches this periodic work. No exact alarms, wakelocks or permanent refresh loop. */
 class SubscriptionUpdateService : JobService() {
+    companion object {private val activeFetch=java.util.concurrent.atomic.AtomicBoolean(false)}
     private val worker = Executors.newSingleThreadExecutor()
     private var work: Future<*>? = null
+    private var activeLease:SubscriptionRefreshLease?=null
     private val runs=SubscriptionUpdateRuns()
     private val main=android.os.Handler(android.os.Looper.getMainLooper())
     override fun onStartJob(params: JobParameters): Boolean {
+        val fromOpen=params.extras.getBoolean("onOpen",false)
+        if(fromOpen&&!SubscriptionOpenRefresh.idle(this))return false
+        if(!activeFetch.compareAndSet(false,true))return false
+        val lease=SubscriptionRefreshLease {activeFetch.set(false)};activeLease=lease
         val attempt=runs.begin()
         work?.cancel(true)
-        work = worker.submit {
+        try {work = worker.submit {
+            if(!lease.enter())return@submit
             var retry = false
             try {
+                if(fromOpen&&!SubscriptionOpenRefresh.dueNow(this))return@submit
                 val catalogue = Connections(this); catalogue.load()
                 val fetched = linkedMapOf<String, SubscriptionClient.Downloaded>()
                 val snapshot = catalogue.subscriptions()
                 val expected = snapshot.associate { it.getString("url") to it.getString("id") }
                 snapshot.forEach { sub ->
                     attempt.checkActive()
+                    if(fromOpen&&!SubscriptionOpenRefresh.idle(this))throw InterruptedException("App-open refresh retired")
                     val url = sub.getString("url"); fetched[url] = SubscriptionUpdates.fetch(this, url)
                 }
                 if (attempt.active && fetched.isNotEmpty()) {
+                    if(fromOpen&&!SubscriptionOpenRefresh.idle(this))throw InterruptedException("App-open refresh retired")
                     // Re-read at commit, never overwrite simultaneous user edits with the old snapshot.
                     catalogue.load()
                     val present = catalogue.subscriptions().map { it.getString("url") }.toSet()
@@ -126,23 +137,24 @@ class SubscriptionUpdateService : JobService() {
                         val changes = catalogue.refreshFetchedGuarded(committed,expected,attempt::checkActive)
                         attempt.checkActive()
                         val message = changes.summary()
+                        SubscriptionOpenRefresh.completed(this)
                         ClientEvents.record(this, "Подписки", "По расписанию · $message")
                         if(attempt.active)SubscriptionUpdates.notifyResult(this, message, true)
                     }
                 }
-            } catch (_: InterruptedException) { retry = true }
+            } catch (_: InterruptedException) { retry = !fromOpen }
             catch (_: Exception) {
-                retry = true
+                retry = !fromOpen
                 if (attempt.active) {
                     val message = "Не удалось обновить подписки. Сохранённые серверы оставлены; повторим позже."
                     ClientEvents.record(this, "Подписки", message)
                     SubscriptionUpdates.notifyResult(this, message, false)
                 }
             }
-            finally {main.post {runs.finish(attempt){jobFinished(params,retry)}}}
-        }
+            finally {lease.finish();main.post {runs.finish(attempt){jobFinished(params,retry)}}}
+        }}catch(_:Exception){lease.cancelQueued();runs.cancel();return false}
         return true
     }
-    override fun onStopJob(params: JobParameters): Boolean {runs.cancel();work?.cancel(true);return true}
-    override fun onDestroy() {runs.cancel();work?.cancel(true);worker.shutdownNow();super.onDestroy()}
+    override fun onStopJob(params: JobParameters): Boolean {runs.cancel();activeLease?.cancelQueued();work?.cancel(true);return params.jobId!=SubscriptionOpenRefresh.JOB}
+    override fun onDestroy() {runs.cancel();activeLease?.cancelQueued();work?.cancel(true);worker.shutdownNow();super.onDestroy()}
 }

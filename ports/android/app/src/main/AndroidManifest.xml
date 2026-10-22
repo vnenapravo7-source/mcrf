@@ -1,6 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -13,6 +18,10 @@
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
     <queries><package android:name="org.mcrf.engines" /><package android:name="org.mcrf.engines.xray" /><package android:name="org.mcrf.engines.tlscore" /><package android:name="org.mcrf.engines.singbox" /><package android:name="org.mcrf.engines.steer" /><package android:name="org.mcrf.engines.tgws" /><package android:name="org.mcrf.engines.s3bypass" /><package android:name="org.mcrf.engines.openflux.diagnostic" /><intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent><intent><action android:name="android.settings.VIEW_ADVANCED_POWER_USAGE_DETAIL" /><data android:scheme="package" /></intent></queries>
     <application android:name=".McrfApplication" android:label="MCRF" android:icon="@drawable/mcrf_logo" android:theme="@style/AppTheme" android:allowBackup="false" android:usesCleartextTraffic="false">
+        <service android:name=".VpnQuickTile" android:label="VPN" android:icon="@drawable/qs_vpn" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE" android:exported="true"><intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter></service>
+        <service android:name=".BsQuickTile" android:label="БС" android:icon="@drawable/qs_bs" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE" android:exported="true"><intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter></service>
+        <service android:name=".RulesQuickTile" android:label="Rules" android:icon="@drawable/qs_rules" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE" android:exported="true"><intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter></service>
+        <service android:name=".AutoBsQuickTile" android:label="Авто-БС" android:icon="@drawable/qs_auto_bs" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE" android:exported="true"><intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter></service>
         <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop" android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -48,7 +57,17 @@
         </service>
         <service android:name=".ClientPrimaryWorkerService" android:process=":primary" android:exported="false" />
         <service android:name=".ClientPrimaryProbeWorkerService" android:process=":primaryProbe" android:exported="false" />
+        <service android:name=".ClientPrimaryValidationWorkerService" android:process=":primaryValidation" android:exported="false" />
+        <service android:name=".ClientPrimaryBootstrapWorkerService" android:process=":primaryBootstrap" android:exported="false" />
         <service android:name=".ClientPrimaryWarpWorkerService" android:process=":primaryWarp" android:exported="false" />
+        <service android:name=".ClientPrimaryRouteWorker0Service" android:process=":primaryRoute0" android:exported="false" />
+        <service android:name=".ClientPrimaryRouteWorker1Service" android:process=":primaryRoute1" android:exported="false" />
+        <service android:name=".ClientPrimaryRouteWorker2Service" android:process=":primaryRoute2" android:exported="false" />
+        <service android:name=".ClientPrimaryRouteWorker3Service" android:process=":primaryRoute3" android:exported="false" />
+        <service android:name=".ClientPrimaryRouteWorker4Service" android:process=":primaryRoute4" android:exported="false" />
+        <service android:name=".ClientPrimaryRouteWorker5Service" android:process=":primaryRoute5" android:exported="false" />
+        <service android:name=".ClientPrimaryRouteWorker6Service" android:process=":primaryRoute6" android:exported="false" />
+        <service android:name=".ClientPrimaryRouteWorker7Service" android:process=":primaryRoute7" android:exported="false" />
         <service android:name=".SubscriptionUpdateService" android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE" />
         <service android:name=".EngineUpdateService" android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE" />
         <service android:name=".RemoteRoutingJob" android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE" />

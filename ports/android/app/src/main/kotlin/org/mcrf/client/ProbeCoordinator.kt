@@ -17,10 +17,13 @@ object ProbeCoordinator {
     private val cancellation = java.util.concurrent.atomic.AtomicLong()
     private val startLock = Any()
     private val measureLock = Any()
+    @Volatile private var runtimeOwner:McrfVpnService?=null
+    @Volatile private var runtimeProbeSubmitted=false
     private val observers=java.util.concurrent.CopyOnWriteArraySet<() -> Unit>()
     fun observe(observer: () -> Unit) {observers.add(observer)}
     fun unobserve(observer: () -> Unit) {observers.remove(observer)}
     private fun changed() {observers.forEach {it()}}
+    internal fun presentationChanged() {observers.forEach {observer->try{observer()}catch(_:Exception){/* Detached presentation observer is not a probe failure. */}}}
     fun cancellationToken() = cancellation.get()
     @Volatile var progress = ""
         private set
@@ -49,11 +52,35 @@ object ProbeCoordinator {
         check(closed.await(20,TimeUnit.SECONDS)) { "Замер ещё останавливается. Повторите подключение после его завершения." }
     }
     /** Caller uses the client worker; the probe core itself lives in a separate Android process. */
-    @JvmOverloads fun measure(context: Context, entries: List<ServerImport.Server>, testUrl: String = "https://www.gstatic.com/generate_204", expectedCancellation: Long = cancellationToken(), providerDiagnostic:Boolean=false,providerVersion:Int=1): Map<String, Long> = synchronized(measureLock) {
+    @JvmOverloads fun measure(context: Context, entries: List<ServerImport.Server>, testUrl: String = "https://www.gstatic.com/generate_204", expectedCancellation: Long = cancellationToken(), providerDiagnostic:Boolean=false,providerVersion:Int=1): Map<String, Long> =
+        measureInternal(context,entries,testUrl,expectedCancellation,providerDiagnostic,providerVersion,null)
+    /** The service's explicit runtime scope can measure while retaining its
+     * own TUN. UI callers still cannot probe during a startup/cleanup. */
+    internal fun measureSteerRuntime(context:McrfVpnService,entries:List<ServerImport.Server>,testUrl:String,cancelled:()->Boolean):Map<String,Long> = synchronized(measureLock) {
+        check(runtimeOwner==null&&ClientPrimarySelection.selected(context)=="steer") {"STEER_PROBE_RUNTIME_OWNER"}
+        runtimeOwner=context;runtimeProbeSubmitted=false
+        try {measureInternal(context,entries,testUrl,cancellationToken(),false,1,cancelled)}
+        finally {
+            var interrupted=Thread.interrupted()
+            try {
+                if(runtimeProbeSubmitted)while(true) {
+                    try {awaitQuiescent(context);break}
+                    catch(error:Exception){if(error is InterruptedException||Thread.interrupted())interrupted=true}
+                    try{Thread.sleep(250)}catch(_:InterruptedException){interrupted=true}
+                }
+                runtimeOwner=null;runtimeProbeSubmitted=false
+            }finally{if(interrupted)Thread.currentThread().interrupt()}
+        }
+    }
+    internal fun cancelRuntime(context:McrfVpnService) {if(runtimeOwner===context)cancel(context)}
+    private fun measureInternal(context:Context,entries:List<ServerImport.Server>,testUrl:String,expectedCancellation:Long,
+        providerDiagnostic:Boolean,providerVersion:Int,runtimeCancelled:(()->Boolean)?):Map<String,Long> = synchronized(measureLock) {
         providerStage=""
         fun ensureNotCancelled() {
             if (cancellation.get() != expectedCancellation) throw java.util.concurrent.CancellationException("Замер отменён. Предыдущие результаты сохранены.")
-            require(!McrfVpnService.cleanupPending()&&McrfVpnService.status!="Подключение…"&&!McrfVpnService.status.startsWith("Переключаем движок")) {"Дождитесь завершения подключения или остановки перед замером серверов."}
+            if(runtimeCancelled!=null) {
+                check(context is McrfVpnService&&runtimeOwner===context&&!runtimeCancelled()) {"STEER_PROBE_RUNTIME_RETIRED"}
+            }else require(!McrfVpnService.cleanupPending()&&McrfVpnService.status!="Подключение…"&&!McrfVpnService.status.startsWith("Переключаем движок")) {"Дождитесь завершения подключения или остановки перед замером серверов."}
         }
         ensureNotCancelled()
         require(!EngineUpdates.installationPending(context)&&!EngineUpdateScripts.mutationPending()){"Завершите обновление движка перед замером серверов."}
@@ -61,6 +88,15 @@ object ProbeCoordinator {
         require(providerDiagnostic||providerVersion==1)
         if(providerDiagnostic){ClientOpenFluxProviderGate.requireApproved(entries);ClientOpenFluxProviderGate.verify(context,providerVersion)}
         require(entries.size <= 256) { "За один замер допускается до 256 серверов." }
+        val steer= !providerDiagnostic&&ClientPrimarySelection.selected(context)=="steer"
+        val steerModule=if(steer)EngineUpdatePrimary.installation(context,"steer")else null
+        val steerSha=steerModule?.let {ClientPrimaryWorkerWire.hashFile(File(it.sourceDir))}
+        val steerNetwork=if(steer)DirectAccessCheck.physical(context)?.networkHandle
+            ?:throw IllegalArgumentException("Нет физической сети для проверки Steer.")else 0L
+        if(steer)require(ClientPrimarySelection.steerContract(context).independentProbe) {
+            "Установленный Steer не заявляет независимую проверку HTTPS. Нужен совместимый модуль Steer; замер через sing-box вместо него не запускается."
+        }
+        val steerProfiles=if(steer)JSONArray(entries.map(SteerProbePlan::request))else null
         require(entries.all { it.configuration == null && (!it.needsEngine() || it.carrier != null) }) { "Отдельные JSON-профили не входят в групповой замер." }
         require(entries.none { it.carrier != null } || !McrfVpnService.status.startsWith("VPN подключён") || McrfVpnService.nativeVpnExclusion) {
             "Для замера дополнительных движков отключи обычный VPN MCRF: иначе проверка пройдёт через его выход, а не текущую сеть."
@@ -85,10 +121,15 @@ object ProbeCoordinator {
             "Для замера дополнительных ядер отключите обычный VPN MCRF: проверка должна пройти через выбранный сервер, а не через активное VPN-подключение."
         }
         val request = JSONObject().put("config", config).put("extraSettings",extraSettings.json()).put("transportSettings",tuningSettings.json()).put("carriers",carriers).put("url",testUrl).put("servers", JSONArray(entries.map { JSONObject().put("id", it.id).put("tag", ServerImport.tag(it)) }))
+        if(steer)request.put("backend","steer").put("steerProfiles",steerProfiles).put("moduleSha256",steerSha)
+            .put("networkHandle",steerNetwork).put("protectSockets",McrfVpnService.ownsCurrentTun())
         if(providerDiagnostic)request.put("providerDiagnostic",true).put("providerDiagnosticVersion",providerVersion).put("providerDiagnosticOriginalSha",ClientOpenFluxProviderGate.APPROVED_ORIGINAL_SHA)
         val file = File(context.cacheDir, "mcrf-probe-input-${UUID.randomUUID()}.json")
-        check(file.createNewFile()); Os.chmod(file.absolutePath, 0x180); file.writeText(request.toString(), Charsets.UTF_8)
+        val requestBytes=request.toString().toByteArray(Charsets.UTF_8)
+        require(requestBytes.size<=ServerImport.MAX_BYTES) {"Запрос проверки серверов больше 4 МБ."}
+        check(file.createNewFile()); Os.chmod(file.absolutePath, 0x180); file.writeBytes(requestBytes)
         val latch = CountDownLatch(1); var result: Map<String, Long>? = null; var failure: String? = null
+        var steerTimes:Map<String,Long>?=null
         var progressRejected=false
         val replies=ProbeReplyWindow()
         fun receive(code:Int,data:Bundle?) {
@@ -112,7 +153,19 @@ object ProbeCoordinator {
                     return
                 }
                 if(BuildConfig.DEBUG)providerStage=data?.getString("providerStage","").orEmpty()
-                if (code == 0 && data != null) { diagnostic=data.getString("diagnostic","");nativeDiagnostic=data.getString("nativeStage","");val values = data.getBundle("delays") ?: Bundle(); result = values.keySet().associateWith { values.getLong(it, -1) } }
+                if (code == 0 && data != null) {
+                    if(steer&&(data.getString("backend")!="steer"||data.getString("moduleSha256")!=steerSha||data.getLong("networkHandle")!=steerNetwork)) {
+                        failure="Не совпало происхождение результата Steer.";replies.close();latch.countDown();return
+                    }
+                    if(steer) {
+                        val times=data.getBundle("completedAt")
+                        if(times==null||times.keySet()!=measurements?.ids||times.keySet().any {times.get(it) !is Long||times.getLong(it) !in 0..SystemClock.elapsedRealtime()}) {
+                            failure="Некорректное время проверки Steer.";replies.close();latch.countDown();return
+                        }
+                        steerTimes=times.keySet().associateWith {times.getLong(it)}
+                    }
+                    diagnostic=data.getString("diagnostic","");nativeDiagnostic=data.getString("nativeStage","");val values = data.getBundle("delays") ?: Bundle(); result = values.keySet().associateWith { values.getLong(it, -1) }
+                }
                 else failure = data?.getString("error") ?: "Не удалось выполнить замер."
                 replies.close()
                 latch.countDown()
@@ -129,15 +182,28 @@ object ProbeCoordinator {
                 nativeDiagnostic=""
                 providerStage=""
                 changed()
+                if(runtimeOwner===context)runtimeProbeSubmitted=true
                 context.startForegroundService(Intent(context, ProbeService::class.java).putExtra("input", file.absolutePath).putExtra("result", receiver))
             }
-            val timeout = 15_000L + ((entries.size + 3) / 4) * 12_000L + carriers.length()*90_000L
-            require(latch.await(timeout, TimeUnit.MILLISECONDS)) { "Время замера истекло." }
+            val timeout = if(steer)15_000L+entries.size*45_000L else 15_000L + ((entries.size + 3) / 4) * 12_000L + carriers.length()*90_000L
+            val deadline=System.nanoTime()+TimeUnit.MILLISECONDS.toNanos(timeout)
+            while(!latch.await(200,TimeUnit.MILLISECONDS)) {
+                ensureNotCancelled()
+                require(System.nanoTime()<deadline) {"Время замера истекло."}
+            }
             ensureNotCancelled()
             require(failure == null) { failure.orEmpty() }
             require(result?.keys == measurements?.ids) { "Получен неполный результат замера. Предыдущие результаты сохранены." }
             require(result?.values?.all {it>=-1}==true) {"Некорректная задержка замера. Предыдущие результаты сохранены."}
-            return result ?: throw IllegalArgumentException("Не получен результат замера.")
+            val completed=result?:throw IllegalArgumentException("Не получен результат замера.")
+            if(steer) {
+                require(DirectAccessCheck.physical(context)?.networkHandle==steerNetwork&&
+                    ClientPrimaryWorkerWire.hashFile(File(requireNotNull(steerModule).sourceDir))==steerSha) {"Во время проверки Steer изменились сеть или модуль. Результат не применён."}
+                val native=SteerProbeDelays(completed,requireNotNull(steerTimes),requireNotNull(steerSha),steerNetwork)
+                SteerProbeCache.publish(steerModule.sourceDir,requireNotNull(steerSha),steerNetwork,entries,native)
+                return native
+            }
+            return completed
         } finally {
             replies.close()
             progress=""

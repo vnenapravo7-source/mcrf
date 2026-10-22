@@ -10,6 +10,7 @@ import org.json.JSONObject
 internal object CarrierAddressFamily {
     const val NOTE = "Движок белых списков поддерживает только IPv4: DNS и разрешение имён этой сессии используют IPv4. Сохранённые настройки не изменены; явные IPv6-адреса этим движком не поддерживаются."
     private val ipv4Only = setOf("csqtt", "csqtt25", "qwdtt")
+    fun needsIpv4(kind:String?)=kind in ipv4Only
     const val POOL_NOTE="В пуле БС есть движки с IPv4-стеком: эта сессия разрешает имена в IPv4, чтобы горячая смена транспорта не требовала перезапуска TUN. Сохранённые настройки и IPv6-защита не изменены."
     fun forPool(profiles:List<JSONObject>,current:String?):String? =
         profiles.map(EngineModules::carrierKind).firstOrNull {it in ipv4Only}?:current

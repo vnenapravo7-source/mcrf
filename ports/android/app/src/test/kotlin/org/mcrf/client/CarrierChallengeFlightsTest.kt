@@ -25,10 +25,23 @@ class CarrierChallengeFlightsTest {
         val flights=CarrierChallengeFlights()
         assertNotNull(flights.claim(first.flightKey));assertNull(flights.claim(repeated.flightKey));assertNotNull(flights.claim(renewed.flightKey))
     }
-    @Test fun explicitNativeIdWinsOverChangedEnvelopeContents() {
-        val first=requireNotNull(CarrierChallenge.envelope("CAPTCHA_SOLVE|owned|manual|https://vk.com/captcha|one"))
-        val repeated=requireNotNull(CarrierChallenge.envelope("CAPTCHA_SOLVE|owned|manual|https://vk.com/other|two"))
-        assertEquals(first.flightKey,repeated.flightKey)
+    @Test fun changingWaiterIdOrFallbackModeCannotReplayTheSameProviderSession() {
+        val auto=requireNotNull(CarrierChallenge.envelope("CAPTCHA_SOLVE|owned-auto|auto|https://vk.com/captcha|one"))
+        val manual=requireNotNull(CarrierChallenge.envelope("CAPTCHA_SOLVE|owned-manual|manual|https://vk.com/captcha|one"))
+        val renewed=requireNotNull(CarrierChallenge.envelope("CAPTCHA_SOLVE|owned-fresh|manual|https://vk.com/captcha|two"))
+        assertNotEquals(auto.flightKey,manual.flightKey)
+        assertEquals(auto.sessionKey,manual.sessionKey)
+        assertNotEquals(auto.sessionKey,renewed.sessionKey)
+        assertFalse(auto.sessionKey.contains("one"));assertFalse(auto.sessionKey.contains("vk.com"))
+        val flights=CarrierChallengeFlights()
+        val first=requireNotNull(flights.claim(auto.flightKey,auto.sessionKey))
+        assertNull(flights.claim(manual.flightKey,manual.sessionKey))
+        flights.retire(first)
+        val retry=requireNotNull(flights.claim(manual.flightKey,manual.sessionKey))
+        flights.reject(retry);flights.retire(retry)
+        assertTrue(flights.rejected(manual.sessionKey))
+        assertNull(flights.claim("id:third",manual.sessionKey))
+        assertNotNull(flights.claim(renewed.flightKey,renewed.sessionKey))
     }
     @Test fun historyIsBoundedAndStaleRetirementCannotRetireReplacement() {
         val flights=CarrierChallengeFlights(2)

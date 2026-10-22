@@ -19,6 +19,10 @@
 #include <time.h>
 #include <pthread.h>
 #include <sys/random.h>
+#ifdef __ANDROID__
+#include <android/log.h>
+#include <stdatomic.h>
+#endif
 
 #include "vless.h"
 #include "vless_proto.h"
@@ -40,6 +44,20 @@ static int g_trace;
 
 void vl_set_trace(int on) { g_trace = on; }
 
+/* Fixed stage/code diagnostics only. Never emit a node, URL, UUID, key, SNI or
+ * packet. Bounded once per stage/code per disposable worker generation. */
+static void p049_stage(unsigned stage,int code) {
+#ifdef __ANDROID__
+    static atomic_uint reported[4];
+    unsigned slot=(unsigned)(code<0?-code:code)%32;
+    unsigned bit=1u<<slot;
+    if(stage<4&&!(atomic_fetch_or(&reported[stage],bit)&bit))
+        __android_log_print(ANDROID_LOG_INFO,"McrfSteerP049","stage=%u code=%d",stage,code);
+#else
+    (void)stage;(void)code;
+#endif
+}
+
 /* ---- узел ------------------------------------------------------------------------------ */
 
 static const char *vl_peer(const void *ctx) {
@@ -59,7 +77,9 @@ static void vl_describe(const void *ctx, char *out, size_t n) {
  * из активных узлов шло соединение. */
 static int vl_connect(const void *ctx, void *sess, int timeout_s) {
     struct vl_sess *s = sess;
-    return vless_connect(ctx, &s->t, timeout_s);
+    int rc=vless_connect(ctx, &s->t, timeout_s);
+    p049_stage(0,rc);
+    return rc;
 }
 
 /* Связь из запасной сессии — в сессию соединения. Копируется только struct transport: UUID и
@@ -91,6 +111,7 @@ static void vl_clear(void *sess) {
     struct vl_sess *s = sess;
     s->header_sent = 0;
     s->established = 0;
+    memset(&s->response,0,sizeof(s->response));
     s->t.link.fd = -1;
     memset(&s->vis, 0, sizeof(s->vis));
     s->dg_want = s->dg_have = 0;
@@ -145,6 +166,7 @@ static int vl_flow_open(const void *ctx, void *sess, const struct flow_key *k, i
     struct vl_sess *s = sess;
     s->header_sent = 0;
     s->established = 0;
+    memset(&s->response,0,sizeof(s->response));
     if (vless_uuid_parse(node->uuid, s->uuid) != 0) {
         node_id_refused(node, udp ? "соединение UDP" : "соединение TCP");
         return -1;
@@ -489,7 +511,9 @@ static size_t vl_dgram_frame(const unsigned char *p, size_t n, unsigned char *ou
 static int vl_read(void *sess, unsigned char *buf, size_t cap, const unsigned char **data,
                    size_t *got) {
     struct vl_sess *s = sess;
-    return transport_read_zc(&s->t, buf, cap, data, got);
+    int rc=transport_read_zc(&s->t, buf, cap, data, got);
+    if(rc)p049_stage(1,rc);
+    return rc;
 }
 
 /* Разобрать поток датаграмм от узла и отдать их клиенту.
@@ -581,13 +605,17 @@ static int vl_deliver(const void *ctx, void *sess, int udp, const unsigned char 
 
     if (!s->established) {
         size_t skip = 0;
-        if (vless_parse_response(cur, left, &skip) != 0) {
+        int header=vless_response_feed(&s->response,cur,left,&skip);
+        if(header==VLESS_EAGAIN)return 0;
+        if (header != 0) {
+            p049_stage(2,header);
             TR("ответ VLESS не разобран (%zu байт)\n", left);
             return -1;
         }
         cur += skip;
         left -= skip;
         s->established = 1;
+        p049_stage(2,0);
         TR("заголовок ответа снят (%zu байт), осталось %zu\n", skip, left);
     }
 
@@ -597,7 +625,7 @@ static int vl_deliver(const void *ctx, void *sess, int udp, const unsigned char 
             size_t used = 0, pl_n = 0;
             const unsigned char *pl = NULL;
             int ur = vision_unwrap(&s->vis, cur, left, &used, &pl, &pl_n);
-            if (ur == VISION_EPROTO) return -1;
+            if (ur == VISION_EPROTO) {p049_stage(3,ur);return -1;}
             if (ur != 0 || (!used && !pl_n)) break;
             cur += used;
             left -= used;
@@ -629,6 +657,7 @@ static int vl_deliver(const void *ctx, void *sess, int udp, const unsigned char 
              * дорогая работа на этом железе) и выбрасывал целиком, а клиент ждал ответа,
              * которого не будет, пока слот не уберут по простою в 120 секунд. */
             if (ur == VISION_EPROTO) {
+                p049_stage(3,ur);
                 TR("недопустимый кадр Vision: рвём соединение, осталось %zu\n", left);
                 return -1;
             }

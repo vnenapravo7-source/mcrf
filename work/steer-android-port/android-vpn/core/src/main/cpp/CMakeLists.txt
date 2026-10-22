@@ -4,10 +4,22 @@ set(CMAKE_C_STANDARD 11)
 # Queued whole-P1 fixture, also used by the gated Android dual-family stack.
 add_executable(ip6_packet_test EXCLUDE_FROM_ALL ip6_packet_test.c ip6_packet.c)
 target_compile_options(ip6_packet_test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+add_executable(host_probe_policy_test EXCLUDE_FROM_ALL "${CMAKE_CURRENT_LIST_DIR}/../../../../tests/host_probe_policy_test.c")
+target_include_directories(host_probe_policy_test PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
+target_compile_options(host_probe_policy_test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 get_filename_component(STEER "${CMAKE_CURRENT_LIST_DIR}/../../../../.." ABSOLUTE)
 include(FetchContent)
+set(wolfssl_archive49 "https://github.com/wolfSSL/wolfssl/archive/refs/tags/v5.9.4-stable.tar.gz")
+set(ngtcp2_archive49 "https://github.com/ngtcp2/ngtcp2/releases/download/v1.25.0/ngtcp2-1.25.0.tar.xz")
+if(DEFINED MCRF_CODEC49_ARCHIVES)
+    set(wolfssl_archive49 "${MCRF_CODEC49_ARCHIVES}/v5.9.4-stable.tar.gz")
+    set(ngtcp2_archive49 "${MCRF_CODEC49_ARCHIVES}/ngtcp2-1.25.0.tar.xz")
+    if(NOT EXISTS "${wolfssl_archive49}" OR NOT EXISTS "${ngtcp2_archive49}")
+        message(FATAL_ERROR "Frozen native source archives missing; no network fallback")
+    endif()
+endif()
 FetchContent_Declare(wolfssl
-    URL https://github.com/wolfSSL/wolfssl/archive/refs/tags/v5.9.4-stable.tar.gz
+    URL "${wolfssl_archive49}"
     URL_HASH SHA256=7256bfc89b183a75183806c7debfa203443873b0b4a562e1b80d68e01b45ac57)
 FetchContent_GetProperties(wolfssl)
 if(NOT wolfssl_POPULATED)
@@ -17,7 +29,7 @@ find_package(Git REQUIRED)
 get_filename_component(GIT_BIN "${GIT_EXECUTABLE}" DIRECTORY)
 find_program(STEER_PATCH patch HINTS "${GIT_BIN}/../usr/bin" REQUIRED)
 FetchContent_Declare(ngtcp2
-    URL https://github.com/ngtcp2/ngtcp2/releases/download/v1.25.0/ngtcp2-1.25.0.tar.xz
+    URL "${ngtcp2_archive49}"
     URL_HASH SHA256=2a34d2484ba17847a5d11965704e9dd0fac4c6d8efc75ffe1ec7de66d8c6b6fb
     PATCH_COMMAND "${STEER_PATCH}" -l -p1 -i "${STEER}/build/ngtcp2/patches/0001-brutal-congestion-control.patch"
     COMMAND "${STEER_PATCH}" -l -p1 -i "${STEER}/build/ngtcp2/patches/0002-set-cc-brutal.patch")
@@ -66,12 +78,34 @@ endforeach()
 foreach(F aes-asm_c chacha-asm_c poly1305-asm_c sha256-asm_c sha512-asm_c curve25519_c sha3-asm_c)
     list(APPEND WOLF_FILES "${wolfssl_SOURCE_DIR}/wolfcrypt/src/port/arm/armv8-${F}.c")
 endforeach()
-add_library(steer_vpn SHARED bridge.c hostdial.c ip6_packet.c ${SOURCES} ${WOLF_FILES})
+add_library(steer_vpn SHARED bridge.c hostdial.c ip6_packet.c probe.c route_relay.c ${SOURCES} ${WOLF_FILES})
+include("${CMAKE_CURRENT_LIST_DIR}/compression49.cmake")
+mcrf_steer_cert_compression49(steer_vpn)
+include("${CMAKE_CURRENT_LIST_DIR}/tls49.cmake")
+mcrf_steer_tls49(steer_vpn)
 target_include_directories(steer_vpn PRIVATE ${INCLUDES} "${CMAKE_CURRENT_LIST_DIR}")
+add_executable(host_route_relay_test EXCLUDE_FROM_ALL "${STEER}/android-vpn/tests/host_route_relay_test.c" route_relay.c)
+target_include_directories(host_route_relay_test PRIVATE ${INCLUDES} "${CMAKE_CURRENT_LIST_DIR}")
+target_compile_options(host_route_relay_test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_compile_definitions(steer_vpn PRIVATE HAVE_CONFIG_H NGTCP2_STATICLIB WOLFSSL_USER_SETTINGS STEER_DEFAULT_PLATFORM=android STEER_DUALSTACK)
 target_compile_options(steer_vpn PRIVATE -O2 -ffunction-sections -fdata-sections -fvisibility=hidden)
 target_link_options(steer_vpn PRIVATE -Wl,--gc-sections -Wl,--exclude-libs,ALL)
-target_link_libraries(steer_vpn ngtcp2_android log)
+target_link_libraries(steer_vpn PRIVATE ngtcp2_android log)
+# New P2 wire fixture, not a duplicate run of old packet/TLS suites. Its trust
+# function is linked ONLY into this standalone executable, never into the AAR.
+set(PROBE_FIXTURE_SOURCES ${SOURCES})
+list(FILTER PROBE_FIXTURE_SOURCES EXCLUDE REGEX "/roots[.]c$")
+list(FILTER PROBE_FIXTURE_SOURCES EXCLUDE REGEX "/src/daemon/main[.]c$")
+add_executable(host_probe_tls_test EXCLUDE_FROM_ALL
+    "${STEER}/android-vpn/tests/host_probe_tls_test.c" probe.c ${PROBE_FIXTURE_SOURCES} ${WOLF_FILES}
+    "${STEER}/src/proto/tls/tls49.c" "${STEER}/src/proto/tls/cert_compress49.c")
+target_include_directories(host_probe_tls_test PRIVATE ${INCLUDES} "${CMAKE_CURRENT_LIST_DIR}")
+target_compile_definitions(host_probe_tls_test PRIVATE HAVE_CONFIG_H NGTCP2_STATICLIB WOLFSSL_USER_SETTINGS STEER_DEFAULT_PLATFORM=android STEER_DUALSTACK MCRF_UTLS49=1 MCRF_CERT_COMPRESSION49=1)
+target_compile_options(host_probe_tls_test PRIVATE -UNDEBUG -O2 -ffunction-sections -fdata-sections)
+target_link_options(host_probe_tls_test PRIVATE -Wl,--gc-sections -Wl,--exclude-libs,ALL)
+# The owned Android runner supplies only its SHA-verified private sibling
+# directory. Windows Ninja would encode a literal $$ORIGIN in ELF RUNPATH.
+target_link_libraries(host_probe_tls_test PRIVATE mcrf_utls49 mcrf_brotli_dec49 mcrf_zstd_dec49 ngtcp2_android z log)
 add_executable(host_api_test EXCLUDE_FROM_ALL
     "${STEER}/android-vpn/tests/host_api_test.c"
     "${STEER}/src/tunnel/tun.c" "${STEER}/src/proto/transport/trdial.c")
@@ -113,3 +147,4 @@ steer_test(pxsubmatch "${STEER}/src/proto/proxy/pxsub.c" "${STEER}/src/proto/vle
 steer_test(hy2match "${STEER}/src/proto/hysteria2/hy2wire.c" "${STEER}/src/proto/hysteria2/hy2sub.c")
 steer_test(tungromatch "${STEER}/src/platform/platform.c" "${STEER}/src/platform/openwrt.c"
     "${STEER}/src/platform/android.c" "${STEER}/src/profile/profile.c")
+include("${CMAKE_CURRENT_LIST_DIR}/compression49-fixtures.cmake")

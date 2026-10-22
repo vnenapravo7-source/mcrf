@@ -34,7 +34,8 @@ class RetainedTunTransitionTest {
     @Test fun carrierAndOptionalWorkersPrepareBeforeStartAndOrdinaryCaptureIsPreserved() {
         fun source(name:String)=listOf(File("src/main/kotlin/org/mcrf/client/$name.kt"),File("app/src/main/kotlin/org/mcrf/client/$name.kt")).first{it.isFile}.readText().replace("\r\n","\n")
         val service=source("McrfVpnService")
-        assertTrue(service.contains("prepareCarrierHandoverTun(vpn,requested)\n            val transport=NativeCarrier.start"))
+        val carrier=service.substringAfter("profile?.let {").substringBefore("val outputs=")
+        assertTrue(carrier.indexOf("prepareCarrierHandoverTun(vpn,requested)") in 0 until carrier.indexOf("NativeCarrier.start("))
         assertTrue(service.contains("if(plan.requiresWorkers){\n                prepareCarrierHandoverTun(vpn,requested)"))
         assertTrue(service.contains("if (nativeUidBypass && !restricted) builder.addDisallowedApplication(packageName)"))
         val host=source("ClientPrimaryHostPlatform")

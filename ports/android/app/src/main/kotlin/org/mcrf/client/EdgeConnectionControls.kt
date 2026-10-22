@@ -104,13 +104,21 @@ class EdgeConnectionControls(private val activity:MainActivity, private val tele
         return super.performAccessibilityAction(action,args)
     }
     private val vpnLabel=activity.text("VPN",10,Loft.MUTED).apply {gravity=Gravity.CENTER;setSingleLine(true)}
-    private val whitelistLabel=activity.text("БЕЛЫЕ",10,Loft.MUTED).apply {gravity=Gravity.CENTER;setSingleLine(true);contentDescription="Белые списки"}
+    private val whitelistLabel=activity.text("БС",10,Loft.MUTED).apply {gravity=Gravity.CENTER;setSingleLine(true);contentDescription="Белые списки"}
     private val whitelistDivider=View(activity).apply {setBackgroundColor(Loft.LINE)}
     private val tgLabel=activity.text("TG WS",10,Loft.MUTED).apply {gravity=Gravity.CENTER}
     private val tgDivider=View(activity).apply {setBackgroundColor(Loft.LINE)}
     val vpn=Switch(activity).apply {tag="edge-vpn";showText=false;contentDescription="VPN · боковой тумблер";setOnCheckedChangeListener {_,on->if(!updating)connection(false,on)}}
     val whitelist=Switch(activity).apply {tag="edge-whitelists";showText=false;contentDescription="Белые списки · боковой тумблер";setOnCheckedChangeListener {_,on->if(!updating)connection(true,on)}}
     val tg=Switch(activity).apply {tag="edge-telegram";showText=false;contentDescription="TG WS · боковой тумблер";setOnCheckedChangeListener {_,on->if(!updating)try{telegram.setEnabled(on)}catch(_:Exception){updateTelegram();activity.alert("TG WS","Не удалось изменить состояние прокси.")}}}
+    private val autoLabel=activity.text("Авто-БС",10,Loft.MUTED).apply {gravity=Gravity.CENTER;setSingleLine(true)}
+    private val autoDivider=View(activity).apply {setBackgroundColor(Loft.LINE)}
+    val autoDetection=Switch(activity).apply {tag="edge-auto-bs";showText=false;contentDescription="Автоопределение БС · боковой тумблер"
+        setOnCheckedChangeListener {_,on->if(!updating){activity.setBsDetection(on);updateAutoDetection()}}}
+    private val routes=activity.iconButton("routes","Группа маршрутов",20).apply {
+        tag="edge-routing-group";minWidth=0;minimumWidth=0;setPadding(0,0,0,0)
+        setOnClickListener {RoutingGroupsUi.choose(activity,it)}
+    }
     init {
         tag="connection-edge";orientation=VERTICAL;gravity=Gravity.CENTER_HORIZONTAL;elevation=activity.dp(4).toFloat();setPadding(activity.dp(7),activity.dp(8),activity.dp(7),activity.dp(8))
         background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Loft.SURFACE,Loft.FIELD)).apply {
@@ -124,25 +132,29 @@ class EdgeConnectionControls(private val activity:MainActivity, private val tele
         content.addView(whitelistLabel,LayoutParams(-1,-2));content.addView(whitelist,LayoutParams(activity.dp(50),activity.dp(48)))
         content.addView(tgDivider,LayoutParams(-1,activity.dp(1)).apply {topMargin=activity.dp(3);bottomMargin=activity.dp(7)})
         content.addView(tgLabel,LayoutParams(-1,-2));content.addView(tg,LayoutParams(activity.dp(50),activity.dp(48)))
-        listOf(vpn,whitelist,tg).forEach {toggle->toggle.minimumWidth=activity.dp(48);toggle.minimumHeight=activity.dp(48);toggle.setPadding(0,0,0,0)
+        content.addView(autoDivider,LayoutParams(-1,activity.dp(1)).apply {topMargin=activity.dp(3);bottomMargin=activity.dp(7)})
+        content.addView(autoLabel,LayoutParams(-1,-2));content.addView(autoDetection,LayoutParams(activity.dp(50),activity.dp(48)))
+        content.addView(routes,LayoutParams(activity.dp(48),activity.dp(48)).apply {topMargin=activity.dp(4)})
+        listOf(vpn,whitelist,tg,autoDetection).forEach {toggle->toggle.minimumWidth=activity.dp(48);toggle.minimumHeight=activity.dp(48);toggle.setPadding(0,0,0,0)
             toggle.thumbTintList=ColorStateList(arrayOf(intArrayOf(android.R.attr.state_checked),intArrayOf()),intArrayOf(Loft.onAccent(),if(Loft.dark)Loft.MUTED else Loft.SURFACE))
             toggle.trackTintList=ColorStateList(arrayOf(intArrayOf(android.R.attr.state_checked),intArrayOf()),intArrayOf(Loft.ACCENT,if(Loft.dark)Loft.LINE else Loft.MUTED))
         }
-        renderCollapsed();updateTelegram()
+        renderCollapsed();updateTelegram();updateAutoDetection()
     }
-    fun updateConnection(running:Boolean,pending:Boolean,enabled:Boolean,vpnMode:Boolean,runningWhitelists:Boolean) {
-        val vpnChecked=EdgeConnectionState.checked(false,running,runningWhitelists)
-        val whitelistChecked=EdgeConnectionState.checked(true,running,runningWhitelists)
+    fun updateConnection(running:Boolean,pending:Boolean,enabled:Boolean,vpnMode:Boolean,runningWhitelists:Boolean,pendingWhitelists:Boolean?=null) {
+        val vpnChecked=EdgeConnectionState.indicator(false,running,pending,runningWhitelists,pendingWhitelists)
+        val whitelistChecked=EdgeConnectionState.indicator(true,running,pending,runningWhitelists,pendingWhitelists)
         updating=true
         vpn.isChecked=vpnChecked;vpn.isEnabled=enabled
         whitelist.isChecked=whitelistChecked;whitelist.isEnabled=enabled
         updating=false
         vpnLabel.text=if(pending&&vpnChecked)"…" else if(vpnMode)"VPN" else "ПРОКСИ"
-        whitelistLabel.text=if(pending&&whitelistChecked)"…"else"БЕЛЫЕ"
+        whitelistLabel.text=if(pending&&whitelistChecked)"…"else"БС"
         vpn.contentDescription="${if(vpnMode)"VPN" else "Прокси"} · ${if(vpnChecked)"отключить" else "подключить"}"
         whitelist.contentDescription="Белые списки · ${if(whitelistChecked)"отключить" else "подключить"}"
         val visible=UsageFeatures.Feature.WHITELIST in UsageFeaturesUi.selected(activity)||whitelistChecked
         listOf(whitelist,whitelistLabel,whitelistDivider).forEach {it.visibility=if(visible)View.VISIBLE else View.GONE}
+        autoDetection.isEnabled=enabled;applyAppearance()
     }
     fun updateTelegram(){
         updating=true;tg.isChecked=telegram.state.wanted;updating=false
@@ -150,5 +162,24 @@ class EdgeConnectionControls(private val activity:MainActivity, private val tele
         val visible=UsageFeatures.telegram(features,telegram.state.wanted,telegram.state.running)
         listOf(tg,tgLabel,tgDivider).forEach {it.visibility=if(visible)View.VISIBLE else View.GONE}
         tg.contentDescription="TG WS · ${if(telegram.state.wanted)"выключить" else "включить"}"
+        applyAppearance()
+    }
+    fun updateAutoDetection(){
+        updating=true;autoDetection.isChecked=activity.prefs.getBoolean(BsDetectionMonitor.KEY,false);updating=false
+        autoDetection.isEnabled=!activity.working();applyAppearance()
+    }
+    fun hasVisibleItems()=listOf(vpn,whitelist,tg,autoDetection,routes).any {it.visibility==View.VISIBLE}
+    fun applyAppearance(){
+        val observed=listOf(vpn,vpnLabel,whitelist,whitelistLabel,whitelistDivider,tg,tgLabel,tgDivider,autoDetection,autoLabel,autoDivider,routes)
+        val before=observed.map {it.visibility}
+        val features=UsageFeaturesUi.selected(activity)
+        fun show(key:String,available:Boolean,views:List<View>){val visible=EdgePanelAppearance.shown(activity.prefs,key)&&available;views.forEach {it.visibility=if(visible)View.VISIBLE else View.GONE}}
+        show("edgeShowVpn",true,listOf(vpn,vpnLabel))
+        show("edgeShowBs",UsageFeatures.Feature.WHITELIST in features||whitelist.isChecked,listOf(whitelist,whitelistLabel,whitelistDivider))
+        show("edgeShowTelegram",UsageFeatures.telegram(features,telegram.state.wanted,telegram.state.running),listOf(tg,tgLabel,tgDivider))
+        show("edgeShowAutoBs",UsageFeatures.Feature.WHITELIST in features||autoDetection.isChecked,listOf(autoDetection,autoLabel,autoDivider))
+        show("edgeShowRoutes",true,listOf(routes))
+        visibility=if(hasVisibleItems())View.VISIBLE else View.GONE
+        if(before!=observed.map {it.visibility})post {rememberedPosition()}
     }
 }

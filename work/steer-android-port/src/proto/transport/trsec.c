@@ -26,6 +26,10 @@
 #include "roots.h"
 #include "certverify.h"
 #include "ech.h"
+#include "diag49.h"
+#ifdef MCRF_UTLS49
+#include "tls49.h"
+#endif
 
 /* security=none — голый поток, без TLS вообще. Полезен в доверенной сети, и именно поэтому он
  * не «частный случай reality», а отдельная ветка: ставить TLS там, где его нет, значило бы
@@ -56,6 +60,12 @@ static int sec_none(struct tr_link *l, const struct tr_node *n, const char *alpn
  * соединения до его закрытия было незачем. */
 static int sec_tls_like(struct tr_link *l, const struct tr_node *n, const char *alpn,
                         int is_tls) {
+#ifdef MCRF_UTLS49
+    (void)is_tls;
+    int rc=tls49_open(l,n,alpn,l->timeout49_s);
+    mcrf_tls49(6,rc); /* numeric stage/result only, never profile or key */
+    return rc;
+#else
     const char *verify_host = n->sni[0] ? n->sni : n->host;
     struct reality_cfg cfg = {
         .sni = is_tls ? verify_host : n->sni,
@@ -63,6 +73,7 @@ static int sec_tls_like(struct tr_link *l, const struct tr_node *n, const char *
         /* ALPN просим ровно тогда, когда он нужен транспорту. Для tcp его нет — и Hello
          * остаётся тем самым, который проверен на живых узлах. */
         .alpn = alpn,
+        .profile_alpn = n->profile_alpn,
         .plain = is_tls,
         /* Гибрид X25519MLKEM768 в ClientHello — как у Chrome 131+, uTLS HelloChrome_Auto и Go 1.24+,
          * то есть у любого клиента Xray с fp=chrome и без fp. Без него наш Hello — «Chrome позапрошлого
@@ -70,7 +81,7 @@ static int sec_tls_like(struct tr_link *l, const struct tr_node *n, const char *
          * STEER_NOPQ=1 — для разбора: посредник, роняющий Hello больше одного сегмента.
          * Посредник, который роняет такой Hello молча, ловит tr_link_open: таймаут длинного Hello —
          * одна повторная попытка коротким, и узел запоминается (l->nopq). */
-        .pq = !getenv("STEER_NOPQ") && !l->nopq,
+        .pq = !getenv("STEER_NOPQ") && !l->nopq && reality_fp_pq(n->fp),
     };
     /* pqv: ключ ML-DSA-65, base64url. Разбирается ДО отправки Hello: испорченный ключ — отказ узла, а не
      * повод отправить Hello и потом молча не проверять подпись. Разбор подписки (sub.c) такой ключ
@@ -105,6 +116,7 @@ static int sec_tls_like(struct tr_link *l, const struct tr_node *n, const char *
     struct tls13_ech te = { 0 };
     const unsigned char *send_hello = hello;
     size_t send_n = hello_n;
+    mcrf_tls49(5,((int)rst.pq<<16)|(int)hello_n);
     if (is_tls && n->ech && n->ech[0]) {
         eh = calloc(1, sizeof *eh);
         if (!eh) return TR_EIO;
@@ -122,16 +134,12 @@ static int sec_tls_like(struct tr_link *l, const struct tr_node *n, const char *
         te.random = eh->st.random;
     }
 
-    size_t sent = 0;
-    while (sent < send_n) {
-        /* MSG_NOSIGNAL: узел, закрывший соединение до ClientHello, — отказ записи, а не сигнал. */
-        ssize_t w = send(l->fd, send_hello + sent, send_n - sent, MSG_NOSIGNAL);
-        if (w <= 0) {
-            if (w < 0 && errno == EINTR) continue;
-            free(eh);
-            return TR_EIO;
-        }
-        sent += (size_t)w;
+    size_t sent=0;
+    while(sent<send_n){
+        ssize_t w=send(l->fd,send_hello+sent,send_n-sent,MSG_NOSIGNAL);
+        if(w<0&&errno==EINTR)continue;
+        if(w<=0){free(eh);return TR_EIO;}
+        sent+=(size_t)w;
     }
 
     /* Передаётся наш ПРИВАТНЫЙ ключ, а не готовый секрет: TLS-расписание строится на
@@ -149,12 +157,16 @@ static int sec_tls_like(struct tr_link *l, const struct tr_node *n, const char *
         if (pol.pcs || pol.pks || pol.vcn || pol.insecure) auth.policy = &pol;
     } else auth.reality_key = rst.authkey;
     if (rst.pq) auth.mlkem_dk = rst.mlkem_dk;
+    if(rst.p256)auth.p256_priv=rst.p256_priv;
+    auth.cert_compression=rst.cert_compression;
     auth.mldsa_pk = have_pqv ? pqv : NULL;
 
     if (eh) auth.ech = &te;
     int hrc = tls13_handshake_auth(&l->tls, l->fd, send_hello, send_n, rst.priv, &auth);
+    mcrf_tls49(6,hrc);
     free(eh);
     return hrc;
+#endif
 }
 
 static int sec_tls(struct tr_link *l, const struct tr_node *n, const char *alpn) {
@@ -244,6 +256,11 @@ static void nopq_remember(const struct tr_node *n) {
 }
 
 static int link_try(struct tr_link *l, const struct tr_node *n, const char *alpn, int timeout_s, int nopq) {
+#ifdef MCRF_UTLS49
+    memset(l,0,sizeof *l);l->timeout49_s=timeout_s;
+    l->fd=-1;
+    if(strcmp(n->security,"none")&&!n->runtime_epoch49)return -105;
+#endif
     l->fd = -1;
     l->nopq = nopq;
     int fd = tr_dial(n->host, n->port, timeout_s);
@@ -258,8 +275,12 @@ static int link_try(struct tr_link *l, const struct tr_node *n, const char *alpn
 }
 
 int tr_link_open(struct tr_link *l, const struct tr_node *n, const char *alpn, int timeout_s) {
+#ifdef MCRF_UTLS49
+    // Never shorten/PQ-downgrade an exact fingerprint after a timeout.
+    return link_try(l,n,alpn,timeout_s,0);
+#else
     /* Гибрид предлагается только у tls и reality и только если его не выключили (STEER_NOPQ). */
-    const int pq_able = strcmp(n->security, "none") != 0 && !getenv("STEER_NOPQ");
+    const int pq_able = strcmp(n->security, "none") != 0 && !getenv("STEER_NOPQ") && reality_fp_pq(n->fp);
     const int known = pq_able && nopq_known(n);
     int rc = link_try(l, n, alpn, timeout_s, known || !pq_able);
     if (rc == TLS13_ETIMEOUT && pq_able && !known) {
@@ -271,4 +292,5 @@ int tr_link_open(struct tr_link *l, const struct tr_node *n, const char *alpn, i
          * ответом коротким был бы «не признал ключ», тогда как корень беды — потерянный длинный Hello. */
     }
     return rc;
+#endif
 }

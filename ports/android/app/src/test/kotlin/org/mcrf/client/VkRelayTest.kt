@@ -6,6 +6,39 @@ import org.json.JSONObject
 import org.json.JSONArray
 
 class VkRelayTest {
+    @Test fun explicitManualGenerationAppendsAndRetainsPartialUntilAcknowledged() {
+        val memory=Memory();var requests=0
+        val account=VkRelayAccount(memory,{
+            requests++
+            if(requests==3)JSONObject().put("error",JSONObject().put("error_code",6))
+            else JSONObject().put("response",JSONObject().put("join_link","A".repeat(42)+requests))
+        },{})
+        account.link(VkRelayProtocol.Authorization("fixture","42",3600))
+        account.setManualDefaults(listOf("Z".repeat(43)))
+        val result=account.generatedManual(5)
+        assertEquals(2,result.calls.size);assertNotNull(result.problem);assertEquals(3,requests)
+        assertEquals(1,account.pendingManual().size)
+        assertEquals(1,account.manualDefaults().size)
+        account.preserveGenerated(result.calls)
+        account.preserveGenerated(result.calls)
+        account.acknowledgeManual(listOf(result.group))
+        assertEquals(3,account.manualDefaults().size);assertTrue(account.pendingManual().isEmpty())
+        AndroidDeployBackupSettings.validate(memory.snapshot())
+    }
+    @Test fun sharedManualSupplementIsOptInOrderedDedupedAndBackedUp() {
+        val memory=Memory();val account=VkRelayAccount(memory,{error("No implicit VK request")},{})
+        account.setManualDefaults(listOf(hash,"B".repeat(43)))
+        val raw=JSONObject().put("type","qwdtt").put("hashes",JSONArray().put(hash))
+        val before=raw.toString()
+        assertEquals(before,VkRelayRuntime.withManualSupplements(raw,account).toString())
+        assertFalse(VkRelayRuntime.defaultsForNewQwdtt(JSONObject().put("type","qwdtt"),account).has("hashes"))
+        account.setSupplementAll(true)
+        assertEquals(2,VkRelayRuntime.withManualSupplements(raw,account).getJSONArray("hashes").length())
+        assertEquals(before,raw.toString())
+        assertEquals(2,VkRelayRuntime.defaultsForNewQwdtt(JSONObject().put("type","qwdtt"),account).getJSONArray("hashes").length())
+        AndroidDeployBackupSettings.validate(memory.snapshot())
+        assertTrue(VkRelayAccount(Memory(memory.snapshot())).supplementAll())
+    }
     private class Memory(source: JSONObject=JSONObject()) : VkRelayPersistence {
         private val root=JSONObject(source.toString())
         fun snapshot()=JSONObject(root.toString())
@@ -19,7 +52,10 @@ class VkRelayTest {
         val account=VkRelayAccount(memory,{requests++;JSONObject().put("response",JSONObject().put("join_link",hash+requests))},{})
         account.link(VkRelayProtocol.Authorization("fixture-token","42",3600))
         account.setDefaultSource(VkRelayProtocol.HashSource.AUTOMATIC);account.setDefaultCount(2)
-        val raw=VkRelayRuntime.defaultsForNewQwdtt(JSONObject().put("type","qwdtt").put("server","fixture.invalid").put("server_port",56000).put("password","fixture"),account)
+        // Previously saved automatic profiles stay compatible; the editor no
+        // longer creates new profiles in this mode.
+        val raw=JSONObject().put("type","qwdtt").put("server","fixture.invalid").put("server_port",56000).put("password","fixture")
+            .put("hash_source","auto").put("vk_call_count",2)
         val normalized=SwgProfile.fromJson("fixture",raw).carrier!!
         val imported=ServerImport.read(SwgProfile.share(normalized)).single().carrier!!
         val before=imported.toString()
@@ -78,7 +114,7 @@ class VkRelayTest {
         AndroidDeployBackupSettings.validate(memory.snapshot())
         val restored=VkRelayAccount(Memory(memory.snapshot()),{ error("No API on restore") },{})
         assertEquals(32,restored.cachedFor("max","qwdtt",32).size)
-        assertThrows(IllegalArgumentException::class.java) { restored.callsFor("bad","wdtt",7) }
+        assertEquals(7,VkRelayProtocol.count(7,"wdtt"))
         assertThrows(IllegalArgumentException::class.java) { account.setDefaultCount(0) }
         assertEquals(1,account.resolveCountFor("manual",listOf(hash),true,"qwdtt",32).size)
     }
@@ -88,17 +124,16 @@ class VkRelayTest {
             val account=VkRelayAccount(memory,{ requests++;JSONObject().put("response",JSONObject().put("join_link",java.util.Base64.getUrlEncoder().encodeToString(ByteArray(32) { requests.toByte() }))) },{})
             account.link(VkRelayProtocol.Authorization("fixture","42",3600))
             assertEquals(1,account.callsFor("one",kind,1).size)
-            assertEquals(if(kind=="qwdtt")32 else 6,account.callsFor("max",kind,if(kind=="qwdtt")32 else 6).size)
+            assertEquals(12,account.callsFor("max",kind,12).size)
             AndroidDeployBackupSettings.validate(memory.snapshot())
         }
         val memory=Memory();var requests=0
         val account=VkRelayAccount(memory,{ requests++;JSONObject().put("response",JSONObject().put("join_link",hash+requests)) },{})
         account.link(VkRelayProtocol.Authorization("fixture","42",3600));account.setDefaultSource(VkRelayProtocol.HashSource.AUTOMATIC);account.setDefaultCount(2)
         val raw=VkRelayRuntime.defaultsForNewQwdtt(JSONObject().put("type","qwdtt"),account)
-        assertEquals(2,raw.getInt("vk_call_count"))
-        assertThrows(IllegalStateException::class.java) { VkRelayRuntime.prepareForProbe(raw,account) };assertEquals(0,requests)
-        assertEquals(2,VkRelayRuntime.prepare(raw,account).getJSONArray("hashes").length());assertEquals(2,requests)
-        assertEquals(2,VkRelayRuntime.prepareForProbe(raw,account).getJSONArray("hashes").length());assertEquals(2,requests)
+        assertEquals("manual",raw.getString("hash_source"));assertFalse(raw.has("vk_call_count"))
+        assertThrows(IllegalArgumentException::class.java) { VkRelayRuntime.prepareForProbe(raw,account) };assertEquals(0,requests)
+        assertThrows(IllegalArgumentException::class.java) { VkRelayRuntime.prepare(raw,account) };assertEquals(0,requests)
         assertFalse(raw.has("hashes"))
     }
     @Test fun startsWithMainVkHome() { assertEquals("https://vk.ru/",VkRelayProtocol.LOGIN_URL) }
@@ -160,11 +195,11 @@ class VkRelayTest {
         val account=VkRelayAccount(Memory());account.setDefaultSource(VkRelayProtocol.HashSource.AUTOMATIC)
         val raw=JSONObject().put("type","qwdtt").put("hashes",JSONArray(listOf(hash)))
         assertEquals("manual",VkRelayRuntime.defaultsForNewQwdtt(raw,account).getString("hash_source"))
-        assertEquals("auto",VkRelayRuntime.defaultsForNewQwdtt(JSONObject().put("type","qwdtt"),account).getString("hash_source"))
+        assertEquals("manual",VkRelayRuntime.defaultsForNewQwdtt(JSONObject().put("type","qwdtt"),account).getString("hash_source"))
     }
-    @Test fun csqttRejectsWrongHashSizeAndDuplicateCalls() {
+    @Test fun csqttRejectsWrongHashSizeAndDedupesCalls() {
         assertThrows(IllegalArgumentException::class.java) { VkRelayProtocol.hash("A".repeat(20),"csqtt") }
-        assertThrows(IllegalArgumentException::class.java) { VkRelayProtocol.calls(listOf(hash,hash),"qwdtt") }
+        assertEquals(1,VkRelayProtocol.calls(listOf(hash,hash),"qwdtt").size)
         assertEquals(hash,VkRelayProtocol.hash(hash,"wdtt"))
     }
     @Test fun newDeploymentGetsNewSixWhileSameOperationIsIdempotent() {
@@ -218,13 +253,12 @@ class VkRelayTest {
         assertThrows(IllegalStateException::class.java) { account.sixCallsFor("deploy:retry","qwdtt") };assertEquals(7,requests)
     }
     @Test fun deploymentCallPoolsRespectActualAndroidImportLimits() {
-        val hashes=(0 until 32).map { n -> java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32) { i -> if(i==0) n.toByte() else 0 }) }
-        assertEquals(32,VkRelayProtocol.calls(hashes,"qwdtt").size)
-        for(kind in listOf("wdtt","csqtt")) {
-            assertEquals(6,VkRelayProtocol.calls(hashes.take(6),kind).size)
-            assertThrows(IllegalArgumentException::class.java) { VkRelayProtocol.calls(hashes.take(7),kind) }
-            val target=AndroidDeployTarget("192.0.2.1",sshPassword="fixture",options=JSONObject().put("relay_kind",kind).put("vk_calls",JSONArray(hashes.take(7))))
-            assertThrows(IllegalArgumentException::class.java) { AndroidDeployPlan.validate("swg",target) }
+        val hashes=(0 until 64).map { n -> java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32) { i -> if(i==0) n.toByte() else 0 }) }
+        for(kind in listOf("qwdtt","wdtt","csqtt"))for(count in listOf(7,33,64)) {
+            assertEquals(count,VkRelayProtocol.calls(hashes.take(count),kind).size)
+            val target=AndroidDeployTarget("192.0.2.1",sshPassword="fixture",options=JSONObject().put("relay_kind",kind).put("vk_calls",JSONArray(hashes.take(count))))
+            AndroidDeployPlan.validate("swg",target)
+            assertEquals(count,AndroidDeployPlan.normalizedOptions(target).getJSONArray("vk_calls").length())
         }
     }
     @Test fun manualProbeReadsNoAccountAndWritesNothing() {

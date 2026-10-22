@@ -23,7 +23,8 @@ class SwgProfileTest {
         raw.put("workers",27);assertEquals(27,SwgProfile.fromJson("fixture",raw).carrier!!.getInt("workers"))
         raw.remove("vk_call_count");raw.put("workers",162)
         assertEquals(6,SwgProfile.fromJson("fixture",raw).carrier!!.getInt("vk_call_count"))
-        for(count in listOf(0,33,-1))assertThrows(IllegalArgumentException::class.java){SwgProfile.fromJson("fixture",JSONObject(raw.toString()).put("vk_call_count",count))}
+        for(count in listOf(0,-1))assertThrows(IllegalArgumentException::class.java){SwgProfile.fromJson("fixture",JSONObject(raw.toString()).put("vk_call_count",count))}
+        assertEquals(33,SwgProfile.fromJson("fixture",JSONObject(raw.toString()).put("vk_call_count",33)).carrier!!.getInt("vk_call_count"))
     }
     private fun enc(value: String) = URLEncoder.encode(value,"UTF-8").replace("+","%20")
     private val calls = (1..6).map { "fixture-call-${it}-0123456789abcdef" }
@@ -78,7 +79,7 @@ class SwgProfileTest {
         val parsed = ServerImport.read(link).single().carrier!!
         assertEquals(24, parsed.getJSONArray("hashes").length()); assertEquals(18, parsed.getInt("workers"))
         assertEquals(24, ServerImport.read(SwgProfile.share(parsed)).single().carrier!!.getJSONArray("hashes").length())
-        reject { SwgProfile.fromJson("fixture",json("qwdtt").put("hashes",JSONArray((1..65).map { "fixture-call-$it-0123456789abcdef" }))) }
+        assertEquals(65,SwgProfile.fromJson("fixture",json("qwdtt").put("hashes",JSONArray((1..65).map { "fixture-call-$it-0123456789abcdef" }))).carrier!!.getJSONArray("hashes").length())
     }
     @Test fun editorKeepsIdentityAndExportsCompatibleLink() {
         val entry=ServerImport.read(SwgProfile.share(json("csqtt"))).single()

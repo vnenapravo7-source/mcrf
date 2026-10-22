@@ -1,0 +1,35 @@
+diff --git a/qwdtt/csqtt_bridge.go b/qwdtt/csqtt_bridge.go
+--- a/qwdtt/csqtt_bridge.go
++++ b/qwdtt/csqtt_bridge.go
+@@ -77,5 +77,7 @@
+ 	if err != nil {
+ 		return err
+ 	}
++	processOwner, err := mcrfPrepareProcessGroup()
++	if err != nil { return err }
+ 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+ 	defer cancel()
+@@ -121,4 +123,5 @@
+ 	defer writer.Close()
+-	var inputMu sync.Mutex
+-	send := func(line string) { inputMu.Lock(); defer inputMu.Unlock(); _, _ = io.WriteString(input, line+"\n") }
++	commands := newMcrfChildInput(input, cancel)
++	defer func() { commands.stop(); input.Close(); <-commands.done }()
++	send := func(line string) { data := []byte(line+"\n"); ok := commands.offer(data); clear(data); if !ok { cancel() } }
+ 	go func() {
+@@ -129,3 +133,4 @@
+         for scanner.Scan() {
+             line := strings.TrimSpace(scanner.Text())
++            if processOwner.accept(line) { continue }
+             if line == "STOP" { cancel(); return }
+@@ -147,3 +152,5 @@
+ 	defer func() { cancel(); reader.Close(); <-scanDone }()
++	if err = processOwner.await(ctx); err != nil { return err }
++	command.Env = mcrfProcessChildEnvironment(command.Env)
+ 	if err = command.Start(); err != nil {
+ 		return errors.New("cannot start bundled CSQTT transport")
+@@ -158,3 +165,3 @@
+ 		cancel()
+-		send("STOP")
++		commands.stop()
+ 		select {

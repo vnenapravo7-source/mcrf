@@ -1,0 +1,91 @@
+diff --git a/qwdtt/creds.go b/qwdtt/creds.go
+--- a/qwdtt/creds.go
++++ b/qwdtt/creds.go
+@@ -3,4 +3,5 @@
+ import (
+ 	"runtime"
++	"os"
+ 	"bytes"
+ 	"context"
+@@ -620,4 +620,4 @@
+ 	case "wv":
+ 		log.Printf("[STREAM %d] [КАПЧА] WBV: режим из настроек Android (attempt %d)", streamID, attempt)
+-		return requestWebViewCaptcha(streamID, captchaErr, "selected", captchaSelectedWebViewTimeout)
++		return requestWebViewCaptchaContext(ctx, streamID, captchaErr, "selected", captchaSelectedWebViewTimeout)
+ 	case "rjs":
+@@ -636,8 +636,8 @@
+ 		if isCaptchaSessionExhausted(solveErr) {
+ 			log.Printf("[STREAM %d] [КАПЧА] RJS: rate limit, fallback на WBV Auto", streamID)
+-			return requestWebViewCaptcha(streamID, captchaErr, "auto", captchaAutoWebViewTimeout)
++			return requestWebViewCaptchaContext(ctx, streamID, captchaErr, "auto", captchaAutoWebViewTimeout)
+ 		}
+ 		log.Printf("[STREAM %d] [КАПЧА] RJS: ошибка, fallback на WBV Auto: %v", streamID, solveErr)
+-		return requestWebViewCaptcha(streamID, captchaErr, "auto", captchaAutoWebViewTimeout)
++		return requestWebViewCaptchaContext(ctx, streamID, captchaErr, "auto", captchaAutoWebViewTimeout)
+ 	}
+@@ -664,4 +664,4 @@
+ 	for wbvAttempt := 1; wbvAttempt <= 2; wbvAttempt++ {
+ 		log.Printf("[STREAM %d] [КАПЧА] AUTO: WBV Auto попытка %d/2 (timeout %s)", streamID, wbvAttempt, captchaAutoWebViewTimeout)
+-		token, solveErr = requestWebViewCaptcha(streamID, captchaErr, "auto", captchaAutoWebViewTimeout)
++		token, solveErr = requestWebViewCaptchaContext(ctx, streamID, captchaErr, "auto", captchaAutoWebViewTimeout)
+ 		if solveErr == nil {
+@@ -702,3 +702,3 @@
+ 	log.Printf("[STREAM %d] [КАПЧА] AUTO: автоцепочка не прошла, открыт ручной WebView", streamID)
+-	token, solveErr = requestWebViewCaptcha(streamID, captchaErr, "manual", captchaManualWebViewTimeout)
++	token, solveErr = requestWebViewCaptchaContext(ctx, streamID, captchaErr, "manual", captchaManualWebViewTimeout)
+ 	if solveErr == nil {
+@@ -714,5 +714,8 @@
+-func requestWebViewCaptcha(streamID int, captchaErr *VkCaptchaError, mode string, timeout time.Duration) (string, error) {
++func requestWebViewCaptcha(streamID int, captchaErr *VkCaptchaError, mode string, timeout time.Duration) (string, error) {
++	return requestWebViewCaptchaContext(nil, streamID, captchaErr, mode, timeout)
++}
++func requestWebViewCaptchaContext(caller context.Context, streamID int, captchaErr *VkCaptchaError, mode string, timeout time.Duration) (string, error) {
+ 	if runtime.GOOS == "android" {
+-		if desktopProbeOnly && !desktopInteractiveProbe { return "", errCaptchaInteractionRequired }
++		if mcrfRejectCaptchaProbe(desktopProbeOnly, desktopInteractiveProbe, bridgeCancel, os.Stdout) { return "", errCaptchaInteractionRequired }
+-		timeout = captchaSelectedWebViewTimeout
+ 	}
+@@ -750,4 +749,9 @@
+ 	}
+ 
+-	drainCaptchaResult()
++	if runtime.GOOS == "android" {
++		parent := caller
++		if parent == nil { parent = context.Background() }
++		return mcrfRequestWebViewCaptcha(parent, captchaErr, mode, timeout)
++	}
++	drainCaptchaResult()
+ 	fmt.Printf("CAPTCHA_SOLVE|%s|%s|%s\n", mode, captchaErr.RedirectURI, captchaErr.SessionToken)
+diff --git a/qwdtt/main.go b/qwdtt/main.go
+--- a/qwdtt/main.go
++++ b/qwdtt/main.go
+@@ -11,3 +11,4 @@
+ 	"os"
+ 	"os/signal"
++	"runtime"
+ 	"strings"
+@@ -161,3 +162,7 @@
+ 				return
+ 			case strings.HasPrefix(line, "CAPTCHA_RESULT|"):
++				if runtime.GOOS == "android" {
++					mcrfCaptchaRequests.deliver(line)
++					continue
++				}
+ 				result := strings.TrimPrefix(line, "CAPTCHA_RESULT|")
+diff --git a/qwdtt/csqtt_bridge.go b/qwdtt/csqtt_bridge.go
+--- a/qwdtt/csqtt_bridge.go
++++ b/qwdtt/csqtt_bridge.go
+@@ -95,4 +95,5 @@
+ 	command := exec.Command(filepath.Join(filepath.Dir(exe), name))
+ 	command.Env = append(os.Environ(), "CSQTT_EVENTS=1", "CSQTT_CONFIG_FILE="+path)
++	if runtime.GOOS == "android" { command.Env = mcrfLegacyCaptchaEnv(command.Env) }
+ 	cache, err := os.UserCacheDir()
+ 	if err != nil {
+@@ -291,4 +292,5 @@
+ 			if runtime.GOOS == "android" {
+-				if c.ProbeOnly && !c.InteractiveCaptcha { send("CAPTCHA_RESULT|error:cancelled"); continue }
++				// Retire the exact child through its normal STOP/grace owner. Never
++				// send an untagged result into an ID-addressed native waiter.
++				if mcrfRejectCaptchaProbe(c.ProbeOnly, c.InteractiveCaptcha, cancelSession, os.Stdout) { return }
+ 				fmt.Println(line[i:]); continue
+ 			}

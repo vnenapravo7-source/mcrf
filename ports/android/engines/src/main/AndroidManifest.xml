@@ -5,6 +5,15 @@
         <meta-data android:name="org.mcrf.engines.interface" android:value="1" />
         <meta-data android:name="org.mcrf.engines.openflux" android:value="2" />
         <meta-data android:name="org.mcrf.engines.swg" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.csqtt_process_group" android:value="${csqttProcessGroupContract}" />
+        <meta-data android:name="org.mcrf.engines.wdtt_provider_options" android:value="${wdttProviderOptionsContract}" />
+        <meta-data android:name="org.mcrf.engines.wdtt_masque" android:value="${wdttMasqueContract}" />
+        <meta-data android:name="org.mcrf.engines.csqtt25_swg_panel" android:value="${csqtt25PanelContract}" />
+        <!-- Enabled only by the new source-bound native producer, never inferred from version. -->
+        <meta-data android:name="org.mcrf.engines.csqtt_account_options" android:value="${csqttAccountOptionsContract}" />
+        <meta-data android:name="org.mcrf.engines.qwdtt_fingerprint" android:value="${qwdttFingerprintContract}" />
+        <meta-data android:name="org.mcrf.engines.turn_hash_pool" android:value="${turnHashPoolContract}" />
+        <meta-data android:name="org.mcrf.engines.wdtt_dual_family" android:value="${wdttDualFamilyContract}" />
         <meta-data android:name="org.mcrf.engines.warp" android:value="1" />
     </application>
 </manifest>

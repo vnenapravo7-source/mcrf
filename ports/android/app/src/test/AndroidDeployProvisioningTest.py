@@ -11,6 +11,9 @@ import base64
 import json
 
 sys.dont_write_bytecode = True
+only_new = sys.argv[1:] == ["--new-deploy-call-checks"]
+if sys.argv[1:] and not only_new:
+    raise SystemExit("Unknown verification scope")
 root = pathlib.Path(__file__).resolve().parents[5]
 source = root / "ports/android/app/src/main/kotlin/org/mcrf/client/AndroidDeployScripts.kt"
 literal = re.search(r'internal val provisioning = """\n(.*?)\n"""\.trimIndent\(\)', source.read_text(encoding="utf-8-sig"), re.S).group(1)
@@ -35,13 +38,18 @@ suite_module.__dict__.update(embedded=embedded, android_hashes=android_hashes, _
 exec(compile(fixture, "AndroidDeployProvisioningFixtures", "exec"), suite_module.__dict__)
 qr_exports = []
 class AndroidOriginalCodecTests(unittest.TestCase):
-    def test_two_and_six_calls_preserved_by_original_separator_order(self):
-        for count in (1, 2, 6, 32):
+    def test_expanded_call_payload_keeps_size_and_duplicate_guards(self):
+        valid = ["https://vk.ru/call/join/" + base64.urlsafe_b64encode(bytes([i])*32).decode() for i in range(7)]
+        self.assertTrue(embedded.valid_swg_calls(valid))
+        self.assertFalse(embedded.valid_swg_calls(valid + valid[:1]))
+        self.assertFalse(embedded.valid_swg_calls([None]))
+        oversized = ["https://vk.ru/call/join/" + ("A" * 500) + str(i) for i in range(200)]
+        self.assertFalse(embedded.valid_swg_calls(oversized))
+    def test_expanded_calls_preserved_by_original_separator_order(self):
+        for count in (7, 33, 64):
             hashes = [base64.urlsafe_b64encode(bytes([i+1])*32).decode() for i in range(count)]
             calls = ["https://vk.ru/call/join/"+value for value in hashes]
             for kind in ("qwdtt", "wdtt", "csqtt"):
-                if count > 6 and kind != "qwdtt":
-                    continue
                 with self.subTest(count=count, kind=kind):
                     api = suite_module.FakePanel("swg")
                     result = embedded.configure_initial(suite_module.result(), "swg", suite_module.options(relay_kind=kind, vk_calls=calls), "fixture.example", api, lambda _: None)
@@ -116,11 +124,16 @@ class AndroidSwgMultiTests(unittest.TestCase):
         self.assertEqual(1, len(result["connections"]))
         self.assertEqual(2, len(attempts))
 
-suite = unittest.defaultTestLoader.loadTestsFromModule(suite_module)
-suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(AndroidSwgMultiTests))
-suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(AndroidOriginalCodecTests))
+if only_new:
+    suite = unittest.TestSuite(AndroidOriginalCodecTests(name) for name in (
+        "test_expanded_call_payload_keeps_size_and_duplicate_guards",
+        "test_expanded_calls_preserved_by_original_separator_order"))
+else:
+    suite = unittest.defaultTestLoader.loadTestsFromModule(suite_module)
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(AndroidSwgMultiTests))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(AndroidOriginalCodecTests))
 outcome = unittest.TextTestRunner(verbosity=1).run(suite)
-if outcome.wasSuccessful():
+if outcome.wasSuccessful() and not only_new:
     fixture_path = root / "ports/android/app/src/test/resources/AndroidDeploy-export-links.json"
     fixture_path.parent.mkdir(parents=True, exist_ok=True)
     fixture_path.write_text(json.dumps({"fixture_only": True, "source": "AndroidDeployScripts.provisioning with FakePanel; no account/server", "exports": qr_exports}, ensure_ascii=True, indent=2)+"\n", encoding="utf-8")

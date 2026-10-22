@@ -30,7 +30,13 @@ class AndroidDeployAddTransportTest {
         assertThrows(IllegalArgumentException::class.java){AndroidDeployScripts.addTransport(recipe,target,saved().put("panel_url","https://other.invalid:8443/"))}
         assertThrows(IllegalArgumentException::class.java){AndroidDeployScripts.addTransport(recipe,target,saved().put("certificate_sha256",""))}
     }
-    @Test fun deferredOpenfluxCannotEnterProvisionOnlyPath(){
-        assertThrows(IllegalArgumentException::class.java){AndroidDeployScripts.addTransport(AndroidDeployRecipe.all.first {it.id=="openflux"},target,saved())}
+    @Test fun openfluxExistingPanelUsesPinnedProvisioningWithoutInstallation(){
+        val options=AndroidDeployQuickConnection.options("openflux","direct",19001,19002,"","",emptyList(),false,6)
+        val script=AndroidDeployScripts.addTransport(AndroidDeployRecipe.all.first {it.id=="openflux"},target.copy(options=options),saved())
+        for(forbidden in listOf("installer.sh","systemctl restart","openssl req","git clone"))assertFalse(forbidden,script.contains(forbidden))
+        assertTrue(script.contains("MCRF_EXPECTED_CERT"))
+        assertTrue(script.indexOf("fingerprint != expected")<script.indexOf("r=configure_initial"))
+        assertTrue(script.contains("/api/connections"))
+        assertTrue(script.contains("MCRF_PROVISION_KIND='openflux'"))
     }
 }

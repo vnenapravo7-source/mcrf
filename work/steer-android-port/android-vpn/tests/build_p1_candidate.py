@@ -1,4 +1,5 @@
-"""Inactive whole-P1 external producer. No installation, publication or old-suite rerun.
+"""Inactive whole-priority external producer (P1 default, guarded P2 additive).
+No installation, publication or old-suite rerun.
 
 Reads the CURRENT working tree (including unstaged source), freezes ordinary
 files without git add/reset, then compiles ONE external runtime/adapter batch.
@@ -44,21 +45,26 @@ def write_zip(path, entries):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--priority',type=int,choices=(1,2),default=1)
     for name in ('java-home', 'android-sdk', 'gradle-cache', 'model-evidence'):
         parser.add_argument('--' + name, required=True)
     args = parser.parse_args()
+    priority=args.priority
     recipe = pathlib.Path(__file__).absolute()
     project, root = recipe.parents[1], recipe.parents[4]
     current_file = plain(root / 'ports/android/coordination/current.json', root, 262144)
     current = json.loads(current_file.read_text(encoding='utf-8-sig'))
     batch = current.get('activeBatch', '')
-    if not re.fullmatch(r'p1-progress-\d{4}-\d{2}-\d{2}\.json', batch):
-        raise SystemExit('Whole-P1 must be active; no standalone candidate build')
+    if not re.fullmatch(rf'p{priority}-progress-\d{{4}}-\d{{2}}-\d{{2}}\.json', batch):
+        raise SystemExit('Exact whole-priority batch must be active; no standalone candidate build')
     ready_file = plain(current_file.parent / batch, root, 262144)
     ready = json.loads(ready_file.read_text(encoding='utf-8-sig'))
     required = ('sourceReady', 'readyForBuild', 'allowCommonVerification', 'nativeSourceReady', 'allowNativeCandidateBuild')
-    if ready.get('priority') != 1 or ready.get('verificationAuthority') != 'human-20261019-p1-whole-source-before-common-verification' or any(ready.get(flag) is not True for flag in required):
-        raise SystemExit('Finish ALL P1 source tasks before compiler/native processes')
+    authority='human-20261020-p2-whole-source-before-common-verification' if priority==2 else 'human-20261019-p1-whole-source-before-common-verification'
+    if ready.get('priority') != priority or ready.get('verificationAuthority') != authority or any(ready.get(flag) is not True for flag in required):
+        raise SystemExit('Finish ALL active priority source tasks before compiler/native processes')
+    if priority==2 and (sorted(item.get('id',-1) for item in ready.get('items',[]))!=[2,6,7,11,20] or any(item.get('sourceReady') is not True for item in ready['items'])):
+        raise SystemExit('Every named P2 item must be source-ready, not just the top-level flag')
     evidence_file = pathlib.Path(args.model_evidence).absolute()
     builds = pathlib.Path('D:/MCRF/Builds/Android')
     plain(evidence_file, builds, 1048576)
@@ -98,15 +104,26 @@ def main():
             continue
         inputs.add(plain(project.parent / relative, root))
     inputs.update((current_file, ready_file, recipe))
+    tls_inputs = None
+    candidate_code = 6
+    if priority==2:
+        from p2_tls_inputs import capture
+        tls_inputs = capture(root, ready, plain, sha)
+        candidate_code = ready['steerCandidateVersionCode']
+        if type(candidate_code) is not int or not 13 <= candidate_code <= 2147483647:
+            raise RuntimeError('P2 Steer must advance beyond existing P049 module versions')
+        inputs.update(tls_inputs['canonical'])
+        for helper in ('p2_probe_peer.py','p2_probe_cases.py','p2_probe_native_android.py','p2_tls_inputs.py'):
+            inputs.add(plain(project / 'tests' / helper,root))
     manifest = {path.relative_to(root).as_posix(): {'sha256': sha(path), 'bytes': path.stat().st_size} for path in inputs}
     if len(manifest) < 100:
         raise RuntimeError('Incomplete native source inventory')
-    stage = builds / ('p1-steer-candidate-' + uuid.uuid4().hex)
+    stage = builds / (f'p{priority}-steer-candidate-' + uuid.uuid4().hex)
     stage.mkdir(parents=True, exist_ok=False)
     # Real short directory, NOT subst/junction/symlink or a live checkout.
     # Ninja also embeds absolute source names in object paths, so shortening
     # only .cxx is insufficient on Windows.
-    frozen = builds / ('p1s-' + uuid.uuid4().hex[:12])
+    frozen = builds / (f'p{priority}s-' + uuid.uuid4().hex[:12])
     frozen.mkdir(parents=False, exist_ok=False)
     for relative, row in manifest.items():
         copy = frozen / relative
@@ -114,7 +131,7 @@ def main():
         shutil.copyfile(root / relative, copy)
         if sha(copy) != row['sha256']:
             raise RuntimeError('Source changed while freezing candidate')
-    state = {'state': 'building', 'sourceStable': False, 'inputs': manifest, 'frozenSourceDirectory': str(frozen), 'readinessSha256': sha(ready_file),
+    state = {'state': 'building', 'priority':priority, 'sourceStable': False, 'inputs': manifest, 'frozenSourceDirectory': str(frozen), 'readinessSha256': sha(ready_file),
              'modelEvidenceSha256': sha(evidence_file), 'runtimeVerified': False, 'installed': False, 'published': False}
     result_file = stage / 'producer-receipt.json'
     def save():
@@ -135,6 +152,14 @@ def main():
                    '-PsteerP1Candidate=true', '-Pp1SourceReadyReceipt=' + str(frozen / ready_file.relative_to(root)),
                    '-Pp1SourceReadySha256=' + state['readinessSha256'], '--offline', '--console=plain', '--no-daemon', '--max-workers=4', '--continue']
         command.append('-Pp1NativeScratch=' + str(frozen / 'cxx'))
+        if priority==2:
+            from p2_tls_inputs import freeze
+            tls_manifest, codec_archives = freeze(tls_inputs, stage, sha)
+            state['retainedTls'] = {'origin':str(tls_inputs['origin']), 'manifest':str(tls_manifest),
+                'manifestSha256':sha(tls_manifest), 'newExecution':False, 'runtimeAccepted':False}
+            save()
+            command += ['-PsteerP2Candidate=true', '-PsteerP2VersionCode='+str(candidate_code),
+                        '-Pp049TlsManifest='+str(tls_manifest), '-Pp049CodecArchives='+str(codec_archives)]
         with (stage / 'build.log').open('wb') as log:
             process = subprocess.run(command, cwd=frozen_project, env=env, stdout=log, stderr=subprocess.STDOUT, timeout=3600)
         if process.returncode:
@@ -177,22 +202,34 @@ def main():
         capabilities = json.loads(payload['assets/steer-capabilities.json'])
         if capabilities.get('mcrf_snapshot_model') != 2 or capabilities.get('candidate_only') is not True or capabilities.get('runtime_accepted') is not False:
             raise RuntimeError('Candidate capability recipe not compiled')
+        if priority==2 and capabilities.get('independent_probe')!='native_https_204_fresh_worker_v1':
+            raise RuntimeError('Independent probe candidate capability not compiled')
+        if priority==2 and capabilities.get('route_backend')!='native_protocol_internal_socks_1':
+            raise RuntimeError('Per-server protocol bridge candidate capability not compiled')
+        if priority==1 and any(key in capabilities for key in ('independent_probe','route_backend')):
+            raise RuntimeError('P1 cannot acquire P2 probe/route capability')
         abis = ['arm64-v8a', 'x86_64']
-        if {name for name in payload if name.startswith('jni/')} != {f'jni/{abi}/libsteer_vpn.so' for abi in abis}:
+        libraries = ('libsteer_vpn.so','libmcrf_utls49.so') if priority==2 else ('libsteer_vpn.so',)
+        if {name for name in payload if name.startswith('jni/')} != {f'jni/{abi}/{library}' for abi in abis for library in libraries}:
             raise RuntimeError('Unexpected native payload set')
+        tls_hashes = None
+        if priority==2:
+            from p2_tls_inputs import packaged_hashes
+            tls_hashes = packaged_hashes(tls_inputs, payload, stage, sdk, sha)
         reader = sdk / 'ndk/27.2.12479018/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-readelf.exe'
         native_rows = []
         for abi in abis:
-            binary = stage / ('libsteer-' + abi + '.so')
-            binary.write_bytes(payload[f'jni/{abi}/libsteer_vpn.so'])
-            report = subprocess.check_output([str(reader), '-lW', str(binary)], text=True, timeout=30)
-            loads = [line for line in report.splitlines() if re.match(r'^\s*LOAD\s', line)]
-            if not loads or any(int(line.split()[-1], 16) < 16384 for line in loads):
-                raise RuntimeError('Native library below16KiB load alignment')
-            native_rows.append({'abi': abi, 'sha256': sha(binary), 'elf16KiB': True})
+            for library in libraries:
+                binary = stage / (abi + '-' + library)
+                binary.write_bytes(payload[f'jni/{abi}/{library}'])
+                report = subprocess.check_output([str(reader), '-lW', str(binary)], text=True, timeout=30)
+                loads = [line for line in report.splitlines() if re.match(r'^\s*LOAD\s', line)]
+                if not loads or any(int(line.split()[-1], 16) < 16384 for line in loads):
+                    raise RuntimeError('Native library below16KiB load alignment')
+                native_rows.append({'abi': abi, 'library':library, 'sha256': sha(binary), 'elf16KiB': True})
         fixtures = []
         for abi in abis:
-            for name in ('ip6_packet_test', 'host_routing_test', 'host_dualstack_flow_test', 'host_dualstack_wire_test'):
+            for name in (('host_probe_policy_test','host_probe_tls_test','host_route_relay_test') if priority==2 else ('ip6_packet_test', 'host_routing_test', 'host_dualstack_flow_test', 'host_dualstack_wire_test')):
                 candidates = []
                 for folder in (frozen / 'cxx', frozen_project / 'core/build/intermediates/cxx'):
                     if folder.exists():
@@ -207,7 +244,13 @@ def main():
                 machine = int.from_bytes(header[18:20], 'little')
                 if header[:4] != b'\x7fELF' or header[4:6] != b'\x02\x01' or machine != (183 if abi == 'arm64-v8a' else 62):
                     raise RuntimeError('Native fixture ABI differs')
-                fixtures.append({'abi': abi, 'name': name, 'file': f'fixture-native/{abi}/{name}', 'sha256': sha(destination), 'bytes': destination.stat().st_size})
+                fixture={'abi': abi, 'name': name, 'file': f'fixture-native/{abi}/{name}', 'sha256': sha(destination), 'bytes': destination.stat().st_size}
+                if priority==2 and name=='host_probe_tls_test':
+                    dependency=destination.with_name('libmcrf_utls49.so')
+                    dependency.write_bytes(payload[f'jni/{abi}/libmcrf_utls49.so'])
+                    fixture['dependencies']=[{'file':f'fixture-native/{abi}/libmcrf_utls49.so',
+                        'sha256':sha(dependency),'bytes':dependency.stat().st_size}]
+                fixtures.append(fixture)
         jar_output = io.BytesIO(); write_zip(jar_output, merged)
         payload.update({'classes.jar': jar_output.getvalue(), 'proguard.txt': rules,
             'AndroidManifest.xml': b'<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.mcrf.engines.steer.runtime"><uses-sdk android:minSdkVersion="29"/></manifest>'})
@@ -230,20 +273,29 @@ def main():
             return {'file': path.name, 'bytes': path.stat().st_size, 'sha256': sha(path)}
         # Source ZIP contains only the original input manifest, never generated
         # runtime/private fixture files, compiler caches or unrelated worktrees.
-        write_zip(delivery / 'source.zip', {relative: (frozen / relative).read_bytes() for relative in manifest})
+        source_archive = {relative: (frozen / relative).read_bytes() for relative in manifest}
+        if tls_inputs is not None:
+            for relative, source in tls_inputs['source'].items():
+                data=source.read_bytes()
+                if hashlib.sha256(data).hexdigest()!=tls_inputs['sourceHashes'][relative]:raise RuntimeError('Retained compiled TLS source changed')
+                source_archive[relative] = data
+            source_archive['p049-tls/compiled-helper-receipt.json'] = tls_inputs['receiptBytes']
+        write_zip(delivery / 'source.zip', source_archive)
         shutil.copyfile(frozen_project / 'module-spi/build/libs/module-spi.jar', delivery / 'spi.jar')
         for relative, row in manifest.items():
             if sha(frozen / relative) != row['sha256'] or sha(root / relative) != row['sha256']:
                 raise RuntimeError('Canonical/frozen source changed during compilation')
-        descriptor = {'spi': 1, 'api': 2, 'entry': 'org.mcrf.engines.steer.SteerEngine', 'versionCode': 6,
-                      'moduleVersion': '0.3.3-p1-candidate.6', 'abis': abis, 'sourceRepository': 'https://github.com/splify2/steer',
-                      'sourceVersion': 'whole-p1-working-tree', 'sourceSha256': sha(delivery / 'source.zip'),
+        descriptor = {'spi': 1, 'api': 2, 'entry': 'org.mcrf.engines.steer.SteerEngine', 'versionCode': candidate_code,
+                      'moduleVersion': f'0.3.3-p{priority}-candidate.{candidate_code}', 'abis': abis, 'sourceRepository': 'https://github.com/splify2/steer',
+                      'sourceVersion': f'whole-p{priority}-working-tree', 'sourceSha256': sha(delivery / 'source.zip'),
                       'artifacts': [record(target / name) for name in ('runtime.aar', 'adapter.aar')],
                       'licenses': [record(path) for path in sorted(notices.iterdir())], 'bundledDependencies': origins,
-                      'p1Candidate': True, 'p1ReadinessSha256': state['readinessSha256']}
+                      f'p{priority}Candidate': True, f'p{priority}ReadinessSha256': state['readinessSha256']}
+        if tls_hashes is not None:descriptor['tls49']={'library':'libmcrf_utls49.so','abiSha256':tls_hashes}
         receipt = {'version': 1, 'modules': {'steer': descriptor}, 'sourceArchive': record(delivery / 'source.zip'),
                    'sharedSpi': record(delivery / 'spi.jar'), 'runtime_verified': False, 'published': False,
                    'nativeLibraries': native_rows, 'nativeFixtures': fixtures, 'nativeFixturesExecuted': False,
+                   'nativeFixturesAssertionsEnabled': True,
                    'scope': 'Source-bound external candidate only; Android JNI/UID/protect/DNS/proxy/STOP acceptance remains mandatory'}
         (delivery / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
         state.update(state='compiled_candidate_not_runtime_accepted', sourceStable=True, primaryStage=str(delivery), primaryStageReceiptSha256=sha(delivery / 'receipt.json'))
@@ -252,7 +304,7 @@ def main():
         raise
     finally:
         save()
-    print('P1_STEER_CANDIDATE=' + str(delivery))
+    print(f'P{priority}_STEER_CANDIDATE=' + str(delivery))
 
 
 if __name__ == '__main__':

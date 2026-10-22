@@ -45,7 +45,7 @@ object UsageFeaturesUi {
     fun settings(activity:MainActivity):LinearLayout=with(activity) {
         card().apply {
             tag="usage-features-settings"
-            addView(text("Минимализм",18,Loft.INK),space(0,12))
+            addView(text("Скрыть разделы",18,Loft.INK),space(0,12))
             addView(form(this@with,selected(this@with)){chosen->save(this@with,chosen){render()}})
         }
     }

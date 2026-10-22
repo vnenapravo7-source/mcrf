@@ -7,9 +7,12 @@ object AutoSelection {
     const val LATENCY = "latency"
     const val BS_ENGINES = "bs-engines"
     @JvmField val ENGINE_PRIORITY = listOf("csqtt", "qwdtt", "wdtt", "openflux",S3BypassProfile.KIND)
+    // URI import/display is not permission to run the excluded engine in a
+    // background probe, startup pool or automatic failover.
+    @JvmField val AUTOMATIC_EXCLUDED = setOf("openflux")
     fun prefer(candidateKind:String,candidateDelay:Long,currentKind:String,currentDelay:Long,tolerance:Int):Boolean {
         val candidateTier=ENGINE_PRIORITY.indexOf(candidateKind);val currentTier=ENGINE_PRIORITY.indexOf(currentKind)
-        if(candidateTier<0||currentTier<0||candidateDelay<0)return false
+        if(candidateKind in AUTOMATIC_EXCLUDED||candidateTier<0||currentTier<0||candidateDelay<0)return false
         if(currentDelay<0)return true
         return candidateTier<currentTier||(candidateTier==currentTier&&candidateDelay+tolerance.coerceIn(0,10000)<currentDelay)
     }
@@ -30,7 +33,7 @@ object AutoSelection {
             compareBy<ServerImport.Server> {if(policy==BS_ENGINES)ENGINE_PRIORITY.indexOf(it.protocol)else 0}
                 .thenBy {freshDelay(it)})
     }
-    @JvmStatic @JvmOverloads fun eligible(entry: ServerImport.Server, policy: String = LATENCY) = entry.configuration == null &&
+    @JvmStatic @JvmOverloads fun eligible(entry: ServerImport.Server, policy: String = LATENCY) = entry.protocol !in AUTOMATIC_EXCLUDED && entry.configuration == null &&
         if(policy == BS_ENGINES) entry.protocol in ENGINE_PRIORITY && entry.carrier != null else !entry.needsEngine()
     @JvmStatic @JvmOverloads fun proven(entries: List<ServerImport.Server>, selected: Set<String>, probes: JSONObject, now: Long, policy: String = LATENCY): List<ServerImport.Server> {
         require(policy == LATENCY || policy == BS_ENGINES) { "Неизвестный режим автовыбора." }

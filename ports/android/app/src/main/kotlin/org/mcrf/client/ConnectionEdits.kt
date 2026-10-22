@@ -23,7 +23,7 @@ object ConnectionEdits {
     @JvmStatic fun apply(entry: ServerImport.Server, options: JSONObject?): ServerImport.Server {
         if (options == null) return entry
         require(options.toString().toByteArray(Charsets.UTF_8).size <= ServerImport.MAX_BYTES) { "Настройки подключения больше 4 МБ." }
-        require(options.keys().asSequence().all { it in setOf("name", "outbound", "endpoint", "configuration", "carrier", "profileDns") }) { "Неизвестные настройки подключения." }
+        require(options.keys().asSequence().all { it in setOf("name", "outbound", "endpoint", "configuration", "carrier", "profileDns", "csqttVersion") }) { "Неизвестные настройки подключения." }
         val name = options.optString("name", entry.name).trim()
         require(name.isNotEmpty() && name.length <= 256 && name.none(Char::isISOControl)) { "Укажите название до 256 символов." }
         fun node(kind: String, original: JSONObject?): JSONObject? {
@@ -36,6 +36,15 @@ object ConnectionEdits {
         val output = node("outbound", entry.outbound)
         val endpoint = node("endpoint", entry.endpoint)
         var carrier = node("carrier", entry.carrier)
+        if(options.has("csqttVersion")){
+            require(options.get("csqttVersion") is String&&options.getString("csqttVersion") in CsqttGenerations.legacy.map {it.id}){"Неизвестная версия CSQTT."}
+            val version=options.getString("csqttVersion")
+            val raw=requireNotNull(carrier){"Версия доступна только для CSQTT."}
+            require(raw.optString("type")=="csqtt"&&(!raw.has("csqtt_generation")||CsqttGenerations.family(raw).id==version)){
+                "Поколение сервера в подписке изменилось. Перепроверьте его версию; другой движок автоматически не подставлен."
+            }
+            carrier=JSONObject(raw.toString()).put("csqtt_generation",version)
+        }
         val config = if (options.has("configuration")) {
             require(entry.configuration != null) { "Нельзя заменить ссылку произвольным профилем." }
             JSONObject(options.getJSONObject("configuration").toString()).also { ProfileConfig.build(it.toString(), true, 10808) }

@@ -5,7 +5,7 @@ import org.json.JSONObject
 /** Transport defaults must run on the original outbound, before it becomes a SOCKS bridge. */
 object OptionalCoreTuning {
     data class Prepared(val request: OptionalCoreConfig.Request?,val notes: List<String>)
-    fun prepare(source: JSONObject,optional: OptionalCoreSettings,core: CoreTuningSettings):Prepared {
+    fun prepare(source: JSONObject,optional: OptionalCoreSettings,core: CoreTuningSettings,serverDns:(JSONObject)->JSONObject?={null}):Prepared {
         core.validate();val tuned=JSONObject(source.toString());val type=tuned.optString("type")
         tuned.optJSONObject("tls")?.takeIf {it.optBoolean("enabled") && type in setOf("vless","vmess","trojan","http","socks")}?.let {tls ->
             // Matches CoreTuningConfig: explicit fingerprint wins, global insecure
@@ -13,7 +13,7 @@ object OptionalCoreTuning {
             if(core.insecure && tls.optJSONObject("reality")?.optBoolean("enabled")!=true)tls.put("insecure",true)
             if(core.fingerprint.isNotEmpty() && !tls.has("utls")) tls.put("utls",JSONObject().put("enabled",true).put("fingerprint",core.fingerprint))
         }
-        val raw=OptionalCoreConfig.prepare(tuned,optional) ?: return Prepared(null,emptyList())
+        val raw=OptionalCoreConfig.prepare(tuned,optional,serverDns) ?: return Prepared(null,emptyList())
         val request=if(raw.kind=="tls-core" && core.certificateStore=="mozilla") raw.copy(certificateStore="mozilla") else raw
         val notes=mutableListOf<String>()
         if(core.certificateStore!="system" && request.kind=="xray")notes.add("Xray использует system CA store и certificate pins; Mozilla CA store поддерживает базовое ядро и TLS core.")

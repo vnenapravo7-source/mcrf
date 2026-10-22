@@ -1,7 +1,7 @@
 package org.mcrf.client
 
 /** Pre-start routing decision only. It ADDS a fresh physical-network check;
- * the connected-session monitor keeps its independent one-minute cadence. */
+ * the connected-session monitor keeps its independently configured cadence. */
 object BsStartupPolicy {
     const val MONITOR_INTERVAL_MS=60_000L
     enum class Decision { VPN, BS, CANCELLED }

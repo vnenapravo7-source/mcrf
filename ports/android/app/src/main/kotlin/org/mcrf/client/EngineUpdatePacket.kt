@@ -9,7 +9,7 @@ import java.io.File
 import java.util.zip.ZipFile
 
 object EngineUpdatePacket {
-    class Snapshot internal constructor(val apkSha256:String,val admission:PacketRouteEnvelope.Admission,val managedDns:Boolean=false) {
+    class Snapshot internal constructor(val apkSha256:String,val admission:PacketRouteEnvelope.Admission,val managedDns:Boolean=false,val packetPipe:Boolean=false) {
         override fun toString()="PacketModuleSnapshot(redacted)"
     }
     private fun hash(file:File):String = file.inputStream().use {input->
@@ -29,11 +29,13 @@ object EngineUpdatePacket {
         val sha=hash(path)
         val admission=PacketRouteEnvelope.admission(before.metaData?.get(PacketRouteEnvelope.BLOCK_METADATA))
         val managedDns=PacketManagedDnsPlan.admission(before.metaData?.get(PacketManagedDnsPlan.METADATA))
+        val packetPipe=PacketPipeAdmission.admitted(before.metaData?.get(org.mcrf.engine.protocol.pipe.v1.PacketPipeBackend.METADATA))
         val after=installation(context);val afterPackage=pm.getPackageInfo(after.packageName,0)
         require(beforePackage.longVersionCode==afterPackage.longVersionCode&&beforePackage.lastUpdateTime==afterPackage.lastUpdateTime&&
             before.sourceDir==after.sourceDir&&before.nativeLibraryDir==after.nativeLibraryDir&&
-            admission==PacketRouteEnvelope.admission(after.metaData?.get(PacketRouteEnvelope.BLOCK_METADATA))&&managedDns==PacketManagedDnsPlan.admission(after.metaData?.get(PacketManagedDnsPlan.METADATA))&&hash(path)==sha){"PACKET_MODULE_CHANGED_DURING_CAPTURE"}
-        return Snapshot(sha,admission,managedDns)
+            admission==PacketRouteEnvelope.admission(after.metaData?.get(PacketRouteEnvelope.BLOCK_METADATA))&&managedDns==PacketManagedDnsPlan.admission(after.metaData?.get(PacketManagedDnsPlan.METADATA))&&
+            packetPipe==PacketPipeAdmission.admitted(after.metaData?.get(org.mcrf.engine.protocol.pipe.v1.PacketPipeBackend.METADATA))&&hash(path)==sha){"PACKET_MODULE_CHANGED_DURING_CAPTURE"}
+        return Snapshot(sha,admission,managedDns,packetPipe)
     }
     fun artifactPin(context:Context):String = capture(context).apkSha256
     const val COMMIT="64065e6826ad82aa28429dd829c1c65f29b7f6c9"
@@ -45,6 +47,7 @@ object EngineUpdatePacket {
             m.getString("org.mcrf.engines.source.commit")==COMMIT) {"Несовместимый пакет WG/AWG: подпись, исходник или интерфейс."}
         PacketRouteEnvelope.admission(m.get(PacketRouteEnvelope.BLOCK_METADATA)) // unknown declarations refuse
         PacketManagedDnsPlan.admission(m.get(PacketManagedDnsPlan.METADATA))
+        PacketPipeAdmission.admitted(m.get(org.mcrf.engine.protocol.pipe.v1.PacketPipeBackend.METADATA))
     }
     private fun native(file:File) {
         val abi=EnginePackage.abi(Build.SUPPORTED_ABIS.toList(),Process.is64Bit())

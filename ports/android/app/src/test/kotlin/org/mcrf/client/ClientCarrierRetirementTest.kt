@@ -15,6 +15,7 @@ class ClientCarrierRetirementTest {
         @Volatile var alive = true
         var code = 0
         val commands = ByteArrayOutputStream()
+        val stopWritten = CountDownLatch(1)
         var writeFailure: Exception? = null
         val waits = mutableListOf<Long>()
         var destroys = 0
@@ -26,6 +27,7 @@ class ClientCarrierRetirementTest {
             override fun write(value: Int) {
                 writeFailure?.let { throw it }
                 commands.write(value)
+                if(value==10&&commands.toString("US-ASCII").endsWith("STOP\n"))stopWritten.countDown()
             }
         }
         override fun getInputStream() = ByteArrayInputStream(byteArrayOf())
@@ -49,7 +51,7 @@ class ClientCarrierRetirementTest {
         for (code in 0..1) for (grace in listOf(3L, 22L)) {
             val child = Child().apply {
                 this.code = code
-                onWait = { alive = false; true }
+                onWait = { assertTrue(stopWritten.await(5,TimeUnit.SECONDS));alive = false; true }
             }
             val retirement = ClientCarrierRetirement(child, grace) { fail("No retry needed") }
             retirement.close()
@@ -140,7 +142,8 @@ class ClientCarrierRetirementTest {
         }
         val retirement = ClientCarrierRetirement(child, 22)
         retirement.close()
-        assertEquals(listOf(1L, 3L), child.waits)
+        // A broken/full stdin must not skip native/grandchild cleanup grace.
+        assertEquals(listOf(22L, 1L, 3L), child.waits)
         assertTrue(retirement.complete)
         assertTrue(retirement.forced)
         assertFalse(retirement.normalExit)

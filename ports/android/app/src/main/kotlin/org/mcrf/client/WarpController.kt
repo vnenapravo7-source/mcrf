@@ -54,7 +54,7 @@ class WarpController(
     fun retrySearch() { checkMain();retry?.let { start(it.previousId) } }
     val canTryRussia: Boolean get() = offerRussia && !state.running()
     /** Explicit action only: no foreign search changes its country to RU automatically. */
-    fun tryRussia() { checkMain();if(canTryRussia) retry?.let { start(it.previousId,it.options.copy(country="RU",excludeDme=true)) } }
+    fun tryRussia() { checkMain();if(canTryRussia) retry?.let { start(it.previousId,WarpRecoveryPolicy.russia(it.options)) } }
     private fun start(previousId: String?, requestedOptions: WarpOperations.Options? = null) {
         val cached=retry?.takeIf { it.previousId==previousId }
         val options=requestedOptions ?: WarpSettingsStore.load(app).options()
@@ -119,7 +119,7 @@ class WarpController(
                 handler.post { if(state.finish(ticket)) update(false,"Подбор WARP отменён. Старый профиль сохранён.") }
             } catch(error: Exception) {
                 handler.post { if(state.finish(ticket)) {
-                    offerRussia=error is WarpOperations.SearchExhausted && error.foreign && retry!=null
+                    offerRussia=WarpRecoveryPolicy.offerRussia(error is WarpOperations.SearchExhausted,(error as? WarpOperations.SearchExhausted)?.foreign==true,retry!=null)
                     val detail=(error as? WarpOperations.SearchExhausted)?.detail ?: (error as? WarpOperations.ScanFailure)?.reason.orEmpty()
                     update(false,(if(offerRussia) "Выход вне РФ не найден за 3 попытки. Повторите поиск или выберите РФ." else "Выход WARP не прошёл проверку. Старый профиль сохранён.")+if(detail.isNotBlank()) "\n$detail" else "")
                 } }

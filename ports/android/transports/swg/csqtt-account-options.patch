@@ -1,0 +1,41 @@
+diff --git a/qwdtt/bridge_config.go b/qwdtt/bridge_config.go
+--- a/qwdtt/bridge_config.go
++++ b/qwdtt/bridge_config.go
+@@ -18,2 +18,5 @@
+ 	VKAnonPath         string   `json:"vk_anon_path"`
++	VKHashMode         string   `json:"vk_hash_mode"`
++	VKRuntimeToken     string   `json:"vk_runtime_token"`
++	Fingerprint        string   `json:"fingerprint"`
+ 	CaptchaMode        string   `json:"captcha_mode"`
+diff --git a/qwdtt/csqtt_bridge.go b/qwdtt/csqtt_bridge.go
+--- a/qwdtt/csqtt_bridge.go
++++ b/qwdtt/csqtt_bridge.go
+@@ -40,3 +40,11 @@
+-	if len(c.Hashes) < 1 || len(c.Hashes) > 6 {
++	accountMode := c.VKAnonPath == "auto_js"
++	if accountMode {
++		if c.ProbeOnly || c.VKHashMode != "auto_js" || len(c.Hashes) != 0 || len(c.VKRuntimeToken) == 0 || len(c.VKRuntimeToken) > 8192 || strings.ContainsAny(c.VKRuntimeToken, "\r\n\x00") {
++			return nil, errors.New("invalid private CSQTT account session")
++		}
++	} else if c.VKRuntimeToken != "" || c.VKHashMode != "" && c.VKHashMode != "manual" {
++		return nil, errors.New("unexpected CSQTT account session")
++	}
++	if !accountMode && len(c.Hashes) < 1 {
+-		return nil, errors.New("CSQTT needs one to six VK hashes")
++		return nil, errors.New("CSQTT needs at least one VK hash")
+ 	}
+@@ -51,2 +59,8 @@
+-	c.Workers = csqtt.NormalizeWorkers(c.Workers, len(c.Hashes), false)
++	if accountMode && (c.Workers < 9 || c.Workers > 126 || c.Workers%9 != 0) {
++		return nil, errors.New("invalid CSQTT account stream count")
++	}
++	c.Workers = csqtt.NormalizeWorkers(c.Workers, len(c.Hashes), accountMode)
++	if c.Fingerprint != "" && c.Fingerprint != "firefox" && c.Fingerprint != "chrome" && c.Fingerprint != "safari" {
++		return nil, errors.New("invalid CSQTT fingerprint")
++	}
+ 	for _, address := range []string{c.Listen, c.SOCKS} {
+@@ -65,3 +79,3 @@
+-	if c.VKAnonPath != "vkcalls" && c.VKAnonPath != "legacy" {
++	if c.VKAnonPath != "vkcalls" && c.VKAnonPath != "legacy" && !accountMode {
+ 		return nil, errors.New("invalid CSQTT authorization")
+ 	}

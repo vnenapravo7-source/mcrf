@@ -27,8 +27,13 @@ object EngineUpdatePrimary {
     }
     fun validNativeEntries(kind:String,abi:String,entries:List<String>):Boolean {
         val c=contract(kind)
-        return abi in c.abis&&entries.isNotEmpty()&&entries.distinct().size==entries.size&&
-            entries.all{it in c.abis.map{a->"lib/$a/${c.library}"}}&&"lib/$abi/${c.library}" in entries
+        if(abi !in c.abis||entries.isEmpty()||entries.distinct().size!=entries.size)return false
+        val shipped=entries.map{it.split('/')}
+        if(shipped.any{it.size!=3||it[0]!="lib"||it[1] !in c.abis})return false
+        val libraries=if(kind=="steer"&&shipped.any{it[2]=="libmcrf_utls49.so"})
+            setOf(c.library,"libmcrf_utls49.so") else setOf(c.library)
+        val abis=shipped.map{it[1]}.toSet()
+        return abi in abis&&entries.toSet()==abis.flatMap{a->libraries.map{"lib/$a/$it"}}.toSet()
     }
     private fun metadata(kind:String,info:ApplicationInfo,abi:String) {
         val m=requireNotNull(info.metaData)

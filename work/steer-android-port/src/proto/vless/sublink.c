@@ -10,6 +10,9 @@
 #include <strings.h>
 #include "vless.h"
 #include "sublink.h"
+#ifdef MCRF_UTLS49
+#include "tls49.h"
+#endif
 /* Ради tr_upgrade_target: путь ws и httpupgrade, на котором Xray споткнулся бы, отбраковывается
  * здесь тем же правилом, по которому транспорт собирает запрос (src/proto/transport/trpath.c —
  * чистые строки, без сети и библиотек). */
@@ -17,6 +20,34 @@
 /* Ради vencp_b64url_len: длина ключа pqv — та же арифметика base64url, что у VLESS encryption. Только
  * строки, без криптографии. */
 #include "vencp.h"
+#include "alpn49.h"
+#include "fingerprint49.h"
+
+void sl_set_fp49(struct vless_node *n,const char *v){
+    if(strlen(v)>=sizeof n->fp||(n->fp_set&&strcmp(n->fp,v))){n->tls_fields_bad=1;return;}
+    n->fp_set=1;memcpy(n->fp,v,strlen(v)+1);
+}
+void sl_set_alpn_csv49(struct vless_node *n,const char *v){
+    char joined[256];size_t used=0;const char *p=v;
+    while(*p==' '||*p=='\t')p++;
+    if(!*p){sl_set_alpn49(n,"");return;}
+    for(;;){
+        const char *end=strchr(p,',');const char *right=end?end:p+strlen(p);
+        while(p<right&&(*p==' '||*p=='\t'))p++;
+        while(right>p&&(right[-1]==' '||right[-1]=='\t'))right--;
+        size_t size=(size_t)(right-p);
+        if(!size||used+(used?1:0)+size>=sizeof joined){n->tls_fields_bad=1;return;}
+        if(used)joined[used++]=',';memcpy(joined+used,p,size);used+=size;
+        if(!end)break;p=end+1;
+    }
+    joined[used]=0;sl_set_alpn49(n,joined);
+}
+void sl_set_alpn49(struct vless_node *n,const char *v){
+    unsigned char wire[258];size_t written;
+    if(strlen(v)>=sizeof n->alpn||mcrf_alpn49(v,NULL,wire,sizeof wire,&written)||
+       (n->alpn_set&&strcmp(n->alpn,v))){n->tls_fields_bad=1;return;}
+    n->alpn_set=1;memcpy(n->alpn,v,strlen(v)+1);
+}
 
 /* base64: только декодирование и только то, что встречается в подписках — с переводами
  * строк внутри и, возможно, без выравнивающих '='. URL-safe алфавит тоже принимается:
@@ -525,12 +556,21 @@ int vless_insecure(void) { return g_insecure; }
 /* Значение параметра ссылки в куче-буфере: длинные значения (pqv, encryption) не помещаются в
  * узел, а стек рабочих потоков мал. Процентная форма раскрывается. Возвращает NULL при нехватке памяти. */
 char *sl_param_dup(const char *v, size_t vlen) {
+    for(size_t i=0;i<vlen;i++){
+        if(!v[i]||(i+2<vlen&&v[i]=='%'&&v[i+1]=='0'&&v[i+2]=='0'))return NULL;
+    }
     char *c = malloc(vlen + 1);
     if (!c) return NULL;
     memcpy(c, v, vlen);
     c[vlen] = '\0';
     sl_pct_decode(c);
     return c;
+}
+
+void sl_set_sni49(struct vless_node *n,const char *value){
+    size_t size=strlen(value);
+    if(size>=sizeof n->sni||(n->sni_set&&strcmp(n->sni,value))){n->tls_fields_bad=1;return;}
+    memcpy(n->sni,value,size+1);n->sni_set=1;
 }
 
 /* Порт из строки цифр: 1..65535, иначе 0. Одно место на ссылку и на конфиг Xray. */
@@ -596,16 +636,39 @@ static int upg_node_bad(struct vless_node *n, int ws) {
 /* Поле транспорта или безопасности ссылки (sublink.h). Ключи и их разбор — прежние, из цикла
  * параметров vless:// в sub.c; VLESS-своё (flow, encryption) разбирает own вызывающего. */
 int sl_link_param(struct vless_node *n, const char *k, size_t klen, const char *v, size_t vlen) {
-    if (klen == 4 && !strncmp(k, "type", 4)) {
-        sl_set_field(n->type, sizeof(n->type), v, vlen);
+    if ((klen == 4 && !strncmp(k, "type", 4))||(klen==7&&!strncmp(k,"network",7))) {
+        char *decoded=sl_param_dup(v,vlen);
+        if(!decoded){n->tls_fields_bad=1;return 1;}
+        const char *kind=decoded;
+        if(!strcasecmp(kind,"raw")||!kind[0])kind="tcp";
+        else if(!strcasecmp(kind,"websocket"))kind="ws";
+        else if(!strcasecmp(kind,"splithttp"))kind="xhttp";
+        char normalized[16];size_t size=strlen(kind);
+        if(size>=sizeof normalized){free(decoded);n->tls_fields_bad=1;return 1;}
+        for(size_t i=0;i<=size;i++)normalized[i]=kind[i]>='A'&&kind[i]<='Z'?kind[i]+('a'-'A'):kind[i];
+        if(n->transport_set&&strcmp(n->type,normalized))n->tls_fields_bad=1;
+        else{memcpy(n->type,normalized,size+1);n->transport_set=1;}
+        free(decoded);
         /* Те же вторые имена, что у конфига Xray (sub.c): raw — каноническое имя tcp с Xray 24.9.30,
          * websocket — ws. Без этого ссылка с type=raw отсеивалась «транспорт raw не поддержан». */
         if (!strcmp(n->type, "raw")) snprintf(n->type, sizeof(n->type), "tcp");
         else if (!strcmp(n->type, "websocket")) snprintf(n->type, sizeof(n->type), "ws");
     }
     else if (klen == 8 && !strncmp(k, "security", 8)) sl_set_field(n->security, sizeof(n->security), v, vlen);
-    else if (klen == 3 && !strncmp(k, "sni", 3)) sl_set_field(n->sni, sizeof(n->sni), v, vlen);
-    else if (klen == 2 && !strncmp(k, "fp", 2)) sl_set_field(n->fp, sizeof(n->fp), v, vlen);
+    else if ((klen == 3 && !strncmp(k, "sni", 3))||(klen==10&&!strncmp(k,"serverName",10))){
+        char *decoded=sl_param_dup(v,vlen);
+        if(!decoded){n->tls_fields_bad=1;return 1;}
+        sl_set_sni49(n,decoded);
+        free(decoded);
+    }
+    else if ((klen == 2 && !strncmp(k, "fp", 2)) || (klen == 11 && !strncmp(k,"fingerprint",11))) {
+        char *decoded=sl_param_dup(v,vlen);
+        if(decoded){sl_set_fp49(n,decoded);free(decoded);}else n->tls_fields_bad=1;
+    }
+    else if(klen==4&&!strncmp(k,"alpn",4)){
+        char *decoded=sl_param_dup(v,vlen);
+        if(decoded){sl_set_alpn_csv49(n,decoded);free(decoded);}else n->tls_fields_bad=1;
+    }
     else if (klen == 3 && !strncmp(k, "pbk", 3)) sl_set_field(n->pbk, sizeof(n->pbk), v, vlen);
     else if (klen == 3 && !strncmp(k, "sid", 3)) sl_set_field(n->sid, sizeof(n->sid), v, vlen);
     else if (klen == 10 && !strncmp(k, "headerType", 10)) { if (vlen == 4 && !strncmp(v, "http", 4)) n->tcp_http = 1; }
@@ -673,9 +736,16 @@ int sl_link_parse(const char *url, const char *scheme, struct vless_node *n, sl_
     const char *hash = strchr(p, '#');
     const char *hp_end = hash ? hash : p + strlen(p);
     const char *qmark = memchr(p, '?', (size_t)(hp_end - p));
-    const char *colon = memchr(p, ':', (size_t)((qmark ? qmark : hp_end) - p));
-    if (!colon) return -1;
-    sl_set_field(n->host, sizeof(n->host), p, (size_t)(colon - p));
+    const char *authority_end=qmark?qmark:hp_end,*colon=NULL,*host=p,*host_end=NULL;
+    if(p<authority_end&&*p=='['){
+        host=p+1;host_end=memchr(host,']',(size_t)(authority_end-host));
+        if(!host_end||host_end+1>=authority_end||host_end[1]!=':')return -1;
+        colon=host_end+1;
+    }else{
+        colon=memchr(p,':',(size_t)(authority_end-p));host_end=colon;
+    }
+    if(!colon||!host_end||host_end==host||(size_t)(host_end-host)>=sizeof n->host)return -1;
+    sl_set_field(n->host,sizeof n->host,host,(size_t)(host_end-host));
     {
         /* Порт — только цифры до конца хоста и в диапазоне 1..65535: atoi давал 4464 на
          * «:70000», 65535 на «:-1» и 443 на «:443abc», и узел шёл не туда. */
@@ -788,6 +858,32 @@ int sl_link_usable_pre(struct vless_node *n) {
 
 /* Вторая половина (sublink.h): то, что у VLESS проверяется после идентификатора. */
 int sl_link_usable_post(struct vless_node *n) {
+    if(n->tls_fields_bad){
+        snprintf(n->skip_reason,sizeof n->skip_reason,"TLS: неверное или длинное поле");return 1;
+    }
+    if(!strcmp(n->security,"reality")&&(!strcmp(n->fp,"android")||!strcmp(n->fp,"helloandroid_11_okhttp")||
+            !strcmp(n->fp,"360")||!strcmp(n->fp,"hello360_auto")||!strcmp(n->fp,"hello360_7_5"))){
+        snprintf(n->skip_reason,sizeof n->skip_reason,"REALITY: отпечаток без TLS1.3");return 1;
+    }
+#ifdef MCRF_UTLS49
+    if(!strcmp(n->security,"tls")||!strcmp(n->security,"reality")){
+        struct tr_node checked;sl_tr_node(n,&checked);
+        int rc=tls49_validate_node(&checked);
+        if(rc){snprintf(n->skip_reason,sizeof n->skip_reason,"TLS: параметры не поддержаны (%d)",rc);return 1;}
+    }
+#else
+    if((!strcmp(n->security,"tls")||!strcmp(n->security,"reality"))&&fp49_kind(n->fp)==FP49_PENDING){
+        snprintf(n->skip_reason,sizeof n->skip_reason,"отпечаток TLS не поддержан");return 1;
+    }
+#endif
+    if(n->alpn_set&&strcmp(n->security,"none")){
+        const char *required=!strcmp(n->type,"grpc")||!strcmp(n->type,"xhttp")?"h2":
+            !strcmp(n->type,"ws")||!strcmp(n->type,"httpupgrade")?"http/1.1":NULL;
+        unsigned char wire[258];size_t written;
+        if(mcrf_alpn49(n->alpn,required,wire,sizeof wire,&written)){
+            snprintf(n->skip_reason,sizeof n->skip_reason,"ALPN несовместим с транспортом");return 1;
+        }
+    }
     if (strcmp(n->security, "reality") != 0 && strcmp(n->security, "none") != 0 &&
         strcmp(n->security, "tls") != 0) {
         /* Остаётся непригодным xtls: это уже не «TLS с проверкой цепочки», а свой обмен,
@@ -804,11 +900,13 @@ int sl_link_usable_post(struct vless_node *n) {
      * адрес — это IP, сертификат на него почти наверняка не выдан. Сказать об этом заранее
      * честнее, чем потратить попытку сторожа и вернуть «сервер не доказал подлинность»:
      * причина-то не в сервере. (У reality пустой sni, наоборот, законен — см. ниже.) */
+#ifndef MCRF_UTLS49
     if (strcmp(n->security, "tls") == 0 && !n->sni[0] && !sl_host_is_name(n->host)) {
         snprintf(n->skip_reason, sizeof(n->skip_reason),
                  "tls по адресу без sni: нечем сверить");
         return 1;
     }
+#endif
     /* Ключ сервера обязателен: без него Reality нечем проверить, и узел не поднимется.
      *
      * А ВОТ ИМЯ (sni) — НЕТ, и раньше его отсутствие тоже отбраковывало узел. Reality

@@ -203,6 +203,7 @@ object Loft {
                 "moon" -> {val p=Path().apply {moveTo(18f,17f);cubicTo(8f,22f,1f,9f,11f,4f);cubicTo(8f,11f,12f,17f,18f,17f)};canvas.drawPath(p,paint)}
                 "logs" -> { canvas.drawRoundRect(3f,4f,21f,20f,3f,3f,paint);path(7,9,10,12,7,15);line(13,15,17,15) }
                 "power" -> { canvas.drawArc(4f,4f,20f,20f,-55f,290f,false,paint); line(12,2,12,11) }
+                "info" -> {circle(12,12,8.5f);line(12,11,12,16);paint.style=Paint.Style.FILL;circle(12,7.7f,.9f);paint.style=Paint.Style.STROKE}
                 "stop" -> canvas.drawRoundRect(6f,6f,18f,18f,2f,2f,paint)
                 "shield", "shield-active" -> { path(12,2,21,6,20,14,17,19,12,22,7,19,4,14,3,6,12,2); if (kind == "shield-active") path(8,12,11,15,16,9) }
                 "add" -> { line(12,5,12,19); line(5,12,19,12) }
@@ -213,6 +214,8 @@ object Loft {
                 "down" -> path(5,9,12,16,19,9)
                 "check" -> path(5,12,10,17,19,6)
                 "refresh" -> { canvas.drawArc(4f,4f,20f,20f,35f,280f,false,paint); path(16,3,21,4,20,9) }
+                "bolt" -> path(13,2,5,14,11,14,10,22,19,9,13,9,13,2)
+                "history" -> {canvas.drawArc(3f,3f,21f,21f,-45f,285f,false,paint);path(2,4,2,10,8,10);path(12,7,12,12,16,14)}
                 "file" -> { path(6,3,14,3,19,8,19,21,6,21,6,3); path(14,3,14,8,19,8) }
                 "folder" -> path(3,7,3,20,21,20,21,7,11,7,9,4,3,4,3,7)
                 "clipboard" -> { canvas.drawRoundRect(5f,5f,19f,21f,2f,2f,paint); path(9,5,9,2,15,2,15,5,9,5); line(8,10,16,10); line(8,14,16,14) }

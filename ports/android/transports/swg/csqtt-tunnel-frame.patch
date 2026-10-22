@@ -1,0 +1,47 @@
+diff --git a/qwdtt/csqtt_bridge.go b/qwdtt/csqtt_bridge.go
+--- a/qwdtt/csqtt_bridge.go
++++ b/qwdtt/csqtt_bridge.go
+@@ -179,3 +179,7 @@
++	if c.NormalizeTunnel != nil {
++		config, err = c.NormalizeTunnel(config)
++		if err != nil { return err }
++	}
+ 	tunnel, err := csqtt.ParseTunnelConfig(config)
+ 	if err != nil {
+ 		return err
+diff --git a/qwdtt/internal/csqtt/config.go b/qwdtt/internal/csqtt/config.go
+--- a/qwdtt/internal/csqtt/config.go
++++ b/qwdtt/internal/csqtt/config.go
+@@ -73,5 +73,2 @@
+ 			parts := strings.Split(value, "+")
+-			if len(parts) > 6 {
+-				parts = parts[:6]
+-			}
+ 			seen := map[string]bool{}
+@@ -128,7 +125,7 @@
+ func NormalizeWorkers(requested, hashCount int, redistribute bool) int {
+ 	requested = max(9, min(requested, 126)) / 9 * 9
+ 	if !redistribute {
+-		requested = min(requested, max(1, min(hashCount, 6))*27)
++		requested = min(requested, max(1, hashCount)*27)
+ 	}
+ 	return requested
+ }
+@@ -145,6 +145,16 @@
+ 	invalid := errors.New("invalid CSQTT IP tunnel configuration")
+-	parts := strings.Split(raw, ":")
+-	if len(parts) != 5 || parts[0] != "TUNCONF" {
++	// DNS may contain IPv6 colons. Address is IPv4; port and revision
++	// are the final two fields of a normalized frame.
++	head := strings.SplitN(raw, ":", 3)
++	if len(head) != 3 || head[0] != "TUNCONF" {
++		return c, invalid
++	}
++	revisionAt := strings.LastIndexByte(head[2], ':')
++	if revisionAt < 0 { return c, invalid }
++	portAt := strings.LastIndexByte(head[2][:revisionAt], ':')
++	if portAt < 0 {
+ 		return c, invalid
+ 	}
++	parts := []string{head[0], head[1], head[2][:portAt], head[2][portAt+1:revisionAt], head[2][revisionAt+1:]}
+ 	var err error

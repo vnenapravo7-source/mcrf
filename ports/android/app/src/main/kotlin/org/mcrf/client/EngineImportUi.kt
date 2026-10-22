@@ -18,6 +18,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 class EngineImportUi(private val activity: MainActivity) {
     class State(@Volatile var source: String) {
         var prepareOnOpen = false
+        @Volatile var basePlan:ImportPlan?=null
+        @Volatile var baseSource=""
+        @Volatile var csqttChoices:Map<String,String> = emptyMap()
+        @Volatile var csqttRequired:List<ServerImport.Server> = emptyList()
+        @Volatile var csqttDetected=""
         @Volatile var phase = "input"
         @Volatile var plan: ImportPlan? = null
         @Volatile var asset: EnginePackage? = null
@@ -103,9 +108,33 @@ class EngineImportUi(private val activity: MainActivity) {
             orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(12), dp(20), dp(8))
             addView(input); addView(message, space(12, 8)); addView(progress, LinearLayout.LayoutParams(-1, dp(8)))
         }
+        val csqttRow=LinearLayout(this@with).apply {
+            orientation=LinearLayout.VERTICAL;visibility=View.GONE;tag="import-csqtt-versions"
+        }
+        var csqttRendered=""
+        fun renderCsqtt(){
+            val choosing=pending.phase=="csqtt-version"
+            val token=if(choosing)pending.csqttRequired.joinToString("|"){it.id}else pending.csqttDetected
+            if(token!=csqttRendered){
+                csqttRendered=token;csqttRow.removeAllViews()
+                if(choosing){
+                    val keys=CsqttGenerations.importChoices.keys.toList()
+                    pending.csqttRequired.forEach {entry->
+                        csqttRow.addView(text(entry.name,14,Loft.INK),space(12,4))
+                        csqttRow.addView(HomeUiControls.selector(this@with,CsqttGenerations.importChoices.values.toList(),keys.indexOf(pending.csqttChoices[entry.id]).coerceAtLeast(0)) {index->
+                            pending.csqttChoices=pending.csqttChoices+(entry.id to keys[index])
+                        }.apply {tag="import-csqtt-version.${entry.id}"})
+                    }
+                }else if(pending.csqttDetected.isNotEmpty())csqttRow.addView(text(pending.csqttDetected,12,Loft.MUTED))
+            }
+            csqttRow.visibility=if(!pending.moduleOnly&&(choosing||pending.csqttDetected.isNotEmpty()))View.VISIBLE else View.GONE
+        }
+        holder.addView(csqttRow,1)
         input.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { if (pending.phase in setOf("input", "error")) pending.source = s.toString() }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { if (pending.phase in setOf("input", "error","csqtt-version")) {
+                pending.source=s.toString();pending.basePlan=null;pending.plan=null;pending.baseSource="";pending.csqttChoices=emptyMap();pending.csqttRequired=emptyList();pending.csqttDetected="";pending.phase="input"
+            } }
             override fun afterTextChanged(s: android.text.Editable?) = Unit
         })
         val moduleOnly=pending.moduleOnly
@@ -119,7 +148,7 @@ class EngineImportUi(private val activity: MainActivity) {
                     pending.file?.delete(); pending.file = null
                     pending.error = if (pending.phase == "refreshing") "Подключения сохранены, но список не удалось перечитать. Открой раздел «Серверы» заново."
                         else if (error is IllegalArgumentException) error.message.orEmpty() else "Не удалось подготовить импорт. Подключения не добавлены."
-                    pending.phase = "error"
+                    pending.phase = if(error is CsqttImportResolution.Required)"csqtt-version"else"error"
                 } finally {
                     if (pending.cancelled.get()) pending.file?.delete()
                     executor.shutdown()
@@ -164,7 +193,7 @@ class EngineImportUi(private val activity: MainActivity) {
             }
             window.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 when (pending.phase) {
-                    "input", "error" -> {
+                    "input", "error", "csqtt-version" -> {
                         val encrypted=input.text.toString().trim()
                         if(!moduleOnly&&CompatibilityImportEncrypted.isEncrypted(encrypted)){
                             input.text.clear();pending.source="";pending.cancelled.set(true);state=null;window.dismiss()
@@ -174,10 +203,17 @@ class EngineImportUi(private val activity: MainActivity) {
                         pending.downloadApproved=false
                         pending.file?.delete();pending.file=null;pending.assets=emptyList();pending.asset=null;pending.received=0
                         pending.error = ""; pending.phase = "preparing"; val value = input.text.toString(); pending.source = value; val context = applicationContext
+                        val selectedVersions=pending.csqttChoices;val existing=catalogue.entries().associateBy {it.id}
                         background {
                             if(!moduleOnly){
-                                val prepared=CompatibilityImportQwdtt.applyNew(value){raw->VkRelayRuntime.defaultsForNewQwdtt(raw,VkRelayAccount(AndroidDeployStore(context)))}
-                                pending.plan=ImportPlan.prepare(prepared) { SubscriptionUpdates.fetch(context, it) }
+                                val base=if(pending.baseSource==value)pending.basePlan else null
+                                val plan=base?:run {
+                                    val prepared=CompatibilityImportQwdtt.applyNew(value){raw->VkRelayRuntime.defaultsForNewQwdtt(raw,VkRelayAccount(AndroidDeployStore(context)))}
+                                    ImportPlan.prepare(prepared) { SubscriptionUpdates.fetch(context,it) }.also {pending.baseSource=value;pending.basePlan=it}
+                                }
+                                pending.csqttRequired=plan.entries.filter {CsqttImportResolution.ambiguous(it)&&it.id !in existing}
+                                pending.plan=plan.resolveCsqtt(selectedVersions,existing)
+                                pending.csqttDetected=pending.plan!!.entries.mapNotNull {it.carrier?.takeIf {raw->raw.optString("type")=="csqtt"}?.let(CsqttGenerations::label)}.distinct().joinToString("\n")
                             }
                             pending.missing = missing(pending)
                             if(pending.checkForUpdate||pending.requestedUpdates!=null){
@@ -211,22 +247,25 @@ class EngineImportUi(private val activity: MainActivity) {
         handler.post(object : Runnable {
             override fun run() {
                 if (isFinishing || isDestroyed || !window.isShowing || state !== pending) return
-                val phase = pending.phase; input.isEnabled = phase in setOf("input", "error")
-                input.visibility = if (!moduleOnly&&phase in setOf("input", "error", "preparing")) View.VISIBLE else View.GONE
+                val phase = pending.phase; input.isEnabled = phase in setOf("input", "error","csqtt-version")
+                renderCsqtt()
+                for(index in 0 until csqttRow.childCount)csqttRow.getChildAt(index).isEnabled=phase=="csqtt-version"
+                input.visibility = if (!moduleOnly&&phase in setOf("input", "error", "preparing","csqtt-version")) View.VISIBLE else View.GONE
                 window.setCancelable(phase != "accepting")
                 progress.visibility = if (phase in setOf("preparing", "downloading", "accepting", "checking-install")) View.VISIBLE else View.GONE
                 progress.isIndeterminate = phase != "downloading"
                 progress.progress = ((pending.received * 1000) / (pending.asset?.bytes ?: 1)).toInt()
                 val button = window.getButton(AlertDialog.BUTTON_POSITIVE)
-                button.isEnabled = phase in setOf("input", "error", "download-ready", "install-ready", "permission", "accept-ready")
-                button.text = when (phase) { "download-ready" -> if(moduleOnly) "Скачать" else "Скачать и добавить"; "install-ready", "permission", "installing" -> if(moduleOnly) "Установить" else "Установить и добавить"; "error" -> "Повторить"; else -> if(moduleOnly) "Проверить" else "Добавить" }
+                button.isEnabled = phase in setOf("input", "error", "csqtt-version", "download-ready", "install-ready", "permission", "accept-ready")
+                button.text = when (phase) { "csqtt-version"->"Продолжить"; "download-ready" -> if(moduleOnly) "Скачать" else "Скачать и добавить"; "install-ready", "permission", "installing" -> if(moduleOnly) "Установить" else "Установить и добавить"; "error" -> "Повторить"; else -> if(moduleOnly) "Проверить" else "Добавить" }
                 val asset = pending.asset
                 message.text = when (phase) {
+                    "csqtt-version"->"Версию сервера нельзя однозначно определить по этой ссылке. Параметр v=2 — это формат ссылки, а не версия CSQTT.\n\nВыберите версию для каждого подключения. Уточнить её можно у владельца сервера. Без выбора импорт и загрузка движка не начнутся."
                     "preparing" -> if(moduleOnly) "Проверяем доступный пакет движка…" else "Проверяем ссылки и необходимые движки…"
                     "download-ready", "downloading", "install-ready" -> {
-                        val names = pending.missing.joinToString(" · ") { it.uppercase(java.util.Locale.ROOT) }
-                        val sizes=pending.assets.joinToString("\n"){"${it.engine?.uppercase()} · ${TrafficState.bytes(it.bytes)} (${it.bytes} байт)"}
-                        "$names · отдельные пакеты\n$sizes\nВсего: ${TrafficState.bytes(pending.assets.sumOf{it.bytes})}\nСейчас: ${asset?.engine?.uppercase()} · ${asset?.abi}\n" +
+                        val names = pending.missing.joinToString(" · ",transform=CsqttGenerations::engineLabel)
+                        val sizes=pending.assets.joinToString("\n"){"${it.engine?.let(CsqttGenerations::engineLabel)} · ${TrafficState.bytes(it.bytes)} (${it.bytes} байт)"}
+                        "$names · отдельные пакеты\n$sizes\nВсего: ${TrafficState.bytes(pending.assets.sumOf{it.bytes})}\nСейчас: ${asset?.engine?.let(CsqttGenerations::engineLabel)} · ${asset?.abi}\n" +
                             if (phase == "downloading") "Загружено: ${TrafficState.bytes(pending.received)}" else if(moduleOnly) "Android запросит подтверждение установки. Профили и выбранный движок не изменятся." else "Android запросит разрешение на установку. Затем подключения добавятся автоматически."
                     }
                     "permission" -> if(moduleOnly) "Разреши установку для MCRF в системном окне." else "Разреши установку для MCRF в системном окне. Ссылки пока не добавлены."

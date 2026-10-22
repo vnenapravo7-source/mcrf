@@ -41,6 +41,7 @@
 
 #include "scrypto.h"
 #include "reality.h"
+#include "alpn49.h"
 
 /* base64url без выравнивания — в таком виде pbk приходит в ссылке. */
 static int b64url_decode(const char *in, unsigned char *out, size_t out_n) {
@@ -215,7 +216,15 @@ int reality_build_hello_carry(const struct reality_cfg *cfg, struct reality_stat
         if (sid_n < 0) return REALITY_EBADKEY;
     }
 
+    const enum fp49_kind identity=car&&car->fill_sid?FP49_CHROME:fp49_kind(cfg->fp);
+    if(identity==FP49_PENDING)return REALITY_EFINGERPRINT;
+    const int edge85=identity==FP49_EDGE;
+    const int ios14=identity==FP49_IOS,qq11=identity==FP49_QQ,safari26=identity==FP49_SAFARI;
+    const int classic=edge85||ios14||qq11;
+    const int firefox=identity==FP49_FIREFOX;
     st->pq = 0;
+    st->p256=0;
+    st->cert_compression=0;
     if (car && car->priv) {
         /* Пара пришла снаружи: xsteer выводит из неё общий секрет ещё до сборки Hello,
          * потому что этим секретом запечатывается статический ключ в набивке ECH. */
@@ -324,10 +333,13 @@ int reality_build_hello_carry(const struct reality_cfg *cfg, struct reality_stat
         0x1303, 0x1301, 0x1302, 0xCCA9, 0xCCA8, 0xC02B, 0xC02F, 0xC02C, 0xC030,
         0xC013, 0xC014, 0x009C, 0x009D, 0x002F, 0x0035,
     };
-    const unsigned *suites = cpu_has_aes() ? suites_aes : suites_chacha;
+    const unsigned *suites = identity!=FP49_CHROME||cpu_has_aes() ? suites_aes : suites_chacha;
     size_t nsuites = sizeof(suites_aes) / sizeof(suites_aes[0]);
-    put16(&b, (unsigned)(nsuites + 1) * 2);
-    put16(&b, g_cipher);
+    if(ios14){suites=fp49_ios_suites;nsuites=sizeof(fp49_ios_suites)/sizeof(fp49_ios_suites[0]);}
+    if(safari26){suites=fp49_safari_suites;nsuites=sizeof(fp49_safari_suites)/sizeof(fp49_safari_suites[0]);}
+    if(firefox){suites=fp49_firefox_suites;nsuites=sizeof(fp49_firefox_suites)/sizeof(fp49_firefox_suites[0]);}
+    put16(&b, (unsigned)(nsuites + (firefox?0:1)) * 2);
+    if(!firefox)put16(&b, g_cipher);
     for (size_t i = 0; i < nsuites; i++) put16(&b, suites[i]);
 
     put8(&b, 1); put8(&b, 0);  /* compression: null */
@@ -364,17 +376,18 @@ int reality_build_hello_carry(const struct reality_cfg *cfg, struct reality_stat
      * (1216 байт), и на стеке в этой функции ему место — она не рекурсивная и вызывается раз на
      * рукопожатие. */
     static __thread unsigned char b_pq[REALITY_MLKEM_SHARE];
-    unsigned char b_sni[300], b_alpn[16], b_cc[4], b_ech[220], b_alps[8], b_reneg[1];
-    unsigned char b_ocsp[5], b_vers[8], b_sigs[20], b_grp[12], b_pskm[2];
+    unsigned char b_sni[300], b_alpn[258], b_cc[8], b_ech[300], b_alps[8], b_reneg[1];
+    unsigned char b_ocsp[5], b_vers[12], b_sigs[32], b_grp[16], b_pskm[2];
     /* key_share вырос: с постквантовым обменом его тело — больше килобайта, и на стеке в этой
      * функции ему уже не место (она вызывается из потоков-соединителей, у которых стек скромный).
      * __thread, а не общий static: рукопожатия идут параллельно, и общий буфер один перетирал бы
      * другому — ровно та ошибка, что уже была здесь с буфером AAD. */
-    static __thread unsigned char b_ks[64 + REALITY_MLKEM_SHARE];
+    static __thread unsigned char b_ks[160 + REALITY_MLKEM_SHARE];
     unsigned char b_ecpf[2], b_last[1];
+    unsigned char b_p256_pub[65],b_dc[10],b_limit[]={0x40,0x01};
 
     /* Первым — GREASE, пустой. */
-    px[pn].type = g_ext_a; px[pn].body = NULL; px[pn].n = 0; pn++;
+    if(!firefox){px[pn].type = g_ext_a; px[pn].body = NULL; px[pn].n = 0; pn++;}
 
     /* server_name: список(2) + тип(1) + длина(2) + имя.
      *
@@ -401,17 +414,10 @@ int reality_build_hello_carry(const struct reality_cfg *cfg, struct reality_stat
      * сервер, желающий h2, его и выберет, а признавший нас Reality не выбирает ничего
      * (NextProtos nil в Xray) и присылает пустые EncryptedExtensions. */
     {
-        struct buf ab = { b_alpn, 0, sizeof(b_alpn) };
-        if (car && car->alpn_http11) {
-            /* Только http/1.1: см. объяснение у поля в reality.h. */
-            put16(&ab, 9);
-            put8(&ab, 8); put(&ab, "http/1.1", 8);
-        } else {
-            put16(&ab, 12);
-            put8(&ab, 2); put(&ab, "h2", 2);
-            put8(&ab, 8); put(&ab, "http/1.1", 8);
-        }
-        px[pn].type = 0x0010; px[pn].body = b_alpn; px[pn].n = ab.len; pn++;
+        size_t alpn_n=0;
+        const char *required=car&&car->alpn_http11?"http/1.1":cfg->alpn;
+        if(mcrf_alpn49(cfg->profile_alpn,required,b_alpn,sizeof b_alpn,&alpn_n))return REALITY_EALPN;
+        if(alpn_n){px[pn].type=0x0010;px[pn].body=b_alpn;px[pn].n=alpn_n;pn++;}
     }
 
     /* compress_certificate: brotli (2) — но НЕ у обычного TLS.
@@ -431,9 +437,11 @@ int reality_build_hello_carry(const struct reality_cfg *cfg, struct reality_stat
      * это было бы недопустимо — по составу расширений его и опознают, — но у security=tls
      * маскировки под браузер нет по смыслу: там настоящее имя в SNI и настоящий сертификат.
      * Байты Reality-Hello при этом не меняются ни на бит, и это стережёт hellofreeze.c. */
-    if (!cfg->plain) {
+    if (!ios14&&(!cfg->plain||identity!=FP49_CHROME||(cfg->fp&&cfg->fp[0]))) {
         struct buf cb = { b_cc, 0, sizeof(b_cc) };
-        put8(&cb, 2); put16(&cb, 0x0002);
+        put8(&cb, firefox?6:2); put16(&cb, safari26||firefox?0x0001:0x0002);
+        if(firefox){put16(&cb,2);put16(&cb,3);}
+        st->cert_compression=firefox?((1u<<1)|(1u<<2)|(1u<<3)):1u<<(safari26?1:2);
         px[pn].type = 0x001B; px[pn].body = b_cc; px[pn].n = cb.len; pn++;
     }
 
@@ -448,8 +456,8 @@ int reality_build_hello_carry(const struct reality_cfg *cfg, struct reality_stat
      * конфигурации(1), длина enc(2)=32 и сам enc, длина payload(2)=176 и payload.
      * Итого 1+2+2+1+2+32+2+176 = 218 байт — столько же, сколько у эталона. */
     {
-        unsigned char noise[209];
-        if (fill_random(noise, sizeof(noise)) != 0) return REALITY_ECRYPTO;
+        unsigned char noise[272];size_t ech_payload=firefox?239:176;
+        if (fill_random(noise, 33+ech_payload) != 0) return REALITY_ECRYPTO;
         /* Носитель заполняет ровно те 176 байт, которые уедут полезной нагрузкой ECH.
          * Заполняется ЗДЕСЬ, а не после сборки, по двум причинам: набивка входит в байты,
          * которые потом подписывает session_id, и указатель `noise + 33` — это буквально
@@ -464,13 +472,13 @@ int reality_build_hello_carry(const struct reality_cfg *cfg, struct reality_stat
         put8(&eb, noise[0]);
         put16(&eb, 32);
         put(&eb, noise + 1, 32);
-        put16(&eb, 176);
-        put(&eb, noise + 33, 176);
+        put16(&eb, (unsigned)ech_payload);
+        put(&eb, noise + 33, ech_payload);
         px[pn].type = 0xFE0D; px[pn].body = b_ech; px[pn].n = eb.len; pn++;
     }
 
     /* application_settings (ALPS), новый номер 0x44cd: список из одного "h2". */
-    if (!(car && car->no_alps)) {           /* no_alps — DoH по HTTP/2, см. reality.h */
+    if (!firefox&&!(car && car->no_alps)) {           /* no_alps — DoH по HTTP/2, см. reality.h */
       struct buf ab = { b_alps, 0, sizeof(b_alps) };
       put16(&ab, 3); put8(&ab, 2); put(&ab, "h2", 2);
       px[pn].type = 0x44CD; px[pn].body = b_alps; px[pn].n = ab.len; pn++; }
@@ -492,7 +500,8 @@ int reality_build_hello_carry(const struct reality_cfg *cfg, struct reality_stat
      * но Reality — это строго 1.3, и сервер выберет 1.3; если вдруг нет, разбор ServerHello
      * не найдёт key_share и вернёт ENOKEYSHARE, то есть ошибку, а не молчание. */
     { struct buf vb = { b_vers, 0, sizeof(b_vers) };
-      put8(&vb, 6); put16(&vb, g_version); put16(&vb, 0x0304); put16(&vb, 0x0303);
+      put8(&vb, firefox?4:classic?10:6);if(!firefox)put16(&vb, g_version); put16(&vb, 0x0304); put16(&vb, 0x0303);
+      if(classic){put16(&vb,0x0302);put16(&vb,0x0301);}
       px[pn].type = 0x002B; px[pn].body = b_vers; px[pn].n = vb.len; pn++; }
 
     px[pn].type = 0x0012; px[pn].body = NULL; px[pn].n = 0; pn++;   /* signed_cert_timestamp */
@@ -500,9 +509,13 @@ int reality_build_hello_carry(const struct reality_cfg *cfg, struct reality_stat
     /* signature_algorithms: восемь, в порядке Chrome. */
     { static const unsigned sigs[] = { 0x0403, 0x0804, 0x0401, 0x0503,
                                        0x0805, 0x0501, 0x0806, 0x0601 };
+      const unsigned *selected=sigs;size_t count=sizeof(sigs)/sizeof(sigs[0]);
+      if(ios14){selected=fp49_ios_sigs;count=sizeof(fp49_ios_sigs)/sizeof(fp49_ios_sigs[0]);}
+      if(safari26){selected=fp49_safari_sigs;count=sizeof(fp49_safari_sigs)/sizeof(fp49_safari_sigs[0]);}
+      if(firefox){selected=fp49_firefox_sigs;count=sizeof(fp49_firefox_sigs)/sizeof(fp49_firefox_sigs[0]);}
       struct buf sb = { b_sigs, 0, sizeof(b_sigs) };
-      put16(&sb, (unsigned)(sizeof(sigs) / sizeof(sigs[0])) * 2);
-      for (size_t i = 0; i < sizeof(sigs) / sizeof(sigs[0]); i++) put16(&sb, sigs[i]);
+      put16(&sb, (unsigned)count * 2);
+      for (size_t i = 0; i < count; i++) put16(&sb, selected[i]);
       px[pn].type = 0x000D; px[pn].body = b_sigs; px[pn].n = sb.len; pn++; }
 
     /* key_share: GREASE-группа с одним нулевым байтом, затем — у современного Chrome —
@@ -514,12 +527,16 @@ int reality_build_hello_carry(const struct reality_cfg *cfg, struct reality_stat
      * тоже выглядит шумом), и именно она делает Hello браузерного размера — см. поле pq в
      * reality.h. */
     { struct buf kb = { b_ks, 0, sizeof(b_ks) };
-      int want_pq = (car && car->pq) || cfg->pq;
-      unsigned body = 2 + 2 + 1;                       /* GREASE */
+      int want_pq = fp49_hybrid(identity)&&((car && car->pq) || cfg->pq);
+      unsigned body = firefox?0:2 + 2 + 1;                       /* GREASE */
       if (want_pq) body += 2 + 2 + REALITY_MLKEM_SHARE;
       body += 2 + 2 + 32;                              /* x25519 */
+      if(firefox){
+          if(sc_p256_keypair(st->p256_priv,b_p256_pub))return REALITY_ECRYPTO;
+          st->p256=1;body+=2+2+65;
+      }
       put16(&kb, body);
-      put16(&kb, g_group); put16(&kb, 1); put8(&kb, 0);
+      if(!firefox){put16(&kb, g_group); put16(&kb, 1); put8(&kb, 0);}
       if (want_pq) {
           put16(&kb, REALITY_GROUP_MLKEM); put16(&kb, REALITY_MLKEM_SHARE);
           if (cfg->pq) {
@@ -536,16 +553,19 @@ int reality_build_hello_carry(const struct reality_cfg *cfg, struct reality_stat
           put(&kb, b_pq, REALITY_MLKEM_SHARE);
       }
       put16(&kb, 0x001D); put16(&kb, 32); put(&kb, st->pub, 32);
+      if(firefox){put16(&kb,0x0017);put16(&kb,65);put(&kb,b_p256_pub,65);}
       px[pn].type = 0x0033; px[pn].body = b_ks; px[pn].n = kb.len; pn++; }
 
     /* supported_groups: GREASE, постквантовая (если предлагаем), X25519, secp256r1, secp384r1 —
      * ровно набор Chrome. Прежние FFDHE 0x0100..0x0104 браузер не предлагает вовсе. */
     { struct buf gb = { b_grp, 0, sizeof(b_grp) };
-      int want_pq = (car && car->pq) || cfg->pq;
-      put16(&gb, want_pq ? 10 : 8);
-      put16(&gb, g_group);
+      int want_pq = fp49_hybrid(identity)&&((car && car->pq) || cfg->pq);
+      put16(&gb, firefox?(want_pq?14:12):(want_pq ? 10 : 8)+(ios14||safari26?2:0));
+      if(!firefox)put16(&gb, g_group);
       if (want_pq) put16(&gb, REALITY_GROUP_MLKEM);
       put16(&gb, 0x001D); put16(&gb, 0x0017); put16(&gb, 0x0018);
+      if(ios14||safari26)put16(&gb,0x0019);
+      if(firefox){put16(&gb,0x0019);put16(&gb,0x0100);put16(&gb,0x0101);}
       px[pn].type = 0x000A; px[pn].body = b_grp; px[pn].n = gb.len; pn++; }
 
     b_pskm[0] = 1; b_pskm[1] = 1;
@@ -556,11 +576,37 @@ int reality_build_hello_carry(const struct reality_cfg *cfg, struct reality_stat
 
     /* Последним — второй GREASE, с одним нулевым байтом. */
     b_last[0] = 0;
-    px[pn].type = g_ext_b; px[pn].body = b_last; px[pn].n = 1; pn++;
+    if(!firefox){px[pn].type = g_ext_b; px[pn].body = b_last; px[pn].n = 1; pn++;}
+    if(firefox){
+        struct buf dc={b_dc,0,sizeof b_dc};put16(&dc,8);
+        put16(&dc,0x0403);put16(&dc,0x0503);put16(&dc,0x0603);put16(&dc,0x0203);
+        px[pn].type=0x0022;px[pn].body=b_dc;px[pn].n=dc.len;pn++;
+        px[pn].type=0x001c;px[pn].body=b_limit;px[pn].n=sizeof b_limit;pn++;
+    }
 
     /* Перемешиваем всё, кроме первого и последнего. Тасование Фишера — Йетса на случайных
      * байтах: без него порядок был бы постоянным, то есть отличимым. */
-    if (pn > 3) {
+    if(identity!=FP49_CHROME){
+        /* Exact ordered Edge85 extension set from pinned uTLS, not a short
+         * Chrome masquerading as Edge. Keep all auth/transcript checks below. */
+        unsigned order[]={g_ext_a,0x0000,0x0017,0xff01,0x000a,0x000b,
+                          ios14||safari26?0xffff:0x0023,0x0010,
+                          0x0005,0x000d,0x0012,0x0033,0x002d,0x002b,
+                          ios14?0xffff:0x001b,qq11?0x44cd:0xffff,g_ext_b};
+        unsigned firefox_order[]={0,0x17,0xff01,0xa,0xb,0x10,5,0x22,0x12,0x33,0x2b,0xd,0x1c,0x1b,0xfe0d};
+        const unsigned *wanted=firefox?firefox_order:order;
+        size_t wanted_n=firefox?sizeof firefox_order/sizeof firefox_order[0]:sizeof order/sizeof order[0];
+        struct pend sorted[20];size_t kept=0,dropped=0;
+        for(size_t i=0;i<pn;i++)if((!firefox&&px[i].type==0xfe0d)||(!qq11&&px[i].type==0x44cd)||
+                ((ios14||safari26||firefox)&&px[i].type==0x0023)||
+                (firefox&&px[i].type==0x002d))dropped++;
+        for(size_t i=0;i<wanted_n;i++)
+            for(size_t j=0;j<pn;j++)if(px[j].type==wanted[i])sorted[kept++]=px[j];
+        if(kept+dropped!=pn)return REALITY_ETOOBIG;
+        memcpy(px,sorted,kept*sizeof(*px));pn=kept;
+        // QQ11 uses the original ALPS extension, not Chrome133's new codepoint.
+        if(qq11)for(size_t i=0;i<pn;i++)if(px[i].type==0x44cd)px[i].type=0x4469;
+    }else if (pn > 3) {
         unsigned char sh[20];
         if (fill_random(sh, sizeof(sh)) != 0) return REALITY_ECRYPTO;
         for (size_t i = pn - 2; i > 1; i--) {
@@ -569,6 +615,13 @@ int reality_build_hello_carry(const struct reality_cfg *cfg, struct reality_stat
         }
     }
     for (size_t i = 0; i < pn; i++) ext(&b, px[i].type, px[i].body, px[i].n);
+    if(fp49_padding(identity)){
+        size_t unpadded=b.len-rec_at-5;
+        if(unpadded>255&&unpadded<512){
+            size_t padding=512-unpadded;padding=padding>=5?padding-4:1;
+            unsigned char zeros[512]={0};ext(&b,0x0015,zeros,padding);
+        }
+    }
 
     if (b.len > b.cap) return REALITY_ETOOBIG;
 

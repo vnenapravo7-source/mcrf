@@ -14,7 +14,7 @@ import java.util.concurrent.Future
 import java.util.concurrent.atomic.AtomicBoolean
 
 data class AndroidDeployState(val running: Boolean=false,val phase: String="",val logs: String="",val result: JSONObject?=null,val error: String="",val recipeId: String="",
-                             val trustRequestId: String="",val trustEndpoint: String="",val trustFingerprint: String="")
+                             val trustRequestId: String="",val trustEndpoint: String="",val trustFingerprint: String="",val deploymentId:String="")
 
 /** Single serialized real SSH installer. Listener runs on worker; UI must post to the main thread. */
 class AndroidDeployBackend(private val store: AndroidDeployStore,private val vk: VkRelayAccount=VkRelayAccount(store)) {
@@ -44,9 +44,9 @@ class AndroidDeployBackend(private val store: AndroidDeployStore,private val vk:
         return begin(recipeId,input,trust,null)
     }
     fun addTransport(recipeId:String,input:AndroidDeployTarget,saved:JSONObject,trust:((String,String)->Boolean)?=null):Boolean {
-        require(recipeId in setOf("3xui","swg"))
+        require(recipeId in setOf("3xui","swg","openflux"))
         val record=JSONObject(saved.toString())
-        val target=input.snapshot().copy(panelUser=record.getString("username"),panelPassword=record.getString("password"),operationId=UUID.randomUUID().toString())
+        val target=input.snapshot().copy(panelUser=record.getString("username"),panelPassword=record.getString("password"),operationId=if(input.deploymentId.isEmpty())UUID.randomUUID().toString()else input.operationId)
         AndroidDeployScripts.addTransport(AndroidDeployRecipe.all.single {it.id==recipeId},target,record)
         return begin(recipeId,target,trust,record)
     }
@@ -55,7 +55,7 @@ class AndroidDeployBackend(private val store: AndroidDeployStore,private val vk:
         if(!RemoteServerOperationGate.acquire(target.operationId))return false
         if(!busy.compareAndSet(false,true)){RemoteServerOperationGate.release(target.operationId);return false}
         operationLease=target.operationId
-        cancelled.set(false);publish(AndroidDeployState(true,"Проверка установщика",recipeId=recipeId))
+        cancelled.set(false);publish(AndroidDeployState(true,"Проверка установщика",recipeId=recipeId,deploymentId=target.deploymentId))
         try {future=worker.submit {
             operationThread=Thread.currentThread()
             try { install(AndroidDeployRecipe.all.first { it.id==recipeId },target,trust,saved) }
@@ -89,7 +89,7 @@ class AndroidDeployBackend(private val store: AndroidDeployStore,private val vk:
                     val kind=p.getString("kind");val a=p.getJSONArray("vk_calls")
                     val id=AndroidDeploySwg.groupId(target.operationId,kind)
                     val manual=(0 until a.length()).map(a::getString)
-                    val calls=vk.resolveCountFor(id,manual,target.options.optBoolean("automatic_calls"),kind,p.getInt("call_count")){cancelled.get()}
+                    val calls=vk.resolveCountFor(id,manual,target.options.optBoolean("automatic_calls"),AndroidDeploySwg.callKind(kind),p.getInt("call_count")){cancelled.get()}
                     p.put("vk_calls",JSONArray(calls))
                     if(manual.isEmpty())p.put("call_group",id)
                     p
@@ -100,7 +100,7 @@ class AndroidDeployBackend(private val store: AndroidDeployStore,private val vk:
             val a=target.options.optJSONArray("vk_calls") ?: JSONArray()
             val automatic=target.options.optBoolean("automatic_calls") && a.length()==0
             val groupId="deploy:${target.operationId}"
-            val calls=vk.resolveCountFor(groupId,(0 until a.length()).map(a::getString),target.options.optBoolean("automatic_calls"),target.options.optString("relay_kind","qwdtt"),target.options.optInt("call_count",6)) { cancelled.get() }
+            val calls=vk.resolveCountFor(groupId,(0 until a.length()).map(a::getString),target.options.optBoolean("automatic_calls"),AndroidDeploySwg.callKind(target.options.optString("relay_kind","qwdtt")),target.options.optInt("call_count",6)) { cancelled.get() }
             target=target.copy(options=JSONObject(target.options.toString()).put("vk_calls",JSONArray(calls)))
             if(automatic) target.options.put("vk_call_group",groupId)
             }
@@ -149,7 +149,7 @@ class AndroidDeployBackend(private val store: AndroidDeployStore,private val vk:
         val ports=mutableListOf<Int>().apply {if(saved==null&&recipe.id!=S3BypassProfile.KIND)add(t.panelPort)}
         if(t.options.optBoolean("create",true)) {
             val o=AndroidDeployPlan.normalizedOptions(t)
-            when(recipe.id) { "3xui" -> { if(o.optBoolean("tcp")) ports.add(o.getInt("tcp_port"));if(o.optBoolean("grpc")) ports.add(o.getInt("grpc_port")) };"openflux" -> if(o.getString("transport")=="direct") ports.add(o.getInt("direct_port"));"swg" -> { if(o.has("swg_profiles"))ports.addAll(AndroidDeploySwg.ports(o)) else {ports.add(o.getInt("relay_port"));if(o.getString("relay_kind")!="csqtt") ports.add(o.getInt("wg_port"))} } }
+            when(recipe.id) { "3xui" -> { if(o.optBoolean("tcp")) ports.add(o.getInt("tcp_port"));if(o.optBoolean("grpc")) ports.add(o.getInt("grpc_port")) };"openflux" -> if(o.getString("transport")=="direct") ports.add(o.getInt("direct_port"));"swg" -> { if(o.has("swg_profiles"))ports.addAll(AndroidDeploySwg.ports(o)) else {ports.add(o.getInt("relay_port"));if(!AndroidDeploySwg.isCsqtt(o.getString("relay_kind"))) ports.add(o.getInt("wg_port"))} } }
         }
         for(port in ports) {
             val occupied=exec(session,"ss -ltnuH "+AndroidDeployPlan.quote("sport = :$port"),t,30_000)
@@ -175,6 +175,9 @@ class AndroidDeployBackend(private val store: AndroidDeployStore,private val vk:
             val result=AndroidDeployHistory.record(decoded.result(),t,recipe.id)
             AndroidDeployPlan.validateResult(result,t)
             store.update("deployResults") { it.put(AndroidDeployHistory.resultKey(t,recipe.id),result) }
+            if(!result.optBoolean("provision_requested")||result.optBoolean("provision_complete")){
+                store.completeDeployment(t.deploymentId,t.operationId,AndroidDeployHistory.resultKey(t,recipe.id))
+            }
             if(saved==null && (!result.optBoolean("provision_requested") || result.optBoolean("provision_complete"))) store.update("deployDrafts") { drafts ->
                 drafts.optJSONObject(recipe.id)?.let { draft -> if(draft.optString("operationId")==t.operationId) draft.put("operationId",UUID.randomUUID().toString()) }
             }

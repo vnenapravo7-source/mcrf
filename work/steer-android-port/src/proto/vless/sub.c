@@ -172,7 +172,7 @@ static void sj_ws(struct sj *j) {
  * в buf не хватило места, не пишется вовсе: строка кончается на границе знака, а не посреди него.
  * Непонятая последовательность попадает в buf знаком без косой черты, и это лучше отказа: имя —
  * единственное поле, которому позволено быть любым. */
-static int sj_str(struct sj *j, char *buf, size_t n) {
+static int sj_str_checked49(struct sj *j, char *buf, size_t n,int *loss) {
     sj_ws(j);
     if (*j->p != '"') return -1;
     j->p++;
@@ -186,7 +186,8 @@ static int sj_str(struct sj *j, char *buf, size_t n) {
         } else {
             j->p++;
         }
-        if (full || i + ol >= n) { full = 1; continue; }
+        if(loss&&memchr(o,0,ol))*loss=1;
+        if (full || i + ol >= n) { full = 1;if(loss)*loss=1;continue; }
         memcpy(buf + i, o, ol);
         i += ol;
     }
@@ -195,6 +196,7 @@ static int sj_str(struct sj *j, char *buf, size_t n) {
     if (n) buf[i] = '\0';
     return 0;
 }
+static int sj_str(struct sj *j,char *buf,size_t n){return sj_str_checked49(j,buf,n,NULL);}
 
 /* Пропустить одно значение любого типа. Нужен за тем же, за чем js_skip ридеру спеки
  * (src/lib/jsonr.c): чтобы незнакомый ключ
@@ -258,6 +260,73 @@ static int sj_arr_next(struct sj *j, int *first) {
     sj_ws(j);
     if (*j->p == ']') { j->p++; return 1; }
     return 0;
+}
+
+/* Security fields must not inherit the display-name reader's truncation policy.
+ * A larger temporary catches overflow before copying to the actual node. */
+static void sj_fp49(struct sj *j,struct vless_node *n){
+    char value[64]={0};int loss=0;
+    if(sj_str_checked49(j,value,sizeof value,&loss)){n->tls_fields_bad=1;sj_skip(j);return;}
+    if(loss)n->tls_fields_bad=1;
+    sl_set_fp49(n,value);
+}
+static void sj_sni49(struct sj *j,struct vless_node *n){
+    char value[256]={0};int loss=0;
+    if(sj_str_checked49(j,value,sizeof value,&loss)){n->tls_fields_bad=1;sj_skip(j);return;}
+    if(loss)n->tls_fields_bad=1;
+    sl_set_sni49(n,value);
+}
+static void sj_tls_text49(struct sj *j,struct vless_node *n,char *out,size_t cap){
+    int loss=0;
+    if(sj_str_checked49(j,out,cap,&loss)){n->tls_fields_bad=1;sj_skip(j);return;}
+    if(loss)n->tls_fields_bad=1;
+}
+static void sj_alpn49(struct sj *j,struct vless_node *n){
+    int first=1,rc=sj_arr_next(j,&first);char joined[256]="";size_t used=0;
+    if(rc<0){n->tls_fields_bad=1;sj_skip(j);return;}
+    while(rc==0){
+        char token[256]={0};int loss=0;
+        if(sj_str_checked49(j,token,sizeof token,&loss)){n->tls_fields_bad=1;sj_skip(j);}
+        else{
+            size_t size=strlen(token);
+            if(loss||!size||strchr(token,',')||used+(used?1:0)+size>=sizeof joined)n->tls_fields_bad=1;
+            else{if(used)joined[used++]=',';memcpy(joined+used,token,size+1);used+=size;}
+        }
+        rc=sj_arr_next(j,&first);
+    }
+    if(rc<0)n->tls_fields_bad=1;
+    sl_set_alpn49(n,joined);
+}
+
+/* VMess share JSON is a real object: quoted-looking text inside a display name
+ * is not a TLS field. Reuse the bounded structural JSON reader, not strstr.
+ * `allow_insecure` remains a REQUEST; the existing output/user grant guard is
+ * still mandatory and this parser never sets n->insecure. */
+void sl_vmess_tls49(const char *json,struct vless_node *n){
+    struct sj j={json};int first=1,rc,seen_insecure=-1;char key[64];
+    while((rc=sj_obj_key(&j,&first,key,sizeof key))==0){
+        if(!strcmp(key,"fp")||!strcmp(key,"fingerprint"))sj_fp49(&j,n);
+        else if(!strcmp(key,"sni")||!strcmp(key,"serverName"))sj_sni49(&j,n);
+        else if(!strcmp(key,"alpn")){
+            sj_ws(&j);
+            if(*j.p=='[')sj_alpn49(&j,n);
+            else{char value[256]={0};sj_tls_text49(&j,n,value,sizeof value);sl_set_alpn_csv49(n,value);}
+        }else if(!strcmp(key,"insecure")||!strcmp(key,"allowInsecure")){
+            sj_ws(&j);int value=-1;
+            if(*j.p=='"'){
+                char text[8]={0};int loss=0;
+                if(!sj_str_checked49(&j,text,sizeof text,&loss)&&!loss){
+                    if(!strcmp(text,"true")||!strcmp(text,"1"))value=1;
+                    else if(!strcmp(text,"false")||!strcmp(text,"0")||!text[0])value=0;
+                }
+            }else if(!strncmp(j.p,"true",4)){value=1;j.p+=4;}
+            else if(!strncmp(j.p,"false",5)){value=0;j.p+=5;}
+            else{n->tls_fields_bad=1;sj_skip(&j);}
+            if(value<0||(seen_insecure>=0&&value!=seen_insecure))n->tls_fields_bad=1;
+            else{seen_insecure=value;if(value)n->allow_insecure=1;}
+        }else sj_skip(&j);
+    }
+    sj_ws(&j);if(rc!=1||*j.p)n->tls_fields_bad=1;
 }
 
 /* Настройки ws или httpupgrade из конфига — до того, как станет известно, какой из двух у узла.
@@ -388,10 +457,11 @@ static void xray_stream(struct sj *j, struct vless_node *n) {
             int f2 = 1;
             char k2[64];
             while (sj_obj_key(j, &f2, k2, sizeof(k2)) == 0) {
-                if (!strcmp(k2, "serverName")) sj_str(j, n->sni, sizeof(n->sni));
-                else if (!strcmp(k2, "fingerprint")) sj_str(j, n->fp, sizeof(n->fp));
-                else if (!strcmp(k2, "publicKey")) sj_str(j, n->pbk, sizeof(n->pbk));
-                else if (!strcmp(k2, "shortId")) sj_str(j, n->sid, sizeof(n->sid));
+                if (!strcmp(k2, "serverName")) sj_sni49(j,n);
+                else if (!strcmp(k2, "fingerprint")) sj_fp49(j,n);
+                else if (!strcmp(k2, "alpn")) sj_alpn49(j,n);
+                else if (!strcmp(k2, "publicKey")) sj_tls_text49(j,n,n->pbk,sizeof n->pbk);
+                else if (!strcmp(k2, "shortId")) sj_tls_text49(j,n,n->sid,sizeof n->sid);
                 else if (!strcmp(k2, "mldsa65Verify") || !strcmp(k2, "pqv")) {
                     char *pv = malloc(4096);
                     if (pv) { pv[0] = '\0'; sj_str(j, pv, 4096); sl_set_pqv(n, pv); free(pv); }
@@ -499,7 +569,7 @@ static void xray_settings(struct sj *j, struct vless_node *n) {
     while (sj_obj_key(j, &first, k, sizeof(k)) == 0) {
         /* Упрощённая форма исходящего (Xray 25+): address, port, id, flow, encryption прямо в settings,
          * без vnext и users. */
-        if (!strcmp(k, "address")) { sj_str(j, n->host, sizeof(n->host)); continue; }
+        if (!strcmp(k, "address")) { sj_tls_text49(j,n,n->host,sizeof n->host); continue; }
         if (!strcmp(k, "id")) { sj_str(j, n->uuid, sizeof(n->uuid)); continue; }
         if (!strcmp(k, "flow")) { sj_str(j, n->flow, sizeof(n->flow)); continue; }
         if (!strcmp(k, "encryption")) { json_encryption(j, n); continue; }
@@ -524,7 +594,7 @@ static void xray_settings(struct sj *j, struct vless_node *n) {
             int fo = 1;
             char k2[64];
             while (sj_obj_key(j, &fo, k2, sizeof(k2)) == 0) {
-                if (!strcmp(k2, "address")) sj_str(j, n->host, sizeof(n->host));
+                if (!strcmp(k2, "address")) sj_tls_text49(j,n,n->host,sizeof n->host);
                 else if (!strcmp(k2, "port")) {
                     sj_ws(j);
                     char num[16];
@@ -607,7 +677,8 @@ static void sb_tls(struct sj *j, struct vless_node *n, int *enabled, int *realit
     char k[64];
     while (sj_obj_key(j, &f, k, sizeof k) == 0) {
         if (!strcmp(k, "enabled")) *enabled = sj_bool(j);
-        else if (!strcmp(k, "server_name")) sj_str(j, n->sni, sizeof n->sni);
+        else if (!strcmp(k, "server_name")) sj_sni49(j,n);
+        else if (!strcmp(k, "alpn")) sj_alpn49(j,n);
         else if (!strcmp(k, "insecure")) { if (sj_bool(j)) n->allow_insecure = 1; }
         else if (!strcmp(k, "ech")) {
             /* {"enabled": true, "config": ["-----BEGIN ECH CONFIGS-----", "base64…", "-----END ECH CONFIGS-----"]}.
@@ -644,20 +715,20 @@ static void sb_tls(struct sj *j, struct vless_node *n, int *enabled, int *realit
         }
         else if (!strcmp(k, "utls")) {
             int f2 = 1, on = 1;
-            char k2[64], fp[sizeof n->fp] = "";
+            char k2[64];struct vless_node fingerprint={0};
             while (sj_obj_key(j, &f2, k2, sizeof k2) == 0) {
                 if (!strcmp(k2, "enabled")) on = sj_bool(j);
-                else if (!strcmp(k2, "fingerprint")) sj_str(j, fp, sizeof fp);
+                else if (!strcmp(k2, "fingerprint")) sj_fp49(j,&fingerprint);
                 else sj_skip(j);
             }
-            if (on && fp[0]) snprintf(n->fp, sizeof n->fp, "%s", fp);
+            if(on){n->tls_fields_bad|=fingerprint.tls_fields_bad;sl_set_fp49(n,fingerprint.fp);}
         } else if (!strcmp(k, "reality")) {
             int f2 = 1;
             char k2[64];
             while (sj_obj_key(j, &f2, k2, sizeof k2) == 0) {
                 if (!strcmp(k2, "enabled")) *reality = sj_bool(j);
-                else if (!strcmp(k2, "public_key")) sj_str(j, n->pbk, sizeof n->pbk);
-                else if (!strcmp(k2, "short_id")) sj_str(j, n->sid, sizeof n->sid);
+                else if (!strcmp(k2, "public_key")) sj_tls_text49(j,n,n->pbk,sizeof n->pbk);
+                else if (!strcmp(k2, "short_id")) sj_tls_text49(j,n,n->sid,sizeof n->sid);
                 else sj_skip(j);
             }
         } else sj_skip(j);
@@ -714,7 +785,7 @@ static void sb_outbound_body(struct sj *j, struct vless_node *n, char *proto, si
     while (sj_obj_key(j, &first, k, sizeof k) == 0) {
         if (!strcmp(k, "type")) sj_str(j, proto, proto_n);
         else if (!strcmp(k, "tag")) { sj_str(j, n->name, sizeof n->name); sl_utf8_trim_tail(n->name); }
-        else if (!strcmp(k, "server")) sj_str(j, n->host, sizeof n->host);
+        else if (!strcmp(k, "server")) sj_tls_text49(j,n,n->host,sizeof n->host);
         else if (!strcmp(k, "server_port")) n->port = port_of_num(sj_num(j));
         else if (!strcmp(k, "uuid")) sj_str(j, n->uuid, sizeof n->uuid);
         else if (!strcmp(k, "flow")) sj_str(j, n->flow, sizeof n->flow);
@@ -1079,12 +1150,24 @@ static int clash_node(const struct yflat *f, struct vless_node *n) {
     if (!(v = yf_get(f, "type")) || strcmp(v, "vless")) return 0;
     snprintf(n->type, sizeof n->type, "tcp");
     if ((v = yf_get(f, "name"))) { sl_set_field(n->name, sizeof n->name, v, strlen(v)); sl_utf8_trim_tail(n->name); }
-    if ((v = yf_get(f, "server"))) sl_set_field(n->host, sizeof n->host, v, strlen(v));
+    if ((v = yf_get(f, "server"))){if(strlen(v)>=sizeof n->host)n->tls_fields_bad=1;else sl_set_field(n->host,sizeof n->host,v,strlen(v));}
     if ((v = yf_get(f, "port"))) n->port = sl_port_of(v);
     if ((v = yf_get(f, "uuid"))) sl_set_field(n->uuid, sizeof n->uuid, v, strlen(v));
     if ((v = yf_get(f, "flow"))) sl_set_field(n->flow, sizeof n->flow, v, strlen(v));
-    if ((v = yf_get(f, "servername")) || (v = yf_get(f, "sni"))) sl_set_field(n->sni, sizeof n->sni, v, strlen(v));
-    if ((v = yf_get(f, "client-fingerprint"))) sl_set_field(n->fp, sizeof n->fp, v, strlen(v));
+    if ((v = yf_get(f, "servername"))) sl_set_sni49(n,v);
+    if ((v = yf_get(f, "sni"))) sl_set_sni49(n,v);
+    if ((v = yf_get(f, "client-fingerprint"))) sl_set_fp49(n,v);
+    {
+        char joined[256]="";size_t used=0;int have=0;
+        for(unsigned i=0;i<1000;i++){
+            char key[24];snprintf(key,sizeof key,"alpn.%u",i);v=yf_get(f,key);if(!v)break;
+            size_t size=strlen(v);
+            if(!size||strchr(v,',')||used+(used?1:0)+size>=sizeof joined)n->tls_fields_bad=1;
+            else{if(used)joined[used++]=',';memcpy(joined+used,v,size+1);used+=size;}
+            have=1;
+        }
+        if(have)sl_set_alpn49(n,joined);
+    }
     /* Clash/mihomo: `fingerprint` — SHA-256 сертификата узла (то же, что pinnedPeerCertSha256 Xray),
      * `skip-cert-verify` — allowInsecure. */
     if ((v = yf_get(f, "fingerprint")) && v[0]) sl_add_pins(n, v, 0);
@@ -1092,8 +1175,8 @@ static int clash_node(const struct yflat *f, struct vless_node *n) {
     if ((v = yf_get(f, "ech-opts.config")) && v[0]) sl_set_ech(n, v);
     const char *pbk = yf_get(f, "reality-opts.public-key");
     if (pbk) {
-        sl_set_field(n->pbk, sizeof n->pbk, pbk, strlen(pbk));
-        if ((v = yf_get(f, "reality-opts.short-id"))) sl_set_field(n->sid, sizeof n->sid, v, strlen(v));
+        if(strlen(pbk)>=sizeof n->pbk)n->tls_fields_bad=1;else sl_set_field(n->pbk,sizeof n->pbk,pbk,strlen(pbk));
+        if ((v = yf_get(f, "reality-opts.short-id"))){if(strlen(v)>=sizeof n->sid)n->tls_fields_bad=1;else sl_set_field(n->sid,sizeof n->sid,v,strlen(v));}
         if ((v = yf_get(f, "reality-opts.mldsa65-verify")) || (v = yf_get(f, "reality-opts.pqv"))) sl_set_pqv(n, v);
         snprintf(n->security, sizeof n->security, "reality");
     } else {

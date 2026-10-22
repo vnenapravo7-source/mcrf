@@ -6,6 +6,17 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class Csqtt25ProfileTest {
+    @Test fun expandedHashPoolIsDedupedBeforeWorkerCapacityAndReachesPrivateConfig() {
+        val hashes=(1..12).map {"fixture-call-0123456789-$it"}
+        val raw=fixture().put("hashes",JSONArray(hashes+hashes)).put("workers",100)
+        val normal=Csqtt25Profile.fromJson("fixture",raw).carrier!!
+        assertEquals(12,normal.getJSONArray("hashes").length())
+        assertEquals(12,Csqtt25Profile.privateConfig(normal,22001,22002,"user","pass","binding").getJSONArray("hashes").length())
+        val duplicates=fixture().put("hashes",JSONArray(List(12){hashes.first()})).put("workers",20)
+        assertThrows(IllegalArgumentException::class.java){Csqtt25Profile.fromJson("fixture",duplicates)}
+        duplicates.remove("workers")
+        assertEquals(10,Csqtt25Profile.fromJson("fixture",duplicates).carrier!!.getInt("workers"))
+    }
     private fun fixture()=JSONObject().put("type","csqtt").put("csqtt_generation","2.5").put("server","fixture.invalid").put("server_port",46000)
         .put("password","fixture-only").put("hashes",JSONArray().put("fixture-call-0123456789abcdef"))
     @Test fun independentlyEncryptedNewLinkSelects25AndPreservesServerExactSevenWorkers() {
@@ -22,7 +33,7 @@ class Csqtt25ProfileTest {
         val legacy=fixture().apply {remove("csqtt_generation")}
         assertEquals("audio",SwgProfile.fromJson("fixture",legacy).carrier!!.getString("obfs"))
         assertFalse(Csqtt25Profile.isProfile(SwgProfile.fromJson("fixture",legacy).carrier!!))
-        assertEquals("csqtt25",EngineModules.carrierKind(SwgProfile.fromJson("fixture",fixture().put("workers",18).put("obfs","audio")).carrier!!))
+        assertEquals("csqtt25",EngineModules.carrierKind(SwgProfile.fromJson("fixture",fixture().put("workers",10).put("obfs","audio")).carrier!!))
     }
     @Test fun typed25PrivateConfigUsesSeparateExactWorkerAndAuthenticatedBridgeContract() {
         val raw=fixture().put("link_workers",7).put("turn_transport","tcp").put("custom_turn_ips",JSONArray().put("192.0.2.1"))
@@ -42,11 +53,20 @@ class Csqtt25ProfileTest {
         assertThrows(IllegalArgumentException::class.java){Csqtt25Profile.fromJson("fixture",raw.put("hashes",fixture().getJSONArray("hashes")))}
     }
     @Test fun malformedParametersAndUnsupportedOptionsCannotBeSilentlyDropped() {
-        for(bad in listOf(fixture().put("link_workers","bad"),fixture().put("link_workers",100),fixture().put("workers",7),
-            fixture().put("workers",36),fixture().put("future_required_option",true),fixture().put("custom_turn_ips",JSONArray().put("127.0.0.1")))) {
+        for(bad in listOf(fixture().put("link_workers","bad"),fixture().put("link_workers",101),fixture().put("workers",7),
+            fixture().put("workers",36).put("csqtt_implementation",Csqtt25Profile.IMPLEMENTATION),fixture().put("future_required_option",true),fixture().put("custom_turn_ips",JSONArray().put("127.0.0.1")))) {
             val error=assertThrows(IllegalArgumentException::class.java){Csqtt25Profile.fromJson("fixture",bad)}
             assertFalse(error.message!!.contains("fixture-only"))
         }
+    }
+    @Test fun panelWorkerCadenceIsTenAndExactServerCountMayReachOneHundred() {
+        assertEquals(10,Csqtt25Profile.fromJson("fixture",fixture()).carrier!!.getInt("workers"))
+        assertEquals(100,Csqtt25Profile.fromJson("fixture",fixture().put("link_workers",100)).carrier!!.getInt("workers"))
+        assertEquals(100,Csqtt25Profile.fromJson("fixture",fixture().put("workers",100).put("allow_hash_redistribution",true)).carrier!!.getInt("workers"))
+        val migrated=Csqtt25Profile.fromJson("fixture",fixture().put("workers",18)).carrier!!
+        assertEquals(18,migrated.getInt("link_workers"))
+        assertTrue(Csqtt25Profile.privateConfig(migrated,22001,22002,"user","pass","device").getBoolean("exact_workers"))
+        assertThrows(IllegalArgumentException::class.java){Csqtt25Profile.fromJson("fixture",fixture().put("workers",18).put("csqtt_implementation",Csqtt25Profile.IMPLEMENTATION))}
     }
     @Test fun mixedCatalogueAndEditedShareRetainBothGenerationsAndFullNewSettings() {
         val old=fixture().apply {remove("csqtt_generation")}.toString()

@@ -6,15 +6,28 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AndroidDeploySwgTest {
-    @Test fun legacyLongCallDraftCanOpenButCannotExecuteAsWdtt(){
+    @Test fun legacyLongCallDraftOpensAndPreservesAllWdttCalls(){
         val calls=JSONArray().apply {repeat(12){put("retained-call-$it")}}
         val options=JSONObject().put("relay_kind","wdtt").put("vk_calls",calls)
         val profiles=AndroidDeploySwg.drafts(options);options.put("swg_profiles",profiles)
         val before=options.toString()
         AndroidDeployBackupSettings.validate(JSONObject().put("deployDrafts",JSONObject().put("swg",JSONObject().put("options",options))))
         assertEquals(12,profiles.getJSONObject(1).getJSONArray("vk_calls").length())
-        assertThrows(IllegalArgumentException::class.java){AndroidDeploySwg.profiles(options)}
+        assertEquals(12,AndroidDeploySwg.profiles(options).single().getJSONArray("vk_calls").length())
         assertEquals(before,options.toString())
+    }
+    @Test fun expandedCallListsHaveNoProtocolCountCapAndKeepPayloadGuard(){
+        for(kind in AndroidDeploySwg.kinds)for(count in listOf(7,33,64)){
+            val calls=JSONArray().apply {repeat(count){i->put("https://vk.ru/call/join/"+java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32){i.toByte()}))}}
+            val options=JSONObject().put("relay_kind",kind).put("vk_calls",calls)
+            val profiles=AndroidDeploySwg.drafts(options);options.put("swg_profiles",profiles)
+            AndroidDeploySwg.validateCalls(options)
+            assertEquals(count,AndroidDeploySwg.profiles(options).single().getJSONArray("vk_calls").length())
+            AndroidDeployBackupSettings.validate(JSONObject().put("deployDrafts",JSONObject().put("swg",JSONObject().put("options",options))))
+            assertEquals(count,profiles.getJSONObject(AndroidDeploySwg.kinds.indexOf(kind)).getJSONArray("vk_calls").length())
+        }
+        val tooLarge=JSONArray().apply {repeat(100){put("a".repeat(1024))}}
+        assertThrows(IllegalArgumentException::class.java){AndroidDeploySwg.validateCallArray(tooLarge)}
     }
     @Test fun panelOnlyHistoryDoesNotClaimUncreatedProtocolGroups() {
         val options=all().put("create",false)
@@ -27,7 +40,7 @@ class AndroidDeploySwgTest {
         val backup=JSONObject().put("deployDrafts",JSONObject().put("swg",JSONObject().put("options",options)))
         AndroidDeployBackupSettings.validate(backup)
         AndroidDeployBackupSettings.validate(JSONObject(backup.toString()))
-        assertEquals(3,backup.getJSONObject("deployDrafts").getJSONObject("swg").getJSONObject("options").getJSONArray("swg_profiles").length())
+        assertEquals(4,backup.getJSONObject("deployDrafts").getJSONObject("swg").getJSONObject("options").getJSONArray("swg_profiles").length())
     }
     @Test fun sameCallsCannotBeReusedAcrossProtocols() {
         val options=all()
@@ -54,12 +67,12 @@ class AndroidDeploySwgTest {
         assertFalse(input.has("swg_profiles"))
     }
     @Test fun allProtocolsHaveIndependentListenersAndNoImplicitSharedCalls() {
-        val o=all();assertEquals(listOf(56000,51820,56001,51821,56002),AndroidDeploySwg.ports(o))
+        val o=all();assertEquals(listOf(56000,51820,56001,51821,56002,56003),AndroidDeploySwg.ports(o))
         AndroidDeploySwg.profiles(o).forEach {assertEquals(0,it.getJSONArray("vk_calls").length())}
     }
     @Test fun duplicatePortsRejectedAcrossProtocols() {val o=all();o.getJSONArray("swg_profiles").getJSONObject(1).put("wg_port",56000);assertThrows(IllegalArgumentException::class.java){AndroidDeploySwg.profiles(o)}}
-    @Test fun emptySelectionRejectedWithoutErasingDrafts() {val o=all();val a=o.getJSONArray("swg_profiles");repeat(a.length()){a.getJSONObject(it).put("enabled",false)};assertThrows(IllegalArgumentException::class.java){AndroidDeploySwg.profiles(o)};assertEquals(3,a.length())}
-    @Test fun automaticGroupsCannotCollideAcrossProtocols() {assertEquals(3,AndroidDeploySwg.kinds.map {AndroidDeploySwg.groupId("fixture",it)}.toSet().size)}
+    @Test fun emptySelectionRejectedWithoutErasingDrafts() {val o=all();val a=o.getJSONArray("swg_profiles");repeat(a.length()){a.getJSONObject(it).put("enabled",false)};assertThrows(IllegalArgumentException::class.java){AndroidDeploySwg.profiles(o)};assertEquals(4,a.length())}
+    @Test fun automaticGroupsCannotCollideAcrossProtocols() {assertEquals(4,AndroidDeploySwg.kinds.map {AndroidDeploySwg.groupId("fixture",it)}.toSet().size)}
     @Test fun missingManualCallsRequireExplicitAutomaticChoice() {assertThrows(IllegalArgumentException::class.java){AndroidDeploySwg.validateCalls(all())};AndroidDeploySwg.validateCalls(all().put("automatic_calls",true))}
     @Test fun duplicateKindsAndUnknownDraftFieldsRejected() {
         val a=AndroidDeploySwg.drafts(JSONObject());a.getJSONObject(1).put("kind","qwdtt");assertThrows(IllegalArgumentException::class.java){AndroidDeploySwg.validateDrafts(a)}

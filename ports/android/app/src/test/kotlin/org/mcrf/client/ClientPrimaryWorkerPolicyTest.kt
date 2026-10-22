@@ -7,6 +7,19 @@ import org.mcrf.engine.spi.v1.Engine
 
 /** JVM-only admission checks. No fake engine, Binder, TUN, native validation or traffic claims. */
 class ClientPrimaryWorkerPolicyTest {
+    @Test fun bootstrapHasItsOwnSlotAndCannotRunPacketOrRouteCommands(){
+        assertEquals(":primaryBootstrap",ClientPrimaryWorkerWire.processSuffix(ClientPrimaryBootstrapWorkerService::class.java))
+        for(command in listOf("INIT","VALIDATE","START","STOP"))assertTrue(ClientPrimaryWorkerWire.bootstrapCommand(command))
+        for(command in listOf(null,"","PLAN","PROBE_STEER","INIT_PACKET","START_PACKET","OPEN_ROUTE","OPEN_PACKET_ROUTE","ATTACH_ROUTE_PIPE","HEALTH"))
+            assertFalse(ClientPrimaryWorkerWire.bootstrapCommand(command))
+        assertFalse(ClientPrimaryWorkerWire.isRouteWorker(ClientPrimaryBootstrapWorkerService::class.java))
+    }
+    @Test fun separateValidationWorkerCannotRunProbeTunOrProtocolRoles(){
+        assertEquals(":primaryValidation",ClientPrimaryWorkerWire.processSuffix(ClientPrimaryValidationWorkerService::class.java))
+        for(command in listOf("INIT","VALIDATE","STOP"))assertTrue(ClientPrimaryWorkerWire.validationCommand(command))
+        for(command in listOf(null,"","START","PLAN","PROBE_STEER","INIT_PACKET","START_PACKET","OPEN_ROUTE","OPEN_PACKET_ROUTE","ATTACH_ROUTE_PIPE","HEALTH"))
+            assertFalse(ClientPrimaryWorkerWire.validationCommand(command))
+    }
     @Test fun onewayMissingPidStillRequiresExactOwnerCapabilityAndGeneration() {
         fun allowed(pid:Int=0,owner:Int=42,oneway:Boolean=true,token:Boolean=true,gen:Long=7,expected:Long=7)=
             ClientPrimaryWorkerWire.commandOwner(pid,owner,oneway,token,gen,expected)

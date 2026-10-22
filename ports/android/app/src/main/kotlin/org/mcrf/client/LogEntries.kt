@@ -38,6 +38,7 @@ object LogEntries {
             else->Level.INFO
         }
         val friendly=when {
+            "код завершения" in text||source=="Ошибка движка"->text
             ("lookup " in lower||"dns" in lower)&&listOf("failed","timeout","no such host","ошиб").any {it in lower}->"Не удалось получить адрес сайта. Проверь DNS или доступность сети."
             "network is unreachable" in lower||"no route to host" in lower||"network unavailable" in lower->"Сеть недоступна. Проверь подключение к интернету."
             "connection refused" in lower->"Сервер отклонил соединение. Проверь адрес и порт подключения."

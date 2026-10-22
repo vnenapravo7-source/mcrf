@@ -29,11 +29,13 @@ object EngineUpdateGate {
     private val mutations=hashMapOf<String,Mutation>()
     class Usage internal constructor(private val key:String):AutoCloseable {
         private val closed=AtomicBoolean(false)
-        override fun close(){if(closed.compareAndSet(false,true))releaseUsage(key)}
+        private val retirement=RetryingEngineRelease {releaseUsage(key,closed)}
+        override fun close()=retirement.close()
     }
     class Mutation internal constructor(internal val directory:File,internal val channel:FileChannel,internal val lock:FileLock,val pending:Pending):AutoCloseable {
         private val closed=AtomicBoolean(false)
-        override fun close(){if(closed.compareAndSet(false,true))releaseMutation(this)}
+        private val retirement=RetryingEngineRelease {releaseMutation(this,closed)}
+        override fun close()=retirement.close()
     }
     private fun root(directory:File):File {
         require(!Files.isSymbolicLink(directory.toPath()))
@@ -79,19 +81,35 @@ object EngineUpdateGate {
     }
     @Synchronized private fun rawUsage(base:File):Usage? {
         val key=base.path
-        shared[key]?.let{it.references++;return Usage(key)}
+        shared[key]?.let{if(!it.channel.isOpen||!it.lock.isValid)return null;it.references++;return Usage(key)}
         if(mutations.containsKey(key))return null
         val ch=channel(base)
         val lock=try{ch.tryLock(0,Long.MAX_VALUE,true)}catch(_:OverlappingFileLockException){null}
         if(lock==null){ch.close();return null}
         shared[key]=Shared(ch,lock,1);return Usage(key)
     }
-    @Synchronized private fun releaseUsage(key:String) {
-        val entry=shared[key]?:return
-        if(--entry.references==0){shared.remove(key);entry.lock.release();entry.channel.close()}
+    @Synchronized private fun releaseUsage(key:String,closed:AtomicBoolean) {
+        if(closed.get())return
+        val entry=shared[key]
+        if(entry!=null) {
+            if(entry.references>1)entry.references-- else {
+                // Channel.close releases the kernel lock too. Keep the exact
+                // lease registered/retryable if the close throws.
+                entry.channel.close()
+                check(!entry.channel.isOpen&&!entry.lock.isValid) {"ENGINE_USAGE_RELEASE_PENDING"}
+                shared.remove(key)
+            }
+        }
+        closed.set(true)
     }
-    @Synchronized private fun releaseMutation(lease:Mutation) {
-        if(mutations[lease.directory.path]===lease){mutations.remove(lease.directory.path);lease.lock.release();lease.channel.close()}
+    @Synchronized private fun releaseMutation(lease:Mutation,closed:AtomicBoolean) {
+        if(closed.get())return
+        if(mutations[lease.directory.path]===lease){
+            lease.channel.close()
+            check(!lease.channel.isOpen&&!lease.lock.isValid) {"ENGINE_MUTATION_RELEASE_PENDING"}
+            mutations.remove(lease.directory.path)
+        }
+        closed.set(true)
         // Closing a process lease never removes pending.json.
     }
     @Synchronized fun acquireUsage(directory:File):Usage? {

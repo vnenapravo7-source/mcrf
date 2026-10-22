@@ -12,7 +12,7 @@ import android.widget.*
 import org.json.JSONObject
 
 class ConnectionEditor(private val activity: MainActivity, private val entry: ServerImport.Server) {
-    private val form = activity.card()
+    private val form = EditorLayout.body(activity).apply {tag="connection-editor-form"}
     private val options = ConnectionEdits.snapshot(entry)
     private val name = input(entry.name)
     private val readers = mutableListOf<() -> Unit>()
@@ -33,15 +33,44 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         typeface=android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.NORMAL)
     }
     private fun field(label: String, control: View, explanation: String, parent: LinearLayout = form) {
-        parent.addView(activity.field(label, control))
-        parent.addView(activity.text(explanation, 11, Loft.MUTED), activity.space(0, 14))
+        if(control is CarrierOption){control.describe(label,explanation);parent.addView(control,activity.space(0,4));return}
+        EditorLayout.field(activity,parent,label,control,explanation)
+    }
+    private fun picker(labels:Array<String>,selected:Int,help:String)=CarrierOption(activity,labels.map {CarrierOption.Value(it,optionHelp(it,help))},selected,::changed)
+    private fun optionHelp(label:String,fallback:String):String=when {
+        label.contains("Ручн",true)->"Используются звонки, указанные в полях этого сервера."
+        label.contains("Auto JS",true)||label.contains("Авто VK",true)->"Звонки создаются через авторизованный аккаунт VK. Нужен соответствующий режим и токен."
+        label.contains("legacy",true)||label.contains("Капча",true)->"Совместимый способ получения TURN-данных. VK может запросить проверку капчи."
+        label.contains("UDP",true)->"Транспорт UDP. Обычно даёт меньшую задержку; сеть должна пропускать UDP до TURN."
+        label.contains("TCP",true)->"Транспорт TCP для сетей с ограничениями UDP. Меняет только участок до TURN."
+        label.contains("Аудио",true)->"Маскировка трафика под аудиопоток звонка. Должна поддерживаться сервером."
+        label.contains("Видео",true)->"Маскировка трафика под видеопоток звонка. Должна поддерживаться сервером."
+        else->"$label. $fallback"
+    }
+    private fun carrierAddress(node:JSONObject) {
+        val panel=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL;visibility=View.GONE;tag="carrier-address-fields"}
+        val toggle=activity.button("Адрес  ▾",false).apply {tag="carrier-address";setOnClickListener {panel.visibility=if(panel.visibility==View.VISIBLE)View.GONE else View.VISIBLE;text=if(panel.visibility==View.VISIBLE)"Адрес  ▴"else"Адрес  ▾"}}
+        form.addView(toggle,activity.space(0,8));form.addView(panel,activity.space(0,12))
+        scalar(node,"server","Адрес сервера","Домен или IP без схемы и порта.",parent=panel)
+        scalar(node,"server_port","Порт","Порт подключения на сервере.",parent=panel)
+        val password=input(node.optString("password"),true)
+        field("Пароль",password,"Пароль подключения. Пробелы сохраняются.",panel)
+        readers.add {node.put("password",password.text.toString())}
+    }
+    private fun calls(node:JSONObject):VkCallSlots {
+        val old=node.optJSONArray("hashes")?:org.json.JSONArray()
+        return VkCallSlots(activity,(0 until old.length()).map {old.getString(it)},Int.MAX_VALUE,::changed).also {control->
+            field("VK-звонки",control,"По одной ссылке или хешу в поле. Несколько звонков можно вставить сразу в первое поле.")
+            readers.add {node.put("hashes",org.json.JSONArray(control.values))}
+            form.addView(VkManualCallsUi.generator(activity,VkRelayAccount(AndroidDeployStore(activity)),{form.isAttachedToWindow}){control.append(it)},activity.space(0,12))
+            EditorLayout.heading(activity,form,"Параметры подключения","settings")
+        }
     }
     private fun switch(parent: LinearLayout, title: String, explanation: String, checked: Boolean) = Switch(activity).apply {
         text = title; activity.tune(this); isChecked = checked
         parent.addView(this); parent.addView(activity.text(explanation, 11, Loft.MUTED), activity.space(0, 12))
     }
     init {
-        form.addView(activity.text(entry.label(), 12, Loft.ACCENT), activity.space(0, 12))
         field("Название", name, "Название только в MCRF. Локальные правки не меняют исходную подписку.")
         if (entry.outbound != null && ClientPrimarySelection.selected(activity) == "singbox") {
             val familyKey = ConnectionAddressFamily.key(entry.id)
@@ -180,7 +209,18 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
     }
     private fun scalar(node: JSONObject, key: String, label: String, explanation: String, secret: Boolean = false, parent: LinearLayout = form) {
         val old = node.opt(key)
+        if(key=="fingerprint"&&old !is Boolean){
+            val values=(listOf("chrome","firefox","safari","ios","android","random","randomized")+node.optString(key)).distinct()
+            val control=picker(values.map {it.ifEmpty {"Выбор движка"}}.toTypedArray(),values.indexOf(node.optString(key)),explanation)
+            field("Отпечаток TLS",control,explanation,parent)
+            readers.add {node.put(key,values[control.selectedItemPosition])};return
+        }
         if (old is Boolean) {
+            if(entry.carrier!=null){
+                val labels=if(key=="turn_tcp")arrayOf("TURN · UDP","TURN · TCP")else arrayOf("Выключено","Включено")
+                val control=picker(labels,if(old)1 else 0,explanation)
+                field(label,control,explanation,parent);readers.add {node.put(key,control.selectedItemPosition==1)};return
+            }
             val control = switch(parent, label, explanation, old)
             readers.add { node.put(key, control.isChecked) }
         } else {
@@ -191,10 +231,15 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
     }
     private fun carrier(node: JSONObject) {
         if(Csqtt25Profile.isProfile(node)){csqtt25(node);return}
-        if(node.optString("type")=="qwdtt"&&!node.has("vk_call_count"))node.put("vk_call_count",6)
-        val sourceMode = if (node.optString("type") == "qwdtt") activity.picker(arrayOf("Ручные звонки", "Автоматически · VK"), if (node.optString("hash_source") == "auto") 1 else 0).also {
-            field("Источник звонков", it, "Авто создаёт выбранное число звонков при подключении; нужен привязанный VK. Ручные звонки всегда имеют приоритет и не требуют входа. Токен не входит в профиль.")
-        } else null
+        if(node.optString("type")=="csqtt"){
+            val families=CsqttGenerations.legacy
+            val generation=picker(families.map {it.label}.toTypedArray(),families.indexOf(CsqttGenerations.family(node)),"Выберите поколение сервера. Для каждого несовместимого протокола скачивается отдельный модуль; автоматической подмены нет.")
+            field("Поколение CSQTT",generation,"Старые сохранённые подключения остаются на прежнем движке, пока вы сами не измените этот выбор.")
+            readers.add {node.put("csqtt_generation",families[generation.selectedItemPosition].id)}
+        }
+        if(node.optString("type") in setOf("csqtt","qwdtt")&&!node.has("fingerprint"))node.put("fingerprint","chrome")
+        val swg=node.optString("type") in SwgProfile.TYPES
+        if(swg)carrierAddress(node)
         if (node.optString("type") == "olcrtc") {
             if (!node.has("token")) scalar(node, "token", "Токен сервиса", "Необязательный токен WBStream; для datachannel обязателен.", true)
             if (!node.has("channel")) scalar(node, "channel", "Канал комнаты", "Необязательный ID канала сервиса. Пусто — значение движка.")
@@ -222,77 +267,91 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
             obj.keys().asSequence().toList().forEach { key ->
                 val value = obj.get(key); val path = if (prefix.isEmpty()) key else "$prefix.$key"
                 when {
-                    key in setOf("type", "name", "outbound_tag", "hash_source") -> Unit
+                    key in setOf("type", "name", "outbound_tag", "hash_source", "vk_call_count", "vk_hash_mode", "vk_runtime_token", "extra_streams", "csqtt_generation",CarrierStreamDefaults.OVERRIDE) -> Unit
+                    prefix.isEmpty()&&swg&&key in setOf("server","server_port","password","workers")->Unit
+                    prefix.isEmpty()&&key=="turn_tcp"&&node.optString("type")=="csqtt"&&CsqttGenerations.family(node).engine=="csqtt20"->{
+                        field("Транспорт TURN",activity.text("UDP",14,Loft.INK),"В CSQTT 2.0 доступен только UDP до TURN. TCP требует другого поколения сервера.")
+                    }
+                    prefix.isEmpty()&&node.optString("type") in SwgProfile.TYPES&&key in setOf("obfs","vk_anon_path","mode","go_dns","fingerprint")->{
+                        val choices=when(key){
+                            "obfs"->listOf("audio" to "Аудио","video" to "Видео")
+                            "vk_anon_path"->listOf("vkcalls" to "Авто · гостевые VK Calls","legacy" to "Капча · совместимый режим") + if(node.optString("type")=="csqtt"&&CsqttGenerations.family(node).engine=="csqtt")listOf("auto_js" to "Авто VK · привязанный аккаунт")else emptyList()
+                            "mode"->listOf("wg" to "WireGuard","raw" to "RAW")
+                            "go_dns"->listOf("yandex" to "Яндекс · обычный DNS","google" to "Google · обычный DNS","cloudflare" to "Cloudflare · обычный DNS","doh-yandex" to "Яндекс · DoH","doh-google" to "Google · DoH","doh-cloudflare" to "Cloudflare · DoH")
+                            else->if(node.optString("type") in setOf("csqtt","qwdtt"))listOf("firefox" to "Firefox","chrome" to "Chrome","safari" to "Safari")else listOf("android" to "Android","chrome" to "Chrome","firefox" to "Firefox","safari" to "Safari","ios" to "iOS")
+                        }
+                        val current=obj.getString(key)
+                        val index=choices.indexOfFirst {it.first==current}
+                        if(index<0)throw IllegalArgumentException("Неизвестный параметр транспорта: $key")
+                        val spec=CompatibilityImportFields.describe(key)
+                        val control=picker(choices.map {it.second}.toTypedArray(),index,spec.second)
+                        field(spec.first,control,spec.second)
+                        readers.add {obj.put(key,choices[control.selectedItemPosition].first)}
+                    }
                     key == "captcha_mode" && prefix.isEmpty() && node.optString("type") in SwgProfile.TYPES -> {
-                        var wire=obj.optString(key,"auto")
-                        lateinit var control:ModeSwitch
-                        control=ModeSwitch(activity,CarrierCaptchaMode.automatic(wire),java.util.function.Consumer {automatic->
-                            wire=CarrierCaptchaMode.select(wire,automatic);control.setMode(automatic,true);changed()
-                        },listOf("Авто","Вручную"),listOf("",""),true)
+                        val wire=obj.optString(key,"auto")
+                        val control=picker(arrayOf("Авто","Вручную"),if(CarrierCaptchaMode.automatic(wire))0 else 1,"Авто сначала использует автоматические способы, затем ручную проверку при необходимости. Вручную — проверка по уведомлению.")
                         control.tag="connection-captcha-mode";captchaControl=control
                         field("Капча VK",control,"Авто — автоматические способы движка; если они не помогут, появится запрос на ручную проверку. Вручную — окно VK по уведомлению. Изменение применяется при следующем подключении.")
-                        readers.add {obj.put(key,wire)}
+                        readers.add {obj.put(key,CarrierCaptchaMode.select(wire,control.selectedItemPosition==0))}
                     }
                     node.optString("type") == "olcrtc" && key == "options" -> Unit
                     node.optString("type") == "dnstt" && prefix.isEmpty() && key in setOf("doh", "dot", "udp", "username", "password") -> Unit
                     value is JSONObject -> visit(value, path)
                     value is org.json.JSONArray && key == "transports" -> repeat(value.length()) { i -> visit(value.getJSONObject(i), "Транспорт ${i + 1}") }
                     value is org.json.JSONArray && key == "hashes" -> {
-                        val control = activity.editor("").apply { minLines = 3; setText((0 until value.length()).joinToString("\n") { value.getString(it) }) }
-                        field("VK-звонки", control, "По одной ссылке или хешу на строку. QWDTT сохраняет до 64 звонков; CSQTT/WDTT — до 6. Аккаунт VK здесь не требуется.")
-                        readers.add { obj.put(key, org.json.JSONArray(control.text.toString().lines().map(String::trim).filter(String::isNotEmpty))) }
+                        calls(obj)
                     }
                     value !is org.json.JSONArray -> {
                         val spec = if (key == "mode" && node.optString("type") == "openflux") "Режим OpenFlux" to "Пусто — согласование профиля; stream — один потоковый транспорт без секрета и согласования. Должен соответствовать серверу." else CompatibilityImportFields.describe(key)
-                        scalar(obj, key, if (prefix.isEmpty()) spec.first else "$prefix · ${spec.first}", spec.second, key in setOf("password", "secret", "key", "token"))
+                        scalar(obj, key, if (prefix.isEmpty()) spec.first else "$prefix · ${spec.first}", spec.second, key in setOf("password", "secret", "key", "token", "custom_vk_client_secret"))
                     }
                 }
             }
         }
         visit(node)
-        if (sourceMode != null) readers.add { node.put("hash_source", if (CompatibilityImportQwdtt.hasCalls(node) || sourceMode.selectedItemPosition == 0) "manual" else "auto") }
-        readers.add { options.put("carrier", node) }
+        if(node.optString("type")=="qwdtt")readers.add {node.put("hash_source","manual");node.remove("vk_call_count")}
+        if(node.optString("type")=="csqtt")readers.add {node.put("vk_hash_mode",if(node.optString("vk_anon_path")=="auto_js")"auto_js"else"manual")}
+        readers.add { options.put("carrier", if(swg)CarrierStreamDefaults.apply(node,JSONObject()).apply {if(node.has(CarrierStreamDefaults.OVERRIDE))put(CarrierStreamDefaults.OVERRIDE,node.getInt(CarrierStreamDefaults.OVERRIDE))}else node) }
     }
     private fun csqtt25(node:JSONObject) {
+        val implementations=CsqttGenerations.modernImplementations
+        val keys=implementations.keys.toList()
+        val implementation=picker(implementations.values.toTypedArray(),keys.indexOf(CsqttGenerations.implementation(node)),"Оригинальный CSQTT 2.5 и Rebirth используют один протокол. SWG Panel 2.5.1 совместим с ним; отдельные копии одной совместимой библиотеки не скачиваются.")
+        field("Сервер CSQTT 2.5",implementation,"Выбор сохраняет происхождение профиля; не переключает на старое несовместимое поколение.")
+        readers.add {node.put("csqtt_implementation",keys[implementation.selectedItemPosition])}
         form.addView(activity.text("CSQTT 2.5 · отдельный движок. Старые подключения CSQTT остаются без изменений.",12,Loft.MUTED),activity.space(0,14))
-        scalar(node,"server","Адрес сервера","Домен или IP сервера CSQTT 2.5 без схемы и порта.")
-        scalar(node,"server_port","Порт сервера","Порт транспорта CSQTT 2.5; должен совпадать с сервером.")
-        val password=input(node.getString("password"),true)
-        field("Пароль подключения",password,"Пароль именно этого сервера и поколения. Сохраняется в зашифрованном каталоге; пробелы не удаляются автоматически.")
-        readers.add {node.put("password",password.text.toString())}
-        var wire=node.optString("captcha_mode","auto")
-        lateinit var captcha:ModeSwitch
-        captcha=ModeSwitch(activity,CarrierCaptchaMode.automatic(wire),java.util.function.Consumer {automatic->
-            wire=CarrierCaptchaMode.select(wire,automatic);captcha.setMode(automatic,true);changed()
-        },listOf("Авто","Вручную"),listOf("",""),true)
-        captcha.setMode(CarrierCaptchaMode.automatic(wire),true)
+        carrierAddress(node)
+        val wire=node.optString("captcha_mode","auto")
+        val captcha=picker(arrayOf("Авто","Вручную"),if(CarrierCaptchaMode.automatic(wire))0 else 1,"Авто — автоматические способы с ручной проверкой при необходимости. Вручную — проверка VK по уведомлению.")
         captcha.tag="connection-captcha-mode";captchaControl=captcha
         field("Капча VK",captcha,"Авто — цепочка способов CSQTT 2.5 с ручной проверкой по уведомлению, если потребуется. Вручную — сразу ручной WebView. При активном подключении ничего не перезапускается.")
-        readers.add {node.put("captcha_mode",wire)}
+        readers.add {node.put("captcha_mode",CarrierCaptchaMode.select(wire,captcha.selectedItemPosition==0))}
         val modes=arrayOf("manual","auto_js")
-        val source=activity.picker(arrayOf("Ручные звонки","Auto JS · токен из профиля"),modes.indexOf(node.getString("vk_hash_mode")).coerceAtLeast(0))
+        val source=picker(arrayOf("Ручные звонки","Auto JS · токен из профиля"),modes.indexOf(node.getString("vk_hash_mode")).coerceAtLeast(0),"Ручные звонки не требуют аккаунта. Auto JS использует токен авторизованного VK из профиля CSQTT 2.5.")
         field("Источник звонков CSQTT 2.5",source,"Отдельная схема оригинального CSQTT 2.5. Для Auto JS очисти ручные звонки и укажи токен; для ручных звонков очисти токен. Аккаунт QWDTT не используется.")
-        val hashes=activity.editor("").apply {minLines=3;setText(node.getJSONArray("hashes").let {a->(0 until a.length()).joinToString("\n"){a.getString(it)}})}
-        field("VK-звонки",hashes,"До шести ссылок или хешей, по одному на строку. Не сокращаются и не заменяются автоматически.")
+        calls(node)
         val token=input(node.optString("vk_token"),true)
         field("Токен Auto JS",token,"Секрет из профиля CSQTT 2.5. Хранится локально зашифрованно; не нужен для ручных звонков. Фоновые замеры не создают Auto JS-звонки.")
         readers.add {
-            node.put("vk_hash_mode",modes[source.selectedItemPosition]).put("hashes",org.json.JSONArray(hashes.text.toString().lines().map(String::trim).filter(String::isNotEmpty)))
+            node.put("vk_hash_mode",modes[source.selectedItemPosition])
             if(token.text.isEmpty())node.remove("vk_token")else node.put("vk_token",token.text.toString())
         }
-        if(node.optInt("link_workers")>0)form.addView(activity.text("Потоки заданы ссылкой сервера: ${node.getInt("link_workers")}. Точное число сохраняется без округления.",12,Loft.MUTED),activity.space(0,14))
-        else scalar(node,"workers","Число потоков","От 9 до 99, кратно 9. Без перераспределения — не более 27 на один ручной звонок.")
-        scalar(node,"allow_hash_redistribution","Перераспределять потоки","Только если это разрешено сервером CSQTT 2.5. Не отменяет ограничения сервера.")
-        scalar(node,"obfs","Маскировка CSQTT 2.5","По умолчанию unified. Параметр должен поддерживаться сервером; настройки старого CSQTT не переносятся.")
-        val fingerprint=input(node.getString("fingerprint"))
-        field("Отпечаток клиента",fingerprint,"Отпечаток оригинального клиента, по умолчанию chrome. Пусто — выбор самого движка.")
-        readers.add {node.put("fingerprint",fingerprint.text.toString().trim())}
+        scalar(node,"allow_hash_redistribution","Разрешить повторное использование хешей","Разрешает выбрать больше 10 потоков на один ручной хеш; распределением управляет сам движок swg-panel. Не отменяет ограничения VK.")
+        val masks=listOf("unified","audio","video")
+        val masking=picker(arrayOf("Unified · по умолчанию","Аудио","Видео"),masks.indexOf(node.getString("obfs")).coerceAtLeast(0),"Маскировка оригинального CSQTT 2.5. Должна поддерживаться сервером.")
+        field("Маскировка",masking,"Unified — штатный режим swg-panel. Audio и video — соответствующие виды медиапотока.")
+        readers.add {node.put("obfs",masks[masking.selectedItemPosition])}
+        val fingerprints=(listOf("","chrome","firefox","safari")+node.getString("fingerprint")).distinct()
+        val fingerprint=picker(fingerprints.map {it.ifEmpty {"Выбор движка"}}.toTypedArray(),fingerprints.indexOf(node.getString("fingerprint")),"Отпечаток TLS-клиента. Пусто — штатный выбор движка.")
+        field("Отпечаток TLS",fingerprint,"По умолчанию Chrome. Выбор не меняет приложение браузера на телефоне.")
+        readers.add {node.put("fingerprint",fingerprints[fingerprint.selectedItemPosition])}
         val authModes=arrayOf("vkcalls","legacy","auto_js")
-        val auth=activity.picker(arrayOf("VK Calls","Совместимый · legacy","Auto JS"),authModes.indexOf(node.getString("vk_auth_mode")).coerceAtLeast(0))
+        val auth=picker(arrayOf("VK Calls","Совместимый · legacy","Auto JS"),authModes.indexOf(node.getString("vk_auth_mode")).coerceAtLeast(0),"VK Calls — гостевой способ. Legacy — совместимый способ. Auto JS — авторизованный VK из профиля.")
         field("Авторизация VK в CSQTT 2.5",auth,"Auto JS требует соответствующий источник звонков и токен. Это не переключатель автоматического решения капчи.")
         readers.add {node.put("vk_auth_mode",authModes[auth.selectedItemPosition])}
         val transports=arrayOf("udp","tcp")
-        val turn=activity.picker(arrayOf("TURN · UDP","TURN · TCP"),transports.indexOf(node.getString("turn_transport")).coerceAtLeast(0))
+        val turn=picker(arrayOf("TURN · UDP","TURN · TCP"),transports.indexOf(node.getString("turn_transport")).coerceAtLeast(0),"Меняет транспорт от устройства до TURN. От TURN до сервера используется UDP.")
         field("Транспорт TURN",turn,"Отдельная настройка CSQTT 2.5; TCP не включается автоматически.")
         readers.add {node.put("turn_transport",transports[turn.selectedItemPosition])}
         val ips=activity.editor("").apply {minLines=2;setText(node.getJSONArray("custom_turn_ips").let {a->(0 until a.length()).joinToString("\n"){a.getString(it)}})}
@@ -303,8 +362,8 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         val salt=input(node.optString("salt"),true)
         field("Соль серверного пароля",salt,"Необязательное точное значение из оригинального профиля. Пробелы не удаляются автоматически.")
         readers.add {if(salt.text.isEmpty())node.remove("salt")else node.put("salt",salt.text.toString())}
-        if(node.has("device_id"))form.addView(activity.text("Привязка устройства сохранена. Открытие настроек не создаёт новую привязку.",12,Loft.MUTED),activity.space(0,14))
-        readers.add {options.put("carrier",node)}
+        if(node.has("device_id"))form.addView(activity.text("Локальный идентификатор профиля сохранён. В реализации swg-panel 2.5.1 адрес клиента определяется сервером по паролю, а не отдельной привязкой устройства.",12,Loft.MUTED),activity.space(0,14))
+        readers.add {options.put("carrier",CarrierStreamDefaults.apply(node,JSONObject()).apply {if(node.has(CarrierStreamDefaults.OVERRIDE))put(CarrierStreamDefaults.OVERRIDE,node.getInt(CarrierStreamDefaults.OVERRIDE))})}
     }
     private fun json(label: String, value: JSONObject, key: String) {
         val editor = activity.editor(label).apply { minLines = 8; maxLines = 14; setText(value.toString(2)); typeface = android.graphics.Typeface.MONOSPACE; textSize = 12f }
@@ -313,6 +372,7 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
     }
     private fun changed() { if (watching) { dirty = true; revision.incrementAndGet(); handler.removeCallbacks(saveLater); handler.postDelayed(saveLater, 700) } }
     private fun watch(view: View) {
+        if(view is VkCallSlots||view is CarrierOption)return // These controls own dynamic listeners.
         when (view) {
             is EditText -> view.addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit

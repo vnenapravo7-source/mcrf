@@ -71,6 +71,8 @@ struct tr_node {
     const char *security;      /* none | tls | reality */
     const char *sni;           /* маскировочный домен — он же SNI в ClientHello */
     const char *fp;            /* отпечаток браузера */
+    const char *profile_alpn;  /* NULL absent; empty explicit; exact order preserved */
+    uint64_t runtime_epoch49; /* captured owner, never a mutable current token */
     const char *pbk;           /* публичный ключ Reality, base64url */
     const char *sid;           /* short id Reality, hex */
     const char *path;          /* xhttp, ws, httpupgrade; у ws/httpupgrade — с `?ed=` (trpath.h) */
@@ -107,6 +109,9 @@ struct tr_node {
  * packet-up поднимает вторую под выгрузку (см. trxhttp.c), и рукопожатие у неё то же самое. */
 struct tr_link {
     int fd;
+    uint64_t compat49;          /* private uTLS handle, zero on native diagnostics */
+    unsigned char *compat_buffer49; /* read_ref storage, released with this link */
+    int timeout49_s;
     int plain;                 /* security=none: TLS нет вовсе */
     /* Сервер перешёл на прямое копирование (команда direct в Vision): в сокете больше не наши
      * записи TLS, а поток целевого соединения как есть. Ставится извне — тем, кто разбирает
@@ -169,7 +174,7 @@ struct xh_state {
     enum xhttp_mode mode;
     struct xh_up up;           /* выгрузка stream-up и packet-up */
     uint64_t seq;              /* номер куска packet-up, с нуля */
-    char authority[128];       /* повторяется в каждом запросе череды */
+    char authority[256];       /* full endpoint/SNI name, repeated per upload request */
     char up_path[288];         /* путь с идентификатором сессии, без номера куска */
     /* Длина набивки, объявленная узлом. Запоминается здесь, потому что запросы выгрузки
      * (packet-up) собираются уже без узла на руках, а набивка нужна каждому: сервер
@@ -479,6 +484,8 @@ int tr_link_open(struct tr_link *l, const struct tr_node *n, const char *alpn, i
 /* Ввод-вывод основной связи в форме struct h2_io (ctx — struct tr_link). */
 int tr_link_write(void *ctx, const unsigned char *d, size_t n);
 int tr_link_read(void *ctx, unsigned char *d, size_t cap, size_t *got);
+int tr_link_read_ref(struct tr_link *l,const unsigned char **data,size_t *got);
+int tr_link_has_data(const struct tr_link *l);
 
 /* Закрыть связь: сокет и, если это был TLS, ключи в куче. */
 void tr_link_close(struct tr_link *l);

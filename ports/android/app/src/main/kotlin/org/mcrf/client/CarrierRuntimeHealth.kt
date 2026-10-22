@@ -6,7 +6,7 @@ object CarrierRuntimeHealth {
         if(retiring)return null
         if(kind=="csqtt"&&fatal!=null)return fatal.explanation
         if(alive)return null
-        val label=when(kind){"csqtt"->"CSQTT";"wdtt"->"WDTT";"qwdtt"->"QWDTT";"olcrtc"->"OLC";"dnstt"->"DNSTT";else->"Дополнительный"}
-        return "$label: процесс транспорта завершился. Открой логи и проверь сервер и параметры подключения."
+        val label=when(kind){"csqtt"->"CSQTT";"csqtt25"->"CSQTT 2.5";"wdtt"->"WDTT";"qwdtt"->"QWDTT";"olcrtc"->"OLC";"dnstt"->"DNSTT";"warpscout"->"WARP";else->"Дополнительный"}
+        return "$label: процесс транспорта завершился."
     }
 }

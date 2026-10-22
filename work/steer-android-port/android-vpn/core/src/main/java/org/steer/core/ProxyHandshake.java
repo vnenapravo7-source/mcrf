@@ -89,9 +89,16 @@ public final class ProxyHandshake {
         public final int port;
         private final byte[] address;
         private Target(String domain, byte[] address, int port) {
-            if (port < 1 || port > 65535) throw new IllegalArgumentException("Invalid proxy port");
+            this(domain,address,port,false);
+        }
+        private Target(String domain,byte[] address,int port,boolean unspecifiedBound) {
+            if ((port < 1 || port > 65535)&&!(unspecifiedBound&&port==0&&domain==null&&Arrays.equals(address,new byte[4])))
+                throw new IllegalArgumentException("Invalid proxy port");
             this.domain = domain; this.address = address == null ? null : address.clone(); this.port = port;
         }
+        /** RFC1928 unknown BND endpoint. Never use this as a requested target
+         * or pretend a private UNIX relay has a real Internet socket address. */
+        public static Target unspecifiedBound(){return new Target(null,new byte[4],0,true);}
         public byte[] address() { return address == null ? null : address.clone(); }
         public static Target numeric(byte[] bytes, int port) {
             if (bytes == null || (bytes.length != 4 && bytes.length != 16))

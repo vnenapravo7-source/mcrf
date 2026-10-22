@@ -22,7 +22,7 @@ java {
 }
 sourceSets.named("main") {
     java.setSrcDirs(listOf(sourceRoot, file("src/main/java")))
-    java.setIncludes(sourceNames + setOf("org/mcrf/engine/protocol/v1/PacketBackend.java", "org/mcrf/engine/protocol/v1/OwnedPacketBackend.java", "org/mcrf/engine/protocol/dns/v1/ManagedDnsPacketBackend.java"))
+    java.setIncludes(sourceNames + setOf("org/mcrf/engine/protocol/v1/PacketBackend.java", "org/mcrf/engine/protocol/v1/OwnedPacketBackend.java", "org/mcrf/engine/protocol/dns/v1/ManagedDnsPacketBackend.java", "org/mcrf/engine/protocol/pipe/v1/PacketPipeBackend.java"))
 }
 tasks.jar {
     manifest.attributes("MCRF-Primary-SPI-Version" to "1")

@@ -101,7 +101,7 @@ object ServerImport {
         val outputs = JSONArray().put(JSONObject().put("type", "direct").put("tag", "direct")); val endpoints = JSONArray(); val tags = JSONArray()
         selected.forEach { entry -> val tag = tag(entry); tags.put(tag)
             val node = JSONObject((entry.outbound ?: entry.endpoint!!).toString()).put("tag", tag)
-                .put("domain_resolver", JSONObject().put("server", "bootstrap").put("strategy", "prefer_ipv4"))
+            if(!node.has("domain_resolver"))node.put("domain_resolver", JSONObject().put("server", "bootstrap").put("strategy", "prefer_ipv4"))
             if (entry.endpoint == null) outputs.put(node) else endpoints.put(node)
         }
         val finalTag = if (selected.size > 1) "proxy" else tags.getString(0)
@@ -167,7 +167,21 @@ object ServerImport {
         val port = data.get("port").toString().toInt(); require(port in 1..65535)
         val output = JSONObject().put("type", "vmess").put("tag", "imported").put("server", host).put("server_port", port).put("uuid", uuid)
             .put("security", data.optString("scy", "auto")).put("alter_id", data.optString("aid", "0").toInt())
-        if (data.optString("tls", "") == "tls") output.put("tls", JSONObject().put("enabled", true).put("server_name", data.optString("sni", host)))
+        if (data.optString("tls", "").equals("tls",true)) {
+            val options = mutableMapOf<String,String>()
+            for (key in listOf("sni","serverName","fp","fingerprint", "allowInsecure", "insecure"))
+                if (data.has(key)) options[key] = data.get(key).toString()
+            if(data.has("alpn"))options["alpn"]=when(val value=data.get("alpn")) {
+                is JSONArray->(0 until value.length()).joinToString(","){value.getString(it).also {token->require(',' !in token&&token==token.trim())}}
+                is String->value
+                else->throw IllegalArgumentException("Некорректный список ALPN.")
+            }
+            val settings = tls(host, options, false)
+            // Old imported VMess records did not materialize an absent insecure
+            // field. Keep that shape so existing encrypted entries roundtrip too.
+            if (!options.containsKey("insecure") && !options.containsKey("allowInsecure")) settings.remove("insecure")
+            output.put("tls", settings)
+        }
         transport(mapOf("type" to data.optString("net", "tcp"), "path" to data.optString("path", "/"), "host" to data.optString("host", ""), "serviceName" to data.optString("path", "")))?.let { output.put("transport", it) }
         return Server(link, data.optString("ps", host), "vmess", host, port, output, null, null)
     }
@@ -180,26 +194,39 @@ object ServerImport {
         return Server(original ?: text, label, if (awg) "awg" else "wireguard", peer.getString("address"), peer.getInt("port"), null, endpoint, null, null, parsed.dns())
     }
     private fun tls(host: String, q: Map<String, String>, quic: Boolean): JSONObject {
-        val insecure = q["insecure"] ?: q["allowInsecure"] ?: "0"
-        val tls = JSONObject().put("enabled", true).put("server_name", q["sni"] ?: q["serverName"] ?: host).put("insecure", insecure in setOf("1", "true"))
-        q["alpn"]?.let { tls.put("alpn", list(it)) }; val reality = q["security"] == "reality"
+        val insecure = ServerLinkOptions.insecure(q)
+        val reality = q["security"] == "reality"
+        val tls = JSONObject().put("enabled", true).put("server_name", ServerLinkOptions.value(q, "sni", "serverName") ?: if(reality)""else host).put("insecure", insecure)
+        q["alpn"]?.let { tls.put("alpn", list(it)) }
         if (reality) tls.put("reality", JSONObject().put("enabled", true).put("public_key", required(q["pbk"])).put("short_id", q["sid"] ?: ""))
-        if (!quic && (reality || q.containsKey("fp"))) tls.put("utls", JSONObject().put("enabled", true).put("fingerprint", q["fp"] ?: "chrome"))
+        val fingerprint = ServerLinkOptions.value(q, "fp", "fingerprint")
+        if (!quic && (reality || fingerprint != null)) tls.put("utls", JSONObject().put("enabled", true).put("fingerprint", fingerprint ?: "chrome"))
         return tls
     }
     private fun transport(q: Map<String, String>): JSONObject? {
-        var type = q["type"] ?: q["network"] ?: "tcp"; if (type.isEmpty() || type == "tcp") return null; if (type == "splithttp") type = "xhttp"
+        val types = listOfNotNull(q["type"], q["network"]).map(ServerLinkOptions::transport).distinct()
+        require(types.size <= 1) { "В ссылке заданы разные транспорты." }
+        val type = types.singleOrNull() ?: "tcp"; if (type == "tcp") return null
         require(type in setOf("ws", "grpc", "httpupgrade", "xhttp")); val transport = JSONObject().put("type", type)
         if (type == "grpc") transport.put("service_name", q["serviceName"] ?: "")
         else { transport.put("path", q["path"] ?: "/"); val host = q["host"].orEmpty(); if (host.isNotEmpty()) transport.put(if (type == "xhttp") "host" else "headers", if (type == "xhttp") host else JSONObject().put("Host", host)) }
         if (type == "xhttp") add(transport, "mode", q["mode"]); return transport
     }
     private fun query(query: String?): Map<String, String> = TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER).apply {
-        query?.split('&')?.forEach { part -> val pieces = part.split('=', limit = 2); put(decode(pieces[0]), decode(pieces.getOrNull(1))) }
+        query?.split('&')?.forEach { part ->
+            val pieces = part.split('=', limit = 2);val key=decode(pieces[0]);val value=decode(pieces.getOrNull(1))
+            require(!containsKey(key)||get(key)==value) { "В ссылке повторён параметр с разными значениями." }
+            put(key,value)
+        }
     }
     private fun decode(value: String?) = if (value == null) "" else URLDecoder.decode(value.replace("+", "%2B"), "UTF-8")
     private fun decode64(value: String) = CompatibilityImportFormats.decodeBase64(value)
     private fun required(value: String?): String { require(!value.isNullOrBlank()); return value }
     private fun add(objectRef: JSONObject, key: String, value: String?) { if (value != null) objectRef.put(key, value) }
-    private fun list(value: String) = JSONArray(value.split(',').map { it.trim() })
+    private fun list(value: String):JSONArray {
+        if(value.trim(' ','\t').isEmpty())return JSONArray()
+        val values=value.split(',').map {it.trim(' ','\t')}
+        require(values.all {it.isNotEmpty()&&it.toByteArray(Charsets.UTF_8).size<=255&&it.all {c->c.code in 0x21..0x7e}}) {"Некорректный список ALPN."}
+        return JSONArray(values)
+    }
 }

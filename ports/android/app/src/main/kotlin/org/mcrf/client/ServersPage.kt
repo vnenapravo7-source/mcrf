@@ -49,7 +49,6 @@ class ServersPage(private val activity: MainActivity) {
         page.addView(actions, space(0, 8))
         val progressLabel=text("",12,Loft.MUTED).apply { visibility=View.GONE;contentDescription="Ход проверки серверов" }
         page.addView(progressLabel,space(0,12))
-        if(includeControls) page.addView(buildControls(whitelistPolicy=whitelistOnly),space(0,12))
         section(page, "ПОДКЛЮЧЕНИЯ · ${entries.size}")
         if (entries.isEmpty()) page.addView(card().apply { addView(text("Пока нет серверов", 18, Loft.INK)); addView(text("Вставьте ссылку или подписку, либо выберите файл конфигурации.", 13, Loft.MUTED), space(8, 0)) }, space(0, 20))
         val pool = try { catalogue.autoIds() } catch (_: Exception) { emptySet() }
@@ -128,57 +127,6 @@ class ServersPage(private val activity: MainActivity) {
         }
         pageRefresh?.invoke()
     }
-    /** Host the existing mode pill and automation in one surface; no overlay gutter. */
-    @JvmOverloads fun buildControls(mode:View?=null,whitelistPolicy:Boolean=false):LinearLayout = with(activity) {
-        val options = card().apply {orientation=LinearLayout.VERTICAL;tag="auto-options";setPadding(dp(14),dp(6),dp(10),dp(6))}
-        mode?.let { options.addView(it,LinearLayout.LayoutParams(-1,-2)) }
-        lateinit var auto:AutoSelectSwitch
-        var syncAutoControls:()->Unit={}
-        auto = AutoSelectSwitch(this, automatic, { working() }) { value ->
-            val applied=setAutomatic(value);auto.showChecked(automatic);syncAutoControls();pageRefresh?.invoke()
-            if(applied&&value)measureAllOnEnable()
-        }
-        val optionsRow=LinearLayout(this).apply {gravity=Gravity.CENTER_VERTICAL;addView(auto,LinearLayout.LayoutParams(0,dp(48),1f))}
-        options.addView(optionsRow,LinearLayout.LayoutParams(-1,dp(48)))
-        val probe = LinearLayout(this).apply {tag="auto-details";orientation = LinearLayout.VERTICAL; visibility = if(automatic&&prefs.getBoolean("autoExpanded",false))View.VISIBLE else View.GONE;setPadding(0,dp(8),dp(4),dp(8)) }
-        val expand=iconButton("arrow","Параметры автовыбора").apply {tag="auto-expand";isEnabled=automatic;rotation=if(probe.visibility==View.VISIBLE)270f else 90f
-            setOnClickListener {val expanded=probe.visibility!=View.VISIBLE;probe.visibility=if(expanded)View.VISIBLE else View.GONE;prefs.edit().putBoolean("autoExpanded",expanded).apply();animate().rotation(if(expanded)270f else 90f).setDuration(160).start()}
-        }
-        optionsRow.addView(expand,LinearLayout.LayoutParams(dp(48),dp(48)))
-        syncAutoControls={
-            probe.visibility=if(automatic&&prefs.getBoolean("autoExpanded",false))View.VISIBLE else View.GONE
-            expand.isEnabled=automatic;expand.animate().cancel();expand.rotation=if(probe.visibility==View.VISIBLE)270f else 90f
-        }
-        autoControlsRefresh={auto.showChecked(automatic);syncAutoControls()}
-        if(whitelistPolicy)probe.addView(text("Автовыбор проверяет отмеченные подключения белых списков при запуске: сначала приоритет движка, затем свежий пинг. Устаревший замер не снимает отметку. VPN-серверы в этот пул не входят.",12,Loft.MUTED).apply {tag="whitelist-auto-hint"},space(0,8))
-        val seconds = number(prefs.getInt("interval", 60)); val tolerance = number(prefs.getInt("tolerance", 50))
-        seconds.tag="auto-interval";tolerance.tag="auto-tolerance"
-        seconds.contentDescription="Интервал проверки серверов, секунды"
-        tolerance.contentDescription="Допустимое отклонение задержки, миллисекунды"
-        // Each section has one unambiguous pool; no hidden BS choice on VPN.
-        fun autoField(label:String,unit:String,control:EditText)=LinearLayout(this).apply {
-            orientation=LinearLayout.VERTICAL;setPadding(dp(8),dp(8),dp(8),dp(2));background=flat(Loft.FIELD,14,0)
-            addView(text(label,10,Loft.MUTED).apply {gravity=Gravity.CENTER},LinearLayout.LayoutParams(-1,-2))
-            addView(LinearLayout(this@with).apply {gravity=Gravity.CENTER
-                addView(control.apply {textSize=15f;includeFontPadding=false;gravity=Gravity.CENTER_VERTICAL or Gravity.END;background=null;setPadding(0,0,0,0);minimumHeight=dp(40);minHeight=dp(40);minimumWidth=dp(32);minWidth=dp(32)},LinearLayout.LayoutParams(-2,dp(40)))
-                addView(text(unit,12,Loft.MUTED),LinearLayout.LayoutParams(-2,-2).apply {leftMargin=dp(4)})
-            },LinearLayout.LayoutParams(-1,dp(40)))
-        }
-        val timing=LinearLayout(this).apply {gravity=Gravity.TOP}
-        timing.addView(autoField("Замер раз в","с",seconds),LinearLayout.LayoutParams(0,-2,1f).apply {rightMargin=dp(8)})
-        timing.addView(autoField("Отклонение","мс",tolerance),LinearLayout.LayoutParams(0,-2,1f))
-        probe.addView(timing,space(10,0))
-        val description=if(autoPolicy()==AutoSelection.BS_ENGINES)"CSQTT → QWDTT → WDTT → OpenFlux" else "Отмеченные серверы · доступность проверяется при подключении; старый пинг не отменяет выбор"
-        probe.addView(text(description,11,Loft.MUTED).apply {gravity=Gravity.CENTER;setLineSpacing(dp(2).toFloat(),1f)},space(10,2))
-        fun persist(input:EditText,key:String,range:IntRange){input.addTextChangedListener(object:android.text.TextWatcher {
-            override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int)=Unit
-            override fun afterTextChanged(s:android.text.Editable?)=Unit
-            override fun onTextChanged(s:CharSequence?,start:Int,before:Int,count:Int){val value=s.toString().toIntOrNull();if(value!=null&&value in range){prefs.edit().putInt(key,value).apply();input.error=null}}
-        });input.setOnFocusChangeListener {_,focus->if(!focus&&input.text.toString().toIntOrNull() !in range)input.error="${range.first}–${range.last}"}}
-        persist(seconds,"interval",5..86400);persist(tolerance,"tolerance",0..10000)
-        options.addView(probe)
-        options
-    }
     private fun subscriptionHeader(sub: JSONObject,title:String,count:Int):LinearLayout = with(activity) {
         val url = sub.getString("url"); val host = SubscriptionClient.address(url).host; val id = sub.getString("id")
         fun edit() {
@@ -246,7 +194,7 @@ class ServersPage(private val activity: MainActivity) {
     private fun measure(only: List<ServerImport.Server>? = null) = with(activity) {
         val token = ProbeCoordinator.cancellationToken()
         measureServers(Operation {
-        val entries=only ?: ConnectionSections.entries(catalogue.entries(),connectionSectionWhitelists());val eligible=ProbePlan.all(entries)
+        val entries=only ?: ConnectionSections.entries(catalogue.entries(),connectionSectionWhitelists());val eligible=ProbePlan.all(entries,ClientPrimarySelection.selected(applicationContext))
         val results = ProbeCoordinator.measure(applicationContext, eligible, expectedCancellation = token); catalogue.recordProbes(results)
         val passed = results.values.count { it >= 0 }; ClientEvents.record(this, "Замеры", "Проверено серверов: ${results.size}, отвечают: $passed")
         "Проверено: ${results.size} из ${entries.size} · отвечают: $passed" + if(eligible.size<entries.size) ". Отдельные JSON-профили: ${entries.size-eligible.size}" else ""

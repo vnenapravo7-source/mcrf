@@ -44,9 +44,10 @@ class ClientPrimaryWorker private constructor(
      * Callers must retain worker and retry close before releasing their carrier/TUN resources.
      */
     class CleanupPending(val worker: ClientPrimaryWorker) : IllegalStateException("PRIMARY_WORKER_CLEANUP_PENDING")
-    private val stopping = AtomicBoolean()
+    private val publication=PrimaryWorkerPublication()
+    private val stopping = publication.stopping
     private val started = AtomicBoolean()
-    private val released = AtomicBoolean()
+    private val released = publication.retired
     private val boundReady = CountDownLatch(1)
     private val dead = CountDownLatch(1)
     private val connected = CompletableFuture<IBinder>()
@@ -65,10 +66,12 @@ class ClientPrimaryWorker private constructor(
     @Volatile private var handshake = false
     val remotePid: Int get() = pid
     /** Lifecycle only. STARTING (Steer) and RUNNING (sing-box) never assert reachability. */
-    @Volatile var state: String = "BOUND"
-        private set
-    @Volatile var steerProxyPort: Int = 0
-        private set
+    val state:String get()=publication.snapshot.status
+    val steerProxyPort:Int get()=publication.snapshot.proxyPort
+    val routeBackendPort:Int get()=publication.snapshot.routePort
+    private fun publish(status:String,proxyPort:Int=0,routePort:Int=0) {
+        check(publication.publish(status,proxyPort,routePort){remote?.isBinderAlive==true}) {"PRIMARY_WORKER_STOPPED_BEFORE_PUBLICATION"}
+    }
     private val deathRecipient = IBinder.DeathRecipient { observedDeath() }
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
@@ -103,7 +106,7 @@ class ClientPrimaryWorker private constructor(
                     }
                 }
                 return ClientPrimaryWorkerWire.readOutput(context, output)
-            } finally { ClientPrimaryWorkerWire.removeInput(context, output); inputs.remove(output) }
+            } finally { removeOwnedInput(output) }
         }
     }
 
@@ -159,9 +162,8 @@ class ClientPrimaryWorker private constructor(
                 val actualState = result.getString("status")
                 check(ClientPrimaryWorkerWire.acknowledgesStart(ClientPrimaryCorePolicy.Core.parse(choiceId), actualState) &&
                     !stopping.get() && remote?.isBinderAlive == true) { "PRIMARY_WORKER_NOT_RUNNING" }
-                if (choiceId == "steer") steerProxyPort = ClientSteerStartMetadata.workerPort(result.get("steerProxyPort"), JSONObject(settings))
-                state = requireNotNull(actualState)
-                if (stopping.get()) { steerProxyPort = 0; state = if (released.get()) "STOPPED" else "STOPPING" }
+                val port=if(choiceId=="steer")ClientSteerStartMetadata.workerPort(result.get("steerProxyPort"),JSONObject(settings)) else 0
+                publish(requireNotNull(actualState),proxyPort=port)
             } catch (error: Throwable) {
                 requestStop()
                 try { close() } catch (_: Exception) { throw CleanupPending(this) }
@@ -185,7 +187,7 @@ class ClientPrimaryWorker private constructor(
                 check(result.getString("status") == "PACKET_RUNNING" && !stopping.get() && remote?.isBinderAlive == true) { "PACKET_WORKER_NOT_RUNNING" }
                 check(result.getString("routeSettingsSha256")==ClientPrimaryWorkerWire.sha256(settings.toByteArray(Charsets.UTF_8))&&
                     result.get("ownedBlockFixture")==ownedBlockFixture&&result.get("managedDns")==managed&&result.get("vpnNetworkHandle")==vpnNetworkHandle) {"PACKET_WORKER_ROUTE_ACK"}
-                state = "PACKET_RUNNING"
+                publish("PACKET_RUNNING")
             } catch(error: Throwable) {
                 requestStop()
                 try {close()} catch(_: Exception) {throw CleanupPending(this)}
@@ -194,6 +196,110 @@ class ClientPrimaryWorker private constructor(
         }
     }
 
+    /** One-shot Steer native HTTPS probe. A numeric result alone is not
+     * completion: this method publishes it only AFTER observed worker death.
+     * Caller must retain CleanupPending.worker until retirement completes. */
+    internal fun probeSteer(profile:String,spec:SteerProbeSpec,dial:String):Long {
+        offUi()
+        try {
+            val result=synchronized(commandLock) {
+                check(choiceId=="steer"&&serviceClass==ClientPrimaryProbeWorkerService::class.java&&hostPlatform!=null&&
+                    !stopping.get()&&started.compareAndSet(false,true)) {"STEER_PROBE_FRESH_WORKER"}
+                require(RouteRules.literal(dial) is java.net.Inet4Address) {"STEER_PROBE_IPV4_DIAL"}
+                val settings=spec.json().toString()
+                val directory=synchronized(resourceLock) {
+                    check(!stopping.get()) {"PRIMARY_WORKER_STOPPING"}
+                    ClientPrimaryWorkerWire.makeRunDirectory(context).also {directories.add(it)}
+                }
+                publish("PROBING")
+                val reply=withInput(profile,settings,dial) {file->
+                    call("PROBE_STEER",spec.timeoutMs.toLong()+5000) {
+                        putString("file",file.path);putString("stateDirectory",directory.path)
+                    }
+                }
+                check(reply.getString("requestSha256")==SteerProbeSpec.requestSha(profile,settings,dial)&&
+                    reply.get("latency") is Long) {"STEER_PROBE_REPLY"}
+                reply.getLong("latency").also {check(it in -1..spec.timeoutMs.toLong()) {"STEER_PROBE_RESULT"}}
+            }
+            close()
+            return result
+        }catch(error:Throwable){
+            requestStop()
+            try {close()}catch(_:Exception){throw CleanupPending(this)}
+            throw error
+        }
+    }
+    /** Source-only private backend. Listener readiness is not target reachability,
+     * DNS support, routing acceptance or permission to release this worker. */
+    internal fun openSteerRoute(profile:String,spec:SteerRouteBackendSpec,dial:String):Int {
+        offUi()
+        synchronized(commandLock) {
+            check(choiceId=="steer"&&ClientPrimaryWorkerWire.isRouteWorker(serviceClass)&&hostPlatform!=null&&
+                !stopping.get()&&started.compareAndSet(false,true)) {"STEER_ROUTE_FRESH_WORKER"}
+            require(RouteRules.literal(dial) is java.net.Inet4Address) {"STEER_ROUTE_IPV4_DIAL"}
+            try {
+                val settings=spec.json().toString()
+                val directory=synchronized(resourceLock) {
+                    check(!stopping.get()){ "PRIMARY_WORKER_STOPPING" }
+                    ClientPrimaryWorkerWire.makeRunDirectory(context).also {directories.add(it)}
+                }
+                val result=withInput(profile,settings,dial) {file->
+                    call("OPEN_ROUTE",25000) {
+                        putString("file",file.path);putString("stateDirectory",directory.path)
+                    }
+                }
+                check(result.getString("status")=="ROUTE_LISTENING"&&
+                    result.getString("requestSha256")==SteerProbeSpec.requestSha(profile,settings,dial)&&
+                    result.get("routePort") is Int&&result.getInt("routePort") in 1024..65535&&
+                    !stopping.get()&&remote?.isBinderAlive==true) {"STEER_ROUTE_REPLY"}
+                val port=result.getInt("routePort")
+                publish("ROUTE_LISTENING",routePort=port)
+                return port
+            }catch(error:Throwable){
+                requestStop()
+                try {close()}catch(_:Exception){throw CleanupPending(this)}
+                throw error
+            }
+        }
+    }
+    /** Private AF_UNIX packet role, NOT another Android VPN/TUN or a stream proxy. */
+    internal fun openPacketRoute(profile:String,pipe:ParcelFileDescriptor,dial:String) {
+        offUi()
+        synchronized(commandLock) {
+            check(choiceId=="wg-awg"&&ClientPrimaryWorkerWire.isRouteWorker(serviceClass)&&hostPlatform!=null&&
+                !stopping.get()&&started.compareAndSet(false,true)){"PACKET_PIPE_FRESH_WORKER"}
+            try {
+                val settings=JSONObject().put("schema",1).put("destinationDns","owned_by_dispatcher").toString()
+                val reply=withInput(profile,settings,dial) {file->
+                    call("OPEN_PACKET_ROUTE",25000){putString("file",file.path);putParcelable("pipe",pipe)}
+                }
+                check(reply.getString("status")=="PACKET_PIPE_STARTED"&&
+                    reply.getString("requestSha256")==SteerProbeSpec.requestSha(profile,settings,dial)&&
+                    !stopping.get()&&remote?.isBinderAlive==true){"PACKET_PIPE_REPLY"}
+                publish("PACKET_PIPE_STARTED")
+            }catch(error:Throwable){
+                requestStop();try {close()}catch(_:Exception){throw CleanupPending(this)};throw error
+            }
+        }
+    }
+    internal fun attachRoutePipe(settings:String,spec:PacketRoutePipeSpec,pipe:ParcelFileDescriptor) {
+        offUi()
+        synchronized(commandLock) {
+            check(choiceId=="singbox"&&serviceClass==ClientPrimaryWorkerService::class.java&&hostPlatform!=null&&
+                !stopping.get()&&!started.get()){ "PACKET_ROUTE_DISPATCHER_PRESTART" }
+            try {
+                val profile=spec.json().toString()
+                val reply=withInput(profile,settings){file->call("ATTACH_ROUTE_PIPE",25000){putString("file",file.path);putParcelable("pipe",pipe)}}
+                check(reply.getString("status")=="PACKET_ROUTE_ATTACHED"&&reply.getString("requestSha256")==SteerProbeSpec.requestSha(profile,settings,"")&&
+                    !stopping.get()&&remote?.isBinderAlive==true){"PACKET_ROUTE_PIPE_REPLY"}
+            }catch(error:Throwable){requestStop();try {close()}catch(_:Exception){throw CleanupPending(this)};throw error}
+        }
+    }
+    internal fun dropRoutePipe(spec:PacketRoutePipeSpec) {
+        offUi()
+        check(choiceId=="singbox"&&serviceClass==ClientPrimaryWorkerService::class.java){"PACKET_ROUTE_DISPATCHER_ROLE"}
+        check(call("DROP_ROUTE_PIPE",5000){putString("tag",spec.tag);putString("nonce",spec.nonce)}.getString("status")=="PACKET_ROUTE_FAILED_CLOSED"){"PACKET_ROUTE_PIPE_REPLY"}
+    }
     /** Actual native URL test through the verified installed sing-box entry. Milliseconds. */
     fun health(tag: String, url: String, timeout: Int): Long {
         offUi()
@@ -221,8 +327,7 @@ class ClientPrimaryWorker private constructor(
 
     /** Safe from any thread; wake blocking calls immediately. close() still must be awaited. */
     fun requestStop() {
-        if (!stopping.compareAndSet(false, true)) return
-        steerProxyPort = 0; state = "STOPPING"
+        if (!publication.stop()) return
         failPending("PRIMARY_WORKER_STOPPING")
         val target = remote ?: return
         if (!handshake || !target.isBinderAlive) return
@@ -327,30 +432,56 @@ class ClientPrimaryWorker private constructor(
                 .also { inputs.add(it) }
         }
         try { return work(file) }
-        finally { ClientPrimaryWorkerWire.removeInput(context, file); inputs.remove(file) }
+        finally { removeOwnedInput(file) }
+    }
+
+    private fun removeOwnedInput(file:File) {
+        ClientPrimaryWorkerWire.removeInput(context,file)
+        if(!java.nio.file.Files.exists(file.toPath(),java.nio.file.LinkOption.NOFOLLOW_LINKS))inputs.remove(file)
     }
 
     private fun failPending(code: String) { pending.forEach { it.completeExceptionally(IllegalStateException(code)) } }
 
-    private fun observedDeath() {
-        if (!released.compareAndSet(false, true)) return
-        stopping.set(true)
-        steerProxyPort = 0; state = "STOPPED"
+    private fun observedDeath() = retireOwnedResources(true)
+
+    /** notifyDeath=false is allowed only before INIT/verified handshake: no
+     * native run was admitted. Resource release still requires real cleanup. */
+    private fun retireOwnedResources(notifyDeath:Boolean) {
+        if (!publication.retire()) return
         failPending("PRIMARY_WORKER_DIED")
         // Never run main cleanup inside the platform's Binder callback stack.
         Thread({
+            var interrupted=Thread.interrupted()
+            val cleanup=ClientPrimaryRetirement<Unit>(Unit,requestStop={},
+                retireCallbacks={(hostPlatform as? AutoCloseable)?.close()},
+                closeOwner={
+                    synchronized(resourceLock) {
+                        inputs.toList().forEach {file->removeOwnedInput(file);check(file !in inputs) {"PRIMARY_INPUT_CLEANUP_PENDING"}}
+                        directories.toList().forEach {file->
+                            ClientPrimaryWorkerWire.removeRunDirectory(context,file)
+                            check(!java.nio.file.Files.exists(file.toPath(),java.nio.file.LinkOption.NOFOLLOW_LINKS)) {"PRIMARY_DIRECTORY_CLEANUP_PENDING"}
+                            directories.remove(file)
+                        }
+                    }
+                },dependents=listOf(
+                    {
+                        boundReady.await()
+                        if(bound){
+                            try {context.unbindService(connection)}catch(_:IllegalArgumentException){/* Already unbound is idempotent. */}
+                            bound=false
+                        }
+                        try{remote?.unlinkToDeath(deathRecipient,0)}catch(_:java.util.NoSuchElementException){/* Dead recipient already removed. */}
+                    },
+                    {usage.close()},
+                    {if(notifyDeath)try{onDeath()}catch(_:Throwable){/* Notification only; exact platform/resources are already retired. */}}
+                ),completed={slots.remove(slot,this)})
             try {
-                synchronized(resourceLock) {
-                    inputs.forEach { ClientPrimaryWorkerWire.removeInput(context, it) }; inputs.clear()
-                    directories.forEach { ClientPrimaryWorkerWire.removeRunDirectory(context, it) }; directories.clear()
+                while(!cleanup.attempt()) {
+                    if(Thread.interrupted())interrupted=true
+                    try{Thread.sleep(cleanup.retryDelayMillis())}catch(_:InterruptedException){interrupted=true}
                 }
-                try { onDeath() } catch (_: Throwable) {} finally {
-                    boundReady.await()
-                    if (bound) { try { context.unbindService(connection) } catch (_: Exception) {}; bound = false }
-                    try { remote?.unlinkToDeath(deathRecipient, 0) } catch (_: Exception) {}
-                    usage.close()
-                }
-            } finally { slots.remove(slot, this); dead.countDown() }
+                dead.countDown() // After the retirement registry also dropped its pending entry.
+            }finally{if(interrupted)Thread.currentThread().interrupt()}
         }, "mcrf-primary-death").start()
     }
 
@@ -361,7 +492,7 @@ class ClientPrimaryWorker private constructor(
         try {
             // The live VPN worker is part of the foreground connection, not an
             // unrelated cached package. Probe workers retain ordinary binding.
-            val priority=if(serviceClass==ClientPrimaryWorkerService::class.java)Context.BIND_IMPORTANT else 0
+            val priority=if(serviceClass==ClientPrimaryWorkerService::class.java||ClientPrimaryWorkerWire.isRouteWorker(serviceClass))Context.BIND_IMPORTANT else 0
             bound = context.bindService(Intent(context, serviceClass), connection, Context.BIND_AUTO_CREATE or priority)
             check(bound) { "PRIMARY_WORKER_BIND_FAILED" }
         } finally { boundReady.countDown() }
@@ -391,17 +522,17 @@ class ClientPrimaryWorker private constructor(
             putString("choice", choiceId); putString("apkSha256", digest)
             hostPlatform?.let { putBinder("platform", ClientPrimaryPlatformBinder.stub(it, generation)) }
         }
-        if (!stopping.get()) state = "READY"
+        publish("READY")
     }
 
     private fun abandonBeforeHandshake() {
         // INIT cannot run before a verified handshake. No native code/worker lease exists yet.
-        stopping.set(true)
         boundReady.countDown()
-        if (released.compareAndSet(false, true)) {
-            try { if (bound) context.unbindService(connection) } catch (_: Exception) {}
-            finally { bound = false; usage.close(); slots.remove(slot, this); dead.countDown() }
-        }
+        check(!handshake) {"PRIMARY_HANDSHAKE_ALREADY_ADMITTED"}
+        retireOwnedResources(false)
+        var interrupted=Thread.interrupted()
+        try {while(dead.count!=0L)try{dead.await()}catch(_:InterruptedException){interrupted=true}}
+        finally{if(interrupted)Thread.currentThread().interrupt()}
     }
 
     companion object {
@@ -416,8 +547,9 @@ class ClientPrimaryWorker private constructor(
         /** platform=null permits preflight only. expectedApkSha256 may pin a durable verified receipt.
          * Otherwise pin the installed same-signer snapshot
          * inspected under this lease; the worker independently verifies those exact bytes again.
-         * onDeath is invoked on a cleanup thread after real death, before unbind/lease release;
-         * main should close its TUN there. Do not call blocking close from inside that callback.
+         * The exact AutoCloseable host platform is retired after real death,
+         * before file/binding/lease release. onDeath is then a notification only;
+         * it must not close resources belonging to a newer run or block on close().
          */
         @JvmStatic @JvmOverloads
         fun connect(context: Context, choiceId: String, generation: Long, platform: Platform? = null,
@@ -431,6 +563,18 @@ class ClientPrimaryWorker private constructor(
                           onDeath: () -> Unit = {}): ClientPrimaryWorker =
             connectOwned(context,"wg-awg",generation,platform,ClientPrimaryWorkerService::class.java,expectedApkSha256,onDeath,true)
 
+        internal fun connectRoute(context:Context,generation:Long,platform:Platform,expectedApkSha256:String,
+                                  slot:Int,onDeath:()->Unit={}):ClientPrimaryWorker {
+            require(slot in ClientPrimaryWorkerWire.routeWorkers.indices){"STEER_ROUTE_SLOT"}
+            return connectOwned(context,"steer",generation,platform,ClientPrimaryWorkerWire.routeWorkers[slot],expectedApkSha256,onDeath,false)
+        }
+
+        internal fun connectPacketRoute(context:Context,generation:Long,platform:Platform,expectedApkSha256:String,
+                                        slot:Int,onDeath:()->Unit={}):ClientPrimaryWorker {
+            require(slot in ClientPrimaryWorkerWire.routeWorkers.indices){"PACKET_PIPE_SLOT"}
+            return connectOwned(context,"wg-awg",generation,platform,ClientPrimaryWorkerWire.routeWorkers[slot],expectedApkSha256,onDeath,true)
+        }
+
         private fun connectOwned(context: Context, choiceId: String, generation: Long, platform: Platform?,
                     serviceClass: Class<out ClientPrimaryWorkerService>, expectedApkSha256: String?,
                     onDeath: () -> Unit, packet: Boolean): ClientPrimaryWorker {
@@ -439,6 +583,8 @@ class ClientPrimaryWorker private constructor(
             val app = context.applicationContext
             val core = if(packet) null else ClientPrimaryCorePolicy.Core.parse(choiceId)
             ClientPrimaryWorkerWire.processSuffix(serviceClass)
+            require(!ClientPrimaryWorkerWire.isRouteWorker(serviceClass)||
+                (platform!=null&&expectedApkSha256!=null&&((packet&&choiceId=="wg-awg")||(!packet&&choiceId=="steer")))) {"ROUTE_WORKER_ROLE"}
             val lease = EngineUpdateGate.acquireUsage(app) ?: throw IllegalStateException("PRIMARY_CORE_UPDATE_BUSY")
             var session: ClientPrimaryWorker? = null
             try {

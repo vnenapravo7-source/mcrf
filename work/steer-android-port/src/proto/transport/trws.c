@@ -312,7 +312,7 @@ static int ws_read(struct transport *t, unsigned char *d, size_t cap, size_t *go
             if (k <= 0) return k == 0 ? TR_ECLOSED : TR_EIO;
             n = (size_t)k;
         } else {
-            rc = tls13_read_ref(&t->link.tls, &in, &n);
+            rc = tr_link_read_ref(&t->link, &in, &n);
             if (rc) return rc;
         }
         if (!n) return 0;

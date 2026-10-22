@@ -11,30 +11,34 @@ import org.json.JSONObject
 object ServerManagementUi {
     fun view(owner:Activity,store:AndroidDeployStore,entry:AndroidDeployHistory.Entry):LinearLayout {
         val activity=owner as MainActivity
-        return with(activity){card().apply {
+        return with(activity){EditorLayout.body(this).apply {
+            setPadding(0,dp(8),0,dp(16))
             tag="server-management"
             require(entry.recipe=="swg")
             val template=entry.result.getJSONObject("transport_template")
             val host=template.getString("host");val sshPort=template.getString("sshPort").toInt();val user=template.getString("user")
-            addView(text("Управление SWG",18,Loft.INK),space(0,8))
-            addView(text("$user@$host:$sshPort",13,Loft.MUTED),space(0,8))
-            addView(text("Состояние и список клиентов загружаются по кнопке. Ничего не устанавливается и звонки VK не создаются.",12,Loft.MUTED),space(0,12))
-            val draft=store.get("deployDrafts").optJSONObject("swg")?.takeIf {
-                it.optString("host")==host&&it.optString("sshPort","22").toIntOrNull()==sshPort&&it.optString("user","root")==user
-            }?:JSONObject()
+            val draft=store.credentialsFor(entry)
+            val authBody=LinearLayout(this@with).apply {orientation=LinearLayout.VERTICAL;tag="serverManagement.credentials"}
+            addView(LinearLayout(this@with).apply {
+                gravity=android.view.Gravity.CENTER_VERTICAL
+                addView(text("$user@$host:$sshPort",13,Loft.MUTED),LinearLayout.LayoutParams(0,-2,1f))
+                addView(iconButton("edit","Изменить доступ SSH").apply {setOnClickListener {authBody.visibility=if(authBody.visibility==View.VISIBLE)View.GONE else View.VISIBLE}},LinearLayout.LayoutParams(dp(48),dp(48)))
+            },space(0,8))
+            addView(authBody,space(0,12))
+            authBody.visibility=if(draft.optString("sshPassword").isBlank()&&draft.optString("privateKey").isBlank())View.VISIBLE else View.GONE
             val password=editor("SSH-пароль").apply {tag="serverManagement.password";setSingleLine();inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD;typeface=android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.NORMAL);setText(draft.optString("sshPassword"))}
             val key=editor("Приватный SSH-ключ").apply {tag="serverManagement.key";minLines=3;setText(draft.optString("privateKey"))}
             val phrase=editor("Пароль ключа · если есть").apply {tag="serverManagement.keyPassword";setSingleLine();inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD;typeface=android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.NORMAL);setText(draft.optString("keyPassword"))}
             val mode=RadioGroup(this@with).apply {tag="serverManagement.auth";orientation=LinearLayout.HORIZONTAL}
             val passwordChoice=RadioButton(this@with).apply {id=View.generateViewId();text="Пароль";setTextColor(Loft.INK)}
             val keyChoice=RadioButton(this@with).apply {tag="serverManagement.authKey";id=View.generateViewId();text="SSH-ключ";setTextColor(Loft.INK)}
-            mode.addView(passwordChoice);mode.addView(keyChoice);addView(mode,space(0,8))
-            addView(password,space(0,12));addView(key,space(0,8));addView(phrase,space(0,12))
+            mode.addView(passwordChoice);mode.addView(keyChoice);authBody.addView(mode,space(0,8))
+            authBody.addView(password,space(0,12));authBody.addView(key,space(0,8));authBody.addView(phrase,space(0,12))
             fun fields(){val keyed=mode.checkedRadioButtonId==keyChoice.id;password.visibility=if(keyed)View.GONE else View.VISIBLE;key.visibility=if(keyed)View.VISIBLE else View.GONE;phrase.visibility=key.visibility}
             mode.setOnCheckedChangeListener {_,_->fields()};mode.check(if(draft.optString("sshAuth")=="key")keyChoice.id else passwordChoice.id);fields()
             val status=text("",13,Loft.MUTED).apply {tag="serverManagement.status"};addView(status,space(0,8))
             val journal=LinearLayout(this@with).apply {orientation=LinearLayout.VERTICAL;tag="serverManagement.journal"}
-            addView(journal,space(0,12))
+            journal.visibility=View.GONE
             fun refreshJournal(){
                 journal.removeAllViews()
                 runCatching {
@@ -54,7 +58,7 @@ object ServerManagementUi {
                 }.onFailure {journal.removeAllViews();journal.addView(text("Не удалось прочитать журнал действий. Сохранённые записи не изменены.",12,Loft.MUTED))}
             }
             refreshJournal()
-            val output=LinearLayout(this@with).apply {orientation=LinearLayout.VERTICAL};addView(output)
+            val output=LinearLayout(this@with).apply {orientation=LinearLayout.VERTICAL}
             var requestId:String?=null
             val self=WeakReference(this@with)
             val controls=mutableListOf<Button>()
@@ -69,10 +73,12 @@ object ServerManagementUi {
                 }
                 val keyed=mode.checkedRadioButtonId==keyChoice.id
                 if(keyed&&key.text.toString().isBlank()){
+                    authBody.visibility=View.VISIBLE
                     status.text="Укажи приватный SSH-ключ для этого сервера. Запрос не отправлен."
                     key.requestFocus();return
                 }
                 if(!keyed&&password.text.toString().isEmpty()){
+                    authBody.visibility=View.VISIBLE
                     status.text="Укажи SSH-пароль для этого сервера. Запрос не отправлен."
                     password.requestFocus();return
                 }
@@ -150,8 +156,11 @@ object ServerManagementUi {
                         }
                     }
                 }
-                requestId=if(action.confirmation)ServerManagementController.mutate(applicationContext,store,target,entry.result,action,parameters,confirmed,complete)
-                    else ServerManagementController.read(applicationContext,store,target,entry.result,action,complete)
+                val trust:(String,String)->Boolean={endpoint,fingerprint->
+                    self.get()?.let {ServerManagementHostTrust.confirm(it,this,endpoint,fingerprint)}?:false
+                }
+                requestId=if(action.confirmation)ServerManagementController.mutate(applicationContext,store,target,entry.result,action,parameters,confirmed,complete,trust)
+                    else ServerManagementController.read(applicationContext,store,target,entry.result,action,complete,trust)
                 if(requestId==null)status.text="Дождись завершения текущей операции сервера"else controls.forEach {it.isEnabled=false}
             }
             for(action in listOf(ServerManagementRequest.Action.STATUS,ServerManagementRequest.Action.CLIENTS,ServerManagementRequest.Action.INTERFACES)){
@@ -159,7 +168,11 @@ object ServerManagementUi {
             }
             val add=button("Добавить клиента",false).apply {tag="serverManagement.addClient";setOnClickListener {
                 val name=editor("Имя клиента").apply {tag="serverManagement.clientName";setSingleLine();filters=arrayOf(android.text.InputFilter.LengthFilter(96))}
-                val dialog=ThemedDialogBuilder(this@with).setTitle("Новый клиент · $host").setView(name)
+                val body=EditorLayout.body(this@with)
+                name.gravity=android.view.Gravity.CENTER_VERTICAL
+                EditorLayout.field(this@with,body,"Имя клиента",name)
+                body.addView(text("Клиент будет добавлен только на этот сервер. Существующие подключения сохранятся.",12,Loft.MUTED),space(0,8))
+                val dialog=ThemedDialogBuilder(this@with).setTitle("Новый клиент").setView(body)
                     .setNegativeButton("Отмена",null).setPositiveButton("Далее",null).create()
                 dialog.setOnShowListener {
                     dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -176,6 +189,9 @@ object ServerManagementUi {
                 dialog.show()
             }};controls.add(add);addView(add,space(0,8))
             addView(button("Отменить запрос",false).apply {setOnClickListener {requestId?.let(ServerManagementController::cancel)}},space(0,0))
+            addView(output,space(12,8))
+            addView(button("Последние действия",false).apply {setOnClickListener {journal.visibility=if(journal.visibility==View.VISIBLE)View.GONE else View.VISIBLE}},space(8,0))
+            addView(journal,space(0,12))
         }}
     }
 }

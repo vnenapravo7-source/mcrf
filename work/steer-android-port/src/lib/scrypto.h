@@ -202,6 +202,11 @@ int sc_x25519(unsigned char out[32], const unsigned char scalar[32], const unsig
 /* Публичная половина: X25519(scalar, 9). */
 int sc_x25519_base(unsigned char pub[32], const unsigned char scalar[32]);
 
+/* TLS1.3 P-256 share used by the real Firefox identity. Public points use SEC1
+ * uncompressed65; private scalars32. Invalid/off-curve peers fail closed. */
+int sc_p256_keypair(unsigned char priv[32],unsigned char pub[65]);
+int sc_p256_shared(unsigned char out[32],const unsigned char priv[32],const unsigned char pub[65]);
+
 /* ---- ML-KEM-768 и ML-DSA-65 (FIPS 203 и 204) ---------------------------------------------- */
 
 /* Постквантовая часть паритета с Xray-core: половина гибрида X25519MLKEM768 в TLS 1.3 (ClientHello

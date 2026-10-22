@@ -631,8 +631,8 @@ static int h1_wait(struct transport *t, int ws, int timeout_s) {
     for (;;) {
         const unsigned char *in = NULL;
         size_t got = 0;
-        if (!t->link.plain && tls13_has_record(&t->link.tls)) {
-            rc = tls13_read_ref(&t->link.tls, &in, &got);
+        if (!t->link.plain && tr_link_has_data(&t->link)) {
+            rc = tr_link_read_ref(&t->link, &in, &got);
             if (rc) return rc;
         } else {
             int64_t left = deadline - mono_ms();
@@ -651,7 +651,7 @@ static int h1_wait(struct transport *t, int ws, int timeout_s) {
                 in = raw;
                 got = (size_t)k;
             } else {
-                rc = tls13_read_ref(&t->link.tls, &in, &got);
+                rc = tr_link_read_ref(&t->link, &in, &got);
                 if (rc) return rc;
             }
         }
@@ -741,7 +741,7 @@ static int hu_read_wait(struct transport *t, unsigned char *d, size_t cap, size_
         if (k <= 0) return k == 0 ? TR_ECLOSED : TR_EIO;
         n = (size_t)k;
     } else {
-        int rc = tls13_read_ref(&t->link.tls, &in, &n);
+        int rc = tr_link_read_ref(&t->link, &in, &n);
         if (rc) return rc;
     }
     if (!n) return 0;

@@ -89,13 +89,16 @@ class MainActivity : Activity() {
     private val probeRefresh: () -> Unit = {ui {pageRefresh?.invoke()}}
     private var activeScroll: ScrollView? = null
     private var renderedPage: String? = null
+    private var renderedLoading=true
     private var pendingBackupPath: String? = null
     private lateinit var engineImport: EngineImportUi
     private var pendingConfigLink: String? = null
     private var pendingSettingsSave: Runnable? = null
     private var resumeAttempted=false
     private var preparedProxyPort: Int?=null
+    private var pendingConnectionWhitelists:Boolean?=null
     private var deployUi: AndroidDeployUi?=null
+    internal val deployNavigation=AndroidDeployBrowserUi.Navigation()
     private var warpController: WarpController?=null
     private var primaryChooser:AlertDialog?=null
     private var usageChooser:AlertDialog?=null
@@ -119,17 +122,24 @@ class MainActivity : Activity() {
                     val validationChoice=ClientPrimarySelection.effectiveWireGuardChoice(this@MainActivity,choiceId,
                         findSelected()?.protocol?.let(WgAddonPolicy::isWireGuard)==true)
                     val packetChoice=validationChoice=="steer"&&findSelected()?.protocol?.let(WgAddonPolicy::isWireGuard)==true
+                    val dispatcherChoice=validationChoice=="steer"&&!packetChoice&&RouteServerPlan.activeIds(routing.snapshot()).isNotEmpty()
                     var steerSettings:String?=null
                     if(packetChoice) {
+                        if(RouteServerPlan.activeIds(routing.snapshot()).isNotEmpty())throw ClientOptionalCoreRequired("sing-box")
                         require(prefs.getBoolean("tun",true)) {"Компактный WG/AWG работает только в режиме VPN."}
                         val entry=requireNotNull(findSelected())
                         ClientPacketSelection.validateConfiguration(this@MainActivity,entry.original,ClientPacketSelection.validationDial(entry.host))
+                    }else if(dispatcherChoice){
+                        require(prefs.getBoolean("tun",true)){"Steer с отдельными серверами правил требует режим VPN."}
+                        val entry=findSelected()?:throw IllegalArgumentException("Выбери основной сервер Steer.")
+                        NativeRoutePreparation.capture(this@MainActivity,entry,routing.snapshot(),catalogue.entries()).validate(this@MainActivity,true,
+                            prefs.getInt("port",10808),java.util.function.BooleanSupplier {isDestroyed||isFinishing})
                     }else if(validationChoice=="steer") {
                         val result=ClientPrimarySelection.steerSnapshot(this@MainActivity,routing.snapshot(),prefs.getBoolean("tun",true),true)
                         require(result.supported) {ClientPrimarySelection.steerFailure(result)}
                         steerSettings=result.settingsJson
                     }
-                    if(savedConfig.isNotBlank()&&!packetChoice) {
+                    if(savedConfig.isNotBlank()&&!packetChoice&&!dispatcherChoice) {
                         val savedChoice=ClientPrimarySelection.selected(this@MainActivity)
                         val session=ClientPrimaryWorker.connect(this@MainActivity,validationChoice,System.nanoTime().coerceAtLeast(1),null)
                         try {
@@ -243,6 +253,7 @@ class MainActivity : Activity() {
             status?.apply { text = McrfVpnService.status; setTextColor(if (McrfVpnService.status.startsWith("Ошибка")) Loft.ERROR else Loft.INK) }
             updateHomeControl()
             pageRefresh?.invoke()
+            drainRulesTile()
             if(current in setOf("Главная",ClientSettingsNavigation.WHITELISTS)&&!working()&&!catalogueRefreshInFlight&&SystemClock.elapsedRealtime()-lastCatalogueRefresh>=3000) {
                 catalogueRefreshInFlight=true;lastCatalogueRefresh=SystemClock.elapsedRealtime()
                 worker.execute {
@@ -281,6 +292,9 @@ class MainActivity : Activity() {
         receiveConfigLink(intent)
         pendingBackupPath = state?.getString("backupPath")
         selected = prefs.getString("selected", "").orEmpty(); automatic = prefs.getBoolean("automatic", false)
+        // The old standalone toggle no longer exists. Preserve a currently live
+        // legacy session, but never carry its hidden flag into a new connection.
+        if(automatic&&!active()){automatic=false;prefs.edit().putBoolean("automatic",false).apply()}
         if (state != null) { current = state.getString("page", current); scrollPositions[current] = state.getInt("scroll", 0); settingsOrigin = state.getString("settingsOrigin", "Главная");returnToDeployVk=state.getBoolean("returnToDeployVk");selectedDeployRecipe=state.getString("selectedDeployRecipe") }
         val retained = (lastNonConfigurationInstance as? ScreenState)?:hiddenScreenState
         hiddenScreenState=null
@@ -304,11 +318,12 @@ class MainActivity : Activity() {
                 catalogue.load();recoverWarpSelection(); routing.load();RemoteRoutingSchedule.sync(this,routing.snapshot()); var saved = ProfileStore(this).read()
                 LocalProxySettings.value(this)
                 SubscriptionUpdates.initialize(this, prefs)
+                if(!(BuildConfig.DEBUG&&intent.getBooleanExtra("test_direct",false)))SubscriptionOpenRefresh.onOpen(this,catalogue.subscriptions().isNotEmpty())
                 EngineUpdateSchedule.schedule(this);EngineUpdates.recover(this)
                 val direct = BuildConfig.DEBUG && saved.isEmpty() && intent.getBooleanExtra("test_direct", false)
                 if (direct) saved = assets.open("direct.json").use { String(ImportIO.read(it), Charsets.UTF_8) }
                 savedConfig = saved
-                ui { loading = false; val requested=deferredNavigation.take(); if(requested!=null&&!direct)navigate(requested)else render(); retained?.pendingImport?.let(engineImport::attach); if (direct) { openDiagnosticPage(); tun?.isChecked = true; prepareConnection(true) } else {startupChoices();EngineStartupUpdates.onOpen(this)} }
+                ui { loading = false; val requested=deferredNavigation.take(); if(requested!=null&&!direct)navigate(requested)else render(); retained?.pendingImport?.let(engineImport::attach); if (direct) { openDiagnosticPage(); tun?.isChecked = true; prepareConnection(true) } else if(!handleQuickTile()){startupChoices();EngineStartupUpdates.onOpen(this)} }
             } catch (_: Exception) { ui { loading = false; deferredNavigation.take(); render(); alert("Подключения", "Не удалось открыть сохранённые подключения. Исходные файлы не изменены.") } }
         }
     }
@@ -329,6 +344,7 @@ class MainActivity : Activity() {
         val animatePage = renderedPage != null && renderedPage != current
         renderedPage?.let { name -> activeScroll?.let { scrollPositions[name] = it.scrollY } }
         renderedPage = current
+        renderedLoading=loading
         shell.removeAllViews(); source = null; port = null; tun = null; connect = null; status = null; connectionHint = null;connectionTarget=null
         miniature?.animate()?.cancel(); miniature = null; miniatureShown = false; serversPanel = null
         selectedServer = null; homeLayout = null; modeSwitch = null; modeHint = null
@@ -351,16 +367,21 @@ class MainActivity : Activity() {
         viewport = FrameLayout(this).apply { clipToPadding=false; addView(scroll, FrameLayout.LayoutParams(-1,-1).apply {gravity=Gravity.CENTER_HORIZONTAL}) }
         shell.addView(viewport, LinearLayout.LayoutParams(-1, 0, 1f))
         if(current=="Логи") {scroll.removeView(page);viewport.removeView(scroll);viewport.addView(page,FrameLayout.LayoutParams(-1,-1));activeScroll=null}
-        val heading = when (current) { "Диагностика" -> "Конфигурация"; "Главная" -> "Подключение"; "Маршрутизация" -> "Маршруты"; else -> current }
-        if (current != "Главная" && !(mergedConnections&&ConnectionAppearance.isConnection(current))) {
-            if (ClientSettingsNavigation.isSettings(current)) page.addView(button("← ${if(current==ClientSettingsNavigation.ROOT) "Назад" else ClientSettingsNavigation.tabTitle(ClientSettingsNavigation.back(current,settingsOrigin,settingsDirectEntry,advancedOrigin))}",false).apply {
+        val heading = when (current) { "Диагностика" -> "Конфигурация"; "Главная" -> "Подключение"; "Маршрутизация" -> "Маршруты"; else -> ClientSettingsNavigation.tabTitle(current) }
+        if (!ConnectionAppearance.isConnection(current)) {
+            if (ClientSettingsNavigation.isSettings(current)&&current!="Автодеплой") page.addView(button("← ${if(current==ClientSettingsNavigation.ROOT) "Назад" else ClientSettingsNavigation.tabTitle(ClientSettingsNavigation.back(current,settingsOrigin,settingsDirectEntry,advancedOrigin))}",false).apply {
                 tag="settings-back";contentDescription="Вернуться: ${ClientSettingsNavigation.tabTitle(ClientSettingsNavigation.back(current,settingsOrigin,settingsDirectEntry,advancedOrigin))}"
                 setOnClickListener {onBackPressed()}
             },space(0,12))
             val title=text(heading,26,Loft.INK).apply {typeface=Typeface.create("sans-serif-medium",Typeface.NORMAL);setAccessibilityHeading(true)}
-            if(current=="Логи")page.addView(LinearLayout(this).apply {
+            if(current=="Автодеплой")page.addView(LinearLayout(this).apply {
+                gravity=Gravity.CENTER_VERTICAL
+                addView(iconButton("back","Назад").apply {tag="androidDeploy.back";setOnClickListener {onBackPressed()}},LinearLayout.LayoutParams(dp(48),dp(48)).apply {marginEnd=dp(8)})
+                addView(title,LinearLayout.LayoutParams(0,-2,1f))
+            },space(0,20))else if(current=="Логи")page.addView(LinearLayout(this).apply {
                 gravity=Gravity.CENTER_VERTICAL
                 addView(title,LinearLayout.LayoutParams(0,-2,1f))
+                addView(LogRetentionUi.button(this@MainActivity),LinearLayout.LayoutParams(-2,dp(48)).apply {rightMargin=dp(6)})
                 addView(button(if(prefs.getBoolean("logsTerminal",false))"Таблица"else"Терминал",false).apply {
                     tag="logs-view-toggle";contentDescription="Переключить оформление логов"
                     setOnClickListener {prefs.edit().putBoolean("logsTerminal",!prefs.getBoolean("logsTerminal",false)).apply();render()}
@@ -389,7 +410,7 @@ class MainActivity : Activity() {
             val joined=tab==ConnectionAppearance.TAB
             val chosen = if(joined)ConnectionAppearance.isConnection(current) else current==tab
             val item = button(if(joined)ConnectionAppearance.bottomLabel(lastConnectionPage,homeVisible,bsVisible) else ClientSettingsNavigation.tabTitle(tab), false).apply {
-                tag="nav-$tab";contentDescription = if(tab=="Главная")"VPN" else tab; isSelected = chosen; setTextColor(if (chosen) Loft.ACCENT else Loft.MUTED)
+                tag="nav-$tab";contentDescription = ClientSettingsNavigation.tabTitle(tab); isSelected = chosen; setTextColor(if (chosen) Loft.ACCENT else Loft.MUTED)
                 background = RippleDrawable(ColorStateList.valueOf(Loft.ripple()), flat(if (chosen) Loft.selection() else Color.TRANSPARENT, 18, 0), flat(Color.WHITE, 18, 0))
                 setPadding(dp(if(compactNavigation)1 else 2), dp(6), dp(if(compactNavigation)1 else 2), dp(6)); textSize = 11f; compoundDrawablePadding = dp(4);gravity=Gravity.CENTER
                 setSingleLine(true);setHorizontallyScrolling(false);ellipsize=TextUtils.TruncateAt.END;includeFontPadding=false;minHeight=0;minimumHeight=0
@@ -406,17 +427,24 @@ class MainActivity : Activity() {
         val searchQuery=pendingSettingsQuery.takeIf {anchor!=null}
         if(anchor!=null)pendingSettingsAnchor=null
         if(anchor!=null)pendingSettingsQuery=null
-        scroll.post { if (activeScroll===scroll) {
+        // Restore position before the new hierarchy's FIRST visible frame.
+        // A posted scroll briefly painted the top after Apply and other saves.
+        scroll.viewTreeObserver.addOnPreDrawListener(object:android.view.ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw():Boolean {
+                scroll.viewTreeObserver.removeOnPreDrawListener(this)
+                if(activeScroll!==scroll)return true
             val anchored=anchor?.let {page.findViewWithTag<View>(it)}
             val target=if(anchored!=null&&!searchQuery.isNullOrBlank())findSettingsSearchTarget(anchored,searchQuery)?:anchored else anchored
             if(target!=null) {
                 val rect=android.graphics.Rect();target.getDrawingRect(rect)
                 scroll.offsetDescendantRectToMyCoords(target,rect)
-                scroll.scrollTo(0,0);scroll.smoothScrollTo(0,(rect.top-dp(12)).coerceAtLeast(0))
+                scroll.scrollTo(0,(rect.top-dp(12)).coerceAtLeast(0))
                 target.sendAccessibilityEvent(android.view.accessibility.AccessibilityEvent.TYPE_VIEW_FOCUSED)
             } else {scroll.scrollTo(0,scrollPositions[pageName]?:0);if(anchor!=null)toast("Этот параметр скрыт выбранным режимом приложения")}
             updateMiniature(false)
-        } }
+                return true
+            }
+        })
     }
     private fun switchAppearance() {
         val dark = !Loft.dark
@@ -444,6 +472,7 @@ class MainActivity : Activity() {
     fun applyUserThemeColors() {
         UserThemeColorsUi.configure(this)
         Loft.apply(Loft.dark)
+        window.setBackgroundDrawable(Loft.rootBackground(this))
         routingScreenCache.clear()
         render()
     }
@@ -461,7 +490,8 @@ class MainActivity : Activity() {
         return candidates.sortedWith(compareByDescending<TextView>{SettingsSearchIndex.hitCount(query,it.text.toString())}.thenBy {it.text.length}).firstOrNull()
     }
     fun navigate(name: String) {
-        navigationRevision++
+        // Re-selecting an already visible tab is not a refresh. Keep the same
+        // controls, focus and scroll position (also after alias normalization).
         if(name=="VPN"){navigate("Главная");return}
         if(name in setOf(ClientSettingsNavigation.CAPTCHA,ClientSettingsNavigation.CONNECTIONS)){navigate(ConnectionAppearance.section(settingsOrigin,UsageFeatures.visible("Главная",UsageFeaturesUi.selected(this)),UsageFeatures.whitelists(UsageFeaturesUi.selected(this)))?:"Главная");return}
         if(name==ClientSettingsNavigation.TLS){openAdvanced("advanced-tls");return}
@@ -469,6 +499,9 @@ class MainActivity : Activity() {
         if(name==ClientSettingsNavigation.SHARING){pendingSettingsAnchor="lan-sharing-page";navigate(ClientSettingsNavigation.VPN);return}
         val canonical=ClientSettingsNavigation.canonical(name)
         if(canonical!=name){navigate(canonical);return}
+        val target=if(name=="Журнал")"Логи"else name
+        if(!loading&&!renderedLoading&&target==current&&renderedPage==current&&pendingSettingsAnchor==null)return
+        navigationRevision++
         if (loading) {deferredNavigation.capture(name);return}
         if(!UsageFeatures.visible(name,UsageFeaturesUi.selected(this))){current="Главная";render();return}
         activeScroll?.let { scrollPositions[current] = it.scrollY }
@@ -486,7 +519,8 @@ class MainActivity : Activity() {
     }
     @Deprecated("Legacy back dispatch for the Activity-based UI")
     override fun onBackPressed() {
-          if(current==ClientSettingsNavigation.VK&&returnToDeployVk){returnToDeployVk=false;navigate("Автодеплой")}
+          if(current=="Автодеплой"&&deployUi?.back()==true)return
+          else if(current==ClientSettingsNavigation.VK&&returnToDeployVk){returnToDeployVk=false;navigate("Автодеплой")}
           else if(ClientSettingsNavigation.isSettings(current))navigate(ClientSettingsNavigation.back(current,settingsOrigin,settingsDirectEntry,advancedOrigin))
         else if(current=="Диагностика")navigate(settingsOrigin)
         else if(current!="Главная")navigate("Главная")
@@ -499,15 +533,15 @@ class MainActivity : Activity() {
         else ForgeConnectionButton(this,connectionMotion,style,ConnectionAppearance.exit(prefs.getString(ConnectionAppearance.EXIT,null)),action).apply {resumeAnimation(animationResumed)}
     }
     private fun home() {
-        val control=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER_HORIZONTAL;tag="home-connection-control";background=Loft.connectionSurface(this@MainActivity);setPadding(dp(12),dp(12),dp(12),dp(4))}
+        val control=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER_HORIZONTAL;tag="home-connection-control";background=Loft.connectionSurface(this@MainActivity);setPadding(dp(12),dp(12),dp(12),dp(8))}
         connect=connectionButton {toggleConnection()}
         val custom=connect is ForgeConnectionButton
         val controls=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL}
         controls.addView(connect,LinearLayout.LayoutParams(if(custom)-1 else dp(104),dp(if(custom)224 else 104)))
         controls.addView(autoBsChoice(),LinearLayout.LayoutParams(-1,-2))
         control.addView(controls,LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=dp(10)})
-        status=text("Отключено",15,Loft.INK).apply {gravity=Gravity.CENTER;tag="home-connection-status"}
-        connectionHint=text("Нажмите, чтобы подключиться",12,Loft.MUTED).apply {
+        status=text("Отключено",15,Loft.INK).apply {gravity=Gravity.CENTER;tag="home-connection-status";setPadding(paddingLeft,paddingTop,paddingRight,paddingBottom+dp(3))}
+        connectionHint=text("",12,Loft.MUTED).apply {
             gravity=Gravity.CENTER;maxLines=3;ellipsize=TextUtils.TruncateAt.END;tag="home-connection-hint"
             setPadding(dp(12),dp(8),dp(12),dp(12));minimumHeight=dp(48)
             setOnClickListener {
@@ -535,7 +569,11 @@ class MainActivity : Activity() {
         updateHomeControl()
     }
     private fun captchaChoice(entry:ServerImport.Server?):LinearLayout {
-        fun supported()=findSelected()?.takeIf {it.protocol in SwgProfile.TYPES&&it.carrier!=null}
+        fun supported():ServerImport.Server? {
+            val entries=catalogue.entries()
+            val candidates=listOfNotNull(findSelected(),entries.firstOrNull {it.id==BsAutoSelectionPolicy.last(prefs,true)},entries.firstOrNull {it.id==entry?.id})
+            return candidates.firstOrNull {it.protocol in SwgProfile.TYPES&&it.carrier!=null}
+        }
         lateinit var choice:ModeSwitch
         choice=ModeSwitch(this,CarrierCaptchaMode.automatic(supported()?.carrier?.optString("captcha_mode","auto")?:"auto"),java.util.function.Consumer {automatic->
             val target=supported()
@@ -563,32 +601,64 @@ class MainActivity : Activity() {
     private fun autoBsChoice():LinearLayout {
         lateinit var choice:ModeSwitch
         choice=ModeSwitch(this,prefs.getBoolean(BsDetectionMonitor.KEY,false),java.util.function.Consumer {enabled->
-            if(enabled&&catalogue.entries().none {AutoSelection.eligible(it,AutoSelection.BS_ENGINES)}){
-                choice.setMode(false,true);alert("Автоопределение БС","Сначала добавь поддерживаемое автовыбором подключение: CSQTT, QWDTT, WDTT, OpenFlux или S3 Bypass.")
-            }else if(enabled&&ClientPrimarySelection.selected(this)=="steer"){
-                choice.setMode(false,true);alert("Автоопределение БС","Выбранный Steer пока не поддерживает эти дополнительные транспорты. Для автоопределения сначала явно выбери sing-box в настройках основного ядра. Текущее подключение не изменено.")
-            }else {
-                prefs.edit().putBoolean(BsDetectionMonitor.KEY,enabled).apply()
-                choice.setMode(enabled,true)
-            }
+            setBsDetection(enabled)
+            choice.setMode(prefs.getBoolean(BsDetectionMonitor.KEY,false),true)
         },listOf("Вкл","Выкл"),listOf("",""),true)
         choice.tag="auto-bs-switch";choice.contentDescription="Автоопределение белых списков"
         choice.setAvailable(!working())
-        return connectionOptionRow("Автоопределение БС","auto-bs-control",choice)
+        autoControlsRefresh={choice.setMode(prefs.getBoolean(BsDetectionMonitor.KEY,false),false);choice.setAvailable(!working())}
+        val interval=Button(this).apply {
+            tag="auto-bs-interval";DropdownStyle.value(this@MainActivity,this);textSize=13f
+            isAllCaps=false;includeFontPadding=false;gravity=Gravity.CENTER;setSingleLine(true)
+            typeface=Typeface.create("sans-serif-medium",Typeface.NORMAL);setTextColor(Loft.MUTED)
+            setPadding(dp(5),0,dp(5),0);stateListAnimator=null;elevation=0f
+            backgroundTintList=null
+            fun refresh(){text=BsDetectionInterval.label(prefs.getInt(BsDetectionInterval.KEY,BsDetectionInterval.DEFAULT));contentDescription="Интервал автоопределения БС: $text"}
+            refresh()
+            setOnClickListener {anchor->
+                val values=BsDetectionInterval.seconds
+                DropdownPopup.show(this@MainActivity,anchor,"Интервал проверки",values.map {DropdownPopup.Item(BsDetectionInterval.label(it))},values.indexOf(BsDetectionInterval.normalize(prefs.getInt(BsDetectionInterval.KEY,BsDetectionInterval.DEFAULT)))){position->
+                    prefs.edit().putInt(BsDetectionInterval.KEY,values[position]).putInt("interval",values[position]).apply();refresh()
+                }
+            }
+        }
+        val control=LinearLayout(this).apply {
+            gravity=Gravity.CENTER;isBaselineAligned=false;tag="auto-selection-control"
+            addView(button("i",false).apply {
+                tag="auto-bs-selection-help";DropdownStyle.apply(this@MainActivity,this);contentDescription="Справка об автовыборе"
+                setOnClickListener {alert("Автовыбор",BsAutoSelectionPolicy.HELP)}
+            },LinearLayout.LayoutParams(dp(40),dp(48)))
+            addView(text("Автовыбор",13,Loft.INK).apply {gravity=Gravity.CENTER;includeFontPadding=false;setSingleLine(true);setAutoSizeTextTypeUniformWithConfiguration(9,13,1,android.util.TypedValue.COMPLEX_UNIT_SP);minimumWidth=dp(76)},LinearLayout.LayoutParams(-2,dp(48)).apply {weight=1f})
+            addView(interval,LinearLayout.LayoutParams(dp(48),dp(48)))
+            addView(Button(this@MainActivity).apply {
+                tag="auto-bs-selection-policy";DropdownStyle.value(this@MainActivity,this);textSize=14f
+                val modes=listOf(BsAutoSelectionPolicy.OFF,BsAutoSelectionPolicy.FASTEST,BsAutoSelectionPolicy.RECENT)
+                fun refresh(){val mode=BsAutoSelectionPolicy.selected(prefs);text="";setCompoundDrawablesRelative(icon(when(mode){BsAutoSelectionPolicy.OFF->"power";BsAutoSelectionPolicy.RECENT->"history";else->"bolt"},Loft.MUTED).apply {setBounds(0,0,dp(18),dp(18))},null,icon("down",Loft.MUTED).apply {setBounds(0,0,dp(10),dp(10))},null);contentDescription="Выбор сервера: "+when(mode){BsAutoSelectionPolicy.OFF->"выключен";BsAutoSelectionPolicy.RECENT->"последний выбранный";else->"самый быстрый"}}
+                refresh()
+                setOnClickListener {anchor->DropdownPopup.show(this@MainActivity,anchor,"Выбор сервера",listOf(DropdownPopup.Item("Выкл",icon="power"),DropdownPopup.Item("Самый быстрый",icon="bolt"),DropdownPopup.Item("Последний выбранный",icon="history")),modes.indexOf(BsAutoSelectionPolicy.selected(prefs))){index->
+                    prefs.edit().putString(BsAutoSelectionPolicy.KEY,modes[index]).apply();refresh()
+                }}
+            },LinearLayout.LayoutParams(dp(44),dp(48)))
+            addView(AutoToleranceUi.button(this@MainActivity),LinearLayout.LayoutParams(dp(88),dp(48)))
+        }
+        return LinearLayout(this).apply {
+            orientation=LinearLayout.VERTICAL;tag="unified-auto-selection"
+            addView(connectionOptionRow("Автоопределение БС","auto-bs-control",choice),LinearLayout.LayoutParams(-1,dp(48)))
+            addView(control,LinearLayout.LayoutParams(-1,dp(48)))
+        }
     }
     private fun whiteLists() {
         val custom=ConnectionAppearanceUi.style(this)!=ConnectionAppearance.CLASSIC
-        val controls=LinearLayout(this).apply {gravity=Gravity.CENTER;tag="whitelist-connection-control";orientation=LinearLayout.VERTICAL;background=Loft.connectionSurface(this@MainActivity);setPadding(dp(12),dp(12),dp(12),dp(4))}
+        val controls=LinearLayout(this).apply {gravity=Gravity.CENTER;tag="whitelist-connection-control";orientation=LinearLayout.VERTICAL;background=Loft.connectionSurface(this@MainActivity);setPadding(dp(12),dp(12),dp(12),dp(8))}
         connect=connectionButton {toggleConnection()}
         controls.addView(connect,LinearLayout.LayoutParams(if(custom)-1 else dp(88),dp(if(custom)224 else 88)))
         controls.addView(LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL
-            if(UsageFeatures.Feature.WHITELIST in UsageFeaturesUi.selected(this@MainActivity))addView(captchaChoice(findSelected()?.takeIf {ConnectionSections.belongs(it,true)}))
             addView(autoBsChoice())
         },LinearLayout.LayoutParams(-1,-2))
         page.addView(controls,space(0,12))
-        status=text("Отключено",15,Loft.INK).apply {gravity=Gravity.CENTER;tag="home-connection-status"}
-        connectionHint=text("Выбери подключение ниже",12,Loft.MUTED).apply {
+        status=text("Отключено",15,Loft.INK).apply {gravity=Gravity.CENTER;tag="home-connection-status";setPadding(paddingLeft,paddingTop,paddingRight,paddingBottom+dp(3))}
+        connectionHint=text("",12,Loft.MUTED).apply {
             gravity=Gravity.CENTER;minimumHeight=dp(48);tag="home-connection-hint"
             setOnClickListener {
                 val challenge=CarrierChallenge.pendingManual()
@@ -604,10 +674,10 @@ class MainActivity : Activity() {
                 contentDescription=description;setSingleLine(true);setHorizontallyScrolling(false);ellipsize=null;includeFontPadding=false
                 setPadding(dp(2),dp(6),dp(2),dp(6));setAutoSizeTextTypeUniformWithConfiguration(8,11,1,android.util.TypedValue.COMPLEX_UNIT_SP)
                 setOnClickListener {open()}
-            },LinearLayout.LayoutParams(0,dp(48),1f).apply {leftMargin=dp(2);rightMargin=dp(2)})
+            },LinearLayout.LayoutParams(0,dp(48),1f).apply {leftMargin=dp(6);rightMargin=dp(6)})
         }
         if(UsageFeatures.Feature.WHITELIST in UsageFeaturesUi.selected(this)){
-            action("VK Turn","VK Turn · аккаунт и звонки VK для *DTT",ClientSettingsNavigation.VK){navigate(ClientSettingsNavigation.VK)}
+            action("VK Turn ⚙","VK Turn · настройки транспортов, аккаунт и звонки VK",ClientSettingsNavigation.VK){navigate(ClientSettingsNavigation.VK)}
         }
         if(UsageFeatures.Feature.OPENFLUX in UsageFeaturesUi.selected(this))action("OpenFlux","Настройки OpenFlux",ClientSettingsNavigation.OPENFLUX){navigate(ClientSettingsNavigation.OPENFLUX)}
         if(actions.childCount>0)page.addView(actions,space(0,12))
@@ -644,6 +714,45 @@ class MainActivity : Activity() {
         }
         updateHomeControl()
     }
+    fun setBsDetection(enabled:Boolean):Boolean {
+        if(enabled&&catalogue.entries().none {AutoSelection.eligible(it,AutoSelection.BS_ENGINES)}){
+            alert("Автоопределение БС","Сначала добавьте поддерживаемый сервер БС.");return false
+        }
+        if(enabled&&ClientPrimarySelection.selected(this)=="steer"){
+            alert("Автоопределение БС","Для этих транспортов БС выберите sing-box в «Обновлениях и движках». Текущее подключение не изменено.");return false
+        }
+        prefs.edit().putBoolean(BsDetectionMonitor.KEY,enabled).apply()
+        McrfQuickTile.refresh(this)
+        miniature?.updateAutoDetection();autoControlsRefresh?.invoke()
+        return true
+    }
+    private var pendingRulesTile=0
+    private var rulesTileDeadline=0L
+    private fun drainRulesTile() {
+        if(pendingRulesTile==0)return
+        if(SystemClock.elapsedRealtime()>rulesTileDeadline){pendingRulesTile=0;return}
+        if(working()||onboardingVisible||McrfVpnService.cleanupPending()||ConnectionPresentation.pending(McrfVpnService.status))return
+        pendingRulesTile--
+        selectRoutingGroup(RoutingGroups.next(routing.snapshot()))
+    }
+    private fun handleQuickTile():Boolean {
+        if(loading)return false
+        val command=QuickTileCommand.consume(this,intent)?:return false
+        if(command=="rules") {
+            pendingRulesTile=(pendingRulesTile+1).coerceAtMost(16)
+            rulesTileDeadline=SystemClock.elapsedRealtime()+60_000
+            drainRulesTile();return true
+        }
+        if(working()){toast("Дождитесь завершения текущего действия");return true}
+        when(command) {
+            "vpn","bs"->{val bs=command=="bs"
+                val runningBs=catalogue.entries().firstOrNull {it.id==McrfVpnService.selectedId}?.carrier!=null
+                toggleEdgeConnection(bs,!(active()&&bs==runningBs))}
+            "auto-bs"->{setBsDetection(!prefs.getBoolean(BsDetectionMonitor.KEY,false));updateHomeControl()}
+        }
+        McrfQuickTile.refresh(this)
+        return true
+    }
     private fun resumeWantedOnLaunch(){
         if(resumeAttempted)return
         resumeAttempted=true
@@ -651,15 +760,18 @@ class MainActivity : Activity() {
         if(behavior.shouldReconnect(prefs.getBoolean("wantedRunning",false),savedConfig.isNotBlank(),VpnService.prepare(this)==null,active())&&!EngineUpdates.installationPending(this))launchConnection()
     }
     private fun updateMiniature(animate:Boolean) {
-        miniature?.apply {visibility=View.VISIBLE;alpha=1f}
+        miniature?.apply {visibility=if(hasVisibleItems())View.VISIBLE else View.GONE;alpha=1f}
     }
+    fun refreshEdgeMenu(){miniature?.applyAppearance();updateMiniature(false)}
     private fun connectionTargetView()=text("",12,Loft.INK).apply {
         gravity=Gravity.CENTER;tag="home-connection-target";maxLines=2;ellipsize=TextUtils.TruncateAt.END
         setPadding(dp(8),dp(4),dp(8),dp(4));visibility=View.GONE
         accessibilityLiveRegion=View.ACCESSIBILITY_LIVE_REGION_POLITE;connectionTarget=this
     }
     private fun updateHomeControl() {
+        autoControlsRefresh?.invoke()
         val connected=ConnectionPresentation.connected(McrfVpnService.status)
+        val wifiPaused=McrfVpnService.wifiPaused()
         val stopping=McrfVpnService.cleanupPending()
         val pending = stopping||busy||serverSwitch.target!=null||ConnectionPresentation.pending(McrfVpnService.status)
         val failed=!pending&&ConnectionPresentation.failed(McrfVpnService.status)
@@ -668,14 +780,20 @@ class MainActivity : Activity() {
         (connect as? RoundConnectionButton)?.state(connected,pending,!working()&&!stopping,active(),failed)
         (connect as? ForgeConnectionButton)?.state(connected,pending,!working()&&!stopping,active(),failed,stopping,TrafficState.current)
         val runningWhitelists=catalogue.entries().firstOrNull {it.id==McrfVpnService.selectedId}?.carrier!=null
-        miniature?.updateConnection(active(),pending,!working()&&!stopping,shownVpn,runningWhitelists)
+        val pendingSection=serverSwitch.target?.whitelists
+            ?:if(ConnectionPresentation.pending(McrfVpnService.status))McrfVpnService.pendingWhitelists else if(busy)pendingConnectionWhitelists else null
+        miniature?.updateConnection(active(),pending,!working()&&!stopping,shownVpn,runningWhitelists,pendingSection)
+        if(!pending||connected&&!busy)pendingConnectionWhitelists=null
         miniature?.updateTelegram()
+        miniature?.updateAutoDetection()
         status?.text = when {stopping->"Остановка движка…"; pending -> ConnectionPresentation.progressLabel(McrfVpnService.status); connected -> if (prefs.getBoolean("tun", true)) "VPN подключён" else "Прокси подключён"; failed -> "Ошибка подключения"; else -> "Отключено" }
-        connectionHint?.text = if(stopping)"Ждём завершения очистки"else if (pending) "Соединение с сервером" else if (connected) { if (McrfVpnService.status.startsWith("VPN")) "Системный VPN" else "HTTP / SOCKS5 · локальный доступ" } else "Нажмите, чтобы подключиться"
+        connectionHint?.text = if(stopping)"Ждём завершения очистки"else if (pending) "Соединение с сервером" else if (connected) { if (McrfVpnService.status.startsWith("VPN")) "Системный VPN" else "HTTP / SOCKS5 · локальный доступ" } else ""
         if(failed)connectionHint?.text=ClientEvents.redact(ConnectionPresentation.failureDetail(McrfVpnService.status)).take(140)+" · Открыть логи"
+        if(wifiPaused&&!pending){status?.text="БС на паузе · Wi-Fi";connectionHint?.text="Wi-Fi напрямую · нажмите, чтобы отменить автовозврат БС"}
         if(challenge!=null&&current==ClientSettingsNavigation.WHITELISTS){status?.text="Нужна проверка VK";connectionHint?.text="Открыть капчу · осталось ${challenge.remainingMillis()/1000} с"}
         connectionHint?.setTextColor(if(failed)Loft.ERROR else Loft.MUTED)
         if(challenge!=null)connectionHint?.setTextColor(Loft.ACCENT)
+        connectionHint?.visibility=if(connectionHint?.text.isNullOrBlank())View.GONE else View.VISIBLE
         status?.setTextColor(if(failed)Loft.ERROR else if(connected)0xff32b875.toInt() else Loft.INK)
         val snapshot = TrafficState.current
         val runningEntry=catalogue.entries().firstOrNull {it.id==McrfVpnService.selectedId}
@@ -777,8 +895,12 @@ class MainActivity : Activity() {
             ClientSettingsNavigation.VPN -> page.addView(ClientTunUi(this).view(),space(0,16))
             ClientSettingsNavigation.GEO -> page.addView(GeoDataEditor(this,routing).build(),space(0,16))
             ClientSettingsNavigation.VK -> {
+                page.addView(captchaChoice(findSelected()?.takeIf {ConnectionSections.belongs(it,true)}),space(0,12))
                 deployUi=AndroidDeployUi(this,AndroidDeployStore(this),AndroidDeployUi.backend(this)){importDialog(it)}
                 page.addView(deployUi!!.vkSettings(),space(0,16))
+                page.addView(VkTurnUi.serverSettings(this),space(0,16))
+                page.addView(BsWifiUi.view(this),space(0,16))
+                page.addView(WdttMasqueUi.view(this),space(0,16))
                 if(returnToDeployVk) page.addView(button("Вернуться к настройке SWG",false).apply {tag="androidDeploy.returnFromVk";setOnClickListener {returnToDeployVk=false;navigate("Автодеплой")}},space(0,12))
             }
             ClientSettingsNavigation.UPDATES -> {
@@ -888,11 +1010,16 @@ class MainActivity : Activity() {
     fun openBackgroundSettings() = batterySettings()
     override fun onRequestPermissionsResult(request:Int,permissions:Array<out String>,results:IntArray) {
         super.onRequestPermissionsResult(request,permissions,results)
+        if(request==BsWifiUi.PERMISSION_REQUEST){McrfVpnService.refreshBsEnvironment(this);if(!isFinishing&&!isDestroyed)render();return}
         if(request==2)onboardingVisible=false
         if(request==2&&prefs.getBoolean("backgroundAfterNotifications",false)) {
             prefs.edit().remove("backgroundAfterNotifications").apply()
             if(!getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName))batterySettings()
         }else if(request==2&&!isFinishing&&!isDestroyed)batteryPrompt()
+    }
+    override fun onPostResume() {
+        super.onPostResume()
+        if(current==ClientSettingsNavigation.VK)McrfVpnService.refreshBsEnvironment(this)
     }
     private fun batterySettings() {
         when(ClientBatterySettings.open(this)){
@@ -938,7 +1065,7 @@ class MainActivity : Activity() {
     fun findSelected() = catalogue.entries().firstOrNull { it.id == selected }
     fun connectionSectionWhitelists()=current==ClientSettingsNavigation.WHITELISTS||ClientSettingsNavigation.isSettings(current)&&settingsOrigin==ClientSettingsNavigation.WHITELISTS
     fun connectionSectionPolicy()=ConnectionSections.policy(connectionSectionWhitelists())
-    fun active() = McrfVpnService.cleanupPending()||McrfVpnService.status.startsWith("VPN подключён") || McrfVpnService.status.startsWith("Прокси ") || McrfVpnService.status == "Подключение…" || McrfVpnService.status=="Восстановление соединения…" || McrfVpnService.status=="Возвращаемся в VPN…" || McrfVpnService.status.startsWith("Переключаем движок")
+    fun active() = McrfVpnService.wifiPaused()||McrfVpnService.cleanupPending()||McrfVpnService.status.startsWith("VPN подключён") || McrfVpnService.status.startsWith("Прокси ") || McrfVpnService.status == "Подключение…" || McrfVpnService.status=="Восстановление соединения…" || McrfVpnService.status=="Возвращаемся в VPN…" || McrfVpnService.status.startsWith("Переключаем движок")
     private fun stopConnection() {serverSwitch.cancel();handler.removeCallbacks(serverSwitchPoll);startService(Intent(this, McrfVpnService::class.java).setAction(McrfVpnService.STOP))}
     private fun prepareConnection(diagnostic: Boolean,trafficChoiceChecked:Boolean=false,requestedWhitelists:Boolean?=null) {
         if (working()) return
@@ -951,8 +1078,17 @@ class MainActivity : Activity() {
                 toast("В разделе «${if(whitelists)ClientSettingsNavigation.WHITELISTS else "VPN"}» пока нет серверов");return
             }
             run {
-                val hasAutoCandidates=automatic&&catalogue.startupEntries(sectionPolicy).isNotEmpty()
-                val start=SectionConnectSelection.start(catalogue.entries(),selected,whitelists,automatic,hasAutoCandidates,catalogue.probes())!!
+                // The detector's policy is the only user-facing auto choice.
+                // Do not resurrect the removed marked-pool switch from old prefs.
+                val recent=BsAutoSelectionPolicy.selected(prefs)==BsAutoSelectionPolicy.RECENT
+                val manual=BsAutoSelectionPolicy.last(prefs,whitelists)
+                if(BsAutoSelectionPolicy.selected(prefs)==BsAutoSelectionPolicy.OFF&&sectionEntries.none {it.id==manual}){
+                    alert("Автовыбор выключен","Сначала выберите сервер ${if(whitelists)"БС"else"VPN"} вручную.");return
+                }
+                val allowed=sectionEntries.filter {ClientPrimarySelection.selected(this)!="steer"||SteerProbePlan.supports(it)}
+                val preferred=if(prefs.getBoolean(BsDetectionMonitor.KEY,false)&&BsAutoSelectionPolicy.selected(prefs)!=BsAutoSelectionPolicy.OFF)BsAutoSelectionPolicy.startup(
+                    allowed,catalogue.probes(),System.currentTimeMillis(),whitelists,recent,manual)?.id?:selected else if(BsAutoSelectionPolicy.selected(prefs)==BsAutoSelectionPolicy.OFF)manual else selected
+                val start=SectionConnectSelection.start(catalogue.entries(),preferred,whitelists,false,false,catalogue.probes())!!
                 val entry=start.server
                 if(entry.id!=selected||start.automatic!=automatic) {
                     if(!prefs.edit().remove("warpSelectionJournal").putString("selected",entry.id).putBoolean("automatic",start.automatic).commit()) {
@@ -991,8 +1127,13 @@ class MainActivity : Activity() {
         val vpn = if(diagnostic)tun?.isChecked ?: prefs.getBoolean("tun",true)else UsageFeatures.preferredVpn(UsageFeaturesUi.selected(this),prefs.getBoolean("tun",true))
         val diagnosticPort = try { if (diagnostic) port!!.text.toString().toInt() else null } catch (_: Exception) { alert("Порт", "Некорректный порт прокси."); return }
         val raw = if (diagnostic) source!!.text.toString() else savedConfig
+        pendingConnectionWhitelists=whitelists
         busy = true; connect?.isEnabled = false
+        connectionStartedNs=ConnectTiming.now()
+        val queuedAt=connectionStartedNs
         worker.execute {
+            ConnectTiming.mark(this,"ui_queue",queuedAt)
+            val prepareAt=ConnectTiming.now()
             try {
                 val wireGuardProfile=if(diagnostic)WgAddonPolicy.usesWireGuard(JSONObject(raw))
                     else !automatic&&findSelected()?.protocol?.let(WgAddonPolicy::isWireGuard)==true
@@ -1003,16 +1144,22 @@ class MainActivity : Activity() {
                     return@execute
                 }
                 if(effectivePrimary=="steer") {
-                    require(!diagnostic&&!automatic) {"Steer: выбери один сервер; автовыбор и JSON-профили пока недоступны."}
-                    val entry=findSelected()?:throw IllegalArgumentException("Выбери сервер для Steer.")
+                    require(!diagnostic&&vpn) {"Steer: нужен режим VPN и сервер из каталога, не отдельный JSON-профиль."}
+                    val autoPool=if(automatic)SteerAutomaticPool(ConnectionSections.entries(catalogue.entries(),false),catalogue.autoIds(),System.nanoTime().coerceAtLeast(1))else null
+                    var entry=if(autoPool!=null)autoPool.candidates.firstOrNull()
+                        ?:throw IllegalArgumentException("Отметь совместимые серверы Steer для автовыбора; другой движок автоматически не выбирается.")
+                        else findSelected()?:throw IllegalArgumentException("Выбери сервер для Steer.")
                     require(entry.carrier==null&&entry.configuration==null) {"Steer пока не поддерживает это подключение."}
                     if(wireGuardProfile) {
+                        if(RouteServerPlan.activeIds(routing.snapshot()).isNotEmpty())throw ClientOptionalCoreRequired("sing-box")
                         require(vpn) {"Компактный WG/AWG работает только в режиме VPN."}
                         if(EnginePackages.missing(this,setOf(WgAddonPolicy.KIND)).isNotEmpty()) {
                             ui {busy=false;connect?.isEnabled=true;installEngine(WgAddonPolicy.KIND)}
                             return@execute
                         }
-                        ClientPacketSelection.prepare(this,entry.original,ClientPacketSelection.validationDial(entry.host))
+                        // Actual service owns the fresh module/route admission before TUN.
+                        if(!ConnectionStartPolicy.servicePrepares(diagnostic,RouteServerPlan.activeIds(routing.snapshot()).isNotEmpty()))
+                            ClientPacketSelection.prepare(this,entry.original,ClientPacketSelection.validationDial(entry.host))
                         val generated=ServerImport.build(listOf(entry),entry.id,false,60,50,"Cloudflare")
                         DnsConfig.applyGenerated(generated,routing.snapshot().getJSONObject("globalDns"))
                         val content=generated.toString();ProfileStore(this).write(content);savedConfig=content
@@ -1020,10 +1167,26 @@ class MainActivity : Activity() {
                         ui {busy=false;connect?.isEnabled=true;val consent=VpnService.prepare(this);if(consent!=null)startActivityForResult(consent,1)else launchConnection()}
                         return@execute
                     }
+                    if(RouteServerPlan.activeIds(routing.snapshot()).isNotEmpty()){
+                        val preparation=NativeRoutePreparation.capture(this,entry,routing.snapshot(),catalogue.entries())
+                        val number=ClientTunStore(this).load().choosePort()
+                        preparation.validate(this,true,number,java.util.function.BooleanSupplier {isDestroyed||isFinishing})
+                        val content=preparation.source().toString()
+                        ProfileStore(this).write(content);savedConfig=content
+                        check(prefs.edit().putBoolean("tun",true).putInt("port",number).putBoolean("applyRoutes",true).putBoolean("catalogueProfile",true).commit())
+                        ui {preparedProxyPort=number;busy=false;connect?.isEnabled=true;val consent=VpnService.prepare(this);if(consent!=null)startActivityForResult(consent,1)else launchConnection()}
+                        return@execute
+                    }
                     val result=ClientPrimarySelection.steerSnapshot(this,routing.snapshot(),vpn)
                     require(result.supported) {ClientPrimarySelection.steerFailure(result)}
+                    if(!ConnectionStartPolicy.skipTemporarySteerWorker(automatic,RouteServerPlan.activeIds(routing.snapshot()).isNotEmpty())) {
                     val session=ClientPrimaryWorker.connect(this,"steer",System.nanoTime().coerceAtLeast(1),null)
-                    try {require(session.validate(entry.original,result.settingsJson!!,org.mcrf.engine.spi.v1.Engine.Mode.VPN).supported) {"Steer не поддерживает параметры выбранного сервера."}}finally{session.close()}
+                    try {
+                        entry=(autoPool?.candidates?:listOf(entry)).firstOrNull {candidate->
+                            session.validate(SteerProbePlan.profile(candidate),result.settingsJson!!,org.mcrf.engine.spi.v1.Engine.Mode.VPN).supported
+                        }?:throw IllegalArgumentException("Steer не поддерживает параметры отмеченных серверов. Отметки и выбор движка не изменены.")
+                    }finally{session.close()}
+                    }
                     val content=ServerImport.build(listOf(entry),entry.id,false,60,50,"Cloudflare").toString()
                     ProfileStore(this).write(content);savedConfig=content
                     check(prefs.edit().putBoolean("tun",true).putBoolean("applyRoutes",true).putBoolean("catalogueProfile",true).commit())
@@ -1037,20 +1200,42 @@ class MainActivity : Activity() {
                 val routes = if (diagnostic) null else routing.snapshot()
                 if (!diagnostic && catalogue.entries().isNotEmpty()) {
                     val chosen = findSelected()
-                    if (!automatic && chosen?.carrier != null) NativeCarrier.executable(this, EngineModules.carrierKind(chosen.carrier))
+                    if (!automatic && chosen?.carrier != null) {
+                        NativeCarrier.executable(this, EngineModules.carrierKind(chosen.carrier))
+                        NativeCarrier.requireOptions(this,chosen.carrier)
+                    }
                     val policy=sectionPolicy
                     val pool = ConnectionSections.entries(if (automatic) catalogue.startupEntries(policy,refresh=true) else catalogue.entries(),whitelists)
                     if (automatic && pool.isEmpty()) throw IllegalArgumentException("В этом разделе нет отмеченных совместимых серверов для автовыбора. Отметь хотя бы один сервер нужного раздела.")
-                    val generated = if(automatic&&policy==AutoSelection.BS_ENGINES) BsPlan.build(pool,prefs.getInt("interval",60),prefs.getInt("tolerance",50),"Cloudflare")
-                        else ServerImport.build(pool, selected, automatic, prefs.getInt("interval", 60), prefs.getInt("tolerance", 50), "Cloudflare")
+            val generated = if(automatic&&policy==AutoSelection.BS_ENGINES) BsPlan.build(pool,prefs.getInt("interval",60),AutoSelectionDeviation.millis(prefs),"Cloudflare")
+                else ServerImport.build(pool, selected, automatic, prefs.getInt("interval", 60), AutoSelectionDeviation.millis(prefs), "Cloudflare")
                     if (automatic || chosen == null || chosen.configuration == null) DnsConfig.applyGenerated(generated, routes!!.getJSONObject("globalDns"))
                     content = generated.toString()
                 }
-                var prepared = LocalProxyConfig.apply(ProfileConfig.build(content, vpn, number),proxyAuth); if (!diagnostic) prepared=RouteRules.apply(prepared, routes!!, vpn, PresetAssets.resolve(this,routes),PresetAssets.ipRuleSetTags(this,routes),DirectDnsNetwork.ipv4Only(this))
+                val routeServers=if(diagnostic)emptyList()else catalogue.entries()
+                if(!diagnostic) {
+                    val ids=RouteServerPlan.activeIds(routes!!).toSet()
+                    val extra=routeServers.filter {it.id in ids}.mapNotNull {it.carrier}
+                    val template=if(content.trimStart().startsWith("{"))JSONObject(content)else JSONObject()
+                    ConnectTiming.measure(this,"masque_prepare"){WdttMasqueRegistration.prepare(this,template,extra,java.util.function.BooleanSupplier{isDestroyed||isFinishing})}
+                }
+                // P049_DEFER_BEGIN: raw profile only; actual worker validates the ONE service-built config.
+                if(ConnectionStartPolicy.servicePrepares(diagnostic,routes?.let {RouteServerPlan.activeIds(it).isNotEmpty()}?:false)) {
+                    val availability=OptionalCorePlan(ProfileConfig.build(content,vpn,number),OptionalCoreStore(this).load(),CoreTuningStore(this).load())
+                    for(item in availability.entries())if(EnginePackages.missing(this,setOf(item.request.kind)).isNotEmpty())throw ClientOptionalCoreRequired(item.request.kind)
+                    ProfileStore(this).write(content);savedConfig=content
+                    check(prefs.edit().putBoolean("tun",vpn).putInt("port",number).putBoolean("applyRoutes",true).putString("autoPolicy",sectionPolicy)
+                        .putBoolean("catalogueProfile",catalogue.entries().isNotEmpty()).commit())
+                    ui {preparedProxyPort=number;busy=false;connect?.isEnabled=true;val consent=if(vpn)VpnService.prepare(this)else null;if(consent!=null)startActivityForResult(consent,1)else launchConnection()}
+                    return@execute
+                }
+                // P049_DEFER_END
+                var prepared = LocalProxyConfig.apply(ProfileConfig.build(content, vpn, number),proxyAuth); if (!diagnostic) prepared=RouteRules.apply(prepared, routes!!, vpn, PresetAssets.resolve(this,routes),PresetAssets.ipRuleSetTags(this,routes),DirectDnsNetwork.ipv4Only(this),routeServers)
                 val extensionSettings=OptionalCoreStore(this).load()
                 val coreSettings=CoreTuningStore(this).load()
                 val engineLease=EngineUpdateGate.acquireUsage(this)?:throw IllegalArgumentException("Завершите обновление движка перед проверкой подключения.")
                 try {
+                if(!diagnostic)RouteServerSession.check(this,RouteServerPlan(routes!!,routeServers),java.util.function.BooleanSupplier{isDestroyed||isFinishing})
                 val plan=OptionalCorePlan(prepared,extensionSettings,coreSettings)
                 val bridges=linkedMapOf<String,JSONObject>()
                 plan.preflight(java.util.function.BooleanSupplier{isDestroyed||isFinishing}) {entry->
@@ -1074,18 +1259,22 @@ class MainActivity : Activity() {
                 if(primaryFailure!=null)ClientEvents.record(this,"Движки","Подготовка основного движка: $primaryFailure")
                 ui { busy = false; connect?.isEnabled = true
                     if(error is ClientOptionalCoreRequired)installEngine(error.kind)
+                    else if(error is WdttMasqueConsentRequired)WdttMasqueUi.consent(this)
                     else alert("Подключение",when {
                         primaryFailure!=null->ClientPrimaryPreparationFailure.message(primaryFailure)
                         error is IllegalArgumentException->error.message.orEmpty()
                         else->"Не удалось сохранить или проверить профиль подключения."
                     })
                 }
-            }
+            } finally {ConnectTiming.mark(this,"ui_prepare",prepareAt)}
         }
     }
+    private var connectionStartedNs=0L
     private fun launchConnection() {
         if(EngineUpdates.installationPending(this)||EngineUpdateScripts.mutationPending()){toast("Завершите обновление движка перед подключением");return}
         val launch=Intent(this, McrfVpnService::class.java).setAction(McrfVpnService.START).putExtra("tun", prefs.getBoolean("tun", true)).putExtra("port", prefs.getInt("port", 10808)).putExtra("applyRoutes", prefs.getBoolean("applyRoutes", true))
+        launch.putExtra(ConnectTiming.EXTRA,connectionStartedNs);connectionStartedNs=0
+        launch.putExtra("pendingWhitelists",pendingConnectionWhitelists?:findSelected()?.let {it.carrier!=null}?:false)
         preparedProxyPort?.let {launch.putExtra("preparedProxyPort",it)};preparedProxyPort=null
         startForegroundService(launch)
     }
@@ -1103,6 +1292,7 @@ class MainActivity : Activity() {
             }
             selected=id;automatic=false
         }
+        BsAutoSelectionPolicy.remember(prefs,entry)
         refreshSelectedServer()
         if(action.reconnect) {
             val request=serverSwitch.request(id,entry.carrier!=null,SystemClock.elapsedRealtime())
@@ -1110,6 +1300,38 @@ class MainActivity : Activity() {
             handler.post(serverSwitchPoll)
             updateHomeControl()
         }
+    }
+    fun selectRoutingGroup(id:String) {
+        if(working()||McrfVpnService.cleanupPending()||ConnectionPresentation.pending(McrfVpnService.status))return
+        if(RoutingGroups.active(routing.snapshot())==id)return
+        val reconnect=active()
+        var saved=false
+        var missingEngine:String?=null
+        var masqueConsent=false
+        run(Operation {
+            val state=routing.snapshot();RoutingGroups.select(state,id)
+            if(reconnect) {
+                val plan=RouteServerPlan(state,catalogue.entries())
+                try {
+                    RouteServerSession.check(this,plan,java.util.function.BooleanSupplier{isDestroyed||isFinishing})
+                    if(plan.entries.any {it.carrier?.optBoolean("rt_masque")==true}) {
+                        if(!WdttMasqueStore.accepted(this))throw WdttMasqueConsentRequired()
+                        require(WdttMasqueStore.load(this)!=null) {"Для первой подготовки MASQUE отключите MCRF и подключитесь заново. Активная группа правил не изменена."}
+                    }
+                }catch(error:ClientOptionalCoreRequired){missingEngine=error.kind;return@Operation ""}
+                catch(_:WdttMasqueConsentRequired){masqueConsent=true;return@Operation ""}
+            }
+            routing.save(state)
+            saved=true
+            "Группа правил переключена"
+        },true,Runnable {
+            missingEngine?.let {pendingRulesTile=0;installEngine(it);return@Runnable}
+            if(masqueConsent){pendingRulesTile=0;WdttMasqueUi.consent(this);return@Runnable}
+            if(saved)McrfQuickTile.refresh(this)
+            if(saved&&reconnect&&active()) {
+                startService(Intent(this,McrfVpnService::class.java).setAction(McrfVpnService.RELOAD_ROUTES))
+            }
+        })
     }
     fun setAutomatic(value: Boolean):Boolean {
         if(active()&&catalogue.entries().firstOrNull {it.id==McrfVpnService.selectedId}?.let { !ConnectionSections.belongs(it,connectionSectionWhitelists()) }==true){toast("Сначала отключи соединение в другом разделе");return false}
@@ -1145,7 +1367,7 @@ class MainActivity : Activity() {
             }
         }
     }
-    override fun onNewIntent(incoming: Intent) { super.onNewIntent(incoming); setIntent(incoming); receiveConfigLink(incoming); openPendingLink() }
+    override fun onNewIntent(incoming: Intent) { super.onNewIntent(incoming); setIntent(incoming); if(!handleQuickTile()){receiveConfigLink(incoming); openPendingLink()} }
     private fun receiveConfigLink(incoming: Intent?) {
         if (incoming?.action != Intent.ACTION_VIEW) return
         val link = ImportLink.config(incoming.dataString)
@@ -1243,8 +1465,8 @@ class MainActivity : Activity() {
         try {super.startActivityForResult(intent,requestCode,options)}catch(error:Exception){recentsDeparture.launchFailed();throw error}
     }
     override fun onUserLeaveHint(){recentsDeparture.userLeave();super.onUserLeaveHint()}
-    override fun onResume() { super.onResume();handler.removeCallbacks(recentsPrivacyCheck);recentsDeparture.resumed();animationResumed=true;(connect as? ForgeConnectionButton)?.resumeAnimation(true); telegram.bind();handler.post(refresh);EngineUpdates.recover(this);if(!loading)EngineStartupUpdates.onOpen(this);ClientBehaviorUi.applyRecents(this);if(!loading&&ClientSettingsNavigation.isSettings(current))render() }
-    override fun onPause() {ClientBehaviorUi.applyRecents(this);recentsDeparture.paused();animationResumed=false;(connect as? ForgeConnectionButton)?.resumeAnimation(false); telegram.unbind();pendingSettingsSave?.let { handler.removeCallbacks(it); it.run() }; handler.removeCallbacks(refresh); super.onPause();handler.postDelayed(recentsPrivacyCheck,250) }
+    override fun onResume() { super.onResume();TelemetryCadence.resumed(this);handler.removeCallbacks(recentsPrivacyCheck);recentsDeparture.resumed();animationResumed=true;(connect as? ForgeConnectionButton)?.resumeAnimation(true); telegram.bind();handler.post(refresh);EngineUpdates.recover(this);if(!loading)EngineStartupUpdates.onOpen(this);ClientBehaviorUi.applyRecents(this);if(!loading&&ClientSettingsNavigation.isSettings(current))render() }
+    override fun onPause() {TelemetryCadence.paused(this);ClientBehaviorUi.applyRecents(this);recentsDeparture.paused();animationResumed=false;(connect as? ForgeConnectionButton)?.resumeAnimation(false); telegram.unbind();pendingSettingsSave?.let { handler.removeCallbacks(it); it.run() }; handler.removeCallbacks(refresh); super.onPause();handler.postDelayed(recentsPrivacyCheck,250) }
     override fun onStop() {
         super.onStop()
         finishHiddenUiIfLeaving()
@@ -1281,7 +1503,7 @@ class MainActivity : Activity() {
         return styleButton(object : Button(this) { override fun onDraw(canvas: Canvas) { super.onDraw(canvas); val size = dp(glyphSize); val x = (width-size)/2; val y = (height-size)/2; glyph.setBounds(x, y, x+size, y+size); glyph.alpha = if (isEnabled) 255 else 85; glyph.draw(canvas) } }, "", false).apply {
             contentDescription = description; setPadding(0, 0, 0, 0); background = RippleDrawable(ColorStateList.valueOf(Loft.ripple()), flat(Color.TRANSPARENT, 14, 0), flat(Color.WHITE, 14, 0)) }
     }
-    fun button(label: String, accent: Boolean) = styleButton(Button(this), label, accent)
+    fun button(label: String, accent: Boolean) = if(label=="i")iconButton("info","Справка",20)else styleButton(Button(this), label, accent)
     private fun styleButton(button: Button, label: String, accent: Boolean) = StandardButtons.style(this,button,label,accent)
     fun card() = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(16), dp(16), dp(16)); background = Loft.Glass(resources.displayMetrics.density, 20f) }
     fun section(parent: LinearLayout, label: String) { parent.addView(text(label, 10, Loft.MUTED).apply { letterSpacing = .1f; typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL) }, space(0, 12)) }
@@ -1289,14 +1511,30 @@ class MainActivity : Activity() {
     fun tune(control: Switch) { control.setTextColor(Loft.INK); control.textSize = 14f; control.minHeight = dp(48); control.thumbTintList = ColorStateList(arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()), intArrayOf(Loft.ACCENT, Loft.MUTED)); control.trackTintList = ColorStateList(arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()), intArrayOf(Loft.mix(Loft.SURFACE,Loft.ACCENT,.38f), Loft.LINE)); control.switchPadding = dp(12) }
     fun editor(hint: String) = EditText(this).apply { this.hint = hint; setHintTextColor(Loft.MUTED); setTextColor(Loft.INK); textSize = 14f; gravity = Gravity.TOP; inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS; typeface=Typeface.create("sans-serif",Typeface.NORMAL);includeFontPadding=false; importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS; setPadding(dp(12), dp(12), dp(12), dp(12)); background = flat(Loft.FIELD, 12, Loft.LINE); minimumHeight = dp(48) }
     fun number(value: Int) = editor("").apply { setSingleLine(true); inputType = InputType.TYPE_CLASS_NUMBER; setText(value.toString()) }
-    fun field(label: String, control: View) = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; addView(text(label, 12, Loft.MUTED)); addView(control, space(8, 16)) }
+    fun field(label: String, control: View) = LinearLayout(this).apply {
+        if(control is Spinner){
+            orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;isBaselineAligned=false;minimumHeight=dp(48)
+            addView(text(label,13,Loft.INK).apply {gravity=Gravity.CENTER_VERTICAL;maxLines=2},LinearLayout.LayoutParams(0,-2,1f).apply {marginEnd=dp(8)})
+            addView(control,LinearLayout.LayoutParams(0,dp(48),1.2f))
+        }else {orientation=LinearLayout.VERTICAL;addView(text(label,12,Loft.MUTED));addView(control,space(8,16))}
+    }
     fun space(top: Int, bottom: Int) = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(top); bottomMargin = dp(bottom) }
     fun spinnerAdapter(labels: Array<String>): ArrayAdapter<String> = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, labels) {
-        private fun style(view: View, dropdown: Boolean) = (view as TextView).apply { setTextColor(Loft.INK); textSize = 14f; minHeight = dp(48); gravity = Gravity.CENTER_VERTICAL; maxLines = 2; ellipsize = TextUtils.TruncateAt.END; if (dropdown) { setPadding(dp(12), dp(8), dp(12), dp(8)); setBackgroundColor(Loft.SURFACE) } }
+        private fun style(view: View, dropdown: Boolean) = (view as TextView).apply { setTextColor(Loft.INK); textSize = 13f; minHeight = dp(48); gravity = Gravity.CENTER; maxLines = 2; includeFontPadding=false;ellipsize = TextUtils.TruncateAt.END;setPadding(0,0,0,0); if (dropdown) { setPadding(dp(12), dp(8), dp(12), dp(8)); setBackgroundColor(Loft.SURFACE) } }
         override fun getView(position: Int, previous: View?, parent: ViewGroup) = style(super.getView(position, previous, parent), false)
         override fun getDropDownView(position: Int, previous: View?, parent: ViewGroup) = style(super.getDropDownView(position, previous, parent), true)
     }
-    fun picker(labels: Array<String>, index: Int) = Spinner(this,Spinner.MODE_DROPDOWN).apply { adapter = spinnerAdapter(labels); setSelection(max(0, index)); minimumHeight = dp(48); setPadding(dp(12), dp(6), dp(36), dp(6)); background = LayerDrawable(arrayOf(flat(Loft.FIELD, 12, Loft.LINE), Chevron()));setPopupBackgroundDrawable(Loft.popupBackground(this@MainActivity)) }
+    fun picker(labels: Array<String>, index: Int):Spinner = object:Spinner(this,Spinner.MODE_DROPDOWN){
+        private var choices:android.widget.PopupWindow?=null
+        override fun performClick():Boolean {
+            if(!isEnabled)return false
+            choices?.dismiss()
+            val current=adapter?:return false
+            choices=DropdownPopup.show(this@MainActivity,this,null,(0 until current.count).map {DropdownPopup.Item(current.getItem(it).toString())},selectedItemPosition){setSelection(it)}
+            return true
+        }
+        override fun onDetachedFromWindow(){choices?.dismiss();choices=null;super.onDetachedFromWindow()}
+    }.apply {adapter=spinnerAdapter(labels);setSelection(max(0,index));minimumHeight=dp(48);setPadding(dp(8),0,dp(28),0);background=LayerDrawable(arrayOf(DropdownStyle.decoration(this@MainActivity),Chevron()));setPopupBackgroundDrawable(Loft.popupBackground(this@MainActivity))}
     fun selectedListener(selected: (Int) -> Unit) = object : AdapterView.OnItemSelectedListener { override fun onNothingSelected(parent: AdapterView<*>?) = Unit; override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) = selected(position) }
     private inner class Chevron : Drawable() {
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG)

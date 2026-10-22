@@ -14,7 +14,9 @@ object ClientPacketBackendLoader {
     const val PACKAGE = "org.mcrf.engines.wg"
     const val ENTRY = "org.mcrf.engines.wg.WgPacketBackend"
     fun load(context: Context, expectedApkSha256: String): PacketBackend {
-        require(Application.getProcessName() in setOf(context.packageName+":primary", context.packageName+":primaryProbe")) { "PACKET_BACKEND_PRIVATE_WORKER" }
+        val privateProcesses=setOf(context.packageName+":primary",context.packageName+":primaryProbe")+
+            ClientPrimaryWorkerWire.routeWorkers.map {context.packageName+ClientPrimaryWorkerWire.processSuffix(it)}
+        require(Application.getProcessName() in privateProcesses) { "PACKET_BACKEND_PRIVATE_WORKER" }
         require(expectedApkSha256.matches(Regex("[0-9a-f]{64}"))) { "PACKET_BACKEND_PIN" }
         val pm = context.packageManager
         fun inspect() = pm.getPackageInfo(PACKAGE, PackageManager.GET_META_DATA or PackageManager.GET_SIGNING_CERTIFICATES)

@@ -1,0 +1,87 @@
+diff --git a/go_client/socks5_server.go b/go_client/socks5_server.go
+--- a/go_client/socks5_server.go
++++ b/go_client/socks5_server.go
+@@ -354,3 +354,5 @@
+ 	case socksAddressIPv6:
+-		return "", fmt.Errorf("IPv6 пока отсутствует в профиле WDTT")
++		value := make([]byte, net.IPv6len)
++		if _, err := io.ReadFull(reader, value); err != nil { return "", err }
++		return net.IP(value).String(), nil
+ 	default:
+@@ -362,5 +364,2 @@
+ 	if ip, err := netip.ParseAddr(host); err == nil {
+-		if !ip.Is4() {
+-			return "", fmt.Errorf("IPv6 пока отсутствует в профиле WDTT")
+-		}
+ 		return net.JoinHostPort(ip.String(), fmt.Sprint(port)), nil
+@@ -372,8 +372,13 @@
+ 	for _, value := range addresses {
+ 		if ip, err := netip.ParseAddr(value); err == nil && ip.Is4() {
+ 			return net.JoinHostPort(ip.String(), fmt.Sprint(port)), nil
+ 		}
+ 	}
+-	return "", fmt.Errorf("у %s нет IPv4-адреса", host)
++	for _, value := range addresses {
++		if ip, err := netip.ParseAddr(value); err == nil && ip.Is6() {
++			return net.JoinHostPort(ip.String(), fmt.Sprint(port)), nil
++		}
++	}
++	return "", fmt.Errorf("у %s нет IP-адреса", host)
+ }
+@@ -385,7 +392,7 @@
+ 		return err
+ 	}
+-	upstream, err := server.dialer.DialContext(ctx, "tcp4", target)
++	upstream, err := server.dialer.DialContext(ctx, "tcp", target)
+ 	if err != nil {
+ 		_ = writeSocksReply(client, socksReplyUnreachable, nil)
+ 		return err
+ 	}
+@@ -535,10 +542,10 @@
+ 		if flow == nil {
+ 			prepareSocksUDPFlowSlot(flows, now)
+-			connection, err := server.dialer.DialContext(associationCtx, "udp4", resolved)
++			connection, err := server.dialer.DialContext(associationCtx, "udp", resolved)
+ 			if err != nil {
+ 				continue
+ 			}
+-			udpTarget, err := net.ResolveUDPAddr("udp4", resolved)
++			udpTarget, err := net.ResolveUDPAddr("udp", resolved)
+ 			if err != nil {
+ 				_ = connection.Close()
+ 				continue
+@@ -600,12 +607,16 @@
+ func buildSocksUDPDatagram(address *net.UDPAddr, payload []byte) ([]byte, error) {
+ 	ip := address.IP.To4()
+-	if ip == nil || address.Port < 1 || address.Port > 65535 {
+-		return nil, fmt.Errorf("ответ SOCKS5 не является IPv4 UDP")
++	typeID := byte(socksAddressIPv4)
++	if ip == nil { ip=address.IP.To16(); typeID=socksAddressIPv6 }
++	if ip == nil || address.Port < 1 || address.Port > 65535 {
++		return nil, fmt.Errorf("некорректный адрес ответа SOCKS5 UDP")
+ 	}
+-	packet := make([]byte, 10+len(payload))
+-	packet[3] = socksAddressIPv4
+-	copy(packet[4:8], ip)
+-	binary.BigEndian.PutUint16(packet[8:10], uint16(address.Port))
+-	copy(packet[10:], payload)
++	header := 6+len(ip)
++	packet := make([]byte, header+len(payload))
++	packet[3] = typeID
++	copy(packet[4:4+len(ip)], ip)
++	binary.BigEndian.PutUint16(packet[4+len(ip):header], uint16(address.Port))
++	copy(packet[header:], payload)
+ 	return packet, nil
+ }
+diff --git a/go_client/http_connect_server.go b/go_client/http_connect_server.go
+--- a/go_client/http_connect_server.go
++++ b/go_client/http_connect_server.go
+@@ -131,7 +131,7 @@
+ 		return err
+ 	}
+-	upstream, err := server.dialer.DialContext(ctx, "tcp4", target)
++	upstream, err := server.dialer.DialContext(ctx, "tcp", target)
+ 	if err != nil {
+ 		_ = writeHTTPProxyResponse(client, http.StatusBadGateway, "Узел недоступен")
+ 		return err
+ 	}

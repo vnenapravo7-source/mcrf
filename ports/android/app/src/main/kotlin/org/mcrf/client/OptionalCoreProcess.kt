@@ -21,6 +21,25 @@ class OptionalCoreProcess private constructor(val port: Int,val username: String
     private var directory: File?=null
     private val ready=AtomicBoolean(false)
     private val closed=AtomicBoolean(false)
+    private var failureDetail:CarrierFailureDetail?=null
+    private var outputThread:Thread?=null
+    private fun watch(child:Process,config:JSONObject,acceptReady:Boolean=false){
+        val detail=CarrierFailureDetail(kind,config,listOf(username,password));failureDetail=detail
+        ready.set(false)
+        outputThread=ChildFailureOutput.start(child.inputStream,detail){line->if(acceptReady&&line=="MCRF_READY")ready.set(true)}
+    }
+    fun failure(stage:String="работающее соединение"):String? {
+        if(closed.get()||process?.isAlive!=false)return null
+        return failureDetail?.describe(stage,process?.let {runCatching {it.exitValue()}.getOrNull()})
+    }
+    private fun checkExit(child:Process,cancelled:BooleanSupplier,stage:String) {
+        val code=try{waitExit(child,cancelled,10000)}catch(error:IllegalArgumentException){
+            if(cancelled.asBoolean)throw error
+            throw IllegalArgumentException("${error.message} ${failureDetail?.describe(stage,null).orEmpty()}",error)
+        }
+        outputThread?.join(250)
+        require(code==0){failureDetail?.describe(stage,code)?:"$kind · $stage · код=$code · причина недоступна"}
+    }
     @Synchronized override fun close() {
         val first=closed.compareAndSet(false,true)
         process?.let { child ->
@@ -65,17 +84,24 @@ class OptionalCoreProcess private constructor(val port: Int,val username: String
             while(System.nanoTime()<deadline){if(cancelled.asBoolean)throw IllegalArgumentException("Подключение отменено.");if(child.waitFor(50,TimeUnit.MILLISECONDS))return child.exitValue()}
             throw IllegalArgumentException("Optional core не ответил вовремя.")
         }
-        private fun describe(binary: File,kind: String,cancelled: BooleanSupplier,certificateStore: String?=null):JSONObject {
-            val child=ProcessBuilder(binary.absolutePath,"--mcrf-describe").redirectError(ProcessBuilder.Redirect.to(File("/dev/null"))).start()
+        private fun describe(binary: File,kind: String,cancelled: BooleanSupplier,certificateStore: String?=null,serverDns:Boolean=false):JSONObject {
+            val child=ProcessBuilder(binary.absolutePath,"--mcrf-describe").start()
+            val detail=CarrierFailureDetail(kind,JSONObject())
+            val errors=ChildFailureOutput.start(child.errorStream,detail)
             try {
             child.outputStream.close()
             val bytes=ByteArrayOutputStream();val reader=Thread({try {child.inputStream.use { input ->val buffer=ByteArray(512);while(bytes.size()<=8192){val n=input.read(buffer);if(n<0)break;bytes.write(buffer,0,n)}}}catch(_:Exception){}},"mcrf-optional-descriptor").apply {isDaemon=true;start()}
-            require(waitExit(child,cancelled,3000)==0) {"Optional core не поддерживает descriptor API."};reader.join(1000)
+            val descriptorExit=try{waitExit(child,cancelled,3000)}catch(error:IllegalArgumentException){
+                if(cancelled.asBoolean)throw error
+                throw IllegalArgumentException("${error.message} ${detail.describe("проверка интерфейса движка",null)}",error)
+            };errors.join(250)
+            require(descriptorExit==0) {detail.describe("проверка интерфейса движка",descriptorExit)};reader.join(1000)
             require(!reader.isAlive && bytes.size() in 1..8192) {"Некорректный descriptor optional core."}
             val descriptor=JSONObject(bytes.toString("UTF-8"));val upstream=if(kind=="xray") "e662c22ab1096883c4df200a0e8068a89da04df1" else "ebe0747b41823e02335ad3c7ae531bc577e7bc75"
             val ingress=if(kind=="xray") "authenticated-loopback-socks5-tcp-udp" else "authenticated-loopback-socks5-tcp"
             require(descriptor.getInt("api")==1 && descriptor.getString("kind")==kind && descriptor.getString("upstream")==upstream && descriptor.getString("ingress")==ingress) {"Обнови optional core: несовместимый API или исходник."}
             if(certificateStore!=null){val capabilities=descriptor.getJSONArray("capabilities");require((0 until capabilities.length()).any {capabilities.getString(it)=="certificate-store"}) {"Обнови TLS core для выбранного CA store."}}
+            if(serverDns){val capabilities=descriptor.getJSONArray("capabilities");require((0 until capabilities.length()).any {capabilities.getString(it)=="server-address-dns-v1"}) {"Обнови внешний движок для передачи выбранного DNS адресов серверов."}}
             OptionalCoreTermination.release(child,false)
             return descriptor
             }catch(error:Throwable){OptionalCoreRetirement.fail(error,AutoCloseable {OptionalCoreTermination.release(child,false)})}
@@ -91,36 +117,43 @@ class OptionalCoreProcess private constructor(val port: Int,val username: String
         fun start(context:Context,request:OptionalCoreConfig.Request,cancelled:BooleanSupplier,vpn:Boolean,vpnUidBypassConfigured:Boolean):OptionalCoreProcess {
             require(!vpn || vpnUidBypassConfigured) {"VPN должен исключить UID приложения для сетевых сокетов optional core."}
             val binary=executable(context,request.kind)
-            describe(binary,request.kind,cancelled,request.certificateStore)
+            describe(binary,request.kind,cancelled,request.certificateStore,request.serverDns!=null)
             val port=ServerSocket(0,1,InetAddress.getByName("127.0.0.1")).use {it.localPort}
             val owner=OptionalCoreProcess(port,UUID.randomUUID().toString(),UUID.randomUUID().toString(),request.kind)
             try {
                 if(cancelled.asBoolean)throw IllegalArgumentException("Подключение отменено.")
                 val dir=File(context.cacheDir,"mcrf-optional-${UUID.randomUUID()}");require(dir.mkdir());owner.directory=dir;Os.chmod(dir.absolutePath,0x1c0)
-                val file=File(dir,"config.json");val data=OptionalCoreConfig.privateConfig(request,port,owner.username,owner.password).toString().toByteArray()
+                val config=OptionalCoreConfig.privateConfig(request,port,owner.username,owner.password)
+                val file=File(dir,"config.json");val data=config.toString().toByteArray()
                 require(data.size<=65536) {"Профиль optional core больше 64 КБ."};require(file.createNewFile());Os.chmod(file.absolutePath,0x180);FileOutputStream(file).use {it.write(data)}
                 // Native parsing is mandatory, even after model validation.
-                val check=ProcessBuilder(binary.absolutePath,"--mcrf-check",file.absolutePath).directory(dir).redirectOutput(ProcessBuilder.Redirect.to(File("/dev/null"))).redirectError(ProcessBuilder.Redirect.to(File("/dev/null"))).start()
-                owner.process=check;check.outputStream.close();require(waitExit(check,cancelled,10000)==0) {"Optional core отклонил параметры профиля."}
-                val child=ProcessBuilder(binary.absolutePath,"--mcrf-config",file.absolutePath).directory(dir).redirectError(ProcessBuilder.Redirect.to(File("/dev/null"))).start();owner.process=child
-                Thread({try {child.inputStream.use {input->val line=StringBuilder();var dropping=false;while(true){val b=input.read();if(b<0)break;if(b==10){if(!dropping&&line.toString().trimEnd('\r')=="MCRF_READY")owner.ready.set(true);line.setLength(0);dropping=false}else if(line.length<1024&&!dropping)line.append(b.toChar())else{line.setLength(0);dropping=true}}}}catch(_:Exception){}},"mcrf-optional-output").apply {isDaemon=true;start()}
+                val check=ProcessBuilder(binary.absolutePath,"--mcrf-check",file.absolutePath).directory(dir).redirectErrorStream(true).start()
+                owner.process=check;owner.watch(check,config);check.outputStream.close();owner.checkExit(check,cancelled,"проверка профиля")
+                val child=ProcessBuilder(binary.absolutePath,"--mcrf-config",file.absolutePath).directory(dir).redirectErrorStream(true).start();owner.process=child
+                owner.watch(child,config,true)
                 val deadline=System.nanoTime()+10_000_000_000L
-                while(System.nanoTime()<deadline){if(cancelled.asBoolean)throw IllegalArgumentException("Подключение отменено.");require(child.isAlive) {"Optional core завершился при запуске."};if(owner.ready.get()&&NativeCarrier.socksReady(port,owner.username,owner.password))return owner;Thread.sleep(50)}
-                throw IllegalArgumentException("Optional core не открыл защищённый SOCKS listener.")
+                while(System.nanoTime()<deadline){
+                    if(cancelled.asBoolean)throw IllegalArgumentException("Подключение отменено.")
+                    if(!child.isAlive){owner.outputThread?.join(250);throw IllegalArgumentException(owner.failure("выход до готовности")?:"${request.kind}: процесс завершился, причина недоступна")}
+                    if(owner.ready.get()&&NativeCarrier.socksReady(port,owner.username,owner.password))return owner
+                    Thread.sleep(50)
+                }
+                throw IllegalArgumentException("Optional core не открыл защищённый SOCKS listener. ${owner.failureDetail?.describe("ожидание готовности истекло",null).orEmpty()}")
             } catch(error:Throwable){OptionalCoreRetirement.fail(error,owner)}
         }
         /** Read-only module/config preflight. Native construction/close only;
          * this does not bind a SOCKS/TUN/UDP listener or consume a server token. */
         fun check(context:Context,request:OptionalCoreConfig.Request,cancelled:BooleanSupplier) {
-            val binary=executable(context,request.kind);describe(binary,request.kind,cancelled,request.certificateStore)
+            val binary=executable(context,request.kind);describe(binary,request.kind,cancelled,request.certificateStore,request.serverDns!=null)
             val owner=OptionalCoreProcess(10900,UUID.randomUUID().toString(),UUID.randomUUID().toString(),request.kind)
             try {
                 if(cancelled.asBoolean)throw IllegalArgumentException("Проверка отменена.")
                 val dir=File(context.cacheDir,"mcrf-optional-${UUID.randomUUID()}");require(dir.mkdir());owner.directory=dir;Os.chmod(dir.absolutePath,0x1c0)
-                val data=OptionalCoreConfig.privateConfig(request,owner.port,owner.username,owner.password).toString().toByteArray();require(data.size<=65536)
+                val config=OptionalCoreConfig.privateConfig(request,owner.port,owner.username,owner.password)
+                val data=config.toString().toByteArray();require(data.size<=65536)
                 val file=File(dir,"config.json");require(file.createNewFile());Os.chmod(file.absolutePath,0x180);FileOutputStream(file).use {it.write(data)}
-                val child=ProcessBuilder(binary.absolutePath,"--mcrf-check",file.absolutePath).directory(dir).redirectOutput(ProcessBuilder.Redirect.to(File("/dev/null"))).redirectError(ProcessBuilder.Redirect.to(File("/dev/null"))).start();owner.process=child;child.outputStream.close()
-                require(waitExit(child,cancelled,10000)==0) {"Optional core отклонил параметры профиля."}
+                val child=ProcessBuilder(binary.absolutePath,"--mcrf-check",file.absolutePath).directory(dir).redirectErrorStream(true).start();owner.process=child
+                owner.watch(child,config);child.outputStream.close();owner.checkExit(child,cancelled,"проверка профиля")
             }catch(error:Throwable){OptionalCoreRetirement.fail(error,owner)}
             OptionalCoreRetirement.drain(owner)
         }

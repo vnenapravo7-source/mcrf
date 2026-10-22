@@ -16,6 +16,7 @@ class ModeSwitch @JvmOverloads constructor(private val activity: MainActivity, v
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var fraction = if (vpn) 0f else 1f
     private var animator: ValueAnimator? = null
+    private var shownMode:Boolean?=null
     private val buttons = mutableListOf<Button>()
     init {
         setWillNotDraw(false); setPadding(activity.dp(4), activity.dp(if(compact)0 else 4), activity.dp(4), activity.dp(if(compact)0 else 4))
@@ -72,6 +73,10 @@ class ModeSwitch @JvmOverloads constructor(private val activity: MainActivity, v
         setMode(vpn, false)
     }
     fun setMode(vpn: Boolean, animate: Boolean) {
+        // Periodic status refreshes must not restart the same animation or
+        // invalidate all buttons when neither selection nor appearance changed.
+        if(shownMode==vpn)return
+        shownMode=vpn
         buttons.forEachIndexed { index, button ->
             button.isSelected = (index == 0) == vpn
             if (Build.VERSION.SDK_INT >= 30) button.stateDescription = if (button.isSelected) "Выбран" else "Не выбран"

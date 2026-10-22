@@ -3,6 +3,10 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
+#include <stdatomic.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <fcntl.h>
 #include "vless.h"
 #include "vldial.h"
 #include "stack.h"
@@ -16,6 +20,35 @@
 #include "quic.h"
 #include "sublink.h"
 #include "hostdial.h"
+#include "node_bind49.h"
+#include "probe.h"
+#include "route_relay.h"
+#include "route_slots.h"
+#ifdef MCRF_UTLS49
+#include "tls49.h"
+static _Atomic uint64_t active_tls49;
+static atomic_int stopping_tls49;
+static uint64_t begin_tls49(void){
+    if(atomic_load(&stopping_tls49))return 0;
+    uint64_t id=mcrf49_begin(),empty=0;if(!id)return 0;
+    if(!atomic_compare_exchange_strong(&active_tls49,&empty,id)){mcrf49_stop(id);return 0;}
+    if(atomic_load(&stopping_tls49)){
+        uint64_t current=id;atomic_compare_exchange_strong(&active_tls49,&current,0);mcrf49_stop(id);return 0;
+    }
+    return id;
+}
+static void end_tls49(uint64_t id){
+    if(!id)return;uint64_t current=id;
+    atomic_compare_exchange_strong(&active_tls49,&current,0);mcrf49_stop(id);
+}
+#endif
+JNIEXPORT void JNICALL Java_org_steer_core_SteerCore_cancelTLS(JNIEnv *env,jclass cls){
+    (void)env;(void)cls;
+#ifdef MCRF_UTLS49
+    atomic_store(&stopping_tls49,1);
+    uint64_t id=atomic_exchange(&active_tls49,0);if(id)mcrf49_stop(id);
+#endif
+}
 
 JNIEXPORT jint JNICALL Java_org_steer_core_SteerCore_verifyTlsNative(JNIEnv *env,jclass cls,jstring hostname,jstring ipv4,jstring state) {
     (void)cls;if(!hostname||!ipv4||!state)return -1;
@@ -29,10 +62,16 @@ JNIEXPORT jint JNICALL Java_org_steer_core_SteerCore_verifyTlsNative(JNIEnv *env
         struct vless_node vn={0};snprintf(vn.host,sizeof(vn.host),"%s",ip);vn.port=443;
         snprintf(vn.type,sizeof(vn.type),"tcp");snprintf(vn.security,sizeof(vn.security),"tls");
         snprintf(vn.sni,sizeof(vn.sni),"%s",host);snprintf(vn.fp,sizeof(vn.fp),"chrome");
+#ifdef MCRF_UTLS49
+        vn.runtime_epoch49=begin_tls49();
+#endif
         struct tr_node node;sl_tr_node(&vn,&node);
         plat_select("android");steer_set_state_dir(dir);
         struct tr_link link;rc=tr_link_open(&link,&node,"http/1.1",8);
         tr_link_close(&link);steer_set_state_dir(NULL);
+#ifdef MCRF_UTLS49
+        end_tls49(vn.runtime_epoch49);
+#endif
     }
     (*env)->ReleaseStringUTFChars(env,hostname,host);(*env)->ReleaseStringUTFChars(env,ipv4,ip);(*env)->ReleaseStringUTFChars(env,state,dir);
     return rc;
@@ -169,6 +208,157 @@ static uint64_t route_flow_port(void *arg,uint32_t ip,unsigned port,unsigned pro
     if((*env)->ExceptionCheck(env)){(*env)->ExceptionClear(env);value=3ULL<<32;}
     if(attached)(*h->vm)->DetachCurrentThread(h->vm);return (uint64_t)value;
 }
+JNIEXPORT jint JNICALL Java_org_steer_core_SteerCore_nativeProbeSchema(JNIEnv *env,jclass self){
+    (void)env;(void)self;return 1; /* Mechanical API only, not acceptance. */
+}
+JNIEXPORT jlong JNICALL Java_org_steer_core_SteerCore_probeNative(JNIEnv *env,jclass self,
+        jstring url,jstring dial,jstring target,jstring hostname,jstring path,jstring state,
+        jint timeout,jobject protector){
+    (void)self;
+    if(!url||!dial||!target||!hostname||!path||!state||!protector||timeout<1||timeout>30000)return -1;
+    jstring strings[6]={url,dial,target,hostname,path,state};
+    const char *values[6]={0};jlong result=-1;
+    for(unsigned i=0;i<6;i++)if(!(values[i]=(*env)->GetStringUTFChars(env,strings[i],NULL)))goto release;
+    struct endpoint *endpoint=calloc(1,sizeof(*endpoint));
+    struct host *owner=calloc(1,sizeof(*owner));
+    char *directory=strdup(values[5]);
+    if(!endpoint||!owner||!directory){free(endpoint);free(owner);free(directory);goto release;}
+    struct in_addr pinned;
+    struct flow_key key={.sport=40000,.dport=443,.proto=6};
+    if(endpoint_parse(values[0],endpoint)||inet_pton(AF_INET,values[1],&pinned)!=1)goto fail;
+    if(inet_pton(AF_INET,values[2],&key.dst)==1){key.family=4;key.src=htonl(0x0a590002u);}
+    else if(inet_pton(AF_INET6,values[2],key.dst6)==1){key.family=6;key.src6[0]=0xfd;key.src6[15]=2;}
+    else goto fail;
+    if(endpoint->proxy==2){
+        if(!endpoint->hy.sni[0])snprintf(endpoint->hy.sni,sizeof(endpoint->hy.sni),"%s",endpoint->hy.host);
+        snprintf(endpoint->hy.host,sizeof(endpoint->hy.host),"%s",values[1]);
+    }else{
+        struct vless_node *node=endpoint_node(endpoint);
+        steer_bind_node49(node,values[1]);
+    }
+    (*env)->GetJavaVM(env,&owner->vm);
+    owner->service=(*env)->NewGlobalRef(env,protector);
+    jclass cls=(*env)->GetObjectClass(env,protector);
+    if(cls){owner->protect=(*env)->GetMethodID(env,cls,"protectSocket","(I)Z");(*env)->DeleteLocalRef(env,cls);}
+    if(!owner->service||!owner->protect||(*env)->ExceptionCheck(env))goto fail;
+#ifdef MCRF_UTLS49
+    if(endpoint->proxy!=2){
+        endpoint_node(endpoint)->runtime_epoch49=begin_tls49();
+        if(!endpoint_node(endpoint)->runtime_epoch49)goto fail;
+    }
+#endif
+    plat_select("android");steer_set_state_dir(directory);
+    transport_set_socket_prepare(protect_socket,owner);qc_set_socket_prepare(protect_socket,owner);
+    struct dialer native={.ops=endpoint->proxy==2?&hy2_dialer:
+        (endpoint->proxy?px_dialer_for(endpoint->px.proto):&vless_dialer),
+        .ctx=endpoint->proxy==2?(const void *)&endpoint->hy:
+        (endpoint->proxy?(const void *)&endpoint->px:(const void *)&endpoint->vl),.silence_s=30};
+    // Multiplexer callbacks/node paths may outlive this invocation, exactly as
+    // in runNative. Their one-use fresh-worker owner must remain alive until
+    // main observes actual worker death; never clear these hooks on a timeout.
+    if(native.ops&&(endpoint->proxy!=2||hy2c_start(&endpoint->hy)==0))
+        result=(jlong)steer_https_probe(&native,&key,values[3],values[4],timeout);
+#ifdef MCRF_UTLS49
+    if(endpoint->proxy!=2)end_tls49(endpoint_node(endpoint)->runtime_epoch49);
+#endif
+    goto release;
+fail:
+    if(owner->service)(*env)->DeleteGlobalRef(env,owner->service);
+    free(endpoint);free(owner);free(directory);
+release:
+    for(unsigned i=0;i<6;i++)if(values[i])(*env)->ReleaseStringUTFChars(env,strings[i],values[i]);
+    return result;
+}
+/* Standalone route backend: one pinned protocol context per fresh worker.
+ * Never creates a TUN/listener and never owns Java's public proxy credentials.
+ * Context/hooks/multiplexers deliberately survive until actual worker death. */
+struct route_backend {struct endpoint endpoint;struct host owner;char *directory;_Atomic unsigned channel_mask;int started;};
+static _Atomic(struct route_backend *) route_backend;
+static atomic_bool route_claimed;
+JNIEXPORT jint JNICALL Java_org_steer_core_SteerCore_nativeRouteSchema(JNIEnv *env,jclass self){(void)env;(void)self;return 1;}
+JNIEXPORT jboolean JNICALL Java_org_steer_core_SteerCore_prepareRouteNative(JNIEnv *env,jclass self,jstring url,jstring dial,jstring state,jobject protector){
+    (void)self;_Bool expected=0;
+    if(!url||!dial||!state||!protector||!atomic_compare_exchange_strong(&route_claimed,&expected,1))return JNI_FALSE;
+    jstring strings[3]={url,dial,state};const char *values[3]={0};jboolean result=JNI_FALSE;
+    struct route_backend *backend=NULL;
+    for(unsigned i=0;i<3;i++)if(!(values[i]=(*env)->GetStringUTFChars(env,strings[i],NULL)))goto release_route;
+    backend=calloc(1,sizeof(*backend));if(!backend)goto release_route;
+    struct in_addr pinned;
+    if(endpoint_parse(values[0],&backend->endpoint)||inet_pton(AF_INET,values[1],&pinned)!=1||strlen(values[2])>4096)goto fail_route;
+    backend->directory=strdup(values[2]);if(!backend->directory)goto fail_route;
+    if(backend->endpoint.proxy==2){
+        struct hy2_node *node=&backend->endpoint.hy;
+        if(!node->sni[0])snprintf(node->sni,sizeof(node->sni),"%s",node->host);
+        snprintf(node->host,sizeof(node->host),"%s",values[1]);
+    }else{
+        struct vless_node *node=endpoint_node(&backend->endpoint);
+        steer_bind_node49(node,values[1]);
+    }
+    if((*env)->GetJavaVM(env,&backend->owner.vm)!=JNI_OK)goto fail_route;
+    backend->owner.service=(*env)->NewGlobalRef(env,protector);
+    jclass type=(*env)->GetObjectClass(env,protector);
+    if(type){backend->owner.protect=(*env)->GetMethodID(env,type,"protectSocket","(I)Z");(*env)->DeleteLocalRef(env,type);}
+    if(!backend->owner.service||!backend->owner.protect||(*env)->ExceptionCheck(env))goto fail_route;
+#ifdef MCRF_UTLS49
+    if(backend->endpoint.proxy!=2){
+        endpoint_node(&backend->endpoint)->runtime_epoch49=begin_tls49();
+        if(!endpoint_node(&backend->endpoint)->runtime_epoch49)goto fail_route;
+    }
+#endif
+    atomic_init(&backend->channel_mask,0);
+    plat_select("android");steer_set_state_dir(backend->directory);
+    transport_set_socket_prepare(protect_socket,&backend->owner);qc_set_socket_prepare(protect_socket,&backend->owner);
+    backend->started=backend->endpoint.proxy!=2||hy2c_start(&backend->endpoint.hy)==0;
+    atomic_store(&route_backend,backend);result=backend->started?JNI_TRUE:JNI_FALSE;goto release_route;
+fail_route:
+#ifdef MCRF_UTLS49
+    if(backend->endpoint.proxy!=2)end_tls49(endpoint_node(&backend->endpoint)->runtime_epoch49);
+#endif
+    if(backend->owner.service)(*env)->DeleteGlobalRef(env,backend->owner.service);
+    free(backend->directory);free(backend);
+release_route:
+    for(unsigned i=0;i<3;i++)if(values[i])(*env)->ReleaseStringUTFChars(env,strings[i],values[i]);
+    return result;
+}
+struct relay_notice {JNIEnv *env;jobject owner;jmethodID ready,cancelled;};
+static void relay_ready(void *argument,int ready){
+    struct relay_notice *n=argument;(*n->env)->CallVoidMethod(n->env,n->owner,n->ready,ready?JNI_TRUE:JNI_FALSE);
+    if((*n->env)->ExceptionCheck(n->env))(*n->env)->ExceptionClear(n->env);
+}
+static int relay_cancelled(void *argument){
+    struct relay_notice *n=argument;int value=(*n->env)->CallBooleanMethod(n->env,n->owner,n->cancelled)==JNI_TRUE;
+    if((*n->env)->ExceptionCheck(n->env)){(*n->env)->ExceptionClear(n->env);return 1;}return value;
+}
+JNIEXPORT jint JNICALL Java_org_steer_core_SteerCore_relayRouteNative(JNIEnv *env,jclass self,jstring address,jint port,jboolean udp,jint borrowed_fd,jint timeout,jobject notice){
+    /* Java retains this exact borrowed descriptor until the blocking call
+     * returns; native owns ONLY its duplicate, including every error path. */
+    (void)self;int result=-1,owned_fd=borrowed_fd>=0?fcntl(borrowed_fd,F_DUPFD_CLOEXEC,0):-1;const char *literal=NULL;
+    struct route_backend *backend=atomic_load(&route_backend);int slot=-1;
+    struct relay_notice completion={.env=env,.owner=notice};
+    if(!notice||owned_fd<0)goto release_relay;
+    jclass type=(*env)->GetObjectClass(env,notice);
+    if(type){completion.ready=(*env)->GetMethodID(env,type,"completed","(Z)V");completion.cancelled=(*env)->GetMethodID(env,type,"cancelled","()Z");(*env)->DeleteLocalRef(env,type);}
+    if(!completion.ready||!completion.cancelled||(*env)->ExceptionCheck(env))goto release_relay;
+    if(!backend||!backend->started||!address||port<1||port>65535||timeout<1||timeout>30000)goto refuse_relay;
+    slot=mcrf_route_slot_acquire(&backend->channel_mask);if(slot<0)goto refuse_relay;
+    literal=(*env)->GetStringUTFChars(env,address,NULL);if(!literal)goto refuse_relay;
+    struct flow_key key={.sport=(uint16_t)(40000+slot),.dport=(uint16_t)port,.proto=udp?17:6};
+    if(inet_pton(AF_INET,literal,&key.dst)==1){key.family=4;key.src=htonl(0x0a590002u);}
+    else if(inet_pton(AF_INET6,literal,key.dst6)==1){key.family=6;key.src6[0]=0xfd;key.src6[15]=2;}
+    else goto refuse_relay;
+    const struct endpoint *endpoint=&backend->endpoint;
+    struct dialer dialer={.ops=endpoint->proxy==2?&hy2_dialer:(endpoint->proxy?px_dialer_for(endpoint->px.proto):&vless_dialer),
+        .ctx=endpoint->proxy==2?(const void *)&endpoint->hy:(endpoint->proxy?(const void *)&endpoint->px:(const void *)&endpoint->vl),.silence_s=120};
+    result=steer_route_relay(&dialer,&key,udp?1:0,owned_fd,timeout,120000,relay_ready,relay_cancelled,&completion);
+    owned_fd=-1;goto release_relay;
+refuse_relay:
+    if(!(*env)->ExceptionCheck(env))relay_ready(&completion,0);
+release_relay:
+    if(literal)(*env)->ReleaseStringUTFChars(env,address,literal);
+    if(owned_fd>=0){shutdown(owned_fd,SHUT_RDWR);close(owned_fd);}
+    if(slot>=0)mcrf_route_slot_release(&backend->channel_mask,slot);
+    return result;
+}
 JNIEXPORT jstring JNICALL Java_org_steer_core_SteerCore_serverHost(JNIEnv *env,jclass self,jstring url) {
     (void)self;
     if(!url) return NULL;
@@ -205,8 +395,7 @@ JNIEXPORT jint JNICALL Java_org_steer_core_SteerCore_runNative(JNIEnv *env,jclas
             if(!endpoint.hy.sni[0])snprintf(endpoint.hy.sni,sizeof(endpoint.hy.sni),"%s",endpoint.hy.host);
             snprintf(endpoint.hy.host,sizeof(endpoint.hy.host),"%s",address);
         }else{
-            if(!node->sni[0]) snprintf(node->sni,sizeof(node->sni),"%s",node->host);
-            snprintf(node->host,sizeof(node->host),"%s",address);
+            steer_bind_node49(node,address);
         }
     }
     (*env)->ReleaseStringUTFChars(env,ip,address);
@@ -301,7 +490,13 @@ JNIEXPORT jint JNICALL Java_org_steer_core_SteerCore_runNative(JNIEnv *env,jclas
         return stack_run_fd(&output,&dialer,fd,NULL,NULL);
     }
     if(routing){dialer.ops=&host_dialer;dialer.ctx=routing;stack_set_flow_filter(host_route_filter,routing);}
+#ifdef MCRF_UTLS49
+    node->runtime_epoch49=begin_tls49();
+    rc=node->runtime_epoch49?stack_run_fd(&output,&dialer,fd,NULL,NULL):2;
+    end_tls49(node->runtime_epoch49);
+#else
     rc=stack_run_fd(&output,&dialer,fd,NULL,NULL);
+#endif
     free(routing);if(h.router)(*env)->DeleteGlobalRef(env,h.router);
     // Workers have joined when stack returns.
     transport_set_socket_prepare(NULL,NULL);

@@ -1,0 +1,65 @@
+diff --git a/qwdtt/bridge_config.go b/qwdtt/bridge_config.go
+--- a/qwdtt/bridge_config.go
++++ b/qwdtt/bridge_config.go
+@@ -125,2 +125,3 @@
+ 	desktopBridgeMode = true
++	if err := mcrfQwdttSetFingerprint(c.Fingerprint); err != nil { return err }
+ 	desktopProbeOnly = c.ProbeOnly
+@@ -156,2 +157,3 @@
+ 	key := sha256.Sum256([]byte(c.DeviceID))
++	if mcrfQwdttFingerprint!="chrome" {key=sha256.Sum256([]byte(c.DeviceID+"|"+mcrfQwdttFingerprint))}
+ 	state := filepath.Join(cache, "qThrone", "qwdtt", fmt.Sprintf("%x", key[:16]))
+diff --git a/qwdtt/creds.go b/qwdtt/creds.go
+--- a/qwdtt/creds.go
++++ b/qwdtt/creds.go
+@@ -21,3 +21,2 @@
+ 	tlsclient "github.com/bogdanfinn/tls-client"
+-	"github.com/bogdanfinn/tls-client/profiles"
+ 	"github.com/google/uuid"
+@@ -381,3 +380,3 @@
+ 		tlsclient.WithTimeoutSeconds(20),
+-		tlsclient.WithClientProfile(profiles.Chrome_146),
++		tlsclient.WithClientProfile(mcrfQwdttTLSProfile()),
+ 		tlsclient.WithCookieJar(jar),
+diff --git a/qwdtt/creds_vkcalls.go b/qwdtt/creds_vkcalls.go
+--- a/qwdtt/creds_vkcalls.go
++++ b/qwdtt/creds_vkcalls.go
+@@ -16,3 +16,2 @@
+ 	tlsclient "github.com/bogdanfinn/tls-client"
+-	"github.com/bogdanfinn/tls-client/profiles"
+ 	"github.com/google/uuid"
+@@ -142,3 +141,3 @@
+ 		tlsclient.WithTimeoutSeconds(20),
+-		tlsclient.WithClientProfile(profiles.Chrome_146),
++		tlsclient.WithClientProfile(mcrfQwdttTLSProfile()),
+ 		tlsclient.WithCookieJar(tlsclient.NewCookieJar()),
+@@ -150,2 +149,2 @@
+-	log.Printf("[STREAM %d] [VKCalls] Identity - Name: %s | device_id=%s | TLS=Chrome_146 | UA: %s", streamID, name, deviceID, profile.UserAgent)
++	log.Printf("[STREAM %d] [VKCalls] Identity - Name: %s | device_id=%s | TLS=%s | UA: %s", streamID, name, deviceID, mcrfQwdttFingerprintLabel(), profile.UserAgent)
+ 
+diff --git a/qwdtt/profiles.go b/qwdtt/profiles.go
+--- a/qwdtt/profiles.go
++++ b/qwdtt/profiles.go
+@@ -139,2 +139,3 @@
+ func getRandomProfile() Profile {
++	if mcrfQwdttFingerprint!="chrome" {return mcrfQwdttBrowserProfile()}
+ 	return profileList[rand.Intn(len(profileList))]
+diff --git a/qwdtt/captcha_v2.go b/qwdtt/captcha_v2.go
+--- a/qwdtt/captcha_v2.go
++++ b/qwdtt/captcha_v2.go
+@@ -734,2 +734,7 @@
+ 	req.Header.Set("sec-ch-ua-platform", profile.SecChUaPlatform)
++	if profile.SecChUa=="" {
++		req.Header.Del("sec-ch-ua")
++		req.Header.Del("sec-ch-ua-mobile")
++		req.Header.Del("sec-ch-ua-platform")
++	}
+ 	req.Header.Set("Accept-Language", captchaV2AcceptLanguage(profile))
+diff --git a/qwdtt/main.go b/qwdtt/main.go
+--- a/qwdtt/main.go
++++ b/qwdtt/main.go
+@@ -355,3 +355,3 @@
+ 	log.Printf("[КЛИЕНТ] VK Creds: 2 stable app_id с циклическим fallback")
+-	log.Printf("[КЛИЕНТ] TLS: Chrome 146 fingerprint")
++	log.Printf("[КЛИЕНТ] TLS: %s fingerprint", mcrfQwdttFingerprintLabel())
+ 	log.Printf("[КЛИЕНТ] Воркеров: %d (групп: %d, по %d)", *numW, numGroups, workersPerGroup)

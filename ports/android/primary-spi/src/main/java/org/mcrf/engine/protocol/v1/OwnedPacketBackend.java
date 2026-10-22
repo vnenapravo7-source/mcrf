@@ -5,7 +5,10 @@ public final class OwnedPacketBackend implements PacketBackend {
     public interface SocketPreparation { boolean prepare(int borrowedFd); }
     public interface NativeSession { void close(); }
     public interface Factory {
-        /** Must duplicate the borrowed TUN, own that duplicate on failure too, and sanitize errors. */
+        /** Must duplicate the supplied packet descriptor, own that duplicate on
+         * failure too, and sanitize errors. Ordinary callers supply a TUN;
+         * a separately capability-gated pipe adapter can reuse this ownership
+         * lifecycle, but MUST select its own private-packet native factory. */
         NativeSession start(int borrowedTunFd, int mtu, String secretConfiguration, SocketPreparation protector) throws Exception;
     }
     private final Factory factory;

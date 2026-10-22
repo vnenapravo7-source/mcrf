@@ -1,0 +1,67 @@
+diff --git a/qwdtt/bridge_config.go b/qwdtt/bridge_config.go
+--- a/qwdtt/bridge_config.go
++++ b/qwdtt/bridge_config.go
+@@ -62,8 +62,8 @@ func readBridgeConfig(filename string) (*bridgeConfig, error) {
+-	if len(c.Hashes) == 0 || len(c.Hashes) > 4 {
+-		return nil, fmt.Errorf("one to four VK hashes required")
++	if len(c.Hashes) == 0 {
++		return nil, fmt.Errorf("at least one VK hash required")
+ 	}
+@@ -77,8 +77,8 @@ func readBridgeConfig(filename string) (*bridgeConfig, error) {
+-	if c.Workers < 1 || c.Workers > 108 {
+-		return nil, fmt.Errorf("workers must be between 1 and 108")
++	if c.Workers < 1 || c.Workers > 162 {
++		return nil, fmt.Errorf("workers must be between 1 and 162")
+ 	}
+diff --git a/qwdtt/main.go b/qwdtt/main.go
+--- a/qwdtt/main.go
++++ b/qwdtt/main.go
+@@ -148,6 +148,7 @@ func main() {
+ 	// STDIN для PAUSE/RESUME/STOP и CAPTCHA_RESULT
+ 	go func() {
++		defer cancel()
+ 		scanner := bufio.NewScanner(os.Stdin)
+@@ -268,3 +269,3 @@ func main() {
+ 	// Лимит воркеров
+-	maxWorkers := 108
++	maxWorkers := 162
+ 	if *numW > maxWorkers {
+diff --git a/qwdtt/csqtt_bridge.go b/qwdtt/csqtt_bridge.go
+--- a/qwdtt/csqtt_bridge.go
++++ b/qwdtt/csqtt_bridge.go
+@@ -98,6 +98,7 @@ func runCSQTTBridge(path string) error {
+ 	name := "csqtt-transport"
++	if runtime.GOOS == "android" { name = "libcsqtt_transport.so" }
+ 	if runtime.GOOS == "windows" {
+@@ -204,3 +205,4 @@ func runCSQTTBridge(path string) error {
+ 	fmt.Println("[CSQTT] SOCKS bridge ready")
++	fmt.Println("MCRF_READY")
+ 	err = serveBridgeSOCKS(ctx, listener, csqttTunnelDial(network.DialContext, dns), c.SOCKSUser, c.SOCKSPass)
+ 	if ctx.Err() != nil {
+diff --git a/qwdtt/bridge_socks.go b/qwdtt/bridge_socks.go
+--- a/qwdtt/bridge_socks.go
++++ b/qwdtt/bridge_socks.go
+@@ -340,3 +340,4 @@ func runBridgeSOCKS(ctx context.Context, address string, dial bridgeDial, user, pass string) error {
+ 	log.Printf("[qWDTT] SOCKS bridge ready: %s (TCP/UDP)", address)
++	fmt.Println("MCRF_READY")
+ 	return serveBridgeSOCKS(ctx, listener, dial, user, pass)
+ }
+diff --git a/qwdtt/group.go b/qwdtt/group.go
+--- a/qwdtt/group.go
++++ b/qwdtt/group.go
+@@ -68,3 +68,18 @@
+ 	credStreamID := groupID * 100
+-	user, pass, turnURLs, err := GetCreds(ctx, hash, credStreamID)
++	var user, pass string
++	var turnURLs []string
++	var err error
++	// Retain every supplied reserve call without opening one group per call.
++	// A failed join moves to the next call; successful groups keep their call.
++	for attempt := 0; attempt < len(tp.Hashes); attempt++ {
++		if ctx.Err() != nil { return }
++		hash = tp.Hashes[(hashIndex+attempt)%len(tp.Hashes)]
++		user, pass, turnURLs, err = GetCreds(ctx, hash, credStreamID)
++		if err == nil { break }
++		getStreamCache(credStreamID).invalidate(credStreamID)
++	}
+ 	var creds *Credentials

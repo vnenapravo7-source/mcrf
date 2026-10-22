@@ -14,19 +14,19 @@ class BsDetectionMonitor(context:Context,private val snapshot:()->Stamp?,private
     private val prefs=app.getSharedPreferences("MainActivity",Context.MODE_PRIVATE)
     private val main=Handler(Looper.getMainLooper())
     private val executor=Executors.newSingleThreadExecutor()
-    private var closed=false
+    @Volatile private var closed=false
     private var busy=false
-    private val listener=SharedPreferences.OnSharedPreferenceChangeListener {_,key->if(key==KEY)schedule()}
+    private val listener=SharedPreferences.OnSharedPreferenceChangeListener {_,key->if(key==KEY||key==BsDetectionInterval.KEY)schedule()}
     private val tick=object:Runnable {override fun run(){
         if(closed||!prefs.getBoolean(KEY,false))return
-        main.postDelayed(this,BsStartupPolicy.MONITOR_INTERVAL_MS)
+        main.postDelayed(this,interval())
         val stamp=snapshot()?:return
         if(busy)return
         busy=true
         executor.execute {
             val result=try{
-                val direct=DirectAccessCheck.check(app)
-                if(stamp.vpnSection&&stamp.tun&&direct.directComplete)
+                val direct=DirectAccessCheck.check(app,cancelled={closed||!prefs.getBoolean(KEY,false)})
+                if(!closed&&prefs.getBoolean(KEY,false)&&stamp.vpnSection&&stamp.tun&&direct.directComplete)
                     direct.copy(youtube=youtube(stamp)) else direct
             }catch(_:Exception){null}
             main.post {
@@ -37,7 +37,8 @@ class BsDetectionMonitor(context:Context,private val snapshot:()->Stamp?,private
         }
     }}
     init {prefs.registerOnSharedPreferenceChangeListener(listener);schedule()}
-    private fun schedule(){main.removeCallbacks(tick);if(!closed&&prefs.getBoolean(KEY,false))main.postDelayed(tick,BsStartupPolicy.MONITOR_INTERVAL_MS)}
+    private fun interval()=BsDetectionInterval.millis(prefs.getInt(BsDetectionInterval.KEY,BsDetectionInterval.DEFAULT))
+    private fun schedule(){main.removeCallbacks(tick);if(!closed&&prefs.getBoolean(KEY,false))main.postDelayed(tick,interval())}
     override fun close(){closed=true;prefs.unregisterOnSharedPreferenceChangeListener(listener);main.removeCallbacksAndMessages(null);executor.shutdownNow()}
     companion object {const val KEY="autoDetectBs"}
 }

@@ -77,13 +77,14 @@ object ClientPrimarySelection {
     fun envelope(config:JSONObject,vpn:Boolean,metered:Boolean)=JSONObject().put("schema",1)
         .put("mode",if(vpn)"vpn"else"proxy").put("metered",metered).put("config",JSONObject(config.toString())).toString()
     fun steerSnapshot(context:Context,routing:JSONObject,vpn:Boolean,accepted:Boolean?=null):SteerMcrfSnapshotAdapter.Result {
+        RouteServerPlan.requireSingleServerCore(routing)
         val captured=JSONObject(routing.toString())
         val prefs=context.getSharedPreferences("MainActivity",Context.MODE_PRIVATE)
         val additional=JSONArray()
-        if(prefs.getBoolean("automatic",false))additional.put("automatic-selection")
+        val contract=steerContract(context)
+        if(prefs.getBoolean("automatic",false)&&!contract.independentProbe)additional.put("automatic-selection")
         val extras=OptionalCoreStore(context).load()
         if(extras.xrayVlessDefault||extras.xrayMuxDefault||extras.customFragmentDefault||extras.mixedCaseSniDefault)additional.put("optional-core-defaults")
-        val contract=steerContract(context)
         val geoPlan=if(contract.model==2)org.mcrf.steerprep.SteerGeoProjection.plan(captured)else null
         val store=ClientTunStore(context);val loadedTun=store.load();val tun=loadedTun.json()
         // DNS address-family policy is NOT TUN capture/routing policy. Keep the
@@ -144,7 +145,9 @@ object ClientPrimarySelection {
         val store=ClientTunStore(context)
         var config=LocalProxyConfig.apply(ProfileConfig.build(raw,vpn,port),store.auth())
         val routing=RoutingStore(context);routing.load();val snapshot=routing.snapshot()
-        config=RouteRules.apply(config,snapshot,vpn,PresetAssets.resolve(context,snapshot),PresetAssets.ipRuleSetTags(context,snapshot),DirectDnsNetwork.ipv4Only(context))
+        val catalogue=Connections(context);catalogue.load();val routeServers=catalogue.entries()
+        config=RouteRules.apply(config,snapshot,vpn,PresetAssets.resolve(context,snapshot),PresetAssets.ipRuleSetTags(context,snapshot),DirectDnsNetwork.ipv4Only(context),routeServers)
+        RouteServerSession.check(context,RouteServerPlan(snapshot,routeServers),java.util.function.BooleanSupplier{false})
         val tuning=CoreTuningStore(context).load()
         val plan=OptionalCorePlan(config,OptionalCoreStore(context).load(),tuning)
         val bridges=linkedMapOf<String,JSONObject>()

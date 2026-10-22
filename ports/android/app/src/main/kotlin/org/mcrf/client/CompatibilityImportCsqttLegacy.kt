@@ -21,10 +21,11 @@ object CompatibilityImportCsqttLegacy {
             uri.rawQuery?.split('&')?.forEach { field ->
                 val parts = field.split('=', limit = 2); require(parts.size == 2)
                 val key = URLDecoder.decode(parts[0].replace("+", "%2B"), "UTF-8")
-                require(key in setOf("hashes", "vkHashes", "name") && supplied.add(key))
+                require(key in setOf("hashes", "vkHashes", "name", "csqtt_generation") && supplied.add(key))
                 node.put(key, URLDecoder.decode(parts[1].replace("+", "%2B"), "UTF-8"))
             }
             require(!(supplied.contains("hashes") && supplied.contains("vkHashes")))
+            require(CsqttGenerations.family(node) in CsqttGenerations.legacy)
             return node
         } catch (_: Exception) { throw IllegalArgumentException("Некорректная устаревшая ссылка CSQTT. Данные не добавлены.") }
     }

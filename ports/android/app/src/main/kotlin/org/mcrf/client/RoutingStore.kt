@@ -40,6 +40,8 @@ class RoutingStore(private val context: Context) {
             }
         } else JSONObject(source)
         if (!candidate.has("vpnApps")) candidate.put("vpnApps", JSONArray())
+        RoutingGroups.ensure(candidate)
+        RoutingGroups.synchronize(candidate)
         validate(candidate); PresetAssets.validate(context,candidate); state = candidate; diskRevision = store.revision();diskSource = source
     }
     @Synchronized fun snapshot(): JSONObject {
@@ -48,6 +50,7 @@ class RoutingStore(private val context: Context) {
     }
     @Synchronized fun save(candidate: JSONObject) {
         require(state != null) { "Сначала восстанови чтение маршрутизации. Исходные настройки сохранены." }
+        RoutingGroups.synchronize(candidate)
         validate(candidate)
         PresetAssets.validate(context,candidate)
         val content = candidate.toString()
@@ -65,6 +68,7 @@ class RoutingStore(private val context: Context) {
     companion object {
         @JvmStatic fun validate(settings: JSONObject) {
             require(settings.getInt("version") == 1) { "Неизвестная версия настроек маршрутизации." }
+            RoutingGroups.validate(settings)
             require(settings.getString("defaultTarget") in setOf("proxy", "direct", "block")) { "Неизвестный выход по умолчанию." }
             require(settings.optString("appMode", "all") in setOf("all", "include")) { "Неизвестный режим VPN приложений." }
             if(settings.optString("appMode","all")=="include")require((settings.optJSONArray("vpnApps")?.length()?:0)>0){"Режим «только выбранные» требует хотя бы одно приложение VPN."}
@@ -87,9 +91,11 @@ class RoutingStore(private val context: Context) {
                 val rule = rules.getJSONObject(i); val id = rule.getString("id"); val name = rule.getString("name")
                 require(id.matches(Regex("[a-zA-Z0-9_-]{1,64}")) && ids.add(id) && name.trim().isNotEmpty() && name.length <= 256) { "Некорректное имя или идентификатор списка." }
                 require(rule.optString("target", "proxy") in setOf("proxy", "direct", "block")) { "Неизвестный выход списка." }
+                RouteServerPlan.validate(rule)
                 RouteRules.matches(rule)
                 rule.optJSONObject("dns")?.let { DnsConfig.build(it, "test-dns", "bootstrap") }
             }
+            RouteServerPlan.activeIds(settings)
         }
     }
 }

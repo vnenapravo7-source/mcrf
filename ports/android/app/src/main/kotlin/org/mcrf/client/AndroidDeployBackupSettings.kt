@@ -6,11 +6,14 @@ object AndroidDeployBackupSettings {
     const val SECTION="androidDeploy"
     fun validate(value: JSONObject) {
         require(value.toString().toByteArray(Charsets.UTF_8).size<=1_900_000) { "Настройки деплоя больше допустимого размера" }
-        require(value.keys().asSequence().all { it in setOf("vk","vkSettings","vkCallGroups","sshTrust","deployResults","deployDrafts",ServerManagementJournal.SECTION) }) { "Неизвестная секция деплоя" }
+        require(value.keys().asSequence().all { it in setOf("vk","vkSettings","vkCallGroups","sshTrust","deployResults","deployDrafts",AndroidDeployInventory.SECTION,AndroidDeployWorkspace.SECTION,ServerManagementJournal.SECTION) }) { "Неизвестная секция деплоя" }
         value.keys().forEach { require(value.get(it) is JSONObject) { "Некорректная секция деплоя" } }
         value.optJSONObject(ServerManagementJournal.SECTION)?.let(ServerManagementJournal::validate)
+        value.optJSONObject(AndroidDeployInventory.SECTION)?.let(AndroidDeployInventory::validate)
+        value.optJSONObject(AndroidDeployWorkspace.SECTION)?.let(AndroidDeployWorkspace::validate)
         value.optJSONObject("vkSettings")?.let { settings ->
-            require(settings.keys().asSequence().all { it in setOf("source","manual","callCount") })
+            require(settings.keys().asSequence().all { it in setOf("source","manual","callCount","manualSupplementAll") })
+            if(settings.has("manualSupplementAll"))require(settings.get("manualSupplementAll") is Boolean)
             if(settings.has("callCount")) { require(settings.get("callCount") is Int);VkRelayProtocol.count(settings.getInt("callCount"),"qwdtt") }
             if(settings.has("source")) VkRelayProtocol.HashSource.valueOf(settings.getString("source"))
             if(settings.has("manual")) require(settings.get("manual") is org.json.JSONArray)
@@ -22,7 +25,7 @@ object AndroidDeployBackupSettings {
             for(k in listOf("token","user")) if(session.has(k)) require(session.get(k) is String && session.getString(k).none { it.isISOControl() })
             if(session.has("hashes")) require(session.get("hashes") is org.json.JSONArray)
             for(k in listOf("expires","retryAfter")) if(session.has(k)) require(session.get(k) is Number && session.getLong(k)>=0)
-            session.optJSONArray("hashes")?.let { a -> require(a.length()<=6);if(a.length()>0) VkRelayProtocol.calls((0 until a.length()).map(a::getString),"qwdtt") }
+            session.optJSONArray("hashes")?.let { a -> if(a.length()>0) VkRelayProtocol.calls((0 until a.length()).map(a::getString),"qwdtt") }
         }
         value.optJSONObject("sshTrust")?.let { trust ->
             require(trust.length()<=128)
@@ -60,10 +63,10 @@ object AndroidDeployBackupSettings {
                         in bools -> require(o.get(k) is Boolean)
                         in ports -> require((o.get(k) is Int || o.get(k) is String) && o.get(k).toString().length<=8)
                         in strings -> require(o.get(k) is String && o.getString(k).length<=8192)
-                        "vk_calls" -> { val a=o.getJSONArray(k);require(a.length()<=32);for(i in 0 until a.length()) require(a.get(i) is String && a.getString(i).length<=1024) }
+                        "vk_calls" -> AndroidDeploySwg.validateCallArray(o.getJSONArray(k))
                         "swg_profiles" -> {require(id=="swg");AndroidDeploySwg.validateDrafts(o.getJSONArray(k))}
                     } }
-                    if(o.has("call_count")) VkRelayProtocol.count(o.get("call_count").toString().toIntOrNull() ?: error("Некорректное количество звонков"),o.optString("relay_kind","qwdtt"))
+                    if(o.has("call_count")) VkRelayProtocol.count(o.get("call_count").toString().toIntOrNull() ?: error("Некорректное количество звонков"),AndroidDeploySwg.callKind(o.optString("relay_kind","qwdtt")))
                 }
             }
         }
@@ -71,7 +74,12 @@ object AndroidDeployBackupSettings {
             require(results.length()<=128)
             results.keys().forEach { endpoint ->
                 val r=results.getJSONObject(endpoint);require(endpoint.length<=400 && endpoint.none { it.isISOControl() })
-                require(r.keys().asSequence().all { it in setOf("transport_template","panel_url","username","password","certificate_sha256","ready","connections","provision_requested","provision_complete","provision_error","operation_id","recipe_id","created_at","vk_call_group","vk_calls","swg_profiles","service","core_commit") })
+                require(r.keys().asSequence().all { it in setOf("transport_template","panel_url","username","password","certificate_sha256","ready","connections","provision_requested","provision_complete","provision_error","operation_id","recipe_id","created_at","vk_call_group","vk_calls","swg_profiles","service","core_commit","deployment_id","deployment_name") })
+                require(r.has("deployment_id")==r.has("deployment_name"))
+                if(r.has("deployment_id")){
+                    require(r.get("deployment_id") is String&&Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").matches(r.getString("deployment_id")))
+                    require(r.get("deployment_name") is String&&AndroidDeployInventory.name(r.getString("deployment_name"))==r.getString("deployment_name"))
+                }
                 r.optJSONObject("transport_template")?.let {template->
                     require(template.keys().asSequence().all {it in setOf("host","user","sshPort","panelPort","domain","options")})
                     require(AndroidDeployPlan.host(template.getString("host")))
@@ -91,7 +99,8 @@ object AndroidDeployBackupSettings {
                 }
                 if(r.has("vk_calls")) { val calls=r.getJSONArray("vk_calls");VkRelayProtocol.calls((0 until calls.length()).map(calls::getString),"qwdtt") }
                 if(r.has("vk_call_group")) {
-                    require(r.optString("recipe_id")=="swg" && r.has("vk_calls") && r.getJSONArray("vk_calls").length() in 1..32)
+                    require(r.optString("recipe_id")=="swg" && r.has("vk_calls") && r.getJSONArray("vk_calls").length()>0)
+                    AndroidDeploySwg.validateCallArray(r.getJSONArray("vk_calls"))
                     val groupId=r.getString("vk_call_group");require(groupId=="deploy:"+r.getString("operation_id"))
                     val group=value.optJSONObject("vkCallGroups")?.optJSONObject(groupId) ?: error("Нет сохранённой группы звонков деплоя")
                     val hashes=group.getJSONArray("hashes")

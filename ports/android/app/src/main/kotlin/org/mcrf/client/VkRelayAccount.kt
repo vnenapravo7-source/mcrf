@@ -10,11 +10,67 @@ class VkRelayAccount(private val store: VkRelayPersistence,
                      private val callRequest: ((String) -> JSONObject)?=null,
                      private val pause: (Long) -> Unit = { Thread.sleep(it) }) {
     fun linked() = store.get("vk").optString("token").isNotBlank()
+    /** Runtime-only access to the existing encrypted login. Never persist in a server profile. */
+    internal fun runtimeToken(): String {
+        val session=store.get("vk")
+        val token=session.optString("token")
+        check(token.isNotBlank() && token.length<=8192 && token.none(Char::isISOControl) &&
+            Regex("[1-9][0-9]{0,31}").matches(session.optString("user")) &&
+            session.optLong("expires")>System.currentTimeMillis()+60_000) {
+            "Откройте VK Turn и подтвердите вход VK."
+        }
+        return token
+    }
     fun defaultSource() = runCatching { VkRelayProtocol.HashSource.valueOf(store.get("vkSettings").optString("source","MANUAL")) }.getOrDefault(VkRelayProtocol.HashSource.MANUAL)
     fun setDefaultSource(source: VkRelayProtocol.HashSource) = store.update("vkSettings") { it.put("source",source.name) }
     fun defaultCount() = store.get("vkSettings").optInt("callCount",6)
     fun setDefaultCount(count: Int) { VkRelayProtocol.count(count,"qwdtt");if(defaultCount()==count)return;store.update("vkSettings") { it.put("callCount",count) } }
     fun manualDefaults(): List<String> = store.get("vkSettings").optJSONArray("manual")?.let { a -> (0 until a.length()).map(a::getString) } ?: emptyList()
+    fun supplementAll()=store.get("vkSettings").optBoolean("manualSupplementAll",false)
+    fun setSupplementAll(enabled:Boolean)=store.update("vkSettings"){it.put("manualSupplementAll",enabled)}
+    data class ManualGeneration(val group:String,val calls:List<String>,val requested:Int,val problem:String?=null)
+    /** Persist each successful provider reply in the existing owner-bound store.
+     * A partial result is recoverable after closing the editor or API failure. */
+    fun generatedManual(count:Int,cancelled:()->Boolean={false}):ManualGeneration {
+        val id="manual:"+java.util.UUID.randomUUID().toString()
+        return try {ManualGeneration(id,callsFor(id,"qwdtt",count,cancelled),count)}
+        catch(error:Exception) {
+            val partial=pendingManual().firstOrNull {it.group==id}
+            if(partial==null){
+                acknowledgeManual(listOf(id))
+                throw IllegalArgumentException(error.message?:"Не удалось создать звонки VK",error)
+            }
+            partial.copy(problem=error.message?:"Создание остановлено")
+        }
+    }
+    fun pendingManual():List<ManualGeneration> {
+        val owner=store.get("vk").optString("user")
+        if(owner.isEmpty())return emptyList()
+        val groups=store.get("vkCallGroups")
+        return groups.keys().asSequence().filter {it.startsWith("manual:")}.mapNotNull {id->
+            val group=groups.optJSONObject(id)?:return@mapNotNull null
+            if(group.optString("owner")!=owner||group.optString("kind")!="qwdtt")return@mapNotNull null
+            val calls=group.optJSONArray("hashes")?:return@mapNotNull null
+            if(calls.length()==0)return@mapNotNull null
+            ManualGeneration(id,(0 until calls.length()).map(calls::getString),group.optInt("count",calls.length()))
+        }.toList()
+    }
+    /** Only acknowledge delivery after the receiving editor accepted the list. */
+    fun acknowledgeManual(groups:List<String>) {
+        val owner=store.get("vk").optString("user")
+        store.update("vkCallGroups") {saved->groups.forEach {id->
+            if(id.startsWith("manual:")&&saved.optJSONObject(id)?.optString("owner")==owner)saved.remove(id)
+        }}
+    }
+    /** Explicitly generated calls remain in the manual library even if the
+     * receiving server editor is subsequently closed without saving. */
+    fun preserveGenerated(calls:List<String>) {
+        store.update("vkSettings") {settings->
+            val old=settings.optJSONArray("manual")
+            val existing=if(old==null)emptyList()else(0 until old.length()).map(old::getString)
+            settings.put("manual",JSONArray(VkRelayProtocol.calls(VkHashPool.append(existing,calls),"qwdtt")))
+        }
+    }
     fun setManualDefaults(calls: List<String>) {
         val values = if(calls.isEmpty()) emptyList() else VkRelayProtocol.calls(calls,"qwdtt")
         store.update("vkSettings") { it.put("manual",JSONArray(values)) }

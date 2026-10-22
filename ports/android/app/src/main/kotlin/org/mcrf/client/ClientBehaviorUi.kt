@@ -27,7 +27,7 @@ object ClientBehaviorUi {
             group("Запуск и смена сети")
             toggle("Восстанавливать подключение","По умолчанию включено, в том числе после первой установки. При запуске MCRF восстанавливает ранее работавшее подключение, только если есть профиль и разрешение Android. После ручной остановки VPN сам не включается.",value.reconnectOnLaunch){value.copy(reconnectOnLaunch=it)}
             toggle("Обновлять соединения при смене сети","Пересоздать исходящие соединения при переходе между Wi-Fi и мобильной сетью. Настройки маршрутов сохраняются.",value.resetOnNetworkChange){value.copy(resetOnNetworkChange=it)}
-            toggle("Обновлять соединения при пробуждении","После включения экрана обновить сетевые соединения работающего ядра. Постоянное удержание процессора не используется.",value.resetOnWake){value.copy(resetOnWake=it)}
+            toggle("Обновлять соединения при пробуждении","После включения экрана обновить сетевые соединения работающего ядра. По умолчанию CPU не удерживается; отдельный режим для БС находится в VK Turn.",value.resetOnWake){value.copy(resetOnWake=it)}
             group("Поведение в Android")
             toggle("Скрывать из недавних во время работы","Когда окно уходит в фон, закрывает только окно MCRF и убирает его карточку. Работающий VPN и уведомление сохраняются. Окно можно снова открыть значком; запущенные из приложения системные запросы, выбор файлов и экраны MCRF не прерываются.",value.hideRecents){value.copy(hideRecents=it)}
             addView(button("Системные настройки VPN",false).apply {setOnClickListener {
@@ -38,7 +38,7 @@ object ClientBehaviorUi {
             group("Работа в фоне и уведомления")
             val unrestricted=getSystemService(android.os.PowerManager::class.java).isIgnoringBatteryOptimizations(packageName)
             addView(button(if(unrestricted)"Работа в фоне · без ограничений"else"Разрешить работу в фоне",false).apply {tag="background-settings";setOnClickListener {openBackgroundSettings()}},space(0,8))
-            addView(text("Откроется системная настройка батареи. Постоянное удержание процессора не используется; Android всё равно может остановить приложение при нехватке ресурсов.",12,Loft.MUTED),space(0,12))
+            addView(text("Откроется системная настройка батареи. По умолчанию CPU не удерживается; дополнительный режим для БС выбирается в VK Turn. Android всё равно может остановить приложение при нехватке ресурсов.",12,Loft.MUTED),space(0,12))
             addView(button("Уведомления MCRF",false).apply {tag="notification-settings";setOnClickListener {requestNotificationAccess()}},space(0,8))
             addView(text("Статус соединения и остановка VPN доступны из закреплённого уведомления. Фоновые обновления подписок уведомляют без звука.",12,Loft.MUTED))
         }

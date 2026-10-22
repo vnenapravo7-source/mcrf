@@ -17,6 +17,8 @@
 -keep interface org.mcrf.engine.protocol.v1.** { *; }
 -keep class org.mcrf.engine.protocol.dns.v1.** { *; }
 -keep interface org.mcrf.engine.protocol.dns.v1.** { *; }
+-keep class org.mcrf.engine.protocol.pipe.v1.** { *; }
+-keep interface org.mcrf.engine.protocol.pipe.v1.** { *; }
 # JSch selects JCE primitives, key exchanges and auth handlers by configured name.
 # Optional desktop agents/loggers and BC/GSS providers are not bundled on Android.
 -keep class com.jcraft.jsch.DHEC256 { *; }

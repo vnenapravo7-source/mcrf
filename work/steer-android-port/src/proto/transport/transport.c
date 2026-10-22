@@ -12,6 +12,7 @@
  */
 #define _GNU_SOURCE
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
@@ -20,11 +21,17 @@
 #include "transport.h"
 #include "reality.h"
 #include "ech.h"
+#ifdef MCRF_UTLS49
+#include "tls49.h"
+#endif
 
 /* ---- ввод-вывод связи ----------------------------------------------------------------- */
 
 int tr_link_write(void *ctx, const unsigned char *d, size_t n) {
     struct tr_link *l = ctx;
+#ifdef MCRF_UTLS49
+    if(l->compat49)return tls49_write(l,d,n);
+#endif
     if (l->plain) {
         size_t sent = 0;
         while (sent < n) {
@@ -46,6 +53,9 @@ int tr_link_write(void *ctx, const unsigned char *d, size_t n) {
 
 int tr_link_read(void *ctx, unsigned char *d, size_t cap, size_t *got) {
     struct tr_link *l = ctx;
+#ifdef MCRF_UTLS49
+    if(l->compat49)return tls49_read(l,d,cap,got);
+#endif
     /* Прямое копирование: сервер перестал шифровать в нашу сторону, и расшифровывать
      * теперь нечего — в сокете лежит поток целевого соединения. Читаем как есть.
      *
@@ -67,6 +77,13 @@ int tr_link_read(void *ctx, unsigned char *d, size_t cap, size_t *got) {
 }
 
 void tr_link_close(struct tr_link *l) {
+#ifdef MCRF_UTLS49
+    if(l->compat49){
+        mcrf49_close(l->compat49);l->compat49=0;
+        free(l->compat_buffer49);l->compat_buffer49=NULL;
+        if(l->fd>=0)close(l->fd);l->fd=-1;l->tls.ready=0;return;
+    }
+#endif
     if (l->fd >= 0) close(l->fd);
     l->fd = -1;
     /* Контексты шифров живут в куче: без освобождения туннель за час работы утекает на
@@ -74,6 +91,24 @@ void tr_link_close(struct tr_link *l) {
      * состояния безвредно, а знать здесь, докуда дошло рукопожатие, незачем. */
     if (!l->plain) tls13_free(&l->tls);
     l->tls.ready = 0;
+}
+
+int tr_link_read_ref(struct tr_link *l,const unsigned char **data,size_t *got){
+#ifdef MCRF_UTLS49
+    if(l->compat49){
+        if(!l->compat_buffer49){l->compat_buffer49=malloc(16384);if(!l->compat_buffer49)return TR_EIO;}
+        *data=l->compat_buffer49;*got=0;
+        return tls49_read(l,l->compat_buffer49,16384,got);
+    }
+#endif
+    return tls13_read_ref(&l->tls,data,got);
+}
+int tr_link_has_data(const struct tr_link *l){
+    if(l->plain)return 0;
+#ifdef MCRF_UTLS49
+    if(l->compat49)return mcrf49_pending(l->compat49,l->rx_direct);
+#endif
+    return l->rx_direct?tls13_buffered(&l->tls)>0:tls13_has_record(&l->tls);
 }
 
 /* ---- транспорт tcp: поток протокола прямо в связи ------------------------------------- */
@@ -200,7 +235,7 @@ int transport_read_zc(struct transport *t, unsigned char *buf, size_t cap,
      * транспорта (остаток после ответа 101 у httpupgrade) — раньше записей TLS: оно раньше
      * их и приехало. */
     if (!t->enc && t->fr->zc && !t->link.plain && !t->link.rx_direct && !fr_pending(t) && !fr_busy(t))
-        return tls13_read_ref(&t->link.tls, data, got);
+        return tr_link_read_ref(&t->link, data, got);
     return transport_read(t, buf, cap, got);
 }
 
@@ -220,9 +255,7 @@ int transport_has_data(const struct transport *t) {
     /* Шифрованный поток: расшифрованное и целая запись во входе слоя (trvenc.c) — раньше всего. */
     if (t->enc && tr_venc_pending(t)) return 1;
     if (fr_pending(t)) return 1;
-    if (t->link.plain) return 0;
-    if (t->link.rx_direct) return tls13_buffered(&t->link.tls) > 0;
-    return tls13_has_record(&t->link.tls);
+    return tr_link_has_data(&t->link);
 }
 
 void transport_direct(struct transport *t) { t->link.rx_direct = 1; }
@@ -260,9 +293,22 @@ const char *transport_strerror(int rc) {
         case TR_ECONNECT: return "TCP не соединился";
         case TR_EIO: return "обрыв ввода-вывода";
         case TR_ECLOSED: return "сервер закрыл соединение";
+#ifdef MCRF_UTLS49
+        case -100:return "некорректные параметры TLS";
+        case -101:return "отпечаток не поддержан выбранным TLS-слоем";
+        case -102:return "ALPN несовместим с транспортом";
+        case -103:return "сервер не подтвердил ключ Reality";
+        case -104:return "не прошла проверка сертификата";
+        case -105:return "соединение остановлено";
+        case -106:return "превышен лимит ресурсов TLS";
+        case -108:return "истёк срок ожидания TLS";
+        case -109:return "ошибка TLS-рукопожатия или потока";
+#endif
         case TR_ENOH2: return "сервер не согласился на HTTP/2 (нужен для grpc и xhttp)";
         case TR_EGRPC: return "поток gRPC в неожиданной форме";
         case TR_ENOH1: return "сервер выбрал не HTTP/1.1 (нужен для ws и httpupgrade)";
+        case REALITY_EALPN: return "явный ALPN несовместим с транспортом";
+        case REALITY_EFINGERPRINT: return "запрошенный отпечаток TLS ещё не реализован в этом модуле";
         /* Код ответа — в тексте: 404 и 400 почти всегда значат не тот path или host (сервер Xray
          * так отвечает на чужой путь), 403 и 5xx — посредника или CDN перед сервером. */
         case TR_EUPSTATUS: {

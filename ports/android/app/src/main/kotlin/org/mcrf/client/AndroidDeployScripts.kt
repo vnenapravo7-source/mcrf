@@ -7,7 +7,7 @@ object AndroidDeployScripts {
     private fun q(v: String)=AndroidDeployPlan.quote(v)
     /** Provisioning only: never downloads/runs an installer or changes the panel certificate. */
     fun addTransport(recipe:AndroidDeployRecipe,t:AndroidDeployTarget,saved:org.json.JSONObject):String {
-        require(recipe.id in setOf("3xui","swg")){"Добавление транспорта этой панели пока не поддерживается"}
+        require(recipe.id in setOf("3xui","swg","openflux")){"Добавление транспорта этой панели пока не поддерживается"}
         AndroidDeployPlan.validate(recipe.id,t)
         require(t.options.optBoolean("create",true)){"Выберите параметры нового подключения"}
         AndroidDeployPlan.validateResult(saved,t)
@@ -46,7 +46,7 @@ if not os.environ.get('MCRF_PANEL_API_TOKEN'):
                 env("XUI_USERNAME",t.panelUser);env("XUI_PASSWORD",t.panelPassword);env("XUI_PANEL_PORT",t.panelPort.toString())
                 env("XUI_WEB_BASE_PATH",AndroidDeployPlan.secret().take(18));env("XUI_SSL_MODE",if(t.domain.isEmpty()) "none" else "domain")
                 env("XUI_DOMAIN",t.domain);env("XUI_SERVER_IP",t.host)
-                s.append("bash installer.sh "+q(recipe.version)+"\nsource /etc/x-ui/install-result.env\n")
+                s.append("(umask 022; bash installer.sh "+q(recipe.version)+")\nsource /etc/x-ui/install-result.env\n")
                 if(t.domain.isEmpty()) {
                     val ip=t.host.contains(':') || Regex("[0-9.]+").matches(t.host)
                     s.append("install -d -m 700 /etc/x-ui/mcrf-tls\nopenssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 365 -keyout /etc/x-ui/mcrf-tls/key.pem -out /etc/x-ui/mcrf-tls/cert.pem -subj '/CN=MCRF-panel' -addext "+q("subjectAltName="+(if(ip) "IP:" else "DNS:")+t.host.trim('[',']'))+" >/dev/null 2>&1\nchmod 600 /etc/x-ui/mcrf-tls/key.pem /etc/x-ui/mcrf-tls/cert.pem\n/usr/local/x-ui/x-ui cert -webCert /etc/x-ui/mcrf-tls/cert.pem -webCertKey /etc/x-ui/mcrf-tls/key.pem\nsystemctl restart x-ui\n")
@@ -55,13 +55,13 @@ if not os.environ.get('MCRF_PANEL_API_TOKEN'):
             }
             "openflux" -> {
                 env("OPENFLUX_ADMIN_USER",t.panelUser);env("OPENFLUX_ADMIN_PASSWORD",t.panelPassword);env("OPENFLUX_DEPLOY_REVISION",recipe.commit);env("OPENFLUX_PORT",t.panelPort.toString())
-                s.append("bash installer.sh --mode systemd --port ${t.panelPort}\nsystemctl is-active --quiet openflux-panel\n")
+                s.append("(umask 022; bash installer.sh --mode systemd --port ${t.panelPort})\nsystemctl is-active --quiet openflux-panel\n")
                 env("MCRF_PANEL_URL","https://$authority:${t.panelPort}");env("MCRF_PANEL_USER",t.panelUser);env("MCRF_PANEL_PASS",t.panelPassword)
             }
             "swg" -> {
                 env("SWG_REF",recipe.commit);env("BASIC_USER",t.panelUser);env("BASIC_PASS",t.panelPassword);env("PANEL_DOMAIN","$authority:${t.panelPort}")
-                env("PORT",t.panelPort.toString());env("TLS_MODE","selfsigned");env("SERVE_MODE","internal");env("MANAGE_IFACES","none")
-                s.append("bash installer.sh master\nsystemctl is-active --quiet swg-panel-server\n")
+                env("PORT",t.panelPort.toString());env("TLS_MODE","selfsigned");env("SERVE_MODE","internal");env("MANAGE_IFACES","")
+                s.append("(umask 022; bash installer.sh master)\nsystemctl is-active --quiet swg-panel-server\n")
                 env("MCRF_PANEL_URL","https://$authority:${t.panelPort}/");s.append("export MCRF_PANEL_USER=\$(cut -d: -f1 /etc/swg-panel/auth)\n");env("MCRF_PANEL_PASS",t.panelPassword)
             }
         }
@@ -78,13 +78,14 @@ if not os.environ.get('MCRF_PANEL_API_TOKEN'):
         require(source.contains(before) && source.contains(archive) && source.contains(clone)) { "Не удалось закрепить OpenFlux; SSH ещё не изменён" }
         val match=Regex("(?ms)^install_go\\(\\)\\{\\r?\\n.*?^\\}\\r?$").find(source) ?: error("Не найден установщик Go")
         require(match.value.contains("rm -rf /usr/local/go"))
-        return source.replaceRange(match.range,goInstaller).replace(before,"  DEPLOY_REVISION="+q(recipe.commit))
+        return source.replaceRange(match.range,goInstaller+"\n").replace(before,"  DEPLOY_REVISION="+q(recipe.commit))
             .replace(archive,"  archive_ref=\"\$DEPLOY_REVISION\"")
             .replace(clone,"  git init --quiet \"\$upstream_src\"\n  git -C \"\$upstream_src\" remote add origin \"\$UPSTREAM_REPO\"\n  git -C \"\$upstream_src\" fetch --quiet --depth 1 origin 'edcf77a1848a72370cfba9f346d3b897b61e7e7d'\n  git -C \"\$upstream_src\" checkout --quiet --detach FETCH_HEAD")
     }
     internal val provisioning = """
 import base64
 import hashlib
+import hmac
 import http.client
 import http.cookies
 import json
@@ -99,6 +100,26 @@ import uuid
 
 class ProvisionError(Exception):
     pass
+
+
+def panel_api_error(method, path, status, raw):
+    reason = ""
+    try:
+        value = json.loads(raw)
+        error = str(value.get("error", ""))[:2048].lower() if isinstance(value, dict) else ""
+        if "subnet" in error or "overlap" in error or "tun_addr" in error:
+            reason = "Подсеть подключения занята либо имеет неверный формат."
+        elif "port" in error and ("used" in error or "conflict" in error):
+            reason = "Порт подключения уже занят на этом сервере."
+        elif "interface name" in error:
+            reason = "Панель отклонила имя сетевого интерфейса."
+        elif "fork" in error:
+            reason = "Панель не поддерживает выбранный вариант протокола."
+        elif "csqtt" in error and ("version" in error or "update" in error):
+            reason = "Узел не поддерживает выбранное поколение CSQTT; обновите панель и узел."
+    except (ValueError, UnicodeDecodeError):
+        pass
+    return "API панели: " + method + " " + path + ", HTTP " + str(status) + ". " + reason + " Запрос не повторялся."
 
 
 class PanelAPI:
@@ -147,9 +168,12 @@ class PanelAPI:
             connection.request(method, self.url.path.rstrip("/") + path, payload, headers)
             response = connection.getresponse()
             raw = response.read(4 * 1024 * 1024 + 1)
-            if len(raw) > 4 * 1024 * 1024 or not 200 <= response.status < 300:
-                # Do not expose response bodies: a panel can echo passwords, keys or call links.
-                raise ProvisionError("API панели: HTTP " + str(response.status) + ". Запрос не повторялся.")
+            if len(raw) > 4 * 1024 * 1024:
+                raise ProvisionError("API панели: ответ больше 4 МБ. Запрос не повторялся.")
+            if not 200 <= response.status < 300:
+                # Interpret known validation categories, never echo an untrusted body
+                # which may contain panel passwords, keys or private call links.
+                raise ProvisionError(panel_api_error(method, path, response.status, raw))
             for name, value in response.getheaders():
                 if name.lower() == "set-cookie":
                     cookie = http.cookies.SimpleCookie()
@@ -275,22 +299,53 @@ def provision_openflux(api, options, host, links, username, password, sleep=time
     links.append(link)
 
 
+def valid_swg_calls(calls):
+    return (isinstance(calls, list) and bool(calls)
+            and all(isinstance(call, str) and re.fullmatch(r"https://vk\.(?:ru|com)/call/join/[A-Za-z0-9_=-]{16,512}", call) for call in calls)
+            and len(set(calls)) == len(calls)
+            and len(json.dumps(calls, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) <= 65536)
+
+
+def csqtt25_encoder():
+    try:
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    except ImportError:
+        raise ProvisionError("Для ссылки CSQTT 2.5 на сервере нужен python3-cryptography. Подключение не создано.")
+    key = hashlib.sha256(b"csqtt-chiper-key").digest()
+    def encode(payload):
+        plain = payload.encode("utf-8")
+        iv = hmac.new(key, plain, hashlib.sha256).digest()[:12]
+        return "csqtt://" + base64.urlsafe_b64encode(iv + AESGCM(key).encrypt(iv, plain, None)).decode("ascii").rstrip("=")
+    return encode
+
+
+def require_swg25(api, username, password):
+    csqtt25_encoder()  # Validate export support before the first deployment mutation.
+    envelope(api.request("POST", "/api/login", {"username": username, "password": password}), True)
+    state = envelope(api.request("GET", "/api/state"), True)
+    nodes = state.get("nodes", [])
+    if len(nodes) != 1:
+        raise ProvisionError("Для CSQTT 2.5 выберите один зарегистрированный локальный узел SWG.")
+    snapshot = state.get("snapshots", {}).get(nodes[0].get("id"), {})
+    if "2.5" not in snapshot.get("csqtt_lines", []):
+        raise ProvisionError("Этот узел SWG ещё не поддерживает CSQTT 2.5. Обновите панель и узел; CSQTT 2.1 не будет создан вместо 2.5.")
+
+
 def provision_swg(api, options, host, links, username, password, sleep=time.sleep):
     if "swg_profiles" not in options:
         return provision_swg_single(api, options, host, links, username, password, sleep)
     profiles = options["swg_profiles"]
-    if not isinstance(profiles, list) or not 1 <= len(profiles) <= 3:
-        raise ProvisionError("Выберите от одного до трёх протоколов SWG.")
+    if not isinstance(profiles, list) or not 1 <= len(profiles) <= 4:
+        raise ProvisionError("Выберите от одного до четырёх вариантов SWG.")
     seen, ports, used_calls = set(), set(), set()
     prepared = []
     for profile in profiles:
         kind = profile.get("kind")
-        if kind not in ("qwdtt", "wdtt", "csqtt") or kind in seen or profile.get("enabled") is not True:
+        if kind not in ("qwdtt", "wdtt", "csqtt", "csqtt25") or kind in seen or profile.get("enabled") is not True:
             raise ProvisionError("Повторяющийся или неизвестный протокол SWG.")
         seen.add(kind)
         calls = profile.get("vk_calls")
-        maximum = 32 if kind == "qwdtt" else 6
-        if not isinstance(calls, list) or not 1 <= len(calls) <= maximum:
+        if not valid_swg_calls(calls):
             raise ProvisionError("У каждого протокола должны быть свои звонки VK.")
         for call in calls:
             if not isinstance(call, str) or not re.fullmatch(r"https://vk\.(?:ru|com)/call/join/[A-Za-z0-9_=-]{16,512}", call):
@@ -300,7 +355,7 @@ def provision_swg(api, options, host, links, username, password, sleep=time.slee
                 raise ProvisionError("Для разных протоколов нужны отдельные звонки VK.")
             used_calls.add(call_hash)
         row = dict(profile, relay_kind=kind)
-        for key in ("relay_port",) if kind == "csqtt" else ("relay_port", "wg_port"):
+        for key in ("relay_port",) if kind in ("csqtt", "csqtt25") else ("relay_port", "wg_port"):
             port = checked_port(row[key])
             if port in ports:
                 raise ProvisionError("Порты протоколов SWG должны различаться.")
@@ -308,18 +363,57 @@ def provision_swg(api, options, host, links, username, password, sleep=time.slee
             row[key] = port
         prepared.append(row)
     # Validate the whole selection before the first mutating panel request.
+    if any(row["relay_kind"] == "csqtt25" for row in prepared):
+        require_swg25(api, username, password)
     for row in prepared:
-        subnet = {"qwdtt": "10.88.0.1/24", "wdtt": "10.89.0.1/24", "csqtt": "10.90.0.1/24"}[row["relay_kind"]]
+        subnet = {"qwdtt": "10.88.0.1/24", "wdtt": "10.89.0.1/24", "csqtt": "10.90.0.1/24", "csqtt25": "10.91.0.1/24"}[row["relay_kind"]]
         provision_swg_single(api, row, host, links, username, password, sleep, subnet)
 
 
-def provision_swg_single(api, options, host, links, username, password, sleep=time.sleep, subnet="10.88.0.1/24"):
+def free_swg_subnet(state, preferred):
+    import ipaddress
+    occupied = []
+    for node in state.get("nodes", []):
+        if not isinstance(node, dict):
+            raise ProvisionError("SWG вернул неподходящие данные узла; создание отменено.")
+        for group, fields in (("wdtt_cfg", ("wg_addr", "raw_addr")), ("csqtt_cfg", ("tun_addr",)), ("interfaces", ("address", "addr"))):
+            rows = node.get(group, {})
+            for record in rows.values() if isinstance(rows, dict) else rows if isinstance(rows, list) else []:
+                if not isinstance(record, dict):
+                    continue
+                for field in fields:
+                    raw = record.get(field)
+                    for value in raw if isinstance(raw, list) else [raw]:
+                        if not value:
+                            continue
+                        try:
+                            occupied.append(ipaddress.ip_network(str(value), strict=False))
+                        except ValueError:
+                            raise ProvisionError("SWG вернул неверную занятую подсеть; создание отменено.")
+        mesh = node.get("mesh_subnet")
+        if mesh:
+            try:
+                occupied.append(ipaddress.ip_network(str(mesh), strict=False))
+            except ValueError:
+                raise ProvisionError("SWG вернул неверную подсеть mesh; создание отменено.")
+    candidates = [preferred] + ["10." + str(second) + "." + str(third) + ".1/24" for second in range(88, 96) for third in range(256)]
+    for candidate in candidates:
+        net = ipaddress.ip_network(candidate, strict=False)
+        if not any(net.version == other.version and net.overlaps(other) for other in occupied):
+            return candidate
+    raise ProvisionError("Нет свободной подсети для нового SWG-подключения. Старые подключения не изменены.")
+
+
+def provision_swg_single(api, options, host, links, username, password, sleep=time.sleep, subnet=None):
     kind = options.get("relay_kind")
-    if kind not in ("wdtt", "csqtt", "qwdtt"):
+    if kind not in ("wdtt", "csqtt", "csqtt25", "qwdtt"):
         raise ProvisionError("Неподдерживаемый вариант SWG.")
+    modern = kind == "csqtt25"
+    if modern:
+        require_swg25(api, username, password)
+        encode_modern = csqtt25_encoder()
     calls = options.get("vk_calls") or [options.get("vk_call", "")]
-    maximum = 32 if kind == "qwdtt" else 6
-    if not isinstance(calls, list) or not 1 <= len(calls) <= maximum or len(set(calls)) != len(calls) or any(not isinstance(call, str) or not re.fullmatch(r"https://vk\.(?:ru|com)/call/join/[A-Za-z0-9_=-]{16,512}", call) for call in calls):
+    if not valid_swg_calls(calls):
         raise ProvisionError("Нужна корректная ссылка звонка VK.")
     envelope(api.request("POST", "/api/login", {"username": username, "password": password}), True)
     state = None
@@ -334,18 +428,22 @@ def provision_swg_single(api, options, host, links, username, password, sleep=ti
     node = nodes[0].get("id")
     if not node:
         raise ProvisionError("SWG не вернул идентификатор узла.")
+    preferred = subnet or {"qwdtt": "10.88.0.1/24", "wdtt": "10.89.0.1/24", "csqtt": "10.90.0.1/24", "csqtt25": "10.91.0.1/24"}[kind]
+    subnet = free_swg_subnet(state, preferred)
     iface = "mf" + kind + secrets.token_hex(3)
-    group = "csqtt" if kind == "csqtt" else "wdtt"
+    group = "csqtt" if kind in ("csqtt", "csqtt25") else "wdtt"
     listen_port = checked_port(options["relay_port"])
     wg_port = checked_port(options["wg_port"]) if group == "wdtt" else None
     if wg_port is not None and listen_port == wg_port:
         raise ProvisionError("Порты TURN и WireGuard должны различаться.")
-    body = {"node": node, "iface": iface, "fork": "wdttplus" if kind == "wdtt" else kind,
+    body = {"node": node, "iface": iface, "fork": "wdttplus" if kind == "wdtt" else "csqtt" if modern else kind,
             "listen": "0.0.0.0:" + str(listen_port), "stopped": False, "title": "MCRF · " + kind.upper(), "raw": False}
     if group == "wdtt":
         body.update({"wg_addr": subnet, "wg_port": wg_port})
     else:
         body["tun_addr"] = subnet
+        if modern:
+            body["line"] = "2.5"
     print("MCRF_STEP|Создаём SWG · " + kind.upper(), flush=True)
     envelope(api.request("POST", "/api/" + group + "/set", body), True)
     user = envelope(api.request("POST", "/api/users/create", {"name": "MCRF · " + secrets.token_hex(3)}), True)
@@ -362,7 +460,7 @@ def provision_swg_single(api, options, host, links, username, password, sleep=ti
         state = envelope(api.request("GET", "/api/state"), True)
         records = state.get("snapshots", {}).get(node, {}).get(group, [])
         record = next((r for r in records if r.get("iface") == iface), None)
-        if record and record.get("active") == "active" and secret in record.get("passwords", {}):
+        if record and record.get("active") == "active" and secret in record.get("passwords", {}) and (not modern or record.get("line") == "2.5"):
             break
         sleep(2)
     else:
@@ -370,7 +468,12 @@ def provision_swg_single(api, options, host, links, username, password, sleep=ti
     call_hashes = [call.rsplit("/", 1)[1] for call in calls]
     # Original QWDTT uses decoded newlines; CSQTT splits raw '+' before decoding.
     vk_hash = ("\n" if kind == "qwdtt" else ",").join(call_hashes)
-    if kind == "qwdtt":
+    if modern:
+        query = {"v": 2, "host": host, "peer": listen_port, "password": secret}
+        payload = "connect?" + urllib.parse.urlencode(query, quote_via=urllib.parse.quote)
+        payload += "&hashes=" + "+".join(urllib.parse.quote(value, safe="") for value in call_hashes)
+        link = encode_modern(payload)
+    elif kind == "qwdtt":
         query = {"name": "MCRF · QWDTT", "peer": authority(host) + ":" + str(listen_port), "hashes": vk_hash, "pass": secret}
         link = "qwdtt://config?" + urllib.parse.urlencode(query, quote_via=urllib.parse.quote)
     else:
@@ -455,7 +558,31 @@ print('MCRF_RESULT|'+base64.b64encode(json.dumps(r).encode()).decode())
 install_go(){
   local version arch json sha file tmp toolchain
   version="${'$'}(awk '/^go /{print ${'$'}2;exit}' "${'$'}{1:-${'$'}PREFIX/source}/go.mod")"
-  [[ "${'$'}version" =~ ^[0-9]+\.[0-9]+\.[0-9]+${'$'} ]] || fail "некорректная версия Go"
+  [[ "${'$'}version" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?${'$'} ]] || fail "некорректная версия Go"
+  [[ "${'$'}version" =~ ^[0-9]+\.[0-9]+${'$'} ]] && version="${'$'}version.0"
   arch="${'$'}(uname -m)"
+  case "${'$'}arch" in x86_64) arch=amd64;; aarch64|arm64) arch=arm64;; *) fail "архитектура не поддерживается";; esac
+  toolchain="${'$'}PREFIX/toolchains/go${'$'}version-linux-${'$'}arch"
+  if [ -x "${'$'}toolchain/bin/go" ]; then
+    "${'$'}toolchain/bin/go" version | grep -Fq "go${'$'}version " || fail "повреждён toolchain Go"
+    export PATH="${'$'}toolchain/bin:${'$'}PATH"
+    return
+  fi
+  [ ! -e "${'$'}toolchain" ] || fail "каталог toolchain уже существует"
+  install -d -m 755 "${'$'}PREFIX/toolchains"
+  tmp="${'$'}(mktemp -d "${'$'}PREFIX/toolchains/.go-stage.XXXXXX")"
+  file="go${'$'}version.linux-${'$'}arch.tar.gz"
+  json="${'$'}(curl -fsSL --connect-timeout 15 --max-time 90 'https://go.dev/dl/?mode=json&include=all')"
+  sha="${'$'}(printf '%s' "${'$'}json" | python3 -c 'import json,sys; data=json.load(sys.stdin); name=sys.argv[1]; matches=[f["sha256"] for r in data for f in r["files"] if f["filename"]==name]; assert len(matches)==1; print(matches[0])' "${'$'}file")"
+  [[ "${'$'}sha" =~ ^[0-9a-f]{64}${'$'} ]] || fail "не найден SHA-256 Go"
+  curl -fsSL --retry 3 --connect-timeout 15 --max-time 300 "https://go.dev/dl/${'$'}file" -o "${'$'}tmp/${'$'}file"
+  printf '%s  %s\n' "${'$'}sha" "${'$'}tmp/${'$'}file" | sha256sum -c - >/dev/null
+  tar --no-same-owner -C "${'$'}tmp" -xzf "${'$'}tmp/${'$'}file"
+  [ -x "${'$'}tmp/go/bin/go" ] || fail "неполный архив Go"
+  mv -- "${'$'}tmp/go" "${'$'}toolchain"
+  rm -f -- "${'$'}tmp/${'$'}file"
+  rmdir -- "${'$'}tmp"
+  export PATH="${'$'}toolchain/bin:${'$'}PATH"
+}
 """.trimIndent()
 }

@@ -1,0 +1,58 @@
+diff --git a/rust-client/main.rs b/rust-client/main.rs
+--- a/rust-client/main.rs
++++ b/rust-client/main.rs
+@@ -7,2 +7,3 @@
+ mod captcha;
++mod mcrf_captcha_waiters;
+ mod captcha_slider;
+@@ -597,3 +598,3 @@
+-            if !line.contains("error:tunnel stopped") && line != "FINISH_VK_CALLS" {
++            if !line.starts_with("CAPTCHA_RESULT|") && !line.contains("error:tunnel stopped") && line != "FINISH_VK_CALLS" {
+                 crate::log_error!("[STDIN] {line}");
+             }
+diff --git a/rust-client/captcha.rs b/rust-client/captcha.rs
+--- a/rust-client/captcha.rs
++++ b/rust-client/captcha.rs
+@@ -164,2 +164,4 @@
+     cancel: CancellationToken,
++    mcrf_ids: bool,
++    mcrf_waiters: crate::mcrf_captcha_waiters::Waiters,
+ }
+@@ -178,3 +180,5 @@
+             cancel,
++            mcrf_ids: std::env::var("MCRF_CAPTCHA_IDS").as_deref() == Ok("1"),
++            mcrf_waiters: crate::mcrf_captcha_waiters::Waiters::new(),
+         })
+     }
+@@ -182,3 +186,4 @@
+     pub fn submit_result(&self, result: String) -> bool {
++        if self.mcrf_ids { return self.mcrf_waiters.submit(&result); }
+         self.result_tx.try_send(result).is_ok()
+     }
+@@ -309,7 +314,24 @@
+-        let mut receiver = self.result_rx.lock().await;
++        let mut receiver = tokio::select! {
++            _ = self.cancel.cancelled() => bail!("webview captcha cancelled"),
++            receiver = self.result_rx.lock() => receiver,
++        };
++        if self.cancel.is_cancelled() { bail!("webview captcha cancelled"); }
+         while receiver.try_recv().is_ok() {}
++        let result = if self.mcrf_ids {
++            let mut ticket = self.mcrf_waiters.register(timeout).map_err(|message| anyhow!(message))?;
++            crate::log_output!("CAPTCHA_SOLVE|{}|{mode}|{}|{}", ticket.id(), captcha.redirect_uri, captcha.session_token);
++            tokio::select! {
++                _ = self.cancel.cancelled() => bail!("webview captcha cancelled"),
++                result = tokio::time::timeout(timeout, ticket.receive()) => {
++                    result.map_err(|_| anyhow!("webview captcha timed out"))?
++                        .map_err(|_| anyhow!("webview captcha result channel closed"))?
++                }
++            }
++        } else {
+         crate::log_output!(
+             "CAPTCHA_SOLVE|{mode}|{}|{}",
+@@ -325,4 +347,5 @@
+             }
+         };
++        result };
+         let result = result.trim();
+         if result.is_empty() {

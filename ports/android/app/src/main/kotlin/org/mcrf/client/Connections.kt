@@ -53,9 +53,17 @@ class Connections(context: Context) {
         return changes
     }
     @Synchronized fun importFetched(manual: String, downloaded: Map<String, SubscriptionClient.Downloaded>): Int {
+        return importFetched(manual,downloaded,emptyMap())
+    }
+    @Synchronized fun importFetched(manual:String,downloaded:Map<String,SubscriptionClient.Downloaded>,versionEdits:Map<String,org.json.JSONObject>):Int {
         return transact { candidate -> var count = if (manual.isBlank()) 0 else candidate.add(manual)
             val clear = SubscriptionOptionsStore.load(context).clearOnSuccess
-            downloaded.forEach { (url, fetched) -> candidate.replaceSubscription(url, fetched.servers, fetched.metadata, clear); count += fetched.servers.size }; count }
+            downloaded.forEach { (url, fetched) -> candidate.replaceSubscription(url, fetched.servers, fetched.metadata, clear); count += fetched.servers.size }
+            versionEdits.forEach {(id,options)->
+                require(!candidate.edited(id)){"Настройки существующего сервера уже изменены. Повторите импорт, чтобы перечитать его выбранную версию."}
+                candidate.edit(id,options)
+            }
+            count }
     }
     @Synchronized @JvmOverloads fun refreshFetched(downloaded: Map<String, SubscriptionClient.Downloaded>, expectedIds: Map<String,String>? = null): SubscriptionChanges {
         return transact { candidate ->
@@ -69,7 +77,7 @@ class Connections(context: Context) {
         }
     @Synchronized fun autoIds(): Set<String> = readable().autoIds()
     @Synchronized fun setAuto(id: String, selected: Boolean) = transact { it.setAuto(id, selected) }
-    @Synchronized fun probes(): JSONObject = readable().probes()
+    @Synchronized fun probes(): JSONObject = if(ClientPrimarySelection.selected(context)=="steer")SteerProbeCache.hints(context,entries)else readable().probes()
     @Synchronized fun edited(id: String) = readable().edited(id)
     @Synchronized fun warpAccount(id:String)=readable().warpAccount(id)
     @Synchronized @JvmOverloads fun saveWarp(account:String,config:String,previousId:String?=null,receiptId:String?=null)=transact {it.saveWarp(account,config,previousId,receiptId)}
@@ -84,18 +92,23 @@ class Connections(context: Context) {
     }
     @Synchronized fun share(entry: ServerImport.Server) = ConnectionEdits.share(entry, readable().edited(entry.id))
     @Synchronized fun recordProbes(results: Map<String, Long>) {
+        if(results is SteerProbeDelays)return // Already published to its own volatile, module-bound namespace.
         transact { candidate -> val now = System.currentTimeMillis(); val ids = candidate.entries().map { it.id }.toSet()
             results.filterKeys { it in ids }.forEach { (id, delay) -> candidate.recordProbe(id, delay, now) } }
     }
+    @Synchronized fun invalidateProbes()=transact {it.clearProbes()}
     @Synchronized @JvmOverloads fun autoEntries(policy: String = AutoSelection.LATENCY): List<ServerImport.Server> {
-        val ids = readable().autoIds(); val probes = readable().probes(); val now = System.currentTimeMillis()
-        return AutoSelection.proven(entries, ids, probes, now,policy)
+        val ids = readable().autoIds(); val steer=policy==AutoSelection.LATENCY&&ClientPrimarySelection.selected(context)=="steer"
+        val probes = if(steer)SteerProbeCache.hints(context,entries)else readable().probes(); val now = System.currentTimeMillis()
+        return AutoSelection.proven(if(steer)entries.filter {SteerProbePlan.supports(it)}else entries, ids, probes, now,policy)
     }
     /** Startup has one fresh, storage-bound view of marks and measurements.
      * Health-only proven() remains separate; expiry is not a missing selection. */
     @Synchronized @JvmOverloads fun startupEntries(policy:String=AutoSelection.LATENCY,refresh:Boolean=false):List<ServerImport.Server> = synchronized(storageLock) {
         if(refresh)refreshFromStorage() // Background admission only; UI checks must not decrypt the catalogue.
-        AutoSelection.startup(entries,readable().autoIds(),readable().probes(),System.currentTimeMillis(),policy)
+        val steer=policy==AutoSelection.LATENCY&&ClientPrimarySelection.selected(context)=="steer"
+        AutoSelection.startup(if(steer)entries.filter {SteerProbePlan.supports(it)}else entries,readable().autoIds(),
+            if(steer)SteerProbeCache.hints(context,entries)else readable().probes(),System.currentTimeMillis(),policy)
     }
     private fun readable() = data ?: throw IllegalStateException("Не удалось прочитать подключения. Исходные данные сохранены.")
     @Synchronized fun bsStartupEntries():List<ServerImport.Server> =

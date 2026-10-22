@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class SingBoxEngine(context: Context): Engine {
     private val application=context.applicationContext
     private val once=AtomicBoolean()
+    private val packetRoutes=SingBoxPacketRoutes(application)
     private val stop=CountDownLatch(1)
     @Volatile private var runningGeneration=0L
     private val metrics=SingBoxMetricState()
@@ -30,7 +31,10 @@ class SingBoxEngine(context: Context): Engine {
     private val capabilityJson: String by lazy { JSONObject().put("schema",1).put("kind","sing-box").put("spi",1).put("coreApi",1)
         .put("nativeVersion",Libbox.version()).put("fullNativeConfig",true).put("tunPlanMode","deferred-native-options")
         .put("proxyOnly",true).put("isolatedProbe",true).put("trafficSource","native-status-callback").put("blockedAttemptsAvailable",false)
-        .put("oneRunPerProcess",true).toString() }
+        .put("oneRunPerProcess",true).apply {
+            if(packetRoutes.advertised)put("packetRouteBridge",SingBoxPacketRoutes.CAPABILITY)
+            if(SingBoxProtocolRoutes.advertised(application))put("protocolRouteDispatcher",SingBoxProtocolRoutes.CAPABILITY)
+        }.toString() }
     override fun capabilitiesJson(): String=capabilityJson
     private fun capabilitySha256(): String=java.security.MessageDigest.getInstance("SHA-256")
         .digest(capabilityJson.toByteArray(Charsets.UTF_8)).joinToString("") {"%02x".format(it.toInt() and 255)}
@@ -55,6 +59,7 @@ class SingBoxEngine(context: Context): Engine {
     }
     override fun run(request: Engine.Request,host: Engine.Host) {
         require(once.compareAndSet(false,true)) { "FRESH_CORE_PROCESS_REQUIRED" }
+        packetRoutes.seal(request.settingsJson,request.generation)
         val config=SingBoxRuntimeConfig.parse(request.settingsJson)
         require(request.borrowedTunFd == -1 && request.vpnNetworkHandle==0L) { "CORE_TUN_MODE_FD" }
         require(request.tunAcquisition==if(config.mode=="vpn")Engine.TunAcquisition.DEFERRED else Engine.TunAcquisition.NONE) { "CORE_TUN_ACQUISITION_MISMATCH" }
@@ -109,7 +114,7 @@ class SingBoxEngine(context: Context): Engine {
             closeCommands()
             // Main's STOP ACK additionally waits for worker death and its owned TUN/PFD closure.
             try { try {telemetry?.disconnect()} finally {
-                try {server?.closeService()} finally {try {server?.close()} finally {adapter.close()}}
+                try {server?.closeService()} finally {try {server?.close()} finally {try {packetRoutes.close()} finally {adapter.close()}}}
             } } finally {runningGeneration=0;metrics.clear()}
         }
     }
@@ -117,7 +122,14 @@ class SingBoxEngine(context: Context): Engine {
         val clients=synchronized(commands) {commandsReady=false;commandServer=null;commandClients.toList()}
         clients.forEach {try {it.disconnect()}catch(_:Exception) { }}
     }
-    override fun requestStop() {stop.countDown();closeCommands()}
+    override fun requestStop() {stop.countDown();closeCommands();packetRoutes.requestStop()}
+    /** Private source-only additive role. Only the exact marked native module
+     * supports it; no new public/profile setting or old-engine fallback. */
+    fun attachPacketRoute(settings:String,spec:String,borrowedFd:Int,ownerPid:Int,generation:Long,host:Engine.Host) {
+        check(!once.get()&&stop.count!=0L&&!host.stopping(generation)){"PACKET_ROUTE_PRESTART_REQUIRED"}
+        packetRoutes.attach(settings,spec,borrowedFd,ownerPid,generation){stop.count==0L||host.stopping(generation)}
+    }
+    fun failPacketRoute(generation:Long,tag:String,nonce:String) {packetRoutes.fail(generation,tag,nonce)}
     private fun tag(value:String) {require(value.isNotEmpty() && value.toByteArray(Charsets.UTF_8).size<=1024 && value.none(Char::isISOControl)) {"CORE_TAG"}}
     private fun <T> withCommand(run: (CommandClient)->T): T {
         val (client,generation)=synchronized(commands) {

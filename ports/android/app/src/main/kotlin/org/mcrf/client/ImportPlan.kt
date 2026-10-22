@@ -3,10 +3,21 @@ package org.mcrf.client
 /** Nothing is written while links are parsed, subscriptions fetched or engines installed. */
 class ImportPlan private constructor(
     val manual: String, val subscriptions: Map<String, SubscriptionClient.Downloaded>,
-    val entries: List<ServerImport.Server>
+    val entries: List<ServerImport.Server>,
+    private val versionEdits:Map<String,org.json.JSONObject> = emptyMap()
 ) {
     val engines: Set<String> = entries.filter { it.needsEngine() }.mapTo(linkedSetOf()) { it.carrier?.let(EngineModules::carrierKind)?:it.protocol }
-    fun commit(catalogue: Connections) = catalogue.importFetched(manual, subscriptions)
+    fun commit(catalogue: Connections) = catalogue.importFetched(manual, subscriptions,versionEdits)
+    fun resolveCsqtt(choices:Map<String,String>,existing:Map<String,ServerImport.Server> = emptyMap()):ImportPlan {
+        if(CsqttImportResolution.unresolved(entries,existing,choices).isNotEmpty())throw CsqttImportResolution.Required()
+        val edits=linkedMapOf<String,org.json.JSONObject>()
+        val resolved=entries.map {entry->
+            existing[entry.id]?:if(CsqttImportResolution.ambiguous(entry)){
+                CsqttImportResolution.resolve(entry,choices[entry.id].orEmpty()).also {edits[entry.id]=org.json.JSONObject().put("csqttVersion",choices.getValue(entry.id))}
+            }else entry
+        }
+        return ImportPlan(manual,subscriptions,resolved,edits)
+    }
     companion object {
         fun prepare(value: String, fetch: (String) -> SubscriptionClient.Downloaded): ImportPlan {
             require(value.toByteArray(Charsets.UTF_8).size <= ServerImport.MAX_BYTES) { "Импорт больше 4 МБ." }

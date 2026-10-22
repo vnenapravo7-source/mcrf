@@ -39,4 +39,11 @@ class AutoSelectionTest {
         val entries = listOf(node, engine, profile)
         assertEquals(listOf(node), AutoSelection.proven(entries, entries.map { it.id }.toSet(), probes(entries), now))
     }
+    @Test fun p2ExcludedEngineNeverEntersMarkedStartupOrFailover(){
+        val excluded=entry("openflux");val ordinary=entry("vless")
+        val entries=listOf(excluded,ordinary);val marked=entries.map {it.id}.toSet()
+        assertEquals(listOf(ordinary),AutoSelection.proven(entries,marked,probes(entries),now))
+        assertFalse(AutoSelection.prefer("openflux",0,"csqtt",100,0))
+        assertFalse(ProbePlan.supports(excluded))
+    }
 }

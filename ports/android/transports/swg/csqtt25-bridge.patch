@@ -1,0 +1,46 @@
+diff --git a/qwdtt/csqtt_bridge.go b/qwdtt/csqtt_bridge.go
+--- a/qwdtt/csqtt_bridge.go
++++ b/qwdtt/csqtt_bridge.go
+@@ -73,3 +73,7 @@
+ func runCSQTTBridge(path string) error {
+-	c, err := readCSQTTConfig(path)
++	return runCSQTTBridgePrepared(path, readCSQTTConfig, nil)
++}
++
++func runCSQTTBridgePrepared(path string, read func(string)(*bridgeConfig,error), launch func(context.Context,string)(*exec.Cmd,string,error)) error {
++	c, err := read(path)
+ 	if err != nil {
+@@ -111,5 +115,10 @@
+ 	if err := os.MkdirAll(command.Dir, 0700); err != nil {
+ 		return err
+ 	}
++	bootstrap := ""
++	if launch != nil {
++		command, bootstrap, err = launch(ctx, command.Dir)
++		if err != nil { return err }
++	}
+ 	input, err := command.StdinPipe()
+@@ -161,3 +170,9 @@
+ 		input.Close()
+ 	}()
++	if bootstrap != "" {
++		data := []byte(bootstrap)
++		accepted := commands.offer(data)
++		clear(data)
++		if !accepted { return errors.New("CSQTT 2.5 private bootstrap delivery failed") }
++	}
+ 	var config string
+diff --git a/qwdtt/main.go b/qwdtt/main.go
+--- a/qwdtt/main.go
++++ b/qwdtt/main.go
+@@ -109,3 +109,10 @@
+ func main() {
+ 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
++	if len(os.Args) == 3 && os.Args[1] == "-csqtt25-config" {
++		if err := runCSQTT25Bridge(os.Args[2]); err != nil {
++			log.Printf("[CSQTT 2.5] %v", err)
++			os.Exit(1)
++		}
++		return
++	}
+ 	if len(os.Args) == 3 && os.Args[1] == "-csqtt-config" {

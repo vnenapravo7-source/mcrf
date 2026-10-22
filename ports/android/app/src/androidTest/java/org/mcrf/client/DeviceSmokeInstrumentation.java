@@ -35,6 +35,7 @@ public final class DeviceSmokeInstrumentation extends Instrumentation {
         File temporary = new File(getTargetContext().getCacheDir(), "mcrf-test-" + UUID.randomUUID());
         int code = Activity.RESULT_OK;
         try {
+            if(mode.equals("p2-expansion-private")){if(!temporary.mkdir())throw new Exception("Cannot create expanded P2 fixture");ExpandedP2DeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
             if(mode.equals("connection-animations")){report.append(ConnectionAnimationDeviceChecks.run(this));check(true,"Whole P0 item40 presentation batch in fresh disposable UID");return;}
             if(mode.equals("usage-colors")){report.append(UsageColorsDeviceChecks.run(this));check(true,"Isolated first-use choices and custom theme colors");return;}
             if(mode.equals("minimalism-readonly")){report.append(UsageMinimalismReadOnlyChecks.run(this));check(true,"All six independent feature combinations, read-only presentation");return;}

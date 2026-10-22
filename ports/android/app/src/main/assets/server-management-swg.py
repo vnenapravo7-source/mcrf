@@ -108,7 +108,7 @@ def execute(source):
         try:
             connection.sock = context.wrap_socket(tcp, server_hostname=url.hostname)
             if hashlib.sha256(connection.sock.getpeercert(binary_form=True)).hexdigest() != fingerprint:
-                raise ValueError("CERTIFICATE_CHANGED")
+                raise ValueError("TLS_PIN")
             headers = {"Host": url.netloc, "Accept": "application/json"}
             if cookies:
                 headers["Cookie"] = "; ".join(k + "=" + v for k, v in cookies.items())
@@ -118,6 +118,8 @@ def execute(source):
             connection.request(method, url.path.rstrip("/") + path, payload, headers)
             response = connection.getresponse()
             raw = response.read(4 * 1024 * 1024 + 1)
+            if response.status in (401, 403, 404):
+                raise ValueError("PANEL_HTTP_" + str(response.status))
             if len(raw) > 4 * 1024 * 1024 or response.status != 200:
                 raise ValueError("PANEL_HTTP")
             for key, value in response.getheaders():
@@ -201,7 +203,10 @@ if __name__ == "__main__":
         result = execute(source)
         output = {"ok": True, "request_id": source["request_id"], "data": result}
         print("MCRF_MANAGEMENT|" + base64.b64encode(json.dumps(output).encode("utf-8")).decode("ascii"))
-    except Exception:
+    except Exception as error:
         # Never echo exceptions, credentials, provider bodies or uncertain mutation results.
-        print("MCRF_MANAGEMENT_ERROR|Operation not confirmed; do not automatically retry")
+        allowed = {"TLS_PIN", "PANEL_HTTP_401", "PANEL_HTTP_403", "PANEL_HTTP_404", "PANEL_HTTP",
+                   "PANEL_REJECTED", "STATUS_RESULT", "CLIENT_LIST", "INTERFACE_STATE"}
+        code = str(error) if isinstance(error, ValueError) and str(error) in allowed else "PANEL_RESPONSE_INVALID"
+        print("MCRF_MANAGEMENT_ERROR|" + code)
         sys.exit(1)

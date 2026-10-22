@@ -1,0 +1,13 @@
+diff --git a/qwdtt/internal/csqtt/config_test.go b/qwdtt/internal/csqtt/config_test.go
+--- a/qwdtt/internal/csqtt/config_test.go
++++ b/qwdtt/internal/csqtt/config_test.go
+@@ -39,6 +39,6 @@
+-func TestExcessHashesKeepFirstSix(t *testing.T) {
+-	raw := "csqtt://connect?v=2&host=203.0.113.7&peer=46000&password=secret&hashes=abcdefghijklmnop1+abcdefghijklmnop2+abcdefghijklmnop3+abcdefghijklmnop4+abcdefghijklmnop5+abcdefghijklmnop6+ignored"
++func TestExtendedHashesKeepCompletePool(t *testing.T) {
++	raw := "csqtt://connect?v=2&host=203.0.113.7&peer=46000&password=secret&hashes=abcdefghijklmnop1+abcdefghijklmnop2+abcdefghijklmnop3+abcdefghijklmnop4+abcdefghijklmnop5+abcdefghijklmnop6+abcdefghijklmnop7"
+ 	l, err := ParseLink(raw)
+-	if err != nil || len(l.Hashes) != 6 || l.Hashes[0] != "abcdefghijklmnop1" || l.Hashes[5] != "abcdefghijklmnop6" {
++	if err != nil || len(l.Hashes) != 7 || l.Hashes[0] != "abcdefghijklmnop1" || l.Hashes[6] != "abcdefghijklmnop7" {
+ 		t.Fatal("excess hashes prevented import or changed order")
+ 	}

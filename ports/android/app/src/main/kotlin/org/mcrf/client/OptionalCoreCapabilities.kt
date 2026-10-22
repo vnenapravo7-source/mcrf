@@ -18,6 +18,7 @@ object OptionalCoreCapabilities {
                 if(entry.request.kind=="xray")required.add("socks5:udp")
                 else notes.add("TLS-модуль для ${entry.tag} поддерживает только TCP.")
                 val request=entry.request;val caps=workers.getOrPut(request.kind){mutableSetOf()}
+                if(request.serverDns!=null)caps.add("server-address-dns-v1")
                 if(request.kind=="xray") {
                     caps.addAll(setOf("vless","socks5-udp-associate"))
                     val stream=request.outbound.optJSONObject("streamSettings")

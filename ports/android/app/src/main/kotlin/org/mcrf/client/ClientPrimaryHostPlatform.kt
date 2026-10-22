@@ -91,10 +91,17 @@ abstract class ClientPrimaryHostPlatform : VpnService() {
         stopping: () -> Boolean,
         tun: (Platform.TunPlan) -> ParcelFileDescriptor,
         traffic: (Long, Long) -> Unit
+    ): Platform = forRun(generation,stopping,tun,traffic,false)
+
+    /** A separate probe service may share the application's active VPN UID.
+     * Protect its sockets without granting it TUN creation/ownership. */
+    fun forRun(
+        generation:Long,stopping:()->Boolean,tun:(Platform.TunPlan)->ParcelFileDescriptor,
+        traffic:(Long,Long)->Unit,protectSockets:Boolean
     ): Platform {
         require(generation > 0) { "PLATFORM_GENERATION" }
         active?.close()
-        val run = HostRun(generation, stopping, tun, traffic)
+        val run = HostRun(generation, stopping, tun, traffic,protectSockets)
         synchronized(stateLock) {
             check(active == null) { "PLATFORM_RUN_CONFLICT" }
             active = run
@@ -120,7 +127,8 @@ abstract class ClientPrimaryHostPlatform : VpnService() {
         val generation: Long,
         private val stopping: () -> Boolean,
         private val createTun: (Platform.TunPlan) -> ParcelFileDescriptor,
-        private val reportTraffic: (Long, Long) -> Unit
+        private val reportTraffic: (Long, Long) -> Unit,
+        private val protectSockets:Boolean
     ) : Platform, ClientPrimaryPlatformLifetime {
         @Volatile private var closed = false
         private var tunClaimed = false
@@ -317,7 +325,7 @@ abstract class ClientPrimaryHostPlatform : VpnService() {
             checkLive(generation)
             val network = physicalNetwork()
             ParcelFileDescriptor.fromFd(borrowedSocketFd).use { duplicate ->
-                if (vpnMode && !protect(duplicate.fd)) throw IOException("PLATFORM_PROTECT_FAILED")
+                if ((vpnMode||protectSockets) && !protect(duplicate.fd)) throw IOException("PLATFORM_PROTECT_FAILED")
                 network.bindSocket(duplicate.fileDescriptor)
                 synchronized(stateLock) {
                     checkLive(generation)

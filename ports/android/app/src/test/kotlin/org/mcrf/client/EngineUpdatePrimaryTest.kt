@@ -31,6 +31,26 @@ class EngineUpdatePrimaryTest {
         assertEquals("mcrf-engine-sing-box-arm64-v8a-release.apk",EngineModules.assetName("sing-box","arm64-v8a"))
         try{EnginePackage.find(JSONArray(),"arm64-v8a","steer");fail()}catch(_:EnginePackage.Unpublished){}
     }
+    @Test fun steerHelperRequiresTheExactPairForEveryShippedAbi(){
+        val pair=listOf("libsteer_vpn.so","libmcrf_utls49.so")
+        val both=listOf("arm64-v8a","x86_64").flatMap{abi->pair.map{"lib/$abi/$it"}}
+        for(abi in listOf("arm64-v8a","x86_64")){
+            val single=pair.map{"lib/$abi/$it"}
+            assertTrue(EngineUpdatePrimary.validNativeEntries("steer",abi,single))
+            assertTrue(EngineUpdatePrimary.validNativeEntries("steer",abi,both))
+            assertFalse(EngineUpdatePrimary.validNativeEntries("steer",abi,single.drop(1)))
+            assertFalse(EngineUpdatePrimary.validNativeEntries("steer",abi,single+single.first()))
+        }
+        assertFalse(EngineUpdatePrimary.validNativeEntries("steer","arm64-v8a",both.dropLast(1)))
+        assertFalse(EngineUpdatePrimary.validNativeEntries("steer","armeabi-v7a",both))
+    }
+    @Test fun helperCannotAuthorizeOtherLibrariesOrOtherEngines(){
+        val pair=listOf("lib/arm64-v8a/libsteer_vpn.so","lib/arm64-v8a/libmcrf_utls49.so")
+        assertFalse(EngineUpdatePrimary.validNativeEntries("steer","arm64-v8a",pair+"lib/arm64-v8a/other.so"))
+        assertFalse(EngineUpdatePrimary.validNativeEntries("sing-box","arm64-v8a",pair))
+        assertTrue(EngineUpdatePrimary.validNativeEntries("sing-box","arm64-v8a",listOf("lib/arm64-v8a/libbox.so")))
+        assertFalse(EngineUpdatePrimary.validNativeEntries("sing-box","arm64-v8a",listOf("lib/arm64-v8a/libbox.so",pair.last())))
+    }
     @Test fun confirmedSwitchRejectsMissingModuleBusyRuntimeAndProfileCapabilities(){
         rejected{EngineUpdatePrimaryUi.requireSwitch("steer",false,false,emptyList())}
         rejected{EngineUpdatePrimaryUi.requireSwitch("steer",true,true,emptyList())}

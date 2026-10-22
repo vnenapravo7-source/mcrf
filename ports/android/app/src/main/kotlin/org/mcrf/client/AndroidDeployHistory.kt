@@ -24,6 +24,7 @@ object AndroidDeployHistory {
     fun resultKey(target: AndroidDeployTarget,recipe: String)="${target.host}:${target.sshPort}/$recipe/${target.operationId}"
     fun record(result: JSONObject,target: AndroidDeployTarget,recipe: String): JSONObject = JSONObject(result.toString()).apply {
         put("operation_id",target.operationId).put("recipe_id",recipe).put("created_at",System.currentTimeMillis())
+        if(target.deploymentId.isNotEmpty())put("deployment_id",target.deploymentId).put("deployment_name",AndroidDeployInventory.name(target.deploymentName))
         put("transport_template",JSONObject().put("host",target.host).put("user",target.user)
             .put("sshPort",target.sshPort.toString()).put("panelPort",target.panelPort.toString())
             .put("domain",target.domain).put("options",templateOptions(target)))

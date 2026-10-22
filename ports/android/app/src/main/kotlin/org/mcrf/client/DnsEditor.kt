@@ -18,9 +18,7 @@ class DnsEditor(private val activity: MainActivity, value: JSONObject) {
     private fun visible():JSONObject=JSONObject().put("provider",provider.selectedItem?.toString()?:previousProvider).put("protocol",protocol.selectedItem?.toString()?:previousProtocol).put("custom",custom.text.toString())
     private fun notifyChange(){val callback=changed?:return;if(draft?.take(visible())==true){policyEdited=true;callback()}}
     init {
-        fun compactField(label:String,control:View)=activity.field(label,control).also {
-            (control.layoutParams as LinearLayout.LayoutParams).apply {topMargin=activity.dp(6);bottomMargin=activity.dp(8)}
-        }
+        fun compactField(label:String,control:View)=activity.field(label,control)
         view.addView(compactField("Провайдер DNS", provider)); view.addView(compactField("Протокол DNS", protocol))
         view.addView(custom, activity.space(0, 8)); custom.visibility = if (previousProvider == "Свой") View.VISIBLE else View.GONE
         provider.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {

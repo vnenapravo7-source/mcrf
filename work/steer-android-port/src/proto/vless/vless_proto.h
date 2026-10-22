@@ -42,5 +42,8 @@ size_t vless_build_request_ip(const unsigned char uuid[16],enum vless_cmd cmd,
     const char *flow,unsigned char *out,size_t cap);
 
 int vless_parse_response(const unsigned char *buf, size_t n, size_t *skip);
+/* Transport reads do not preserve the two-byte header/addon boundary. */
+struct vless_response_stream { unsigned char head[2]; unsigned have, extra_left; int done; };
+int vless_response_feed(struct vless_response_stream *state,const unsigned char *buf,size_t n,size_t *skip);
 
 #endif

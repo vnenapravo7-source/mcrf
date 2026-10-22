@@ -93,6 +93,9 @@
 #include "client.h"
 
 #include "scrypto.h"
+#ifdef MCRF_CERT_COMPRESSION49
+#include <zlib.h>
+#endif
 #if defined(STEER_HAVE_X509WRITE)
 # include "certgen.h"
 #endif
@@ -170,6 +173,8 @@ struct plan {
     int no_cv;            /* прислать Certificate и НЕ прислать CertificateVerify */
     int cv_bad_sig;       /* испортить байт подписи */
     int cv_bad_alg;       /* подписать кодом, которого мы не предлагали (rsa_pkcs1_sha256) */
+    int compressed_zlib49; /* new scoped fixture: real RFC8879 Certificate body */
+    int compressed_bad_length49;
     /* Шаг 5 выпуска 1.10: ws и httpupgrade поверх tls и reality — на настоящей библиотеке.
      * reality_ok — временный сертификат Reality с настоящей подписью HMAC-SHA512 на authkey
      * (единственный путь к УДАВШЕМУСЯ Reality в этом стенде); upg — после рукопожатия сервер
@@ -334,7 +339,13 @@ static int chain_build(void) {
     }
     tcg_key_free(root_key);
 
-    snprintf(g_roots_file, sizeof(g_roots_file), "%s", "/tmp/vlessmatch-roots-XXXXXX");
+    const char *owned_dir49=getenv("MCRF_P049_FIXTURE_DIR");
+    if(owned_dir49){
+        const char *prefix="/data/local/tmp/m49-";size_t prefix_n=strlen(prefix);
+        if(strncmp(owned_dir49,prefix,prefix_n)||!owned_dir49[prefix_n]||strchr(owned_dir49+prefix_n,'/'))return -1;
+        int length=snprintf(g_roots_file,sizeof(g_roots_file),"%s/roots-XXXXXX",owned_dir49);
+        if(length<0||(size_t)length>=sizeof(g_roots_file))return -1;
+    }else snprintf(g_roots_file, sizeof(g_roots_file), "%s", "/tmp/vlessmatch-roots-XXXXXX");
     int fd = mkstemp(g_roots_file);
     if (fd < 0) return -1;
     size_t pn = strlen(pem);
@@ -725,6 +736,17 @@ static void *server_half(void *arg) {
         unsigned char msg[3072];
         size_t mn = cert_msg(l, msg, sizeof(msg));
         if (!mn) return NULL;
+#ifdef MCRF_CERT_COMPRESSION49
+        if(pl->compressed_zlib49){
+            unsigned char encoded[4096];uLongf encoded_n=sizeof encoded;size_t decoded_n=mn-4;
+            if(compress2(encoded,&encoded_n,msg+4,(uLong)decoded_n,Z_BEST_SPEED)!=Z_OK||encoded_n+12>sizeof msg)return NULL;
+            size_t declared=decoded_n+(pl->compressed_bad_length49?1:0);mn=12+encoded_n;
+            msg[0]=0x19;msg[1]=(unsigned char)((mn-4)>>16);msg[2]=(unsigned char)((mn-4)>>8);msg[3]=(unsigned char)(mn-4);
+            msg[4]=0;msg[5]=1;msg[6]=(unsigned char)(declared>>16);msg[7]=(unsigned char)(declared>>8);msg[8]=(unsigned char)declared;
+            msg[9]=(unsigned char)(encoded_n>>16);msg[10]=(unsigned char)(encoded_n>>8);msg[11]=(unsigned char)encoded_n;
+            memcpy(msg+12,encoded,encoded_n);
+        }
+#endif
         if (send_enc(s, msg, mn)) return NULL;
         sc_hash_update(&s->tr, msg, mn);
 

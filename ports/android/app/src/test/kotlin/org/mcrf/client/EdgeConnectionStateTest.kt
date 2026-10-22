@@ -5,6 +5,18 @@ import org.junit.Test
 import org.mcrf.client.EdgeConnectionState.Action.*
 
 class EdgeConnectionStateTest {
+    @Test fun pendingIndicatorUsesDestinationNotPreviousConnection() {
+        for(target in listOf(false,true))for(previous in listOf(false,true))for(active in listOf(false,true)) {
+            assertEquals(!target,EdgeConnectionState.indicator(false,active,true,previous,target))
+            assertEquals(target,EdgeConnectionState.indicator(true,active,true,previous,target))
+        }
+    }
+    @Test fun noPendingDestinationNeverInventsVpnOrKeepsStaleTarget() {
+        for(section in listOf(false,true)) {
+            assertFalse(EdgeConnectionState.indicator(section,false,true,false,null))
+            assertEquals(section,EdgeConnectionState.indicator(section,true,false,true,false))
+        }
+    }
     @Test fun everyNewActivityStartsCollapsedRegardlessOfPreviousOpenPanel() {
         val first=EdgeConnectionState()
         assertTrue(first.collapsed)

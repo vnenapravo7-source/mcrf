@@ -372,7 +372,8 @@ static int http_parse(const char *url, struct px_node *n, int tls) {
 /* ---- vmess (v2rayN base64 JSON) -------------------------------------------------------------- */
 
 /* Плоский JSON-объект: значение ключа key в строку out (строки и числа). 1 — нашли. */
-static int vj_get(const char *json, const char *key, char *out, size_t cap) {
+static int vj_get_loss49(const char *json, const char *key, char *out, size_t cap,int *loss) {
+    if(loss)*loss=0;
     char pat[48];
     int kl = snprintf(pat, sizeof(pat), "\"%s\"", key);
     const char *p = json;
@@ -392,18 +393,23 @@ static int vj_get(const char *json, const char *key, char *out, size_t cap) {
                 size_t el = 1;
                 if (*c == '\\' && c[1]) c += sl_unescape(c + 1, 0, e, &el);
                 c++;
-                if (o + el >= cap) break;
-                memcpy(out + o, e, el);
-                o += el;
+                if(o+el>=cap||memchr(e,0,el)){if(loss)*loss=1;}
+                else{memcpy(out+o,e,el);o+=el;}
             }
         } else {
-            while (*c && *c != ',' && *c != '}' && *c != ' ' && o + 1 < cap) out[o++] = *c++;
+            while (*c && *c != ',' && *c != '}' && *c != ' '){
+                if(o+1<cap)out[o++]=*c;else if(loss)*loss=1;c++;
+            }
         }
         out[o] = '\0';
         return 1;
     }
     out[0] = '\0';
     return 0;
+}
+static int vj_get(const char *json,const char *key,char *out,size_t cap){return vj_get_loss49(json,key,out,cap,NULL);}
+static int vj_tls49(const char *json,const char *key,char *out,size_t cap,struct vless_node *n){
+    int loss=0,found=vj_get_loss49(json,key,out,cap,&loss);if(loss)n->tls_fields_bad=1;return found;
 }
 
 /* Шифр тела vmess для вывода (proxy-nodes, поле cipher): как в scy ссылки. none и zero узлом не
@@ -427,16 +433,16 @@ static int vmess_parse(const char *url, struct px_node *n) {
     json[jn < sizeof(json) ? jn : sizeof(json) - 1] = '\0';
     if (json[0] != '{') return -1;
     char v[256];
-    vj_get(json, "add", n->vn.host, sizeof(n->vn.host));
-    if (vj_get(json, "port", v, sizeof(v))) n->vn.port = sl_port_of(v);
-    vj_get(json, "id", v, sizeof(v));
+    vj_tls49(json,"add",n->vn.host,sizeof n->vn.host,&n->vn);
+    if (vj_tls49(json,"port",v,sizeof v,&n->vn)) n->vn.port = sl_port_of(v);
+    vj_tls49(json,"id",v,sizeof v,&n->vn);
     if (sl_uuid_parse(v, n->vmess_id) != 0) {
         snprintf(n->skip_reason, sizeof(n->skip_reason), "vmess id не UUID");
         return 1;
     }
     n->vmess_aid = vj_get(json, "aid", v, sizeof(v)) ? atoi(v) : 0;
     char scy[32] = "auto";
-    vj_get(json, "scy", scy, sizeof(scy));
+    vj_tls49(json,"scy",scy,sizeof scy,&n->vn);
     if (!strcasecmp(scy, "auto") || !scy[0]) n->vmess_sec = VMESS_AUTO;
     else if (!strcasecmp(scy, "aes-128-gcm")) n->vmess_sec = VMESS_AES128_GCM;
     else if (!strcasecmp(scy, "chacha20-poly1305")) n->vmess_sec = VMESS_CHACHA20_POLY1305;
@@ -449,22 +455,20 @@ static int vmess_parse(const char *url, struct px_node *n) {
     else { snprintf(n->skip_reason, sizeof(n->skip_reason), "vmess scy=%.20s не поддержан", scy); return 1; }
     /* Транспорт: net → type; у ws/httpupgrade host→Host, path; grpc serviceName=path. */
     char net[16] = "tcp";
-    vj_get(json, "net", net, sizeof(net));
-    if (!strcmp(net, "h2")) snprintf(n->vn.type, sizeof(n->vn.type), "xhttp");   /* h2 ≈ xhttp stream */
-    else snprintf(n->vn.type, sizeof(n->vn.type), "%s", net);
+    vj_tls49(json,"net",net,sizeof net,&n->vn);
+    sl_link_param(&n->vn,"type",4,net,strlen(net));
     /* type у v2rayN — вид маскировки tcp: «http» — HTTP-заголовок, которого клиент не шлёт
      * (как headerType=http у vless; sl_link_usable_pre называет причину). */
     char htype[16] = "";
-    vj_get(json, "type", htype, sizeof(htype));
+    vj_tls49(json,"type",htype,sizeof htype,&n->vn);
     if (!strcmp(htype, "http")) n->vn.tcp_http = 1;
-    vj_get(json, "path", n->vn.path, sizeof(n->vn.path));
-    vj_get(json, "host", n->vn.http_host, sizeof(n->vn.http_host));
-    if (!strcmp(net, "grpc")) sl_set_field(n->vn.service, sizeof(n->vn.service), n->vn.path, strlen(n->vn.path));
+    vj_tls49(json,"path",n->vn.path,sizeof n->vn.path,&n->vn);
+    vj_tls49(json,"host",n->vn.http_host,sizeof n->vn.http_host,&n->vn);
+    if (!strcmp(n->vn.type, "grpc")) sl_set_field(n->vn.service, sizeof(n->vn.service), n->vn.path, strlen(n->vn.path));
     char tls[16] = "";
-    vj_get(json, "tls", tls, sizeof(tls));
+    vj_tls49(json,"tls",tls,sizeof tls,&n->vn);
     snprintf(n->vn.security, sizeof(n->vn.security), !strcasecmp(tls, "tls") ? "tls" : "none");
-    vj_get(json, "sni", n->vn.sni, sizeof(n->vn.sni));
-    vj_get(json, "fp", n->vn.fp, sizeof(n->vn.fp));
+    sl_vmess_tls49(json,&n->vn);
     vj_get(json, "ps", n->vn.name, sizeof(n->vn.name));
     sl_set_field(n->name, sizeof(n->name), n->vn.name, strlen(n->vn.name));
     if (!n->vn.port) { snprintf(n->skip_reason, sizeof(n->skip_reason), "vmess без порта"); return 1; }

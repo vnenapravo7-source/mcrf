@@ -16,9 +16,10 @@ class OptionalCorePlan(source: JSONObject, settings: OptionalCoreSettings, core:
         repeat(outputs.length()) { index ->
             val output=outputs.getJSONObject(index);val tag=output.optString("tag")
             require(tag.isNotBlank() && tags.add(tag)) { "Для optional core нужны разные непустые теги выходов." }
-            val prepared=core?.let {OptionalCoreTuning.prepare(output,settings,it)}
+            val dns:(JSONObject)->JSONObject?={OptionalServerDns.capture(original,it)}
+            val prepared=core?.let {OptionalCoreTuning.prepare(output,settings,it,dns)}
             prepared?.notes?.let(limitations::addAll)
-            val request=if(core==null)OptionalCoreConfig.prepare(output,settings) else prepared?.request
+            val request=if(core==null)OptionalCoreConfig.prepare(output,settings,dns) else prepared?.request
             request?.let { entries.add(Entry(tag,it)) }
         }
         planned=entries
@@ -26,7 +27,7 @@ class OptionalCorePlan(source: JSONObject, settings: OptionalCoreSettings, core:
     }
     /** Snapshot copies prevent native-check/start callbacks changing this plan. */
     val requiresWorkers: Boolean get()=planned.isNotEmpty()
-    fun entries(): List<Entry> = planned.map { Entry(it.tag,OptionalCoreConfig.Request(it.request.kind,JSONObject(it.request.outbound.toString()),it.request.certificateStore)) }
+    fun entries(): List<Entry> = planned.map { Entry(it.tag,OptionalCoreConfig.Request(it.request.kind,JSONObject(it.request.outbound.toString()),it.request.certificateStore,it.request.serverDns?.let {dns->JSONObject(dns.toString())})) }
     fun preflight(cancelled: BooleanSupplier,check: (Entry)->Unit) {
         entries().forEach { entry ->
             require(!cancelled.asBoolean) { "Проверка optional core отменена." };check(entry)

@@ -58,9 +58,9 @@ class WarpScanner(context: Context, private val cancelled: () -> Boolean = { fal
                         if(b == 10) {
                             if(!dropped && line.startsWith("MCRF_PROGRESS ")) try {
                                 val event = JSONObject(line.substring(14).trim())
-                                val phase = event.optString("phase")
+                                val phase = WarpProgressPhase.parse(event.optString("phase"))
                                 val done = event.optInt("completed"); val total = event.optInt("total")
-                                if(phase.matches(Regex("[a-z_]{1,48}")) && done >= 0 && total >= done) progress(phase, done, total)
+                                if(phase != null && done >= 0 && total >= done) progress(phase, done, total)
                             } catch(_: Exception) { }
                             line.setLength(0); dropped = false
                         } else if(line.length < 4096 && !dropped) line.append(b.toChar()) else { line.setLength(0); dropped = true }

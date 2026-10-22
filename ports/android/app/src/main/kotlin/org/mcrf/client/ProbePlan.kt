@@ -2,8 +2,9 @@ package org.mcrf.client
 
 /** Measurement scope is independent of the marked automatic-selection pool. */
 object ProbePlan {
-    fun supports(entry: ServerImport.Server) = entry.configuration == null && (!entry.needsEngine() || entry.carrier != null)
+    fun supports(entry: ServerImport.Server) = entry.protocol !in AutoSelection.AUTOMATIC_EXCLUDED && entry.configuration == null && (!entry.needsEngine() || entry.carrier != null)
     fun all(entries: List<ServerImport.Server>) = entries.filter(::supports)
+    fun all(entries:List<ServerImport.Server>,choice:String?)=if(choice=="steer")entries.filter {SteerProbePlan.supports(it)}else all(entries)
     fun automatic(entries: List<ServerImport.Server>, policy: String): List<ServerImport.Server> {
         require(policy in setOf(AutoSelection.LATENCY,AutoSelection.BS_ENGINES))
         // Policy limits selection, never the initial measurement of the catalogue.

@@ -32,6 +32,10 @@
 #include "scrypto.h"
 #include "certverify.h"
 #include "tls13.h"
+#ifdef MCRF_CERT_COMPRESSION49
+#include "cert_compress49.h"
+#endif
+#include "diag49.h"
 
 /* Из reality.c: тот же X25519, но со вторым множителем из ServerHello. Общая функция, а
  * не копия, потому что копия крипто-кода — это два места, где может разойтись прижатие
@@ -103,13 +107,13 @@ static int read_full(int fd, unsigned char *buf, size_t n) {
     size_t got = 0;
     while (got < n) {
         ssize_t r = read(fd, buf + got, n - got);
-        if (r == 0) return TLS13_ECLOSED;
+        if (r == 0) {mcrf_tls49(0,(int)got);return TLS13_ECLOSED;}
         if (r < 0) {
             if (errno == EINTR) continue;
             /* Сокет рукопожатия блокирующий и со сроком (SO_RCVTIMEO), поэтому EAGAIN здесь
              * значит ровно одно: срок вышел, а узел не ответил. Это не ошибка ввода-вывода,
              * и называть её так — уводить в сторону: искать надо снаружи. */
-            if (errno == EAGAIN || errno == EWOULDBLOCK) return TLS13_ETIMEOUT;
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {mcrf_tls49(0,(int)got);return TLS13_ETIMEOUT;}
             return TLS13_EIO;
         }
         got += (size_t)r;
@@ -167,11 +171,12 @@ static int read_record_fd(int fd, unsigned char *type, unsigned char *body, size
                           size_t *body_n) {
     unsigned char h[5];
     int rc = read_full(fd, h, 5);
-    if (rc) return rc;
+    if (rc) {mcrf_tls49(1,rc);return rc;}
     size_t len = ((size_t)h[3] << 8) | h[4];
+    mcrf_tls49(2,((int)h[0]<<16)|(int)len);
     if (len > cap) return TLS13_ETOOBIG;
     rc = read_full(fd, body, len);
-    if (rc) return rc;
+    if (rc) {mcrf_tls49(3,rc);return rc;}
     *type = h[0];
     *body_n = len;
     return 0;
@@ -358,10 +363,10 @@ static int handshake(struct tls13 *t, int fd,
      * длина расширений выходила 14973 при записи в 122 байта. Проявлялось это как
      * «испорченная TLS-запись», то есть виноватым выглядел сервер. */
     const size_t HS_HDR = 4;
-    unsigned char server_pub[32];
+    unsigned char server_pub[65];
     /* Гибрид X25519MLKEM768: ответ сервера — шифротекст ML-KEM (1088) и его X25519-половина (32). */
     unsigned char kem_ct[SC_MLKEM768_CT];
-    int have_pub = 0, have_kem = 0;
+    int have_pub = 0, have_kem = 0, have_p256=0;
     {
         size_t p = HS_HDR + 2 + 32;             /* заголовок + version + random */
         if (p >= n) return TLS13_EBADREC;
@@ -385,10 +390,12 @@ static int handshake(struct tls13 *t, int fd,
                  * с чужим секретом (видно как «AEAD не сошёлся»). */
                 unsigned grp = ((unsigned)rec[p] << 8) | rec[p + 1];
                 size_t klen = ((size_t)rec[p + 2] << 8) | rec[p + 3];
-                if (4 + klen > elen) return TLS13_EBADREC;
+                if (4 + klen != elen) return TLS13_EBADREC;
                 if (grp == 0x001D && klen == 32) {
                     memcpy(server_pub, rec + p + 4, 32);
                     have_pub = 1;
+                } else if(grp==0x0017&&klen==65&&auth&&auth->p256_priv){
+                    memcpy(server_pub,rec+p+4,65);have_pub=have_p256=1;
                 } else if (grp == 0x11EC && klen == SC_MLKEM768_CT + 32 && auth && auth->mlkem_dk) {
                     memcpy(kem_ct, rec + p + 4, SC_MLKEM768_CT);
                     memcpy(server_pub, rec + p + 4 + SC_MLKEM768_CT, 32);
@@ -486,7 +493,9 @@ static int handshake(struct tls13 *t, int fd,
      * первый; тот же порядок у Go и BoringSSL). Обычный X25519 — просто 32 байта. */
     unsigned char ecdhe[SC_MLKEM768_SS + 32];
     size_t ecdhe_n = 32;
-    if (have_kem) {
+    if(have_p256){
+        if(sc_p256_shared(ecdhe,auth->p256_priv,server_pub))return TLS13_ECRYPTO;
+    }else if (have_kem) {
         if (getenv("STEER_PQ_TRACE")) fprintf(stderr, "steer[pq]: сервер выбрал X25519MLKEM768\n");
         if (sc_mlkem768_decaps(ecdhe, auth->mlkem_dk, kem_ct) != 0) return TLS13_ECRYPTO;
         if (x25519_shared_ext(our_priv, server_pub, ecdhe + SC_MLKEM768_SS) != 0) return TLS13_ECRYPTO;
@@ -603,6 +612,16 @@ static int handshake(struct tls13 *t, int fd,
                 }
             }
             if (want_cert && msg == 0x19) {     /* CompressedCertificate (RFC 8879) */
+#ifdef MCRF_CERT_COMPRESSION49
+                if(cert_n||!auth||!auth->cert_compression||
+                   cert_decompress49(auth->cert_compression,hsbuf+p+4,mlen,certbuf,sizeof certbuf,&cert_n)){
+                    snprintf(g_verify_reason,sizeof g_verify_reason,"негодный или незапрошенный сжатый сертификат");
+                    return TLS13_ECERT;
+                }
+                // certbuf holds the decoded Certificate BODY for the normal
+                // verifier below. The transcript still hashes the original
+                // CompressedCertificate bytes via the existing tr_add path.
+#else
                 /* Смысл у этого сообщения разный, и сказать надо разное.
                  *
                  * У security=tls расширение compress_certificate не посылается вовсе (см.
@@ -618,6 +637,7 @@ static int handshake(struct tls13 *t, int fd,
                          rkey ? cert_verify_strerror(CERTV_ENOTREALITY)
                               : "сервер сжал сертификат, о чём его не просили");
                 return TLS13_ECERT;
+#endif
             }
             if (want_cert && msg == 0x0B && cert_n == 0) {   /* Certificate */
                 if (mlen > sizeof(certbuf)) return TLS13_ETOOBIG;

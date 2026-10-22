@@ -1,0 +1,9 @@
+[package]
+name = "mcrf-csqtt-waiters-host-check"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+tokio = { version = "=1.53.1", features = ["sync", "rt-multi-thread", "macros", "time"] }
+uuid = { version = "=1.24.1", features = ["v4"] }

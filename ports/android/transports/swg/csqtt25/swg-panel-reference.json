@@ -1,0 +1,15 @@
+{
+  "repository": "https://github.com/SanityProtocol/swg-panel",
+  "clientRelease": "csqtt-app-2.5.1",
+  "serverRelease": "csqtt-2.5.1-2",
+  "upstreamRevision": "d02da9bd9d8926969b766e197c434d830a83dbd8",
+  "apk": "https://github.com/SanityProtocol/swg-panel/releases/download/csqtt-app-2.5.1/CSQTT-2.5.1-arm64-v8a.apk",
+  "apkSha256": "733962c7a09f6d811797ca09c03ac5040ec21b0d6623ea21201a2c85762e7c12",
+  "nativeEntry": "lib/arm64-v8a/libclient.so",
+  "nativeSha256": "9dad51554bafb2e6cf386a48cc278fb08c434a78ece40baff00fb51f203b237c",
+  "nativeBytes": 9306144,
+  "patch": "https://github.com/SanityProtocol/swg-panel/releases/download/csqtt-app-2.5.1/csqtt-app-2.5.1.patch",
+  "patchSha256": "b61ad9dd4610b3ed200e9f2fb69567492987a4fb2d89c70255f0770148b2ff77",
+  "license": "PolyForm-Noncommercial-1.0.0; preserve amurcanov and SanityProtocol attribution and source/license notices",
+  "scope": "Source reference pin only. Downloaded APK digest equals upstream SHA256SUMS; native entry independently hashed. No native execution, module build, device installation or provider interoperability check yet. Server routing metadata must not overwrite explicit local MCRF routing policies."
+}

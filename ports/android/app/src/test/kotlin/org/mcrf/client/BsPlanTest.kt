@@ -31,8 +31,9 @@ class BsPlanTest {
  private fun swg(type:String)=ServerImport.read(SwgProfile.share(JSONObject().put("type",type).put("server","fixture.invalid").put("server_port",56000).put("password","fixture-secret").put("hashes",JSONArray().put("fixture-call-0123456789abcdef")))).single()
  private fun flux()=ServerImport.read(OpenFluxProfile.share(JSONObject().put("type","openflux").put("secret","fixture encryption secret").put("negotiate",true).put("transports",JSONArray().put(JSONObject().put("type","direct").put("dial","127.0.0.1:24001"))))).single()
  @Test fun exactPriorityAndNoFasterProtocolReplacement(){
-   val entries=listOf(flux(),swg("wdtt"),swg("csqtt"),swg("qwdtt"));val plan=BsPlan.build(entries,60,50,"Cloudflare")
-   assertEquals(AutoSelection.ENGINE_PRIORITY.filter {it!=S3BypassProfile.KIND},BsPlan.candidates(plan.getJSONObject("mcrf_bs")).map { it.getJSONObject("profile").getString("type") })
+   val entries=listOf(swg("wdtt"),swg("csqtt"),swg("qwdtt"));val plan=BsPlan.build(entries,60,50,"Cloudflare")
+   assertEquals(AutoSelection.ENGINE_PRIORITY.filter {it in setOf("wdtt","csqtt","qwdtt")},BsPlan.candidates(plan.getJSONObject("mcrf_bs")).map { it.getJSONObject("profile").getString("type") })
+   assertThrows(IllegalArgumentException::class.java){BsPlan.build(listOf(flux()),60,50,"Cloudflare")}
    assertEquals("csqtt",plan.getJSONObject("mcrf_carrier").getString("type"))
    val runtime=ProfileConfig.build(plan.toString(),false,10808);assertFalse(runtime.has("mcrf_bs"));assertFalse(runtime.has("mcrf_carrier"))
    assertEquals("socks",runtime.getJSONArray("outbounds").getJSONObject(1).getString("type"))

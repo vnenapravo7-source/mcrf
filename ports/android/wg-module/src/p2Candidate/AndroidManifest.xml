@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Inactive until ALL P2 source/native/common gates and exact candidate
+         receipt match. Debug only; NOT runtime acceptance or public metadata. -->
+    <application>
+        <meta-data android:name="org.mcrf.engine.protocol.managed-dns" android:value="owned_kernel_dns_nat_v1" />
+        <meta-data android:name="org.mcrf.engine.protocol.block-capture" android:value="atomic_tun_peer_v1" />
+        <meta-data android:name="org.mcrf.engine.protocol.packet-pipe" android:value="owned_unix_dgram_v1" />
+    </application>
+</manifest>

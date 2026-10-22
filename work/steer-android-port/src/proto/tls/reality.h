@@ -4,6 +4,11 @@
 #define STEER_REALITY_H
 #include <stdint.h>
 #include <stddef.h>
+#include <string.h>
+#include "fingerprint49.h"
+/* Follow the requested identity's real key-share set. Modern Chrome, Safari
+ * and Firefox keep MLKEM; classic Edge/iOS/QQ do not acquire a fake PQ share. */
+static inline int reality_fp_pq(const char *fp){return fp49_hybrid(fp49_kind(fp));}
 
 #define REALITY_EBADKEY (-2)   /* pbk или sid не разобрались */
 #define REALITY_ECRYPTO (-3)   /* сбой примитива или источника случайности */
@@ -13,12 +18,15 @@
  * проводе занимает 1184 байта ML-KEM плюс 32 байта X25519. */
 #define REALITY_GROUP_MLKEM 0x11EC
 #define REALITY_MLKEM_SHARE 1216
+/* Keep transport-wide errors distinct from H2's -50..-55 and Go's -100..-109. */
+#define REALITY_EALPN (-94) /* explicit ALPN conflicts with the selected transport */
+#define REALITY_EFINGERPRINT (-95) /* cannot execute the requested identity; never substitute */
 
 struct reality_cfg {
     const char *sni;   /* маскировочный домен: он же SNI, он же соль для authkey */
     const char *pbk;   /* публичный ключ сервера, base64url */
     const char *sid;   /* short id, hex; может быть пустым */
-    const char *fp;    /* отпечаток браузера — пока влияет только на набор расширений */
+    const char *fp;    /* exact registered browser identity; unsupported never becomes Chrome */
     /* Протокол для ALPN, или NULL — тогда расширения нет вовсе.
      *
      * NULL по умолчанию не из лени: Hello без ALPN проверен на живых узлах и работает, а
@@ -27,6 +35,7 @@ struct reality_cfg {
      * ровно транспортам grpc и xhttp: они говорят по HTTP/2, и согласовать его можно
      * только здесь. */
     const char *alpn;
+    const char *profile_alpn; /* NULL absent; empty explicit; ordered comma-separated tokens */
 
     /* ОБЫЧНЫЙ TLS, БЕЗ REALITY (security=tls).
      *
@@ -71,6 +80,9 @@ struct reality_state {
      * если cfg.pq. Живёт на стеке соединителя, как и priv, и нужен до конца рукопожатия. */
     unsigned char mlkem_dk[2400];
     int pq;
+    unsigned char p256_priv[32];
+    int p256;
+    unsigned cert_compression; /* algorithms actually advertised in this ClientHello */
 };
 
 int reality_build_hello(const struct reality_cfg *cfg, struct reality_state *st,

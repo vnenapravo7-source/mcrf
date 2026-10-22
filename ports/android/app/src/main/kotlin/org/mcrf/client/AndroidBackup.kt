@@ -134,6 +134,12 @@ object AndroidBackup {
         if(values.has("localProxy"))LocalProxyConfig.validate(values.getJSONObject("localProxy"))
         booleans.filter(values::has).forEach(values::getBoolean); integers.filter(values::has).forEach(values::getInt); strings.filter(values::has).forEach(values::getString)
         require(values.optInt("port", 10808) in 1024..65535 && values.optInt("interval", 60) in 5..86400 && values.optInt("tolerance", 50) in 0..10000)
+        require(values.optInt(BsDetectionInterval.KEY,BsDetectionInterval.DEFAULT) in BsDetectionInterval.seconds) { "Неизвестный интервал автоопределения БС." }
+        require(values.optString(BsAutoSelectionPolicy.KEY,BsAutoSelectionPolicy.FASTEST) in BsAutoSelectionPolicy.modes) {"Неизвестный режим выбора сервера БС."}
+        listOf(BsAutoSelectionPolicy.LAST_VPN,BsAutoSelectionPolicy.LAST_BS).forEach {key->require(values.optString(key).let {it.isEmpty()||it.matches(Regex("[0-9a-f]{64}"))}) {"Некорректный сохранённый сервер."}}
+        require(values.optInt(LogRetention.KEY,LogRetention.DEFAULT) in LogRetention.minutes) {"Неизвестный срок хранения логов."}
+        NotificationTrafficSettings.validate(values)
+        if(values.has(AutoSelectionDeviation.FAILURE_ONLY))require(values.get(AutoSelectionDeviation.FAILURE_ONLY) is Boolean)
         require(values.optInt("subscriptionHours", 0) in SubscriptionUpdates.HOURS && values.optString("theme", "system") in setOf("system", "light", "dark") && values.optString("selected").length <= 64)
     }
 }

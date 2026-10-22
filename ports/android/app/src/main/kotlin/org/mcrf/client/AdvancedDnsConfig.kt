@@ -75,7 +75,7 @@ object AdvancedDnsConfig {
         val children=match.optJSONArray("rules")?:return false
         return (0 until children.length()).any {children.optJSONObject(it)?.let {child->referencesIpRuleSet(child,ipTags)}==true}
     }
-    fun apply(config: JSONObject, state: JSONObject, proxy: String, direct: String, tun: Boolean, ipRuleSetTags:Set<String> = emptySet(),directIpv4Only:Boolean=false) {
+    fun apply(config: JSONObject, state: JSONObject, proxy: String, direct: String, tun: Boolean, ipRuleSetTags:Set<String> = emptySet(),directIpv4Only:Boolean=false,implicitBootstrapTags:Set<String> = emptySet()) {
         val appOwned=DnsConfig.appOwned(config)
         val s = DirectDnsFamily.settings(state,appOwned,directIpv4Only); if (!s.optBoolean("enabled")) return
         validate(s)
@@ -105,6 +105,18 @@ object AdvancedDnsConfig {
             append(rules,JSONObject().put("package_name",JSONArray(apps.toString())),"mcrf-dns-remote",s.optBoolean("remoteNoAAAA"))
         }
         var countryDns:JSONObject?=null
+        val ruleResolvers=linkedMapOf<String,String>()
+        fun remoteFor(rule:JSONObject):String {
+            if(RouteServerPlan.ids(rule).isEmpty())return "mcrf-dns-remote"
+            RouteServerPlan.validate(rule)
+            val outbound=RouteServerPlan.outbound(rule,"")
+            val id=outbound.removePrefix("mcrf-route-")
+            return ruleResolvers.getOrPut(id) {
+                val tag="mcrf-dns-route-$id"
+                servers.put(DnsConfig.applyDetour(DnsConfig.build(state.getJSONObject("globalDns"),tag,"mcrf-dns-local"),config,outbound))
+                tag
+            }
+        }
         val selectors=GeoDataConfig.value(state).getJSONArray("selectors")
         val ipTags=ipRuleSetTags+(0 until selectors.length()).filter {selectors.getJSONObject(it).optString("kind")=="geoip"}.map {"mcrf-geo-$it"}
         GeoDataConfig.orderedRules(state).let { a -> repeat(a.length()) {
@@ -119,7 +131,7 @@ object AdvancedDnsConfig {
                     val appMatch=JSONObject().put("package_name",JSONArray(groups.getValue("package_name")))
                     val target=r.optString("target","proxy")
                     if(target=="block")rules.put(appMatch.put("action","predefined").put("rcode","NXDOMAIN"))
-                    else append(rules,appMatch,if(target=="direct")"mcrf-dns-direct" else "mcrf-dns-remote",s.optBoolean(if(target=="direct")"directNoAAAA" else "remoteNoAAAA"))
+                    else append(rules,appMatch,if(target=="direct")"mcrf-dns-direct" else remoteFor(r),s.optBoolean(if(target=="direct")"directNoAAAA" else "remoteNoAAAA"))
                 }
                 // Conditional app+address rules cannot discard their IP part
                 // before resolution. Do not broaden them to all app DNS.
@@ -140,7 +152,7 @@ object AdvancedDnsConfig {
                 }
                 if(r.optBoolean("invert"))match.put("invert",true)
                 if (target == "block") rules.put(match.put("action", "predefined").put("rcode", "NXDOMAIN"))
-                else append(rules, match, if (target == "direct") "mcrf-dns-direct" else "mcrf-dns-remote", s.optBoolean(if (target == "direct") "directNoAAAA" else "remoteNoAAAA"))
+                else append(rules, match, if (target == "direct") "mcrf-dns-direct" else remoteFor(r), s.optBoolean(if (target == "direct") "directNoAAAA" else "remoteNoAAAA"))
             }
         } }
         GeoDataConfig.value(state).getJSONArray("selectors").let {a -> repeat(a.length()){i -> val entry=a.getJSONObject(i)
@@ -163,6 +175,7 @@ object AdvancedDnsConfig {
             .put("timeout", s.getString("timeout")).put("independent_cache", true).apply { if (s.optBoolean("optimistic")) put("optimistic", JSONObject().put("enabled", true).put("timeout", s.getString("optimisticTimeout"))) })
         val route=config.getJSONObject("route")
         route.put("default_domain_resolver", JSONObject().put("server","mcrf-dns-direct").apply {if(s.getString("strategy").isNotEmpty())put("strategy",s.getString("strategy"))})
+        ServerBootstrapDns.apply(config,"mcrf-dns-local",s.getString("strategy"),if(appOwned)implicitBootstrapTags else emptySet())
         if(s.getString("strategy").isNotEmpty()) {
             val old=route.getJSONArray("rules");val resolved=JSONArray();var added=false
             repeat(old.length()) {i -> val r=old.getJSONObject(i)

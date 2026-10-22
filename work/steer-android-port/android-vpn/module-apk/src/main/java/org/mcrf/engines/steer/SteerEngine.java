@@ -15,6 +15,7 @@ public final class SteerEngine implements Engine {
     private volatile long activeGeneration;
     private TunnelDns dns;
     private VpnProxyOwner localProxy;
+    private NativeRouteOwner routeBackend;
     private final android.content.Context context;
     private final WorkerRuleSets ruleSets;
     public SteerEngine() { this(null); }
@@ -163,8 +164,80 @@ public final class SteerEngine implements Engine {
                 && host.prepareSocket(request.generation,fd)
                 && !stopping && !host.stopping(request.generation);
     }
+    /** Additive, capability-gated entry. Host invokes this only in a fresh
+     * dedicated probe worker and observes worker death before publishing it. */
+    public long probeHttps(String profile,String settings,String dialIpv4,String directory,long generation,Host host) throws Exception {
+        if(host==null||generation<=0||!"native_https_204_fresh_worker_v1".equals(
+                new JSONObject(BuildConfig.CORE_CAPABILITIES).opt("independent_probe"))||SteerCore.nativeProbeSchema()!=1)
+            throw new IllegalArgumentException("INDEPENDENT_PROBE_NOT_ADVERTISED");
+        JSONObject input=new JSONObject(settings);
+        Set<String> keys=new HashSet<>(Arrays.asList("schema","url","targetIp","timeoutMs"));
+        Iterator<String> names=input.keys();while(names.hasNext())if(!keys.remove(names.next()))throw new IllegalArgumentException("PROBE_FIELDS");
+        if(!keys.isEmpty()||!Integer.valueOf(1).equals(input.opt("schema"))||!(input.opt("timeoutMs") instanceof Integer)||
+                !(input.opt("url") instanceof String)||!(input.opt("targetIp") instanceof String))throw new IllegalArgumentException("PROBE_FIELDS");
+        String url=input.getString("url");URI parsed=new URI(url);
+        if(url.length()>2304||!url.matches("[\\x21-\\x7e]+")||!"https".equals(parsed.getScheme())||parsed.getHost()==null||
+                parsed.getRawUserInfo()!=null||parsed.getRawFragment()!=null||(parsed.getPort()!=-1&&parsed.getPort()!=443)||
+                !parsed.getHost().matches("[A-Za-z0-9.-]{1,253}"))throw new IllegalArgumentException("PROBE_HTTPS_REQUIRED");
+        String path=parsed.getRawPath();if(path==null||path.isEmpty())path="/";
+        if(parsed.getRawQuery()!=null)path+="?"+parsed.getRawQuery();
+        int timeout=input.getInt("timeoutMs");
+        if(path.length()>2048||!path.startsWith("/")||timeout<1||timeout>30000)throw new IllegalArgumentException("PROBE_INPUT");
+        InetAddresses.parseNumericAddress(input.getString("targetIp"));
+        if(!(InetAddresses.parseNumericAddress(dialIpv4) instanceof Inet4Address)||SteerCore.serverHost(profile)==null)
+            throw new IllegalArgumentException("PROBE_PROFILE_OR_DIAL");
+        synchronized(this){
+            if(used||stopping)throw new IllegalStateException("FRESH_WORKER_REQUIRED");
+            used=true;activeGeneration=generation;
+        }
+        try {
+            if(stopping||host.stopping(generation))throw new IllegalStateException("GENERATION_STOPPING");
+            long delay=SteerCore.probeHttps(profile,dialIpv4,input.getString("targetIp"),parsed.getHost(),path,directory,timeout,
+                fd->!stopping&&!host.stopping(generation)&&host.prepareSocket(generation,fd)&&!stopping&&!host.stopping(generation));
+            if(delay< -1||delay>timeout||stopping||host.stopping(generation))return -1;
+            return delay;
+        } finally {requestStop();}
+    }
+    /** SOURCE-ONLY internal role, separate from PROXY/VPN mode or user-facing
+     * local proxy. It remains unreachable with the unchanged public/base caps.
+     * Parent resolves numeric targets through each chosen rule's own DNS and
+     * must retire this exact fresh worker before reusing its slot/module lease. */
+    public String openRoute(String profile,String settings,String dialIpv4,String directory,long generation,Host host)throws Exception {
+        if(host==null||generation<=0||!"native_protocol_internal_socks_1".equals(new JSONObject(BuildConfig.CORE_CAPABILITIES).opt("route_backend"))||SteerCore.nativeRouteSchema()!=1)
+            throw new IllegalArgumentException("ROUTE_BACKEND_NOT_ADVERTISED");
+        if(settings==null||settings.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>1024)throw new IllegalArgumentException("ROUTE_SETTINGS");
+        JSONObject input=new JSONObject(settings);
+        Set<String> fields=new HashSet<>(Arrays.asList("schema","username","password","destinationDns"));
+        Iterator<String> names=input.keys();while(names.hasNext())if(!fields.remove(names.next()))throw new IllegalArgumentException("ROUTE_FIELDS");
+        if(!fields.isEmpty()||!Integer.valueOf(1).equals(input.opt("schema"))||
+                !(input.opt("username") instanceof String)||!(input.opt("password") instanceof String)||
+                !input.getString("username").matches("[0-9a-f]{32}")||!input.getString("password").matches("[0-9a-f]{64}")||
+                !"numeric_resolved_by_dispatcher".equals(input.opt("destinationDns"))||
+                !(InetAddresses.parseNumericAddress(dialIpv4) instanceof Inet4Address)||SteerCore.serverHost(profile)==null)
+            throw new IllegalArgumentException("ROUTE_INPUT");
+        synchronized(this){
+            if(used||stopping)throw new IllegalStateException("FRESH_WORKER_REQUIRED");
+            used=true;activeGeneration=generation;
+        }
+        byte[] user=input.getString("username").getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        byte[] password=input.getString("password").getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        NativeRouteOwner pending=null;
+        try {
+            if(stopping||host.stopping(generation))throw new IllegalStateException("GENERATION_STOPPING");
+            pending=new NativeRouteOwner(profile,dialIpv4,directory,
+                fd->!stopping&&!host.stopping(generation)&&host.prepareSocket(generation,fd)&&!stopping&&!host.stopping(generation),
+                user,password,()->stopping||host.stopping(generation));
+            synchronized(this){
+                if(stopping||host.stopping(generation))throw new IllegalStateException("GENERATION_STOPPING");
+                routeBackend=pending;pending=null;
+                return new JSONObject().put("schema",1).put("port",routeBackend.port()).toString();
+            }
+        }finally{if(pending!=null)pending.close();Arrays.fill(user,(byte)0);Arrays.fill(password,(byte)0);}
+    }
     @Override public synchronized void requestStop() {
         stopping = true;
+        if(used)SteerCore.cancelTLS();
+        if(routeBackend!=null){routeBackend.close();routeBackend=null;}
         if(localProxy!=null){localProxy.close();localProxy=null;}
         if (dns != null) { dns.close(); dns = null; }
     }

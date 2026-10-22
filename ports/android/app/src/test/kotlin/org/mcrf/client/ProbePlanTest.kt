@@ -28,6 +28,12 @@ class ProbePlanTest {
         val json=ServerImport.Server("json-fixture","JSON","sing-box","",0,null,null,JSONObject())
         assertEquals(listOf(node(1).id),ProbePlan.all(listOf(json,node(1))).map { it.id })
     }
+    @Test fun p2ExcludedEngineNeverEntersManualOrAutomaticCatalogueProbe(){
+        val excluded=ServerImport.Server("openflux://fixture","Excluded","openflux","fixture.invalid",443,null,null,null,JSONObject().put("type","openflux"))
+        val ordinary=node(1)
+        assertEquals(listOf(ordinary),ProbePlan.all(listOf(excluded,ordinary)))
+        for(policy in listOf(AutoSelection.LATENCY,AutoSelection.BS_ENGINES))assertEquals(listOf(ordinary),ProbePlan.automatic(listOf(excluded,ordinary),policy))
+    }
     @Test fun progressCountsEveryIdOnlyOnceIncludingZeroAndFailures() {
         val ids=(0 until 21).map(::node).map { it.id }.toSet()
         var progress=ProbeProgress(ids)

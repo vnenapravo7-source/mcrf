@@ -7,9 +7,19 @@ import java.util.Locale
 
 /** Ordered Windows list semantics; Android package selection replaces process paths. */
 object RouteRules {
+    private val textCache=RouteTextCache()
+    private val whitespace=Regex("[ \\t]+")
+    private val domainPrefix=Regex("^[*.]+")
+    private val domainTail=Regex("\\^+$")
+    private val domainName=Regex("(?=.{1,253}$)[a-zA-Z0-9_-]+(?:\\.[a-zA-Z0-9_-]+)*")
+    private val ipv4Literal=Regex("\\d{1,3}(?:\\.\\d{1,3}){3}")
+    private val ipv6Literal=Regex("[0-9a-fA-F:.]+")
     private val addressKeys = arrayOf("domain", "domain_suffix", "ip_cidr")
     private val appKeys = arrayOf("package_name", "process_name", "process_path")
     @JvmStatic fun parse(text: String): Map<String, List<String>> {
+        return textCache.parse(text,::parseUncached)
+    }
+    private fun parseUncached(text:String):Map<String,List<String>> {
         require(text.toByteArray(Charsets.UTF_8).size <= ServerImport.MAX_BYTES) { "Список больше 4 МБ." }
         val groups = (addressKeys + appKeys).associateWithTo(linkedMapOf()) { linkedSetOf<String>() }
         for (raw in text.lines()) {
@@ -26,7 +36,7 @@ object RouteRules {
                 val value = line.substring(4).trim(); validatePackage(value); groups.getValue("package_name").add(value); continue
             }
             require(!line.startsWith("path:", true)) { "На Android вместо путей процессов выбери приложение." }
-            val parts = line.split(Regex("[ \\t]+"))
+            val parts = line.split(whitespace)
             val candidates = if (parts.size > 1 && literal(parts[0]) != null) parts.drop(1) else listOf(line)
             for (candidate in candidates) {
                 var value = candidate.trim()
@@ -41,16 +51,16 @@ object RouteRules {
                     require(cidr.size == 2 && literal(cidr[0]) != null && bits in 0..if (cidr[0].contains(':')) 128 else 32) { "Некорректная IP-подсеть." }
                     groups.getValue("ip_cidr").add(value.lowercase(Locale.ROOT)); continue
                 }
-                value = value.replaceFirst(Regex("^[*.]+"), "")
-                if (value.startsWith("||")) value = value.substring(2).replaceFirst(Regex("\\^+$"), "")
-                require(value.matches(Regex("(?=.{1,253}$)[a-zA-Z0-9_-]+(?:\\.[a-zA-Z0-9_-]+)*"))) { "Некорректный домен списка." }
+                value = value.replaceFirst(domainPrefix, "")
+                if (value.startsWith("||")) value = value.substring(2).replaceFirst(domainTail, "")
+                require(value.matches(domainName)) { "Некорректный домен списка." }
                 groups.getValue(domainKind).add(value.lowercase(Locale.ROOT))
             }
         }
         return groups.mapValues { it.value.toList() }
     }
     @JvmStatic fun literal(value: String): InetAddress? {
-        if (value.contains('%') || !value.matches(if (value.contains(':')) Regex("[0-9a-fA-F:.]+") else Regex("\\d{1,3}(?:\\.\\d{1,3}){3}"))) return null
+        if (value.contains('%') || !value.matches(if (value.contains(':')) ipv6Literal else ipv4Literal)) return null
         if (!value.contains(':') && value.split('.').any { it.toInt() > 255 }) return null
         return try { InetAddress.getByName(value) } catch (_: Exception) { null }
     }
@@ -118,8 +128,8 @@ object RouteRules {
         }
         if(!inserted)values.put(rule);settings.put("rules",values)
     }
-    @JvmStatic @JvmOverloads fun apply(source: JSONObject, settings: JSONObject, tun: Boolean, presetPaths: Map<String, String> = emptyMap(),ipPresetTags:Set<String> = emptySet(),directIpv4Only:Boolean=false): JSONObject {
-        val config = JSONObject(source.toString()); val route = config.getJSONObject("route"); val proxy = route.getString("final")
+    @JvmStatic @JvmOverloads fun apply(source: JSONObject, settings: JSONObject, tun: Boolean, presetPaths: Map<String, String> = emptyMap(),ipPresetTags:Set<String> = emptySet(),directIpv4Only:Boolean=false,routeServers:List<ServerImport.Server> = emptyList()): JSONObject {
+        val config = RouteServerPlan(settings,routeServers).append(source); val route = config.getJSONObject("route"); val proxy = route.getString("final")
         val appDns=DnsConfig.appOwned(config)
         PresetRules.attach(config,settings,presetPaths)
         val outputs = config.getJSONArray("outbounds")
@@ -147,9 +157,10 @@ object RouteRules {
             val groups = parse(rule.getString("text"))
             require(tun || (groups.getValue("package_name").isEmpty()&&rule.optJSONObject("nativeMatch")?.let {RemoteRoutingImports.hasAppConditions(it)}!=true)) { "Маршруты по приложениям работают только с системным VPN." }
             val target = rule.optString("target", "proxy"); val compiled = matches(rule)
+            val ruleProxy=RouteServerPlan.outbound(rule,proxy)
             repeat(compiled.length()) { j -> val match = compiled.getJSONObject(j); match.put("action", if (target == "block") "reject" else "route")
                 if(target=="block")for(key in listOf("reject_method","no_drop"))if(rule.has(key))match.put(key,rule.get(key))
-                if (target != "block") match.put("outbound", target(target, proxy, directTag)); ordered.put(match) }
+                if (target != "block") match.put("outbound", target(target, ruleProxy, directTag)); ordered.put(match) }
             rule.optJSONObject("dns")?.takeIf { target != "block" }?.let { dnsSettings ->
                 val dnsMatch=listDnsMatch(rule,groups,ipPresetTags)?:return@let
                 val currentDns = dns ?: JSONObject().put("servers", JSONArray().put(JSONObject().put("type", "local").put("tag", "bootstrap"))).put("final", "bootstrap").also { config.put("dns", it); dns = it }
@@ -157,7 +168,7 @@ object RouteRules {
                 val bootstrap = (0 until servers.length()).map { servers.getJSONObject(it) }.firstOrNull { it.optString("type") == "local" }?.getString("tag")
                     ?: uniqueTag(servers, "mcrf-bootstrap").also { servers.put(JSONObject().put("type", "local").put("tag", it)) }
                 val tag = uniqueTag(servers, "dns-list-${rule.getString("id")}"); val server = DnsConfig.build(dnsSettings, tag, bootstrap)
-                if (target == "proxy") DnsConfig.applyDetour(server,config,proxy)
+                if (target == "proxy") DnsConfig.applyDetour(server,config,ruleProxy)
                 servers.put(server)
                 dnsRules.put(dnsMatch.put("action","route").put("server",tag))
             }
@@ -172,7 +183,7 @@ object RouteRules {
             require(tun) { "Исключения приложений работают только с системным VPN." }; repeat(excluded.length()) { validatePackage(excluded.getString(it)) }
             val inbounds = config.getJSONArray("inbounds"); repeat(inbounds.length()) { val inbound = inbounds.getJSONObject(it); if (inbound.getString("type") == "tun") inbound.put("exclude_package", JSONArray(excluded.toString())) }
         }
-        AdvancedDnsConfig.apply(config, settings, proxy, directTag, tun, ipPresetTags,directIpv4Only)
+        AdvancedDnsConfig.apply(config, settings, proxy, directTag, tun, ipPresetTags,directIpv4Only,ServerBootstrapDns.implicitTags(routeServers))
         GeoDataConfig.attach(config, settings, presetPaths, proxy, directTag)
         RemoteRoutingConfig.apply(config, settings, proxy, directTag)
         RoutingDefaults.applyAppMode(config, settings, tun)

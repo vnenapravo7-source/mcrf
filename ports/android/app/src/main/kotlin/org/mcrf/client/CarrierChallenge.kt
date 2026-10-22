@@ -48,7 +48,7 @@ object CarrierChallenge {
             uri.host?.lowercase() in setOf("vk.ru","vk.com","api.vk.ru","api.vk.com","id.vk.ru","id.vk.com","m.vk.ru","m.vk.com","oauth.vk.com","oauth.vk.ru","login.vk.ru","login.vk.com","www.vk.ru","www.vk.com")
     } catch(_:Exception){false}
     /** Handles both qThrone's 4-field and WDTT Plus's request-id 5-field IPC. */
-    data class Envelope(val nativeId:String,val mode:String,val url:String,val flightKey:String) {
+    data class Envelope(val nativeId:String,val mode:String,val url:String,val flightKey:String,val sessionKey:String) {
         override fun toString()="CaptchaEnvelope(redacted)"
     }
     fun fields(line:String):Pair<String,String>?=envelope(line)?.let {it.nativeId to it.url}
@@ -59,12 +59,15 @@ object CarrierChallenge {
         when(fields.size){4->{id="";mode=fields[1];url=fields[2]};5->{id=fields[1];mode=fields[2];url=fields[3]};else->return null}
         if(id.length>128||id.any { it.isISOControl()||it=='|' }||!allowed(url)) return null
         if(strictSwg&&(mode !in setOf("auto","manual","selected")||fields.last().isBlank()||fields.last().any {it.isISOControl()}))return null
-        // ID-bearing protocols identify one waiter by ID. Legacy CSQTT has no
-        // ID: hash the complete IPC envelope so a fresh session at the same URL
-        // is not mistaken for a duplicate. Never retain the session proof itself.
-        val key=if(id.isNotEmpty())"id:$id" else "digest:"+java.security.MessageDigest.getInstance("SHA-256")
+        // Waiter identity routes one reply. Provider-session identity separately
+        // serializes the original clients' one-WebView flow and remembers only a
+        // terminal rejection across auto/manual fallback stages.
+        val session=fields.last()
+        val sessionKey="session:"+java.security.MessageDigest.getInstance("SHA-256")
+            .digest((url+'\u0000'+session).toByteArray(Charsets.UTF_8)).joinToString(""){"%02x".format(it.toInt() and 255)}
+        val flightKey=if(id.isNotEmpty())"id:$id" else "envelope:"+java.security.MessageDigest.getInstance("SHA-256")
             .digest(line.toByteArray(Charsets.UTF_8)).joinToString(""){"%02x".format(it.toInt() and 255)}
-        return Envelope(id,mode,url,key)
+        return Envelope(id,mode,url,flightKey,sessionKey)
     }
     /** Leave one second for IPC delivery before the pinned native automatic waiter expires. */
     fun nativeTimeoutMillis(kind:String,mode:String,nativeId:String=""):Long {
@@ -114,8 +117,9 @@ object CarrierChallenge {
     fun respond(id:String,value:String) {
         if(value.length !in 1..16384 || value.any { it.isISOControl() || it=='|' }) return
         val request=requests.remove(id)?:return
-        retire(request)
-        if(System.nanoTime()-request.created<=request.timeoutMillis*1_000_000L)request.reply(value)
+        try {
+            if(System.nanoTime()-request.created<=request.timeoutMillis*1_000_000L)request.reply(value)
+        } finally {retire(request)}
     }
     /** Re-check expiry/exact request on the worker; rejection leaves the request available. */
     fun respondAsync(id:String,value:String):Boolean {

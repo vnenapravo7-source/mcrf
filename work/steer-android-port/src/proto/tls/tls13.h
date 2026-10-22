@@ -171,6 +171,8 @@ struct tls13_auth {
     /* Закрытый ключ ML-KEM-768 (2400 байт), если в ClientHello ушёл настоящий гибрид X25519MLKEM768
      * (reality_cfg.pq). NULL — гибрид не предлагали, и ServerHello с ним будет отвергнут. */
     const unsigned char *mlkem_dk;
+    const unsigned char *p256_priv; /* only when the actual ClientHello offered this share */
+    unsigned cert_compression; /* bitmask of advertised RFC8879 algorithms; zero forbids it */
     /* Открытый ключ ML-DSA-65 (1952 байта) из mldsa65Verify узла (`pqv` в ссылке), или NULL. С ним
      * сертификат Reality обязан нести подпись ML-DSA-65 над HMAC-SHA512(authkey, pub ‖ ClientHello ‖
      * ServerHello); без подписи или с неверной узел не признан. Только вместе с reality_key. */

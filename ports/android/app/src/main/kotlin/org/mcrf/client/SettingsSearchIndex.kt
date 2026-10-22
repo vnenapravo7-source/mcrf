@@ -30,7 +30,7 @@ object SettingsSearchIndex {
         ClientSettingsNavigation.OPENFLUX->"openflux белые списки обновление ядро модуль подключение сервер параметры"
         ClientSettingsNavigation.CONNECTIONS->"настройки сервера карандаш в списке подключений"
         ClientSettingsNavigation.BEHAVIOR->"капча captcha уведомления баннер push пуш батарея автозапуск восстановление сеть сон постоянный vpn"
-        ClientSettingsNavigation.VK->"qwdtt vk вход аккаунт привязка отвязать автоматические звонки хеши количество"
+        ClientSettingsNavigation.VK->"vk turn vkturn csqtt wdtt qwdtt вк вход аккаунт привязка отвязать автоматические звонки хеши количество потоки wifi wi-fi доверенные сети автопауза выключенный экран cpu процессор отпечаток tls captcha капча"
         ClientSettingsNavigation.DNS->"doh dot udp fakeip резолвер домен блокировка реклама системный bootstrap подключение адреса серверов"
         ClientSettingsNavigation.VPN->"tun ipv4 совместимость ipv6 mixed listener порт socks http прокси авторизация логин пароль lan wifi hotspot точка доступа адрес телефона раздача частные сети"
         ClientSettingsNavigation.CORE->"sing-box singbox steer основное ядро движок выбор параметры модули"

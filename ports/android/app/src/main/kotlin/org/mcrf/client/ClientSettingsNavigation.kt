@@ -23,7 +23,7 @@ object ClientSettingsNavigation {
     const val ADVANCED = "Расширенные настройки"
     val rootLeading = listOf(APPEARANCE, DNS, DEPLOY)
     // Retain the historical home identity for saved navigation and deep links.
-    fun tabTitle(page:String)=if(page=="Главная")"VPN" else if(page=="Маршрутизация")"Маршруты" else page
+    fun tabTitle(page:String)=if(page=="Главная")"VPN" else if(page==WHITELISTS)"БС" else if(page=="Маршрутизация")"Маршруты" else if(page==VK)"Vk Turn" else if(page==MINIMALISM)"Скрыть разделы" else page
     val mainTabs = listOf("Главная", WHITELISTS, "Маршрутизация", "Логи")
     val children: Set<String> = linkedSetOf(MINIMALISM, APPEARANCE, DNS, DEPLOY, BEHAVIOR, OPENFLUX, VPN, GEO, VK, UPDATES, ADVANCED)
     fun canonical(page:String):String=when(page){

@@ -1,0 +1,86 @@
+diff --git a/go_client/main.go b/go_client/main.go
+--- a/go_client/main.go
++++ b/go_client/main.go
+@@ -266,4 +266,5 @@
+ 	ctx, cancel := context.WithCancel(context.Background())
+ 	defer cancel()
++	mcrfWdttCancel = cancel
+ 
+ 	// Сигналы
+@@ -284,6 +284,7 @@ func main() {
+ 	// прочитать системная диагностика Android.
+ 	go func() {
++		defer cancel()
+ 		scanner := bufio.NewScanner(os.Stdin)
+@@ -387,4 +389,5 @@
+ 			case strings.HasPrefix(line, "CAPTCHA_RESULT|"):
+ 				result := parseCaptchaResultPayload(strings.TrimPrefix(line, "CAPTCHA_RESULT|"))
++				if !mcrfWdttAcceptReply(result) { log.Printf("[КАПЧА] Неточный ответ без ID проигнорирован"); continue }
+ 				enqueueCaptchaResult(result)
+ 				log.Printf("[КАПЧА] Результат от Kotlin принят (request=%q)", result.RequestID)
+@@ -482,3 +483,4 @@ func main() {
++	mcrfPath := flag.String("mcrf-config", "", "private MCRF configuration")
++	mcrfEnrollPath := flag.String("mcrf-enroll-masque", "", "private explicit MASQUE enrollment")
+ 	flag.Parse()
++	if *mcrfEnrollPath!="" {
++		if err:=mcrfEnrollMasque(ctx,*mcrfEnrollPath);err!=nil {log.Fatal("MCRF: MASQUE registration unavailable")}
++		return
++	}
+ 	transportMetricsEnabled = *metrics
+ 	var startupSecrets nativeStartupSecrets
++	if *mcrfPath != "" {
++		var err error
++		startupSecrets, err = mcrfApply(*mcrfPath)
++		if err != nil { log.Fatal("MCRF: invalid private configuration") }
++		*vkHash = startupSecrets.VKHashes
++		*connPassword = startupSecrets.ConnectionPassword
++	}
+ 	if *startupConfigStdin {
+@@ -796,3 +805,4 @@ func main() {
+ 					func(addresses []string) {
++						fmt.Println("MCRF_READY")
+ 						log.Printf(
+ 							"PROXY_READY|%s|%s|udp=%t|auth=%t",
+diff --git a/go_client/creds.go b/go_client/creds.go
+--- a/go_client/creds.go
++++ b/go_client/creds.go
+@@ -962,3 +962,5 @@
+ func requestWebViewCaptcha(ctx context.Context, streamID int, captchaErr *VkCaptchaError, mode string, timeout time.Duration) (string, error) {
++	if mcrfWdttCaptchaProbe() { return "", fmt.Errorf("captcha requires interactive connection") }
++	if !mcrfWdttCaptchaActive(ctx) { return "", fmt.Errorf("webview captcha expired or cancelled") }
+ 	if CaptchaResultChan == nil || captchaErr == nil || captchaErr.RedirectURI == "" || captchaErr.SessionToken == "" {
+ 		return "", fmt.Errorf("webview captcha data is incomplete")
+@@ -975,13 +977,14 @@
+ 	}
+ 
++	waitCtx, cancel := context.WithTimeout(ctx, timeout)
++	defer cancel()
++
+ 	requestID := nextCaptchaRequestID(streamID)
+ 	resultCh, unregisterResultWaiter := registerCaptchaResultWaiter(requestID)
+ 	defer unregisterResultWaiter()
+ 
+ 	fmt.Printf("CAPTCHA_SOLVE|%s|%s|%s|%s\n", requestID, mode, captchaErr.RedirectURI, captchaErr.SessionToken)
+ 
+-	waitCtx, cancel := context.WithTimeout(ctx, timeout)
+-	defer cancel()
+-
+ 	handleResponse := func(response CaptchaResult) (string, bool, error) {
++		if !mcrfWdttCaptchaActive(waitCtx) { return "", true, fmt.Errorf("webview captcha expired or cancelled") }
+ 		if !captchaResultMatchesRequest(response, requestID) {
+@@ -987,13 +989,3 @@
+-		result := strings.TrimSpace(response.Value)
+-		if result == "" {
+-			return "", true, fmt.Errorf("webview captcha returned empty result")
+-		}
+-		lowerResult := strings.ToLower(result)
+-		if lowerResult == "error:timeout" {
+-			return "", true, fmt.Errorf("webview captcha timed out")
+-		}
+-		if strings.HasPrefix(lowerResult, "error:") {
+-			return "", true, fmt.Errorf("webview captcha failed: %s", result)
+-		}
+-		return result, true, nil
++		token, err := mcrfWdttCaptchaReply(response.Value)
++		return token, true, err
+ 	}

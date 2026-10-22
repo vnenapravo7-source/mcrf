@@ -36,6 +36,7 @@
 #include <wolfssl/wolfcrypt/curve25519.h>
 #include <wolfssl/wolfcrypt/rsa.h>
 #include <wolfssl/wolfcrypt/ecc.h>
+#include <wolfssl/wolfcrypt/random.h>
 #include <wolfssl/wolfcrypt/asn_public.h>
 #include <wolfssl/wolfcrypt/hash.h>
 #include <wolfssl/wolfcrypt/memory.h>
@@ -499,6 +500,48 @@ int sc_x25519_base(unsigned char pub[32], const unsigned char scalar[32]) {
     int rc = wc_curve25519_make_pub(32, pub, 32, s);
     wc_ForceZero(s, sizeof(s));
     return rc == 0 ? 0 : SC_ECRYPTO;
+}
+
+int sc_p256_keypair(unsigned char priv[32],unsigned char pub[65]){
+    int rc=SC_ECRYPTO,ki=0,ri=0;
+    ecc_key *key=calloc(1,sizeof *key);WC_RNG *rng=calloc(1,sizeof *rng);
+    if(!key||!rng)goto out;
+    if(wc_ecc_init(key))goto out;
+    ki=1;
+    if(wc_InitRng(rng))goto out;
+    ri=1;
+    if(wc_ecc_make_key_ex(rng,32,key,ECC_SECP256R1))goto out;
+    word32 pn=32,un=65;
+    if(wc_ecc_export_private_only(key,priv,&pn)||pn!=32||wc_ecc_export_x963(key,pub,&un)||un!=65)goto out;
+    rc=0;
+out:
+    if(ki)wc_ecc_free(key);
+    if(ri)wc_FreeRng(rng);
+    free(key);free(rng);
+    if(rc){wc_ForceZero(priv,32);wc_ForceZero(pub,65);}return rc;
+}
+
+int sc_p256_shared(unsigned char out[32],const unsigned char priv[32],const unsigned char pub[65]){
+    int rc=SC_ECRYPTO,oi=0,pi=0,ri=0;
+    ecc_key *ours=calloc(1,sizeof *ours),*peer=calloc(1,sizeof *peer);WC_RNG *rng=calloc(1,sizeof *rng);
+    if(!ours||!peer||!rng||pub[0]!=4)goto out;
+    if(wc_ecc_init(ours))goto out;
+    oi=1;
+    if(wc_ecc_init(peer))goto out;
+    pi=1;
+    if(wc_InitRng(rng))goto out;
+    ri=1;
+    if(wc_ecc_set_rng(ours,rng)||wc_ecc_import_private_key_ex(priv,32,NULL,0,ours,ECC_SECP256R1))goto out;
+    if(wc_ecc_make_pub_ex(ours,NULL,rng)||wc_ecc_check_key(ours))goto out;
+    if(wc_ecc_import_x963_ex(pub,65,peer,ECC_SECP256R1)||wc_ecc_check_key(peer))goto out;
+    word32 n=32;
+    if(wc_ecc_shared_secret(ours,peer,out,&n)||n!=32||all_zero(out,32))goto out;
+    rc=0;
+out:
+    if(pi)wc_ecc_free(peer);
+    if(oi)wc_ecc_free(ours);
+    if(ri)wc_FreeRng(rng);
+    free(peer);free(ours);free(rng);if(rc)wc_ForceZero(out,32);return rc;
 }
 
 /* ---- подписи -------------------------------------------------------------------------------- */

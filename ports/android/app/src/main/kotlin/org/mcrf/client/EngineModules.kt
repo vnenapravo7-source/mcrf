@@ -3,7 +3,7 @@ package org.mcrf.client
 /** Optional executables are separately installed, same-signer APKs, never main-app assets. */
 object EngineModules {
     val optionalCores=setOf("xray","tls-core")
-    val kinds=setOf("csqtt","csqtt25","qwdtt","wdtt","openflux","olcrtc","dnstt","warpscout","tgws",S3BypassProfile.KIND)+optionalCores
+    val kinds=setOf("csqtt","csqtt20","csqtt215","csqtt25","qwdtt","wdtt","openflux","olcrtc","dnstt","warpscout","tgws",S3BypassProfile.KIND)+optionalCores
     val primaryCores get()=EngineUpdatePrimary.kinds
     val packetCores=setOf(WgAddonPolicy.KIND)
     val allKinds get()=kinds+primaryCores+packetCores
@@ -11,8 +11,8 @@ object EngineModules {
     fun packageName(kind:String):String {if(kind in primaryCores)return EngineUpdatePrimary.contract(kind).packageName;if(kind in packetCores)return ClientPacketBackendLoader.PACKAGE;require(kind in kinds);return "$LEGACY.${if(kind=="tls-core")"tlscore"else kind}"}
     fun kind(packageId:String)=allKinds.firstOrNull {packageName(it)==packageId}
     fun assetName(kind:String,abi:String):String {require(kind in allKinds&&abi in setOf("arm64-v8a","armeabi-v7a","x86_64","universal"));return "mcrf-engine-$kind-$abi-release.apk"}
-    fun libraries(kind:String):Set<String> {require(kind in kinds+packetCores);return if(kind in packetCores)setOf("libmcrfwg.so")else if(kind=="csqtt")setOf("libqwdtt.so","libcsqtt_transport.so")else if(kind=="csqtt25")setOf("libcsqtt25.so","libcsqtt25_transport.so")else setOf(if(kind=="tls-core")"libtls_core.so"else"lib$kind.so")}
-    fun carrierKind(profile:org.json.JSONObject):String=if(Csqtt25Profile.isProfile(profile))Csqtt25Profile.ENGINE else profile.getString("type").also {require(it!="csqtt"||!profile.has("csqtt_generation")||profile.opt("csqtt_generation")=="legacy") {"Неизвестная версия CSQTT; автоматическая подмена движка запрещена."}}
+    fun libraries(kind:String):Set<String> {require(kind in kinds+packetCores);return if(kind in packetCores)setOf("libmcrfwg.so")else if(kind=="csqtt")setOf("libqwdtt.so","libcsqtt_transport.so")else if(kind in setOf("csqtt20","csqtt215"))setOf("lib$kind.so","libcsqtt_transport.so")else if(kind=="csqtt25")setOf("libcsqtt25.so","libcsqtt25_transport.so")else setOf(if(kind=="tls-core")"libtls_core.so"else"lib$kind.so")}
+    fun carrierKind(profile:org.json.JSONObject):String=if(profile.optString("type")=="csqtt")CsqttGenerations.family(profile).engine else profile.getString("type")
     fun sourceCommit(kind:String)=when(kind){"xray"->"e662c22ab1096883c4df200a0e8068a89da04df1";"tls-core"->"ebe0747b41823e02335ad3c7ae531bc577e7bc75";else->throw IllegalArgumentException("Not an optional core")}
     fun sourceRepository(kind:String)=when(kind){"xray"->"throneproj/xray-core";"tls-core"->"throneproj/sing-box";else->throw IllegalArgumentException("Not an optional core")}
     fun ingress(kind:String)=when(kind){"xray"->"authenticated-loopback-socks5-tcp-udp";"tls-core"->"authenticated-loopback-socks5-tcp";else->throw IllegalArgumentException("Not an optional core")}

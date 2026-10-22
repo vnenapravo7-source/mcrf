@@ -3,8 +3,8 @@ package org.mcrf.client
 import java.io.OutputStream
 import java.util.ArrayDeque
 
-/** Candidate IPC primitive, not wired into NativeCarrier until child-tree STOP gates pass.
- * Completion means this writer thread exited, NEVER that a native child exited. */
+/** Exact-child bounded stdin owner. Completion means this writer thread exited,
+ * NEVER that a native child (or its descendants) exited. */
 class CarrierIpcWriter(private val output:OutputStream,private val maxCommands:Int=32,private val maxBytes:Int=131072) {
     init {require(maxCommands in 1..32&&maxBytes in 16384..131072)}
     data class Completion(val writerExited:Boolean,val stopWritten:Boolean,val failed:Boolean)
@@ -13,6 +13,7 @@ class CarrierIpcWriter(private val output:OutputStream,private val maxCommands:I
     private var commands=0
     private var bytes=0
     private var sealed=false
+    private var childDead=false
     @Volatile private var stopWritten=false
     @Volatile private var failed=false
     private val worker=Thread(::run,"mcrf-carrier-ipc").apply {isDaemon=true;start()}
@@ -30,6 +31,17 @@ class CarrierIpcWriter(private val output:OutputStream,private val maxCommands:I
     /** Reserved terminal command: admission closes even when the data queue is full.
      * No OutputStream method or wait is called while holding this monitor. */
     fun requestStop() {synchronized(lock){sealed=true;lock.notifyAll()}}
+    /** The OS has confirmed the exact child died. Discard proofs which can no
+     * longer be delivered; never replay them into a replacement process. The
+     * in-flight write/close is still owned until awaitCompletion observes exit. */
+    fun childExited() {synchronized(lock){
+        childDead=true
+        sealed=true
+        while(pending.isNotEmpty()) {
+            val command=pending.removeFirst();commands--;bytes-=command.size;command.fill(0)
+        }
+        lock.notifyAll()
+    }}
     fun awaitCompletion(timeoutMillis:Long):Completion {
         require(timeoutMillis in 0..30000)
         // join(0) means infinite, not a non-blocking poll.
@@ -44,6 +56,7 @@ class CarrierIpcWriter(private val output:OutputStream,private val maxCommands:I
                     if(pending.isEmpty())null else pending.removeFirst()
                 }
                 if(command==null){
+                    if(synchronized(lock){childDead})break
                     output.write("STOP\n".toByteArray(Charsets.US_ASCII));output.flush();stopWritten=true
                     break
                 }

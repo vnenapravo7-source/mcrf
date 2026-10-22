@@ -128,7 +128,7 @@ static int up_read(void *ctx, unsigned char *d, size_t cap, size_t *got) {
         *got = (size_t)r;
         return 0;
     }
-    return tls13_read(&u->link.tls, d, cap, got);
+    return tr_link_read(&u->link, d, cap, got);
 }
 
 /* Слить то, что сервер ответил на выгрузку.
@@ -160,7 +160,7 @@ static int up_drain(struct xh_up *u) {
          * выгрузка вставала навсегда (нового куска нет, значит нет и h2_next, который сбросил бы
          * done). */
         if (u->h2.done && !u->h2.pend_err && h2_open_streams(&u->h2) > 0) u->h2.done = 0;
-        int more = !u->link.plain && tls13_has_record(&u->link.tls);
+        int more = !u->link.plain && tr_link_has_data(&u->link);
         if (!more) {
             struct pollfd p = { .fd = u->link.fd, .events = POLLIN };
             more = poll(&p, 1, 0) > 0 && (p.revents & POLLIN);
@@ -182,7 +182,7 @@ static int up_connect(struct transport *t, const struct tr_node *n, int timeout_
     int rc = tr_link_open(&u->link, n, "h2", timeout_s);
     if (rc) return rc;
     if (!u->link.plain && u->link.tls.alpn[0] && strcmp(u->link.tls.alpn, "h2") != 0) {
-        tls13_free(&u->link.tls); close(u->link.fd); u->link.fd = -1;
+        tr_link_close(&u->link);
         return TR_ENOH2;
     }
     return 0;
@@ -408,10 +408,7 @@ static void xhttp_moved(struct transport *t) {
  * нулю после memset, поэтому проверка на «больше нуля», а не «не -1». */
 static void xhttp_close(struct transport *t) {
     struct xh_up *u = &t->xh.up;
-    if (u->link.fd > 0) close(u->link.fd);
-    u->link.fd = -1;
-    if (!u->link.plain) tls13_free(&u->link.tls);
-    u->link.tls.ready = 0;
+    if(u->link.fd>0)tr_link_close(&u->link);
     u->started = 0;
 }
 

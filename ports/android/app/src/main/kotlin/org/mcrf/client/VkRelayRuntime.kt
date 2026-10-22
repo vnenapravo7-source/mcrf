@@ -10,11 +10,17 @@ object VkRelayRuntime {
         if(out.optString("type")!="qwdtt" || out.has("hash_source")) return out
         val existing=values(out)
         if(existing.isNotEmpty()) return out.put("hash_source","manual")
-        val auto=account.defaultSource()==VkRelayProtocol.HashSource.AUTOMATIC
-        out.put("hash_source",if(auto) "auto" else "manual")
-        if(auto) out.put("vk_call_count",account.defaultCount())
-        if(!auto) out.put("hashes",JSONArray(account.manualDefaults().map { VkRelayProtocol.hash(it) }))
+        out.put("hash_source","manual")
+        if(account.supplementAll())out.put("hashes",JSONArray(account.manualDefaults().map { VkRelayProtocol.hash(it) }))
         return out
+    }
+    fun withManualSupplements(raw:JSONObject,account:VkRelayAccount):JSONObject {
+        val out=JSONObject(raw.toString())
+        if(out.optString("type") !in SwgProfile.TYPES||!account.supplementAll())return out
+        // These modes own paired account credentials/calls inside the native
+        // client; arbitrary guest hashes cannot be mixed into that session.
+        if(out.optString("vk_anon_path")=="auto_js"||out.optString("vk_hash_mode")=="auto_js")return out
+        return out.put("hashes",JSONArray(VkHashPool.append(values(out),account.manualDefaults()).map {VkHashPool.key(it)}))
     }
     /** Saved profile is never mutated. Manual fields have precedence even if hash_source=auto. */
     fun prepare(raw: JSONObject,account: VkRelayAccount,cancelled: () -> Boolean={ false }): JSONObject {
@@ -33,7 +39,8 @@ object VkRelayRuntime {
         check(!cancelled() && !Thread.currentThread().isInterrupted) { "Проверка остановлена" }
         val out=JSONObject(raw.toString());val type=out.optString("type")
         if(type !in listOf("qwdtt","wdtt","csqtt")) return out
-        val manual=values(out)
+        require(type!="csqtt"||out.optString("vk_anon_path")!="auto_js") {"Авто VK создаёт звонки только при подключении; фоновая проверка аккаунт не использует."}
+        val manual=VkHashPool.unique(values(out))
         if(manual.isNotEmpty()) { out.put("hashes",JSONArray(manual.map { VkRelayProtocol.hash(it,type) })).put("hash_source","manual");return out }
         require(type=="qwdtt" && out.optString("hash_source")=="auto") { "Для проверки нужны ручные хеши или ранее созданная группа QWDTT" }
         val calls=account.cachedFor(connectionId,type,out.optInt("vk_call_count",6))
@@ -43,7 +50,11 @@ object VkRelayRuntime {
     fun prepareForConnection(connectionId: String,raw: JSONObject,account: VkRelayAccount,cancelled: () -> Boolean={false}): JSONObject {
         val out=JSONObject(raw.toString());val type=out.optString("type")
         if(type !in listOf("qwdtt","wdtt","csqtt")) return out
-        val manual=values(out)
+        if(type=="csqtt"&&out.optString("vk_anon_path")=="auto_js") {
+            check(!cancelled()&&!Thread.currentThread().isInterrupted) {"Подключение остановлено"}
+            return out.put("vk_runtime_token",account.runtimeToken())
+        }
+        val manual=VkHashPool.unique(values(out))
         if(manual.isNotEmpty()) { out.put("hashes",JSONArray(manual.map { VkRelayProtocol.hash(it,type) }));out.put("hash_source","manual");return out }
         require(type=="qwdtt" && out.optString("hash_source")=="auto") { "Для подключения нужны ручные хеши звонков" }
         val calls=account.resolveCountFor(connectionId,emptyList(),true,type,out.optInt("vk_call_count",6),cancelled)

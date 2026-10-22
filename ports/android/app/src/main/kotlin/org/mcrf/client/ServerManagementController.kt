@@ -11,15 +11,15 @@ object ServerManagementController {
     @Volatile private var activeId:String?=null
     @Volatile private var thread:Thread?=null
     private var cancellation=AtomicBoolean(false)
-    fun read(context:Context,store:AndroidDeployStore,target:AndroidDeployTarget,saved:JSONObject,action:ServerManagementRequest.Action,complete:(JSONObject?,String?)->Unit):String? {
+    fun read(context:Context,store:AndroidDeployStore,target:AndroidDeployTarget,saved:JSONObject,action:ServerManagementRequest.Action,complete:(JSONObject?,String?)->Unit,trust:((String,String)->Boolean)?=null):String? {
         require(action in setOf(ServerManagementRequest.Action.STATUS,ServerManagementRequest.Action.CLIENTS,ServerManagementRequest.Action.INTERFACES)) {"Нужен запрос чтения"}
-        return begin(context,store,target,saved,action,JSONObject(),false,complete)
+        return begin(context,store,target,saved,action,JSONObject(),false,complete,trust)
     }
-    fun mutate(context:Context,store:AndroidDeployStore,target:AndroidDeployTarget,saved:JSONObject,action:ServerManagementRequest.Action,parameters:JSONObject,confirmed:Boolean,complete:(JSONObject?,String?)->Unit):String? {
+    fun mutate(context:Context,store:AndroidDeployStore,target:AndroidDeployTarget,saved:JSONObject,action:ServerManagementRequest.Action,parameters:JSONObject,confirmed:Boolean,complete:(JSONObject?,String?)->Unit,trust:((String,String)->Boolean)?=null):String? {
         require(action in setOf(ServerManagementRequest.Action.ADD_CLIENT,ServerManagementRequest.Action.DISABLE_CLIENT,ServerManagementRequest.Action.RESTART)&&confirmed)
-        return begin(context,store,target,saved,action,parameters,true,complete)
+        return begin(context,store,target,saved,action,parameters,true,complete,trust)
     }
-    @Synchronized private fun begin(context:Context,store:AndroidDeployStore,target:AndroidDeployTarget,saved:JSONObject,action:ServerManagementRequest.Action,parameters:JSONObject,confirmed:Boolean,complete:(JSONObject?,String?)->Unit):String? {
+    @Synchronized private fun begin(context:Context,store:AndroidDeployStore,target:AndroidDeployTarget,saved:JSONObject,action:ServerManagementRequest.Action,parameters:JSONObject,confirmed:Boolean,complete:(JSONObject?,String?)->Unit,trust:((String,String)->Boolean)?):String? {
         val request=ServerManagementRequest.build("swg",action,SwgServerManagementPlan.implementedActions,parameters,confirmed)
         val id=request.getString("request_id")
         val input=target.snapshot();val record=JSONObject(saved.toString());val cancelled=AtomicBoolean(false)
@@ -39,12 +39,13 @@ object ServerManagementController {
                     }
                     journalStarted=true
                 }
-                result=ServerManagementSsh(context.applicationContext,store).execute(input,record,request,confirmed){cancelled.get()}
+                result=ServerManagementSsh(context.applicationContext,store,trust).execute(input,record,request,confirmed){cancelled.get()}
                 if(journalStarted)store.update(ServerManagementJournal.SECTION){log->log.put(id,ServerManagementJournal.finish(log,id,true,System.currentTimeMillis()).getJSONObject(id))}
             }catch(error:Exception){
                 result=null
                 if(journalStarted)runCatching {store.update(ServerManagementJournal.SECTION){log->log.put(id,ServerManagementJournal.finish(log,id,false,System.currentTimeMillis()).getJSONObject(id))}}
                 failure=if(error is ServerManagementJournal.AdmissionRejected)error.message
+                    else if(error is ServerManagementFailure)error.message+if(journalStarted)" Результат изменения не подтверждён; сначала проверьте состояние панели. Автоматического повтора нет."else""
                     else if(journalStarted)"Результат изменения не подтверждён. Сначала проверь состояние панели; запрос автоматически не повторяется."
                     else if(cancelled.get())"Запрос отменён"else"Не удалось подтвердить ответ сервера. Проверь SSH-ключ, вход и сертификат панели."
             }

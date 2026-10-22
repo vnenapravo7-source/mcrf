@@ -40,6 +40,12 @@ object HomeUiControls {
     fun selector(context:Context,labels:List<String>,selected:Int=0,changed:(Int)->Unit):Spinner {
         require(labels.isNotEmpty())
         var current=selected.coerceIn(labels.indices)
+        if(context is MainActivity)return context.picker(labels.toTypedArray(),current).apply {
+            onItemSelectedListener=object:AdapterView.OnItemSelectedListener {
+                override fun onNothingSelected(parent:AdapterView<*>?)=Unit
+                override fun onItemSelected(parent:AdapterView<*>?,view:View?,position:Int,id:Long){if(position!=current){current=position;changed(position)}}
+            }
+        }
         val adapter=object:ArrayAdapter<String>(context,android.R.layout.simple_spinner_item,labels) {
             private fun row(view:View,dropdown:Boolean):View=view.apply {
                 (this as? TextView)?.apply {
