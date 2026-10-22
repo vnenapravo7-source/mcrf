@@ -1,0 +1,19 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Installation format marker is required in addition to the primary SPI. -->
+    <application android:label="MCRF · sing-box" android:hasCode="true" android:allowBackup="false">
+        <meta-data android:name="org.mcrf.engines.kind" android:value="sing-box" />
+        <meta-data android:name="org.mcrf.engines.interface" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.primary-core" android:value="1" />
+        <meta-data android:name="org.mcrf.engine.spi.version" android:value="1" />
+        <meta-data android:name="org.mcrf.engine.core.api" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.core-api" android:value="1" />
+        <meta-data android:name="org.mcrf.engine.entry" android:value="org.mcrf.engines.singbox.SingBoxEngine" />
+        <meta-data android:name="org.mcrf.engines.entry" android:value="org.mcrf.engines.singbox.SingBoxEngine" />
+        <meta-data android:name="org.mcrf.engine.abis" android:value="arm64-v8a,armeabi-v7a,x86_64" />
+        <meta-data android:name="org.mcrf.engines.source.repository" android:value="https://github.com/Leadaxe/sing-box-lx" />
+        <meta-data android:name="org.mcrf.engines.source.version" android:value="${moduleSourceVersion}" />
+        <meta-data android:name="org.mcrf.engines.source.sha256" android:value="${sourceSha}" />
+        <meta-data android:name="org.mcrf.engine.protocol-route-dispatcher" android:value="owned_numeric_protocol_socks_v1" />
+        <meta-data android:name="org.mcrf.engine.packet-route-bridge" android:value="owned_pipe_stack_v1" />
+    </application>
+</manifest>

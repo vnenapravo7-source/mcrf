@@ -61,7 +61,8 @@ android {
     compileSdk=34
     defaultConfig {
         applicationId="org.mcrf.engines.singbox";minSdk=29;targetSdk=34
-        versionCode=if(releaseAllowed)9 else 8;versionName=if(releaseAllowed)"1.14.2-lx.11-mcrf.9" else "1.14.2-lx.11-mcrf-p2-candidate.8"
+        versionCode=if(releaseAllowed)10 else 8;versionName=if(releaseAllowed)"1.14.2-lx.11-mcrf.10" else "1.14.2-lx.11-mcrf-p2-candidate.8"
+        manifestPlaceholders["moduleSourceVersion"]=if(releaseAllowed)"3d3d3db3-mcrf.10" else "3d3d3db3-mcrf-p2-candidate.8"
         manifestPlaceholders["sourceSha"]=sourceSha
     }
     compileOptions {sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17}
