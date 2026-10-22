@@ -3,7 +3,8 @@ using System.Linq;
 using System.Collections.Generic;
 namespace SplifyWin {
  public sealed class CsqttGeneration {
-  public string Id,Label,Package,Executable,Revision,Source;
+  public string Id,Package,Executable,Revision,Source;
+  public string Label { get; set; }
  }
  // A link-format version is not a wire-protocol revision. Never trial-connect
  // device-bound credentials to discover their generation.
