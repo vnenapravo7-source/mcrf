@@ -1,0 +1,2 @@
+using System;using System.Diagnostics;using SplifyWin;
+class FeedPrivateProfile20261023 {static int Main(string[] args){try{var info=new ProcessStartInfo(args[1],args[2]){UseShellExecute=false,CreateNoWindow=true,RedirectStandardInput=true};using(var p=Process.Start(info)){p.StandardInput.WriteLine(SecretStorage.Read(args[0]));p.StandardInput.Close();p.WaitForExit();return p.ExitCode;}}catch(Exception ex){Console.WriteLine("PRIVATE FEED FAIL "+ex.GetType().Name);return 1;}}}

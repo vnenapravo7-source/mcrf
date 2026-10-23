@@ -53,7 +53,7 @@ EXE/DLL без потери данных. Для компиляции запус
 DLL службы `MRCF_WD` собирается по инструкции `native/windivert-service/`.
 При внешнем каталоге бинарных зависимостей задайте `-DependencyRoot`.
 
-`AssemblyVersion`/`AssemblyFileVersion` — 1.1.1.0, `AssemblyInformationalVersion` — 1.1.1.
+`AssemblyVersion`/`AssemblyFileVersion` — 1.1.2.0, `AssemblyInformationalVersion` — 1.1.2.
 Приложение и тестовые EXE собираются последовательно: генератор значка общий.
 
 Локальные проверки: `wpf/tests/ReleaseVerification20261013.ps1`. Тесты используют отдельные профили и не устанавливают панели на сервер. Для воспроизведения проверки закреплённого OpenFlux-установщика нужен `work/deployment-sources/openflux/deploy.sh` с ревизии, указанной в `wpf/Deployment.cs`; живые тесты запускаются отдельно только на разрешённом сервере.

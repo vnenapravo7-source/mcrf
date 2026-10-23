@@ -45,3 +45,33 @@ func TestTCPRawRoundTrip(t *testing.T){
 }
 func TestRejectNonLoopback(t *testing.T){if run(context.Background(),"203.0.113.1:9000","10.66.66.2","1.1.1.1","127.0.0.1:1080")==nil{t.Fatal("remote peer accepted")}}
 func TestMTUBounds(t *testing.T){for _,mtu:=range []int{0,575,9001}{if runWithMTU(context.Background(),"127.0.0.1:9","10.66.66.2","1.1.1.1","127.0.0.1:1080",mtu)==nil{t.Fatal("invalid MTU accepted")}}}
+
+// A brief CSQTT raw-port rebind must not kill every existing SOCKS connection.
+func TestRawPeerRestartKeepsProxy(t *testing.T){
+ raw,e:=net.ListenUDP("udp4",&net.UDPAddr{IP:net.IPv4(127,0,0,1)});if e!=nil{t.Fatal(e)};defer raw.Close();endpoint:=raw.LocalAddr().String()
+ address:=freeTCP(t);ctx,cancel:=context.WithCancel(context.Background());defer cancel();done:=make(chan error,1);go func(){done<-run(ctx,endpoint,"10.66.66.2","1.1.1.1",address)}()
+ control:=connect(t,address);defer control.Close();control.Write([]byte{5,1,0});auth:=make([]byte,2);if _,e=io.ReadFull(control,auth);e!=nil{t.Fatal(e)}
+ control.Write([]byte{5,3,0,1,0,0,0,0,0,0});reply:=make([]byte,10);if _,e=io.ReadFull(control,reply);e!=nil||reply[1]!=0{t.Fatal("associate",e)}
+ client,e:=net.DialUDP("udp4",nil,&net.UDPAddr{IP:net.IP(reply[4:8]),Port:int(binary.BigEndian.Uint16(reply[8:10]))});if e!=nil{t.Fatal(e)};defer client.Close()
+ packet:=[]byte{0,0,0,1,203,0,113,40,0x27,0x0f,1};client.Write(packet);raw.SetReadDeadline(time.Now().Add(2*time.Second));buffer:=make([]byte,65536);if _,_,e=raw.ReadFromUDP(buffer);e!=nil{t.Fatal(e)}
+ raw.Close();for i:=0;i<3;i++{client.Write(packet);time.Sleep(80*time.Millisecond)}
+ select{case e=<-done:t.Fatal("one transient raw UDP error stopped all SOCKS flows",e);default:}
+ rebound,e:=net.ListenPacket("udp4",endpoint);if e!=nil{t.Fatal(e)};defer rebound.Close();rebound.SetReadDeadline(time.Now().Add(2*time.Second));client.Write(packet);if _,_,e=rebound.ReadFrom(buffer);e!=nil{t.Fatal("raw transport did not recover",e)}
+ cancel();select{case<-done:case<-time.After(2*time.Second):t.Fatal("shutdown stalled")}
+}
+
+func TestBurstClientsDoNotResetSOCKS(t *testing.T){
+ raw,e:=net.ListenUDP("udp4",&net.UDPAddr{IP:net.IPv4(127,0,0,1)});if e!=nil{t.Fatal(e)};defer raw.Close()
+ address:=freeTCP(t);ctx,cancel:=context.WithCancel(context.Background());defer cancel();done:=make(chan error,1);go func(){done<-run(ctx,raw.LocalAddr().String(),"10.66.66.2","1.1.1.1",address)}()
+ var clients []net.Conn;defer func(){for _,c:=range clients{c.Close()};cancel();select{case<-done:case<-time.After(2*time.Second):t.Error("burst shutdown stalled")}}()
+ for i:=0;i<96;i++{c:=connect(t,address);clients=append(clients,c);c.Write([]byte{5,1,0});auth:=make([]byte,2);if _,e=io.ReadFull(c,auth);e!=nil||auth[1]!=0{t.Fatalf("client %d abruptly reset: %v",i+1,e)};c.Write([]byte{5,3,0,1,0,0,0,0,0,0});reply:=make([]byte,10);if _,e=io.ReadFull(c,reply);e!=nil||reply[1]!=0{t.Fatalf("association %d failed: %v",i+1,e)};c.SetDeadline(time.Time{})}
+}
+
+func TestCapacityQueuesAndRecovers(t *testing.T){
+ raw,e:=net.ListenUDP("udp4",&net.UDPAddr{IP:net.IPv4(127,0,0,1)});if e!=nil{t.Fatal(e)};defer raw.Close()
+ address:=freeTCP(t);ctx,cancel:=context.WithCancel(context.Background());defer cancel();done:=make(chan error,1);go func(){done<-run(ctx,raw.LocalAddr().String(),"10.66.66.2","1.1.1.1",address)}()
+ var clients []net.Conn;defer func(){for _,c:=range clients{c.Close()};cancel();select{case<-done:case<-time.After(2*time.Second):t.Error("capacity shutdown stalled")}}()
+ for i:=0;i<socksMaxClients;i++{c:=connect(t,address);clients=append(clients,c);c.Write([]byte{5,1,0});auth:=make([]byte,2);if _,e=io.ReadFull(c,auth);e!=nil{t.Fatal("fill",i,e)}}
+ extra:=connect(t,address);defer extra.Close();extra.Write([]byte{5,1,0});extra.SetReadDeadline(time.Now().Add(100*time.Millisecond));auth:=make([]byte,2);_,e=io.ReadFull(extra,auth);if timeout,ok:=e.(net.Error);!ok||!timeout.Timeout(){t.Fatal("overflow reset instead of queue",e)}
+ clients[0].Close();extra.SetReadDeadline(time.Now().Add(2*time.Second));if _,e=io.ReadFull(extra,auth);e!=nil||auth[1]!=0{t.Fatal("queued client did not resume",e)}
+}

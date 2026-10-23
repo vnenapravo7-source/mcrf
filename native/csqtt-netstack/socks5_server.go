@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/netip"
 	"strings"
@@ -36,6 +37,7 @@ const (
 	socksReplyAddressType = 0x08
 	socksMaxUDPDatagram   = 64 * 1024
 	socksMaxUDPFlows      = 64
+	socksMaxClients       = 512
 	socksHandshakeTimeout = 15 * time.Second
 	socksUDPFlowIdle      = 2 * time.Minute
 	socksUDPIdleTimeout   = 5 * time.Minute
@@ -163,21 +165,24 @@ func runSocks5Server(
 	}
 
 	var clients sync.WaitGroup
-	clientSlots := make(chan struct{}, 64)
+	clientSlots := make(chan struct{}, socksMaxClients)
 	defer clients.Wait()
 	for {
+		// Back-pressure before Accept: never reset a new SOCKS connection just
+		// because browser/QUIC associations occupy all current slots.
+		select {
+		case clientSlots <- struct{}{}:
+		default:
+			log.Print("IP_ADAPTER_CAPACITY|queued")
+			select {case clientSlots <- struct{}{}:case <-serverCtx.Done():return nil}
+		}
 		client, err := listener.Accept()
 		if err != nil {
+			<-clientSlots
 			if ctx.Err() != nil || errors.Is(err, net.ErrClosed) {
 				return nil
 			}
 			return fmt.Errorf("приём SOCKS5-клиента: %w", err)
-		}
-		select {
-		case clientSlots <- struct{}{}:
-		default:
-			_ = client.Close()
-			continue
 		}
 		clients.Add(1)
 		go func() {

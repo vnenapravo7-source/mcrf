@@ -167,27 +167,27 @@
       "Size": 4615563
     },
     {
-      "Sha256": "d8af7e1bca003dc4cf21a2873dea5136d5531806a8978d79482f67a04352f7ab",
-      "Size": 2331046,
-      "Version": "vkturn-20261022-1",
+      "Sha256": "6e260e5eec812dc62617699cb2b1a0ff9d02db3a81cc1a5109baf99d470b69ff",
+      "Size": 2331371,
+      "Version": "capacity-20261023-1",
       "Id": "csqtt-bridge",
-      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-csqtt-bridge-windows-amd64-20261022.zip",
+      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-csqtt-bridge-windows-amd64-capacity-20261023-1.zip",
       "Name": "Локальный IP-адаптер · CSQTT / QWDTT RAW",
       "Files": [
         {
+          "Size": 5889536,
           "Name": "csqtt-netstack.exe",
-          "Sha256": "095d478b5d84f5a4dfdb3567cbc11bd7b4b870fd6c4957b6984a6ab0cad8f73c",
-          "Size": 5888512
+          "Sha256": "3027b9b947f664765a630407649ba932fb9f21e3d32efa2b08b756d7523d2332"
         },
         {
+          "Size": 35149,
           "Name": "LICENSE",
-          "Sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
-          "Size": 35149
+          "Sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
         },
         {
+          "Size": 124186,
           "Name": "THIRD-PARTY-NOTICES.txt",
-          "Sha256": "2b7e0aad51d4a235a6cf5404072543cbeee0e2c0662822b7489b9bb07e99cc72",
-          "Size": 124186
+          "Sha256": "2b7e0aad51d4a235a6cf5404072543cbeee0e2c0662822b7489b9bb07e99cc72"
         }
       ]
     },

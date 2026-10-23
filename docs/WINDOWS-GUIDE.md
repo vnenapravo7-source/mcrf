@@ -1,6 +1,6 @@
 # MCRF для Windows
 
-[Скачать 1.1.1](https://github.com/vnenapravo7-source/mcrf/releases/download/v1.1.1/mcrf.exe) · [Изменения](releases/1.1.1.md) · [Исходники 1.1.1](https://github.com/vnenapravo7-source/mcrf/releases/download/v1.1.1/mcrf-1.1.1-source.zip)
+[Скачать 1.1.2](https://github.com/vnenapravo7-source/mcrf/releases/download/v1.1.2/mcrf.exe) · [Изменения](releases/1.1.2.md) · [Исходники 1.1.2](https://github.com/vnenapravo7-source/mcrf/releases/download/v1.1.2/mcrf-1.1.2-source.zip)
 
 Windows x64, .NET Framework 4.8. Для встроенного входа VK нужен WebView2 Runtime. Программа — один `mcrf.exe`, который можно переименовать. Дополнительные движки скачиваются по необходимости с проверкой SHA-256. Контрольные суммы приложения и исходников — в `SHA256SUMS.txt` выпуска.
 

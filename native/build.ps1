@@ -165,7 +165,7 @@ $arguments += (Join-Path $PSScriptRoot 'ProfileHotkeys.cs')
 $arguments += (Join-Path $PSScriptRoot 'SingleInstance.cs')
 $arguments += (Join-Path $PSScriptRoot 'NetworkWallpaper.cs')
 $arguments += (Join-Path $PSScriptRoot 'DiscordCaptureFilter.cs')
-$arguments += @('ApplicationExclusions.cs','SteamGameTemplates.cs','RoutingToolsPage.cs','CustomStrategies.cs','StrategyWorkshopPage.cs','RouteDnsPage.cs') | ForEach-Object { Join-Path $PSScriptRoot $_ }
+$arguments += @('VpnDnsBootstrap.cs','ApplicationExclusions.cs','SteamGameTemplates.cs','RoutingToolsPage.cs','CustomStrategies.cs','StrategyWorkshopPage.cs','RouteDnsPage.cs') | ForEach-Object { Join-Path $PSScriptRoot $_ }
 if ($Wpf) {
   $wpfRoot=Join-Path $project 'wpf'
   $arguments=@($arguments | Where-Object { $_ -notlike '/win32manifest:*' })

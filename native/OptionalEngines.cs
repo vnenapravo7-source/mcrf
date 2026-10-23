@@ -39,7 +39,11 @@ namespace SplifyWin {
     // An old downloaded catalogue must not shadow a new executable required by
     // this application. Keep every unrelated active package and old directory.
     public static EngineCatalog MergeEmbeddedRequirements(EngineCatalog active,EngineCatalog embedded){
-      ValidateCatalog(active);ValidateCatalog(embedded);var old=active.Engines.Single(p=>p.Id=="csqtt");var next=embedded.Engines.Single(p=>p.Id=="csqtt");
+      ValidateCatalog(active);ValidateCatalog(embedded);
+      // A cached pre-fix catalogue must not keep selecting the 64-session bridge.
+      var requiredBridge=embedded.Engines.FirstOrDefault(p=>p.Id=="csqtt-bridge"&&p.Version.StartsWith("capacity-",StringComparison.Ordinal));
+      if(requiredBridge!=null)active=new EngineCatalog{Version=active.Version,Engines=active.Engines.Select(p=>p.Id=="csqtt-bridge"&&(!p.Version.StartsWith("capacity-",StringComparison.Ordinal)||String.CompareOrdinal(p.Version,requiredBridge.Version)<0)?requiredBridge:p).ToList()};
+      var old=active.Engines.Single(p=>p.Id=="csqtt");var next=embedded.Engines.Single(p=>p.Id=="csqtt");
       if(embedded.Engines.Any(p=>p.Version=="vkturn-options-20261022-1")){var upgraded=active.Engines.Select(p=>embedded.Engines.FirstOrDefault(e=>e.Id==p.Id&&e.Version=="vkturn-options-20261022-1")??p).ToList();upgraded.AddRange(embedded.Engines.Where(p=>!upgraded.Any(e=>e.Id==p.Id)));return new EngineCatalog{Version=1,Engines=upgraded};}
       bool generationUpgrade=next.Version.StartsWith("csqtt-generations-",StringComparison.Ordinal)&&!old.Version.StartsWith("csqtt-generations-",StringComparison.Ordinal);var merged=active.Engines.Select(p=>p.Id=="qwdtt"&&embedded.Engines.Any(q=>q.Id=="qwdtt"&&q.Version=="vkturn-20261022-1")?embedded.Engines.Single(q=>q.Id=="qwdtt"):p.Id=="csqtt"&&(generationUpgrade||next.Files.Any(f=>f.Name=="csqtt25-client.exe")&&!old.Files.Any(f=>f.Name=="csqtt25-client.exe"))?next:p).ToList();merged.AddRange(embedded.Engines.Where(p=>!merged.Any(oldPackage=>oldPackage.Id==p.Id)));return new EngineCatalog{Version=1,Engines=merged};
     }

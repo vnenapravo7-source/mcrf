@@ -107,7 +107,7 @@ namespace SplifyWin {
     }
     public static void StartRawBridge(string executable,int rawPort,string ip,string dns,int socksPort,Action<Process> register,Action<string> log,CancellationToken cancellation,int mtu=1300){
       if(String.IsNullOrEmpty(executable)||!String.Equals(Path.GetFileName(executable),"csqtt-netstack.exe",StringComparison.OrdinalIgnoreCase))throw new FileNotFoundException("Скачайте компонент «Локальный IP-адаптер». Пакет WDTT не требуется.");
-      int ready=0;string error="";var child=Spawn(executable,"-csqtt-raw-peer 127.0.0.1:"+rawPort+" -csqtt-ip "+ZapretRuntime.Quote(ip)+" -csqtt-dns "+ZapretRuntime.Quote(dns)+" -socks-listen 127.0.0.1:"+socksPort+" -mtu "+mtu,line=>{if(line.Contains("PROXY_READY|"))Interlocked.Exchange(ref ready,1);else if(line.Contains("FATAL"))error="FATAL: локальный IP-адаптер не запустился";},register);
+      int ready=0;string error="";var child=Spawn(executable,"-csqtt-raw-peer 127.0.0.1:"+rawPort+" -csqtt-ip "+ZapretRuntime.Quote(ip)+" -csqtt-dns "+ZapretRuntime.Quote(dns)+" -socks-listen 127.0.0.1:"+socksPort+" -mtu "+mtu,line=>{if(line.Contains("PROXY_READY|"))Interlocked.Exchange(ref ready,1);else if(line.Contains("IP_ADAPTER_CAPACITY|queued"))log("Локальный IP-адаптер: достигнут предел соединений; новые подключения ожидают освобождения слота, а не сбрасываются.");else if(line.Contains("FATAL")){error="FATAL: локальный IP-адаптер не запустился";log("Локальный IP-адаптер: "+JournalStyle.Redact(line));}},register);
       Wait(child,()=>Volatile.Read(ref ready)!=0,()=>error,cancellation,"Локальный IP-адаптер");log("Локальный IP-адаптер: SOCKS5 готов");
     }
   }

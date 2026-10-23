@@ -6,7 +6,7 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 
 | Платформа | Версия |
 | --- | --- |
-| Windows x64 | [1.1.1](https://github.com/vnenapravo7-source/mcrf/releases/tag/v1.1.1) |
+| Windows x64 | [1.1.2](https://github.com/vnenapravo7-source/mcrf/releases/tag/v1.1.2) |
 | Android 10+ | [0.6.1](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.6.1) |
 | Linux | В разработке |
 
