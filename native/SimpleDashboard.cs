@@ -23,7 +23,7 @@ namespace SplifyWin {
     void DrawSimple(Graphics g){
       var s=state();bool sectionVisible=s.AdvancedMode&&!String.IsNullOrEmpty(s.Page);areas.Clear();g.SmoothingMode=SmoothingMode.AntiAlias;
       using(var background=new LinearGradientBrush(ClientRectangle,Color.FromArgb(10,17,32),Color.FromArgb(28,20,51),LinearGradientMode.ForwardDiagonal))g.FillRectangle(background,ClientRectangle);
-      if(neonGlobe==null)using(var stream=GetType().Assembly.GetManifestResourceStream("SplifyWin.UI.NeonGlobe.png"))if(stream!=null)using(var source=Image.FromStream(stream))neonGlobe=new Bitmap(source);
+      if(neonGlobe==null)using(var stream=BundledResources.Open("SplifyWin.UI.NeonGlobe.png"))if(stream!=null)using(var source=Image.FromStream(stream))neonGlobe=new Bitmap(source);
       if(!sectionVisible&&neonGlobe!=null){int width=Math.Min(Width-260,1200),height=width*2/3;var rect=new Rectangle(Width-width-10,160,width,height);using(var attributes=new System.Drawing.Imaging.ImageAttributes()){var matrix=new System.Drawing.Imaging.ColorMatrix();matrix.Matrix33=.24f;attributes.SetColorMatrix(matrix);g.DrawImage(neonGlobe,rect,0,0,neonGlobe.Width,neonGlobe.Height,GraphicsUnit.Pixel,attributes);}}
       if(!sectionVisible)GlassInk.SoftGlow(g,new Rectangle(20,Height-340,530,450),GlassInk.Purple);
       using(var fill=new SolidBrush(Color.FromArgb(19,23,41)))g.FillRectangle(fill,0,0,218,Height);

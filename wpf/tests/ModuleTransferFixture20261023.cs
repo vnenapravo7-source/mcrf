@@ -1,0 +1,4 @@
+using System;using System.IO;using System.Threading;
+class ModuleTransferFixture20261023 {
+ static int Main(string[] args){if(args.Length>0&&args[0]=="--hold"){Thread.Sleep(700);return 0;}int output=Array.IndexOf(args,"--output");if(output>=0){string bundle=Environment.GetEnvironmentVariable("MCRF_TEST_BUNDLE");string url=args[args.Length-1];if(url.EndsWith(".bin"))bundle=Path.Combine(Environment.GetEnvironmentVariable("MCRF_TEST_COMPONENT_DIR"),Path.GetFileName(new Uri(url).AbsolutePath));File.Copy(bundle,args[output+1],true);File.AppendAllText(Environment.GetEnvironmentVariable("MCRF_TEST_TRANSFER_LOG"),args[args.Length-1]+Environment.NewLine);return 0;}if(args.Length>=2&&args[0]=="--data"){if(File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"fail.marker")))return 42;File.WriteAllText(Path.Combine(args[1],"module-started.txt"),args[1]);return 0;}return 2;}
+}

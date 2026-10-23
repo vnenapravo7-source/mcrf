@@ -57,6 +57,9 @@ namespace SplifyWin {
     public string Url{get{return "https://raw.githubusercontent.com/"+(SourceOwner??"vnenapravo7-source")+"/"+Repository+"/"+(SourceBranch??"main")+"/"+File;}}
   }
   public static class RoutePresets {
+    // Do not let beforefieldinit load the external preset bundle before the
+    // application's runtime resource store has been initialized.
+    static RoutePresets(){}
     static readonly RoutePreset[] OriginalItems=new[]{
       new RoutePreset{Name="Все кроме РФ",Repository="iplist-domains",File="ru/ru.txt",OutsideRussia=true},
       new RoutePreset{Name="Нейросети",Repository="iplist-domains",File="ai-domains.txt"},

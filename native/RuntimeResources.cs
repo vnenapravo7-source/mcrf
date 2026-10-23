@@ -1,0 +1,15 @@
+using System;using System.IO;using System.Linq;using System.Collections.Generic;using System.Reflection;using System.Security.Cryptography;using System.Text.RegularExpressions;using System.Web.Script.Serialization;
+namespace SplifyWin {
+ public sealed class RuntimeResource {public string Name{get;set;}public string Hash{get;set;}public long Size{get;set;}}
+ public sealed class RuntimeManifest {public int Format{get;set;}public List<RuntimeResource> Resources{get;set;}}
+ public static class RuntimeResources {
+  static string root;static RuntimeManifest manifest;static readonly object gate=new object();
+  public const string ManifestName="Mcrf.Runtime.Resources.json";
+  public static string HashFile(string file){using(var s=File.OpenRead(file))using(var h=SHA256.Create())return BitConverter.ToString(h.ComputeHash(s)).Replace("-","").ToLowerInvariant();}
+  public static RuntimeManifest Read(string text){var m=new JavaScriptSerializer().Deserialize<RuntimeManifest>(text);if(m==null||m.Format!=1||m.Resources==null||m.Resources.Count>128||m.Resources.Select(r=>r.Name).Distinct().Count()!=m.Resources.Count)throw new InvalidDataException("Некорректный каталог компонентов");foreach(var r in m.Resources)if(!Regex.IsMatch(r.Name??"",@"^[a-zA-Z0-9_.-]{1,180}$")||!Regex.IsMatch(r.Hash??"",@"^[a-f0-9]{64}$")||r.Size<=0||r.Size>268435456)throw new InvalidDataException("Некорректный компонент");return m;}
+  public static string PathFor(string profile,RuntimeResource r){return Path.Combine(profile,"runtime","resources",r.Hash+".bin");}
+  public static bool Present(string profile,RuntimeResource r){string file=PathFor(profile,r);return File.Exists(file)&&new FileInfo(file).Length==r.Size&&HashFile(file)==r.Hash;}
+  public static void Prepare(string profile){lock(gate){root=Path.GetFullPath(profile);var assembly=Assembly.GetExecutingAssembly();using(var stream=assembly.GetManifestResourceStream(ManifestName)){if(stream==null){manifest=null;return;}using(var reader=new StreamReader(stream))manifest=Read(reader.ReadToEnd());}foreach(var r in manifest.Resources){if(Present(root,r))continue;using(var source=assembly.GetManifestResourceStream(r.Name)){if(source==null)throw new IOException("Нет компонента "+r.Name+". Установите полный MCRF или повторите встроенное обновление.");string target=PathFor(root,r),temp=target+"."+Guid.NewGuid().ToString("N")+".tmp";Directory.CreateDirectory(Path.GetDirectoryName(target));try{using(var output=new FileStream(temp,FileMode.CreateNew,FileAccess.Write))source.CopyTo(output);if(new FileInfo(temp).Length!=r.Size||HashFile(temp)!=r.Hash)throw new InvalidDataException("Повреждён встроенный компонент");if(File.Exists(target))File.Replace(temp,target,null);else File.Move(temp,target);}finally{if(File.Exists(temp))File.Delete(temp);}}}}}
+  public static Stream OpenRaw(string name){lock(gate){if(manifest==null||root==null)return null;var r=manifest.Resources.FirstOrDefault(x=>x.Name==name);return r==null?null:File.OpenRead(PathFor(root,r));}}
+ }
+}

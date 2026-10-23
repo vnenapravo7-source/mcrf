@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 namespace SplifyWin {
   public static class BundledResources {
-    public static Stream Open(string name){var assembly=Assembly.GetExecutingAssembly();var packed=assembly.GetManifestResourceStream(name+".deflate");return packed==null?assembly.GetManifestResourceStream(name):new DeflateStream(packed,CompressionMode.Decompress);}
+    public static Stream Open(string name){var assembly=Assembly.GetExecutingAssembly();var packed=assembly.GetManifestResourceStream(name+".deflate")??RuntimeResources.OpenRaw(name+".deflate");return packed==null?(assembly.GetManifestResourceStream(name)??RuntimeResources.OpenRaw(name)):new DeflateStream(packed,CompressionMode.Decompress);}
     public static void Install(string name,string target){
       using(var input=Open(name)){if(input==null)return;var temp=target+"."+Guid.NewGuid().ToString("N")+".new";
         try{using(var output=new FileStream(temp,FileMode.CreateNew,FileAccess.Write,FileShare.None))input.CopyTo(output);

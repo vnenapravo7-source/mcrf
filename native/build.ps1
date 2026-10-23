@@ -76,7 +76,7 @@ $packedRoot=Join-Path $project 'work/packed-resources'
 New-Item -ItemType Directory -Path $packedRoot -Force | Out-Null
 foreach ($item in $resources) {
   if($CoreExecutable -and $item[1] -eq 'SplifyWin.Core.sing-box.exe'){$item[0]=[IO.Path]::GetFullPath($CoreExecutable);if(!$item[0].StartsWith('D:\MCRF\Work\Windows\',[StringComparison]::OrdinalIgnoreCase)){throw 'Private core must be Windows-task-owned'}}
-  if($item[1] -ne 'SplifyWin.Zapret.apps.WinDivert.dll'){$item[0]=Resolve-TaskDependency $item[0]}
+  if($item[1] -notin @('SplifyWin.Zapret.apps.WinDivert.dll','SplifyWin.Update.Installer.exe')){$item[0]=Resolve-TaskDependency $item[0]}
   # Optional transports are downloaded on demand, never embedded in mcrf.exe.
   if ([IO.Path]::GetFileName($item[0]) -match '^(openflux(?:-windows-amd64)?|csqtt(?:20|215|25)?-client|wdtt-client|qwdtt-client|libunwind)\.(exe|dll)$') {
     throw "Optional engine must not be bundled: $($item[0])"
@@ -91,6 +91,8 @@ foreach ($item in $resources) {
 }
 $arguments += @((Join-Path $PSScriptRoot 'AssemblyInfo.cs'), (Join-Path $PSScriptRoot 'AppBrand.cs'), (Join-Path $PSScriptRoot 'ClientModel.cs'), (Join-Path $PSScriptRoot 'PresetStorage.cs'), (Join-Path $PSScriptRoot 'Qwdtt.cs'), (Join-Path $PSScriptRoot 'VkCalls.cs'), (Join-Path $PSScriptRoot 'TurnProfile.cs'), (Join-Path $PSScriptRoot 'TurnEngines.cs'), (Join-Path $PSScriptRoot 'NetworkCore.cs'), (Join-Path $PSScriptRoot 'RouteCompiler.cs'), (Join-Path $PSScriptRoot 'SecondPart.cs'), (Join-Path $PSScriptRoot 'Zapret.cs'), (Join-Path $PSScriptRoot 'OwnedJob.cs'), (Join-Path $PSScriptRoot 'WarpScout.cs'), (Join-Path $PSScriptRoot 'SystemProxy.cs'), (Join-Path $PSScriptRoot 'BrandArt.cs'), (Join-Path $PSScriptRoot 'BlueGlassDashboard.cs'), (Join-Path $PSScriptRoot 'NativeClient.cs'))
 $arguments += (Join-Path $PSScriptRoot 'WinDivertService.cs')
+$arguments += (Join-Path $PSScriptRoot 'RuntimeResources.cs')
+$arguments += (Join-Path $PSScriptRoot 'AppRuntime.cs')
 $arguments += (Join-Path $PSScriptRoot 'VkTurnSettings.cs')
 $arguments += (Join-Path $PSScriptRoot 'VkTurnOptions.cs')
 $arguments += (Join-Path $PSScriptRoot 'VkTurnProfileImport.cs')
@@ -183,7 +185,24 @@ if ($TestSources) {
   $arguments += $TestSources
 }
 $arguments=@($arguments | ForEach-Object {if($_ -like '/r:*'){'/r:'+(Resolve-TaskDependency $_.Substring(3))}else{$_}})
+$runtimeRows=@();$heavyArguments=@();$buildFolder=Split-Path -Parent ([IO.Path]::GetFullPath($OutputPath));$runtimeFolder=Join-Path $buildFolder 'runtime-components'
+if($Wpf -and !$TestSources){
+ New-Item -ItemType Directory -Path $runtimeFolder -Force | Out-Null
+ foreach($argument in $arguments | Where-Object {$_ -like '/resource:*'}){$part=$argument.Substring(10);$split=$part.LastIndexOf(',');$file=$part.Substring(0,$split);$name=$part.Substring($split+1);if($name -notmatch '\.(exe|dll|zip|sys)(\.deflate)?$|^SplifyWin\.Presets\.bundle|^SplifyWin\.UI\.(NeonGlobe|BlueGlassBackdrop)\.png$'){continue};$hash=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant();$runtimeRows+=@{Name=$name;Hash=$hash;Size=(Get-Item -LiteralPath $file).Length};$heavyArguments+=$argument;$component=Join-Path $runtimeFolder "runtime-$hash.bin";if(!(Test-Path -LiteralPath $component)){Copy-Item -LiteralPath $file -Destination $component}}
+ $runtimeCatalog=@{Format=1;Resources=@($runtimeRows)};$runtimeJson=Join-Path $buildFolder 'runtime-resources.json';$runtimeCatalog | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $runtimeJson -Encoding UTF8
+ $arguments+=('/resource:'+$runtimeJson+',Mcrf.Runtime.Resources.json')
+}
 & $compiler @arguments
 if ($LASTEXITCODE -ne 0) { throw "C# build failed: $LASTEXITCODE" }
+if($Wpf -and !$TestSources){
+ $thinFolder=Join-Path $buildFolder 'app';New-Item -ItemType Directory -Path $thinFolder -Force | Out-Null;$thinFile=Join-Path $thinFolder 'mcrf.exe';$marker=Join-Path $buildFolder 'thin-marker.txt';Set-Content -LiteralPath $marker -Value '1' -Encoding ASCII
+ $thinArgs=@(('/out:'+$thinFile),('/resource:'+$marker+',Mcrf.Runtime.Thin'))+@($arguments | Where-Object {$_ -notlike '/out:*' -and $heavyArguments -notcontains $_})
+ & $compiler @thinArgs
+ if($LASTEXITCODE -ne 0){throw 'Modular application build failed'}
+ @{Format=1;Version=([Reflection.AssemblyName]::GetAssemblyName($thinFile).Version.ToString(3));Hash=(Get-FileHash -LiteralPath $thinFile).Hash.ToLowerInvariant();Size=(Get-Item -LiteralPath $thinFile).Length;Runtime=$runtimeCatalog} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $thinFolder 'module.json') -Encoding UTF8
+ $appZip=Join-Path $buildFolder 'mcrf-app-update.zip';if(Test-Path -LiteralPath $appZip){throw 'Use a fresh output directory for modular packages'}
+ [IO.Compression.ZipFile]::CreateFromDirectory($thinFolder,$appZip,[IO.Compression.CompressionLevel]::Optimal,$false)
+ Write-Output "Small application package: $((Get-Item $appZip).Length) bytes; runtime components reused by SHA-256"
+}
 $built = Get-Item -LiteralPath $OutputPath
 Write-Output "Built $($built.FullName) ($($built.Length) bytes)"
