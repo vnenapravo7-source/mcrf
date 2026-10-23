@@ -9,7 +9,7 @@ import android.widget.ScrollView
 /** Anchored choice list shared by settings, route groups and log retention. */
 internal object DropdownPopup {
     data class Item(val label:String,val help:String?=null,val icon:String?=null)
-    fun show(activity:MainActivity,anchor:View,title:String?,items:List<Item>,selected:Int,
+    fun show(activity:MainActivity,anchor:View,title:String?,items:List<Item>,selected:Int,startAtTop:Boolean=false,
         changed:(Int)->Unit):PopupWindow {
         val body=LinearLayout(activity).apply {
             orientation=LinearLayout.VERTICAL;setPadding(activity.dp(8),activity.dp(8),activity.dp(8),activity.dp(8))
@@ -77,7 +77,7 @@ internal object DropdownPopup {
         val x=(location[0]+anchor.width-width).coerceIn(frame.left+activity.dp(12),(frame.right-width-activity.dp(12)).coerceAtLeast(frame.left+activity.dp(12)))
         val y=if(below>=popup.height)location[1]+anchor.height+gap else (location[1]-gap-popup.height).coerceAtLeast(frame.top)
         popup.showAtLocation(anchor,Gravity.TOP or Gravity.LEFT,x,y)
-        if(selected in items.indices)scroll.post {
+        if(!startAtTop&&selected in items.indices)scroll.post {
             val choice=body.getChildAt((if(title==null)0 else 1)+selected*2)
             scroll.scrollTo(0,(choice.top-(popup.height-choice.height)/2).coerceAtLeast(0))
         }

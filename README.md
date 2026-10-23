@@ -8,6 +8,8 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | --- | --- |
 | Windows x64 | [1.1](https://github.com/vnenapravo7-source/mcrf/releases/tag/v1.1) |
 | Android 10+ | [0.6.1](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.6.1) |
+
+В 0.6.1 интервалы автоопределения БС и автовыбора серверов настраиваются отдельно: 15, 30, 45 секунд; 1, 2, 3, 4, 5, 10, 15 минут. Файлы APK в релизе 0.6 также заменены на исправленную 0.6.1; уже установленная исходная 0.6 от этого не изменяется.
 | Linux | В разработке |
 
 Для Android скачайте [универсальный APK](https://github.com/vnenapravo7-source/mcrf/releases/download/android-v0.6.1/mcrf-android-universal-release.apk). Движки докачиваются отдельно из [единого каталога](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1).

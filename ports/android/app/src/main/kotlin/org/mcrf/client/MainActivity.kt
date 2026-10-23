@@ -607,18 +607,21 @@ class MainActivity : Activity() {
         choice.tag="auto-bs-switch";choice.contentDescription="Автоопределение белых списков"
         choice.setAvailable(!working())
         autoControlsRefresh={choice.setMode(prefs.getBoolean(BsDetectionMonitor.KEY,false),false);choice.setAvailable(!working())}
-        val interval=Button(this).apply {
-            tag="auto-bs-interval";DropdownStyle.value(this@MainActivity,this);textSize=13f
+        fun intervalButton(kind:AutoCheckIntervals.Kind)=Button(this).apply {
+            tag=if(kind==AutoCheckIntervals.Kind.DETECTION)"auto-bs-interval"else"auto-selection-interval"
+            DropdownStyle.value(this@MainActivity,this);textSize=13f
             isAllCaps=false;includeFontPadding=false;gravity=Gravity.CENTER;setSingleLine(true)
             typeface=Typeface.create("sans-serif-medium",Typeface.NORMAL);setTextColor(Loft.MUTED)
             setPadding(dp(5),0,dp(5),0);stateListAnimator=null;elevation=0f
             backgroundTintList=null
-            fun refresh(){text=BsDetectionInterval.label(prefs.getInt(BsDetectionInterval.KEY,BsDetectionInterval.DEFAULT));contentDescription="Интервал автоопределения БС: $text"}
+            fun value()=AutoCheckIntervals.seconds(kind,prefs::getInt)
+            fun refresh(){text=AutoCheckIntervals.label(value());contentDescription="${kind.title}: $text"}
             refresh()
             setOnClickListener {anchor->
                 val values=BsDetectionInterval.seconds
-                DropdownPopup.show(this@MainActivity,anchor,"Интервал проверки",values.map {DropdownPopup.Item(BsDetectionInterval.label(it))},values.indexOf(BsDetectionInterval.normalize(prefs.getInt(BsDetectionInterval.KEY,BsDetectionInterval.DEFAULT)))){position->
-                    prefs.edit().putInt(BsDetectionInterval.KEY,values[position]).putInt("interval",values[position]).apply();refresh()
+                DropdownPopup.show(this@MainActivity,anchor,kind.title,values.map {DropdownPopup.Item(AutoCheckIntervals.label(it))},values.indexOf(value()),startAtTop=true){position->
+                    val change=AutoCheckIntervals.change(kind,values[position])
+                    prefs.edit().putInt(change.first,change.second).apply();refresh()
                 }
             }
         }
@@ -626,10 +629,10 @@ class MainActivity : Activity() {
             gravity=Gravity.CENTER;isBaselineAligned=false;tag="auto-selection-control"
             addView(button("i",false).apply {
                 tag="auto-bs-selection-help";DropdownStyle.apply(this@MainActivity,this);contentDescription="Справка об автовыборе"
-                setOnClickListener {alert("Автовыбор",BsAutoSelectionPolicy.HELP)}
+                setOnClickListener {alert("Автовыбор",AutoCheckIntervals.HELP+"\n\n"+BsAutoSelectionPolicy.HELP)}
             },LinearLayout.LayoutParams(dp(40),dp(48)))
             addView(text("Автовыбор",13,Loft.INK).apply {gravity=Gravity.CENTER;includeFontPadding=false;setSingleLine(true);setAutoSizeTextTypeUniformWithConfiguration(9,13,1,android.util.TypedValue.COMPLEX_UNIT_SP);minimumWidth=dp(76)},LinearLayout.LayoutParams(-2,dp(48)).apply {weight=1f})
-            addView(interval,LinearLayout.LayoutParams(dp(48),dp(48)))
+            addView(intervalButton(AutoCheckIntervals.Kind.SELECTION),LinearLayout.LayoutParams(dp(56),dp(48)))
             addView(Button(this@MainActivity).apply {
                 tag="auto-bs-selection-policy";DropdownStyle.value(this@MainActivity,this);textSize=14f
                 val modes=listOf(BsAutoSelectionPolicy.OFF,BsAutoSelectionPolicy.FASTEST,BsAutoSelectionPolicy.RECENT)
@@ -643,7 +646,12 @@ class MainActivity : Activity() {
         }
         return LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL;tag="unified-auto-selection"
-            addView(connectionOptionRow("Автоопределение БС","auto-bs-control",choice),LinearLayout.LayoutParams(-1,dp(48)))
+            val detector=LinearLayout(this@MainActivity).apply {
+                gravity=Gravity.CENTER_VERTICAL;isBaselineAligned=false
+                addView(choice,LinearLayout.LayoutParams(0,dp(48),1f))
+                addView(intervalButton(AutoCheckIntervals.Kind.DETECTION),LinearLayout.LayoutParams(dp(56),dp(48)).apply {marginStart=dp(4)})
+            }
+            addView(connectionOptionRow("Автоопределение БС","auto-bs-control",detector),LinearLayout.LayoutParams(-1,dp(48)))
             addView(control,LinearLayout.LayoutParams(-1,dp(48)))
         }
     }
