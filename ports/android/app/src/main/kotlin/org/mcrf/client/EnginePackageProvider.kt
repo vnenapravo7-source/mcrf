@@ -14,7 +14,7 @@ class EnginePackageProvider : ContentProvider() {
     override fun onCreate() = true
     private fun file(uri: Uri): File {
         require(uri.authority == "${requireNotNull(context).packageName}.engine-package" && uri.query == null && uri.fragment == null && uri.pathSegments.size == 1)
-        val name = uri.lastPathSegment.orEmpty(); require(name.matches(Regex("mcrf-engine-[0-9a-f-]{36}\\.apk")))
+        val name = uri.lastPathSegment.orEmpty(); require(name.matches(Regex("mcrf-(?:engine|app-update)-[0-9a-f-]{36}\\.apk")))
         val base = requireNotNull(context).cacheDir.canonicalFile
         return File(base, name).also { require(it.canonicalFile.parentFile == base && !java.nio.file.Files.isSymbolicLink(it.toPath()) && it.isFile) }
     }
@@ -23,7 +23,7 @@ class EnginePackageProvider : ContentProvider() {
     override fun query(uri: Uri, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?): Cursor {
         val file = file(uri); val columns = projection ?: arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE)
         require(columns.all { it in setOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE) })
-        return MatrixCursor(columns).apply { addRow(columns.map<String, Any> { if (it == OpenableColumns.DISPLAY_NAME) "MCRF-engines.apk" else file.length() }.toTypedArray()) }
+        return MatrixCursor(columns).apply { addRow(columns.map<String, Any> { if (it == OpenableColumns.DISPLAY_NAME) (if(file.name.startsWith("mcrf-app-update-"))"MCRF-update.apk"else"MCRF-engines.apk") else file.length() }.toTypedArray()) }
     }
     override fun insert(uri: Uri, values: ContentValues?): Uri = throw UnsupportedOperationException()
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?) = throw UnsupportedOperationException()

@@ -14,7 +14,7 @@ object AppUpdates {
     private var started=false
     private var pending:AppRelease?=null
     private var shownDialog:AlertDialog?=null
-    fun blocksOtherPrompt()=pending!=null||shownDialog?.isShowing==true
+    fun blocksOtherPrompt()=pending!=null||shownDialog?.isShowing==true||AppUpdateInstallUi.isShowing()
     fun onStart(activity:MainActivity){
         if(started)return;started=true
         val context=activity.applicationContext
@@ -52,7 +52,7 @@ object AppUpdates {
             }
             action("Позже"){dialog.dismiss()}
             action("Пропустить"){prefs.edit().putString("ignoredUpdate",found.asset.version).apply();dialog.dismiss()}
-            action("Обновить",true){dialog.dismiss();try{startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(found.asset.url.toString())))}catch(_:android.content.ActivityNotFoundException){alert("Обновление","На устройстве нет приложения для загрузки APK.")}}
+            action("Обновить",true){dialog.dismiss();AppUpdateInstallUi.show(this,found)}
             content.addView(actions,space(16,0))
             shownDialog=dialog
             dialog.setOnDismissListener {if(shownDialog===dialog)shownDialog=null}

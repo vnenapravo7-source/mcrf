@@ -168,7 +168,7 @@ android {
             providers.gradleProperty("p2UiCorrectionReceipt").isPresent -> 10027
         providers.gradleProperty("p2ExpansionSourceReadyReceipt").isPresent -> 10043
             providers.gradleProperty("p2SourceReadyReceipt").isPresent -> 10025
-            else -> 10046
+            else -> 10047
         }
         versionName = when {
             providers.gradleProperty("p2UiCorrectionReceipt").isPresent -> "0.6-p2-candidate.3"

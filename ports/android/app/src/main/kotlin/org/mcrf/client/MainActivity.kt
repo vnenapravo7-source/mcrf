@@ -1492,6 +1492,7 @@ class MainActivity : Activity() {
         }
     }
     override fun onDestroy() {
+        AppUpdateInstallUi.close(this)
         serverSwitch.cancel();handler.removeCallbacks(serverSwitchPoll)
         presentationWorker.shutdownNow()
         startupAccessPending=null;startupAccessWorker.shutdownNow()
