@@ -7,10 +7,12 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | Платформа | Версия |
 | --- | --- |
 | Windows x64 | [1.1](https://github.com/vnenapravo7-source/mcrf/releases/tag/v1.1) |
-| Android 10+ | [0.6](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.6) |
+| Android 10+ | [0.6.1](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.6.1) |
 | Linux | В разработке |
 
-Для Android скачайте [универсальный APK](https://github.com/vnenapravo7-source/mcrf/releases/download/android-v0.6/mcrf-android-universal-release.apk). Движки докачиваются отдельно из [единого каталога](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1).
+Для Android скачайте [универсальный APK](https://github.com/vnenapravo7-source/mcrf/releases/download/android-v0.6.1/mcrf-android-universal-release.apk). Движки докачиваются отдельно из [единого каталога](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1).
+
+В 0.6.1 исправлено обнаружение универсального APK и коротких версий, включая будущий переход на 0.7. `arm64-v8a-release.apk` в 0.6 и 0.6.1 — только совместимое имя того же универсального APK для старого обновлятора, не отдельная архитектурная сборка. Если старая версия не предлагает обновление, установите универсальный APK поверх неё, без удаления приложения.
 
 В Android 0.6 ускорены подготовка подключений и переключение серверов. Добавлены разные выходы по маршрутам, основной и запасной движки, три именованные группы маршрутов, расширенный Vk Turn и автодеплой с сохранением серверов, панелей и нескольких установок одного протокола. Сокращена фоновая работа: настраиваемый опрос счётчиков уведомления, без опроса при выключенном экране, с возможностью полного отключения.
 

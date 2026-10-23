@@ -168,13 +168,13 @@ android {
             providers.gradleProperty("p2UiCorrectionReceipt").isPresent -> 10027
         providers.gradleProperty("p2ExpansionSourceReadyReceipt").isPresent -> 10043
             providers.gradleProperty("p2SourceReadyReceipt").isPresent -> 10025
-            else -> 10043
+            else -> 10044
         }
         versionName = when {
             providers.gradleProperty("p2UiCorrectionReceipt").isPresent -> "0.6-p2-candidate.3"
         providers.gradleProperty("p2ExpansionSourceReadyReceipt").isPresent -> "0.6"
             providers.gradleProperty("p2SourceReadyReceipt").isPresent -> "0.6-p2-candidate.1"
-            else -> "0.6"
+            else -> "0.6.1"
         }
         manifestPlaceholders["debugApplicationLabel"] = if (isolatedFirstLaunchFixture) "MCRF · UI-стенд" else "MCRF"
         if(isolatedFirstLaunchFixture)testApplicationId="org.mcrf.client.onboardingfixture.test"

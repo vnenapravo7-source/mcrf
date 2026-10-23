@@ -1,6 +1,8 @@
 # MCRF Android
 
-Android 10+ · релиз [0.6](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.6), build 10043.
+Android 10+ · релиз [0.6.1](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.6.1), build 10044.
+
+Исправлено обновление через единый `mcrf-android-universal-release.apk` и сравнение коротких версий 0.6 / 0.7. Файл `arm64-v8a-release.apk` в переходных релизах 0.6 и 0.6.1 — точная копия универсального APK под именем для старого обновлятора, не отдельная сборка.
 
 [Обзор интерфейса и возможностей](../../docs/ANDROID-GUIDE.md) · [План по приоритетам](../../README.md#пул-реализации-android)
 

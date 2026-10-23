@@ -6,6 +6,29 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AppReleaseTest {
+    @Test fun bridgeUniversalPreferredAcrossAllSupportedAbis(){
+        val row=release("mcrf-android-universal-release.apk")
+        val legacy=release().getJSONArray("assets").getJSONObject(0)
+        row.getJSONArray("assets").put(0,legacy).put(release("mcrf-android-universal-release.apk").getJSONArray("assets").getJSONObject(0))
+        for(abi in listOf("arm64-v8a","armeabi-v7a","x86_64")){
+            val found=AppRelease.find(JSONArray().put(row),abi)!!
+            assertTrue(found.asset.url.path.endsWith("/mcrf-android-universal-release.apk"))
+            assertEquals(abi,found.asset.abi)
+        }
+    }
+    @Test fun bridgeLegacyFallbackAndWindowsUniversalCannotBecomeAndroidUpdate(){
+        val windows=release("mcrf-android-universal-release.apk").put("tag_name","v1.1")
+        val found=AppRelease.find(JSONArray().put(windows).put(release()),"arm64-v8a")!!
+        assertEquals("android-v0.1.0",found.asset.version)
+        assertTrue(found.asset.url.path.endsWith("/arm64-v8a-release.apk"))
+    }
+    @Test fun bridgeUniversalStillRequiresTrustedHostAndDigest(){
+        for(change in listOf("browser_download_url" to "https://other.invalid/app.apk","digest" to "")){
+            val row=release("mcrf-android-universal-release.apk")
+            row.getJSONArray("assets").getJSONObject(0).put(change.first,change.second)
+            try{AppRelease.find(JSONArray().put(row),"arm64-v8a");fail("must reject")}catch(_:IllegalArgumentException){}
+        }
+    }
     @Test fun releaseNotesAreTakenFromGithubAndBounded(){val row=release().put("body","Оптимизирован дизайн.\n"+"x".repeat(7000));val found=AppRelease.find(JSONArray().put(row),"arm64-v8a")!!;assertTrue(found.notes.startsWith("Оптимизирован дизайн."));assertEquals(6000,found.notes.length)}
     private fun release(name:String="arm64-v8a-release.apk",draft:Boolean=false)=JSONObject().put("tag_name","android-v0.1.0").put("draft",draft).put("prerelease",true)
         .put("assets",JSONArray().put(JSONObject().put("name",name).put("state","uploaded").put("size",12345).put("digest","sha256:"+"a".repeat(64))

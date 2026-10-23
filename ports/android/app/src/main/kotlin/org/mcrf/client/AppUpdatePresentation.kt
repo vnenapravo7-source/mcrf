@@ -1,11 +1,11 @@
 package org.mcrf.client
 
 object AppUpdatePresentation {
-    private val version=Regex("^(?:android-)?v?(\\d+)\\.(\\d+)\\.(\\d+)(?:-([0-9A-Za-z.-]+))?(?:\\+[0-9A-Za-z.-]+)?$")
+    private val version=Regex("^(?:android-)?v?(\\d+)\\.(\\d+)(?:\\.(\\d+))?(?:-([0-9A-Za-z.-]+))?(?:\\+[0-9A-Za-z.-]+)?$")
     private fun parsed(value:String)=value.takeIf{it.length<=128}?.let{version.matchEntire(it)}
     fun newer(remote:String,installed:String):Boolean {
         val a=parsed(remote)?:return false;val b=parsed(installed)?:return false
-        for(i in 1..3){val c=a.groupValues[i].toBigInteger().compareTo(b.groupValues[i].toBigInteger());if(c!=0)return c>0}
+        for(i in 1..3){val c=a.groupValues[i].ifEmpty{"0"}.toBigInteger().compareTo(b.groupValues[i].ifEmpty{"0"}.toBigInteger());if(c!=0)return c>0}
         val x=a.groupValues[4];val y=b.groupValues[4]
         if(x==y)return false
         if(x.isEmpty()||y.isEmpty())return x.isEmpty()
@@ -17,10 +17,11 @@ object AppUpdatePresentation {
         }
         return left.size>right.size
     }
-    fun compact(value:String):String=parsed(value)?.let{"v${it.groupValues[1]}.${it.groupValues[2]}.${it.groupValues[3]}"}?:"—"
+    private fun core(value:MatchResult)="v${value.groupValues[1]}.${value.groupValues[2]}"+value.groupValues[3].takeIf(String::isNotEmpty)?.let{".$it"}.orEmpty()
+    fun compact(value:String):String=parsed(value)?.let(::core)?:"—"
     /** Different prereleases must not both appear as “v0.1.0” in an update confirmation. */
     fun buildLabel(value:String):String=parsed(value)?.let {
-        "v${it.groupValues[1]}.${it.groupValues[2]}.${it.groupValues[3]}"+
+        core(it)+
             it.groupValues[4].takeIf(String::isNotEmpty)?.let {suffix->"-$suffix"}.orEmpty()
     }?:"—"
     fun summary(notes:String):String {

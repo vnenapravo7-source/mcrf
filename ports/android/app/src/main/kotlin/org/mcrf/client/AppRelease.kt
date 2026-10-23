@@ -8,11 +8,17 @@ data class AppRelease(val asset: EnginePackage, val prerelease: Boolean, val not
     val page: URI get() = URI("https://github.com/${EnginePackage.REPOSITORY}/releases/tag/${asset.version}")
     companion object {
         fun find(releases: JSONArray, abi: String): AppRelease? {
-            val name = when(abi) { "arm64-v8a" -> "arm64-v8a-release.apk";"armeabi-v7a" -> "armeabi-v7a-release.apk";"x86_64" -> "androidApp-x86_64-release.apk";else -> throw IllegalArgumentException("Неподдерживаемая архитектура Android.") }
+            val legacyName = when(abi) { "arm64-v8a" -> "arm64-v8a-release.apk";"armeabi-v7a" -> "armeabi-v7a-release.apk";"x86_64" -> "androidApp-x86_64-release.apk";else -> throw IllegalArgumentException("Неподдерживаемая архитектура Android.") }
             for(index in 0 until releases.length()) {
                 val release=releases.getJSONObject(index);if(release.optBoolean("draft"))continue
                 val tag=release.optString("tag_name")
+                if(!tag.startsWith("android-v"))continue
                 val assets=release.optJSONArray("assets")?:continue
+                // Prefer one real universal main APK, even when a legacy alias appears first.
+                val name=if((0 until assets.length()).any {
+                    val item=assets.getJSONObject(it)
+                    item.optString("name")=="mcrf-android-universal-release.apk"&&item.optString("state")=="uploaded"
+                })"mcrf-android-universal-release.apk"else legacyName
                 for(entry in 0 until assets.length()) {
                     val item=assets.getJSONObject(entry);if(item.optString("name")!=name||item.optString("state")!="uploaded")continue
                     require(tag.matches(Regex("[A-Za-z0-9._-]{1,128}"))) { "Некорректное имя сборки." }

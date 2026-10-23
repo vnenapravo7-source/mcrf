@@ -1,6 +1,8 @@
 # MCRF Android
 
-[Скачать Android 0.6](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.6) · [Единый каталог движков](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1) · [План доработок](../README.md#пул-реализации-android)
+[Скачать Android 0.6.1](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.6.1) · [Единый каталог движков](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1) · [План доработок](../README.md#пул-реализации-android)
+
+В 0.6.1 исправлено обнаружение обновлений через универсальный APK и сравнение коротких версий (0.6, 0.7). Совместимое имя `arm64-v8a-release.apk` в переходных релизах обозначает тот же универсальный APK, а не отдельную архитектурную сборку. Старую версию можно обновить установкой универсального APK поверх неё, не удаляя приложение.
 
 VPN, БС, Telegram WS и маршрутизация в одном приложении для Android 10+. Скриншоты ниже сняты с установленной версии **0.6** 23 октября 2026 года.
 
