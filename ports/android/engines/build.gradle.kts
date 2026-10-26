@@ -1145,7 +1145,10 @@ androidComponents {
     historicalNotices[kind]?.let {notices->variant.sources.assets?.addGeneratedSourceDirectory(notices,StageEngineCsqtt25Notices::outputDirectory)}
     swgNotices[kind]?.let{notices->variant.sources.assets?.addGeneratedSourceDirectory(notices,StageEngineSwgNotices::outputDirectory)}
     if(kind=="csqtt25"){
-        variant.outputs.forEach{output->output.enabled.set(output.filters.any{it.filterType==com.android.build.api.variant.FilterConfiguration.FilterType.ABI&&it.identifier=="arm64-v8a"})}
+        variant.outputs.forEach{output->
+            val abis=output.filters.filter{it.filterType==com.android.build.api.variant.FilterConfiguration.FilterType.ABI}
+            output.enabled.set(if(abis.isEmpty())csqtt25StagedAbis==csqtt25NativePins.keys else abis.all{it.identifier in csqtt25StagedAbis})
+        }
         variant.sources.assets?.addGeneratedSourceDirectory(requireNotNull(csqtt25Notices),StageEngineCsqtt25Notices::outputDirectory)
     }
     if(kind=="openflux"&&openfluxProvider!=null){
