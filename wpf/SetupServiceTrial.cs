@@ -10,9 +10,11 @@ using Microsoft.Web.WebView2.WinForms;
 using SplifyWin;
 namespace Mcrf.Wpf {
  public sealed partial class MainWindow {
+  internal bool SetupTrialOfflineForTests;
   static bool SetupTrialNeedsBrowser(string service){return service!="discord";}
   static Size SetupTrialWindowSize(string service){return SetupTrialNeedsBrowser(service)?new Size(1100,800):new Size(820,500);}
   FrameworkElement SetupTrialBrowserHost(string service,out WebView2 browser){
+   if(SetupTrialOfflineForTests){browser=null;return SetupTrialNeedsBrowser(service)?new Border{Background=Brush("#1C2844")}:null;}
    browser=SetupTrialNeedsBrowser(service)?new WebView2{DefaultBackgroundColor=System.Drawing.Color.FromArgb(255,28,40,68)}:null;
    return browser==null?null:new WindowsFormsHost{Child=browser,Background=Brush("#1C2844")};
   }
@@ -26,7 +28,7 @@ namespace Mcrf.Wpf {
   }
   [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
   Task<int> ShowSetupServiceTrial(SetupWizardSelection item,string proxy,CancellationToken token){
-   var size=SetupTrialWindowSize(item.Service.Id);var window=Dialog("Мастер · "+item.Service.CheckName+" · очная проверка",size.Width,size.Height);bool alive=true,ready=false;int answer=-1;
+   var size=SetupTrialWindowSize(item.Service.Id);var window=Dialog("Мастер · "+item.Service.CheckName+" · очная проверка",size.Width,size.Height);window.Name="setupTrialWindow";bool alive=true,ready=false;int answer=-1;
    bool voice=!SetupTrialNeedsBrowser(item.Service.Id);var layout=new DockPanel{Margin=new Thickness(18),LastChildFill=!voice};
    var note=Text(item.Service.CheckName+" · "+item.Row.Name+"\n"+(voice?"В приложении Discord переподключитесь к голосовому каналу. Проверьте слышимость в обе стороны; таймера нет.":item.Service.Id=="youtube"?"Проверьте обычный ролик и Shorts. Если сайт просит подтверждение, выполните его сами. Таймера нет.":"Проверьте нужную функцию сервиса. Таймера нет.")+"\n«Не работает» включает следующую конфигурацию; «Пропустить» переходит к следующему сервису.",13);note.TextWrapping=TextWrapping.Wrap;DockPanel.SetDock(note,Dock.Top);layout.Children.Add(note);
    var hear=new CheckBox{Content="Я слышу собеседника",Margin=new Thickness(0,8,0,6)};var heard=new CheckBox{Content="Собеседник слышит меня",Margin=new Thickness(0,0,0,8)};
@@ -43,6 +45,7 @@ namespace Mcrf.Wpf {
    using(token.Register(()=>Dispatcher.BeginInvoke(new Action(()=>{if(alive){answer=-2;window.Close();}})))){
     Task<DiscordVoiceObservation> observation=null;
     window.Loaded+=async(s,e)=>{try{
+     if(SetupTrialOfflineForTests){ready=true;next.IsEnabled=true;info.Text="Изолированная проверка интерфейса без сети.";refresh();return;}
      if(voice){ready=true;next.IsEnabled=true;refresh();voiceFields.Children.Add(SetupTrialLinks(item.Service,url=>System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url){UseShellExecute=true})));observation=Task.Run(()=>DiscordVoiceObserver.Observe(Path.Combine(session.Zapret.DirectoryPath,"WinDivert.dll"),observeCancellation.Token,message=>Dispatcher.BeginInvoke(new Action(()=>{if(alive)info.Text=message;}))));return;}
      var options=new CoreWebView2EnvironmentOptions("--disable-quic "+(proxy==null?"--no-proxy-server":"--proxy-server="+proxy)){AllowSingleSignOnUsingOSPrimaryAccount=false};
      var environment=await CoreWebView2Environment.CreateAsync(null,profile,options);environment.BrowserProcessExited+=(sender,args)=>{try{if(Directory.Exists(profile))Directory.Delete(profile,true);}catch{}};

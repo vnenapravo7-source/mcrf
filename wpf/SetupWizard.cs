@@ -30,7 +30,7 @@ namespace Mcrf.Wpf {
   }
   StackPanel SetupConfigurationFields(ZapretCheckReport report,out Func<SetupWizardSelection[]> read){
    var entries=new List<Tuple<CheckBox,ComboBox,ZapretService,ZapretCheckRow[]>>();var rows=new StackPanel();
-   foreach(var service in ZapretChecks.Selected(report.WizardServiceIds??report.ServiceIds)){
+   foreach(var service in ZapretChecks.Selected(SetupWizardFlow.ServiceIds(report))){
     var candidates=SetupWizardFlow.Candidates(report,service.Id);int preferred=Array.FindIndex(candidates,r=>!String.IsNullOrEmpty(r.StrategyId));
     var enabled=new CheckBox{Name="setupService_"+service.Id.Replace("-","_"),Content=service.CheckName,IsChecked=preferred>=0,IsEnabled=candidates.Length>0,Margin=new Thickness(0,14,0,6)};
     var choice=new ComboBox{Name="setupConfiguration_"+service.Id.Replace("-","_"),ItemsSource=candidates.Select(r=>SetupWizardFlow.OutputName(r)+" · "+r.Name+" · "+(r.Access(service.Id)==ServiceAccess.Available?"работа подтверждена":r.Access(service.Id)==ServiceAccess.Unknown?"нужна очная проверка":"автотест не прошёл — можно проверить вручную")).ToArray(),SelectedIndex=preferred,IsEnabled=preferred>=0};
@@ -50,30 +50,31 @@ namespace Mcrf.Wpf {
    try{await SetupWizardFlow.RunCore(report,()=>ChooseSetupConfigurationsWithLifetime(report,token),(item,ct)=>VerifySetupSelection(report,item,ct),items=>ApplySetupSelections(report,items,token),()=>ZapretChecks.Save(root,report),token,repeatManual);}finally{lastReport=report;}
   }
   async Task<bool?> VerifySetupSelection(ZapretCheckReport report,SetupWizardSelection selection,CancellationToken token){
-   var ordered=SetupWizardFlow.TrialCandidates(report,selection);
+   if(SetupVerifyForTests!=null)return await SetupVerifyForTests(report,selection,token);
+   var ordered=SetupWizardFlow.TrialCandidates(report,selection);bool opened=false;var errors=new List<string>();
    foreach(var row in ordered){
     token.ThrowIfCancellationRequested();selection.Row=row;ZapretSettings trial=null;Process bye=null;
     try{
      string proxy=null;
      if(selection.Output=="zapret"){
-      var strategy=(await session.Strategies()).FirstOrDefault(s=>s.Id==row.StrategyId);if(strategy==null)continue;
+      var strategy=(await session.Strategies()).FirstOrDefault(s=>s.Id==row.StrategyId);if(strategy==null)throw new InvalidOperationException("Сохранённая стратегия отсутствует в каталоге. Повторите поиск стратегий.");
       trial=ManualServiceChecks.Trial(report,selection.Service,strategy);if(selection.Service.Id=="discord"){trial.DiscordVoiceEnabled=true;trial.DiscordInterfaceStrategy=strategy.Id;}
       await session.Zapret.Start(trial,strategy,token);
      }else if(selection.Output=="byetube"){
-      int index;if(!Int32.TryParse(row.StrategyId.Substring("byetube:".Length),out index)||index<0||index>=ByeTube.Strategies.Length)continue;
+      int index;if(!Int32.TryParse(row.StrategyId.Substring("byetube:".Length),out index)||index<0||index>=ByeTube.Strategies.Length)throw new InvalidOperationException("Сохранённая стратегия ByeTube недоступна. Повторите поиск стратегий.");
       var listener=new TcpListener(IPAddress.Loopback,0);listener.Start();int port=((IPEndPoint)listener.LocalEndpoint).Port;listener.Stop();
       bye=await Task.Run(()=>ByeTube.Start(Path.Combine(session.Core.DataRoot,"core","ciadpi.exe"),ByeTube.Strategies[index],message=>{},token,port));proxy="socks5://127.0.0.1:"+port;
      }
-     VideoBrowserLibraries.Install(root);int answer=await ShowSetupServiceTrial(selection,proxy,token);token.ThrowIfCancellationRequested();if(answer<0)return null;
+     if(SetupTrialNeedsBrowser(selection.Service.Id))VideoBrowserLibraries.Install(root);int answer=await ShowSetupServiceTrial(selection,proxy,token);opened=true;token.ThrowIfCancellationRequested();if(answer<0)return null;
      if(selection.Output=="zapret"&&!session.Zapret.ProfileApplied(null,row.StrategyId))throw new InvalidOperationException("Стратегия остановлена: результат не будет сохранён.");
      SetupWizardFlow.Record(report,selection,answer==1,trial);ZapretChecks.Save(root,report);if(answer==1)return true;
-    }catch(OperationCanceledException){throw;}catch(Exception error){RecordEvent("Очная проверка "+selection.Service.Name+": "+error.Message);status.Text="Не удалось проверить "+row.Name+": "+error.Message+". Переходим к следующему варианту.";}
+    }catch(OperationCanceledException){throw;}catch(Exception error){errors.Add(error.Message);RecordEvent("Очная проверка "+selection.Service.Name+": "+error.Message);status.Text="Не удалось проверить "+row.Name+": "+error.Message+". Переходим к следующему варианту.";}
     finally{
      if(selection.Output=="zapret")session.Zapret.Stop();
      if(bye!=null){try{if(!bye.HasExited){bye.Kill();bye.WaitForExit(3000);}}finally{bye.Dispose();}}
     }
    }
-   return false;
+   if(!opened&&errors.Count>0)throw new InvalidOperationException("Не удалось открыть очную проверку «"+selection.Service.CheckName+"»: "+String.Join("; ",errors.Distinct()));return false;
   }
   async Task ApplySetupSelections(ZapretCheckReport report,SetupWizardSelection[] selections,CancellationToken token){
    token.ThrowIfCancellationRequested();if(closing||closeRequested)throw new OperationCanceledException(token);

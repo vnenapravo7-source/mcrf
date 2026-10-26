@@ -10,6 +10,8 @@ using SplifyWin;
 namespace Mcrf.Wpf {
  public sealed partial class MainWindow {
   bool detachedWorkspaceOpen;
+  bool detachedWorkspaceClosing;
+  Button SavedCheckResultsButton(){var button=AsyncButton("Результаты проверок",async()=>{reportFromEditor=false;lastReport=await Task.Run(()=>ZapretChecks.Load(root));ShowWorkspaceResults();});button.Name="zapretCheckResults";button.Margin=new Thickness(0,12,0,0);return button;}
   Window detachedWorkspaceWindow;Grid detachedWorkspaceContent;UIElement[] detachedWorkspaceOriginal;
   Button WorkspaceResultButton(string text,Func<Task> action,TextBlock feedback){return Button(text,async()=>await Run(async()=>{try{await action();feedback.Text=status.Text;}catch(Exception ex){feedback.Text=FailureExplanations.UserMessage(JournalStyle.Redact(ex.Message));throw;}},()=>{}));}
   void ApplyDetachedPalette(DependencyObject content){foreach(var button in CompactLogicalChildren<Button>(content).Where(b=>b.Content is string))StyleCompactButton(button);ApplyCompactControlPalette(content);}
@@ -44,12 +46,12 @@ namespace Mcrf.Wpf {
    window.MinWidth=Math.Min(640,window.Width);window.MinHeight=Math.Min(480,window.Height);
    window.Content=content;
    detachedWorkspaceWindow=window;detachedWorkspaceContent=content;detachedWorkspaceOriginal=captured;
-   bool closeRequested=false;var closeTimer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(100)};
+   detachedWorkspaceClosing=false;bool closeRequested=false;var closeTimer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(100)};
    closeTimer.Tick+=(s,e)=>{if(scanCancellation!=null||busy)return;closeTimer.Stop();window.Close();};
-   window.Closing+=(s,e)=>{if(scanCancellation==null&&!busy)return;e.Cancel=true;if(closeRequested)return;closeRequested=true;content.IsEnabled=false;window.Title=heading+(scanCancellation==null?" · завершение операции":" · остановка проверки");if(scanCancellation!=null)scanCancellation.Cancel();closeTimer.Start();};
+   window.Closing+=(s,e)=>{if(scanCancellation==null&&!busy)return;e.Cancel=true;if(closeRequested)return;closeRequested=true;detachedWorkspaceClosing=true;content.IsEnabled=false;window.Title=heading+(scanCancellation==null?" · завершение операции":" · остановка проверки");if(scanCancellation!=null)scanCancellation.Cancel();closeTimer.Start();};
    window.Closed+=(s,e)=>closeTimer.Stop();
    detachedWorkspaceOpen=true;
-   try{window.ShowDialog();}finally{closeTimer.Stop();detachedWorkspaceOpen=false;detachedWorkspaceWindow=null;detachedWorkspaceContent=null;detachedWorkspaceOriginal=null;reportFromEditor=originalReportMode;}
+   try{window.ShowDialog();}finally{closeTimer.Stop();detachedWorkspaceOpen=false;detachedWorkspaceClosing=false;detachedWorkspaceWindow=null;detachedWorkspaceContent=null;detachedWorkspaceOriginal=null;reportFromEditor=originalReportMode;}
   }
  }
 }

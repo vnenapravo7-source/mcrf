@@ -20,10 +20,12 @@ namespace Mcrf.Wpf {
    }
   }
   internal static ZapretCheckRow[] Candidates(ZapretCheckReport report,string service){
-   return report.Rows.Where(r=>!r.Checking&&String.IsNullOrEmpty(r.Error)&&(String.IsNullOrEmpty(r.StrategyId)||r.Services.Any(s=>s.Id==service)))
+   return report.Rows.Where(r=>!r.Checking&&String.IsNullOrEmpty(r.Error)&&r.Services.Any(s=>s.Id==service))
     .OrderBy(r=>r.Access(service)==ServiceAccess.Available?0:r.Access(service)==ServiceAccess.Unknown?1:2)
     .ThenBy(r=>String.IsNullOrEmpty(r.StrategyId)?0:1).ThenBy(r=>r.TotalMilliseconds).GroupBy(r=>r.StrategyId??"").Select(g=>g.First()).ToArray();
   }
+  internal static string[] ServiceIds(ZapretCheckReport report){return (report.WizardServiceIds!=null&&report.WizardServiceIds.Count>0?report.WizardServiceIds:report.ServiceIds!=null&&report.ServiceIds.Count>0?report.ServiceIds:report.Settings==null?new List<string>():report.Settings.CheckServices??new List<string>()).Distinct().ToArray();}
+  internal static bool CanContinue(ZapretCheckReport report){return report!=null&&report.Rows!=null&&ZapretChecks.Selected(ServiceIds(report)).Any(s=>Candidates(report,s.Id).Length>0);}
   internal static string OutputName(ZapretCheckRow row){return String.IsNullOrEmpty(row.StrategyId)?"Напрямую (без Zapret)":row.Family=="ByeTube"?"ByeTube":"Zapret";}
   internal static ZapretCheckRow[] TrialCandidates(ZapretCheckReport report,SetupWizardSelection selected){
    string output=selected.Output;return new[]{selected.Row}.Concat(Candidates(report,selected.Service.Id).Where(row=>row!=selected.Row&&new SetupWizardSelection{Service=selected.Service,Row=row}.Output==output)).ToArray();
@@ -49,7 +51,7 @@ namespace Mcrf.Wpf {
   }
   internal static async Task RunCore(ZapretCheckReport report,Func<Task<SetupWizardSelection[]>> choose,
    Func<SetupWizardSelection,CancellationToken,Task<bool?>> verify,Func<SetupWizardSelection[],Task> apply,Action save,CancellationToken token,bool repeatManual){
-   token.ThrowIfCancellationRequested();if(!report.Complete)throw new InvalidOperationException("Сначала завершите поиск стратегий.");
+   token.ThrowIfCancellationRequested();if(!CanContinue(report))throw new InvalidOperationException("Нет проверенных конфигураций. Сначала запустите поиск стратегий.");
    var chosen=await choose();token.ThrowIfCancellationRequested();if(chosen==null)return;
    var accepted=new List<SetupWizardSelection>();
    foreach(var item in chosen){token.ThrowIfCancellationRequested();var previous=(report.ManualResults??new List<ServiceManualResult>()).Where(r=>r.ServiceId==item.Service.Id&&r.StrategyId==item.Row.StrategyId).OrderBy(r=>r.CheckedAt).LastOrDefault();
