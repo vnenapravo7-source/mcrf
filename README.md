@@ -7,10 +7,10 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | Платформа | Версия |
 | --- | --- |
 | Windows x64 | [1.2](https://github.com/vnenapravo7-source/mcrf/releases/tag/v1.2) |
-| Android 10+ | [0.7](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.7) |
+| Android 10+ | [0.7.1](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.7.1) |
 | Linux | В разработке |
 
-Для Android скачайте [универсальный APK 0.7](https://github.com/vnenapravo7-source/mcrf/releases/download/android-v0.7/mcrf-android-universal-release.apk). Движки устанавливаются отдельно под архитектуру устройства из [единого каталога](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1). Опубликованный релиз — **0.7 / 10059**. Пакет **0.7.1-candidate.1 / 10060** с OpenFlux 0.16 и привязкой маршрутов собран и установлен на тестовый телефон с сохранением настроек; он пока не опубликован. [Матрица проверки и ограничения](docs/ANDROID-STATUS.md).
+Для Android скачайте [универсальный APK 0.7.1](https://github.com/vnenapravo7-source/mcrf/releases/download/android-v0.7.1/mcrf-android-universal-release.apk). Движки устанавливаются отдельно под архитектуру устройства из [единого каталога](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1), включая OpenFlux **0.16.0**. [Матрица проверки и ограничения](docs/ANDROID-STATUS.md).
 
 ### Движки и протоколы
 
@@ -21,7 +21,7 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | [Компактный WG/AWG](ports/android/transports/wg-backend/)<br><sub>Модуль MCRF на базе wireguard-go</sub> | WireGuard, AmneziaWG 3.0 / 3.1 | 3,5 |
 | [Telegram WS](https://github.com/y0sy4/telegram-proxy)<br><sub>Сторонний, адаптирован для MCRF</sub> | SOCKS5 → WebSocket для Telegram | 4,3 |
 | [TURN-транспорты](ports/android/transports/transport-lock.json)<br><sub>Сторонние, адаптированы для MCRF</sub> | CSQTT 2.0 / 2.1.5 / 2.1.9 / 2.5, SWG Panel 2.5.1, Rebirth 2.5; WDTT, QWDTT, OLCRTC | CSQTT: 12,7–13,1<br>WDTT: 9,2<br>QWDTT: 8,7<br>OLCRTC: 13,0 |
-| [OpenFlux](https://github.com/OpenFluxTeam/OpenFlux)<br><sub>0.13.0 — опубликованный модуль 14; 0.16.0 — локальный модуль 15</sub> | Зашифрованный Session/Direct и документные транспорты; в 0.16 добавлен UDP-транспорт FluxFast | 11,7 |
+| [OpenFlux 0.16.0](https://github.com/OpenFluxTeam/OpenFlux)<br><sub>Отдельный модуль 15</sub> | Зашифрованный Session/Direct и документные транспорты; UDP-транспорт FluxFast | 11,7 |
 | [DNSTT](ports/android/transports/dnstt/) / [VayDNS](https://github.com/net2share/vaydns) / [SlipStream](https://github.com/EndPositive/slipstream)<br><sub>Отдельные адаптированные модули</sub> | DNS-туннели; VayDNS 0.2.8; SlipStream — совместимый backend Mygod/slipstream-rust 0.1.1 | DNSTT: 5,8<br>VayDNS: 5,7<br>SlipStream: 7,6 |
 | [MasterDnsVPN](https://github.com/masterking32/MasterDnsVPN) / [SSTP](https://github.com/ttrroyy/qThroneMobile/tree/8463d3397b0a8522f92811f5c0698679ab8efc77/carriers/sstp)<br><sub>Отдельные адаптированные модули</sub> | DNS-туннель / SSTP | 4,0 / 5,4 |
 | [Модуль дополнительных протоколов — APK ARM64](https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-engine-protocols-arm64-v8a-release.apk)<br><sub>Отдельный пакет MCRF</sub> | TUIC, AnyTLS, NaiveProxy, SSH | 21,1 |
