@@ -19,6 +19,11 @@ Copy-Item -LiteralPath (Join-Path $taskUpstream 'domains.txt') -Destination $tas
 & git -C $taskStage apply (Join-Path $PSScriptRoot 'windows.patch')
 if($LASTEXITCODE -ne 0){throw 'Pinned Windows startup patch does not apply'}
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'mcrf_startup.rs') -Destination (Join-Path $taskStage 'rust-client/mcrf_startup.rs')
+$taskMain=Join-Path $taskStage 'rust-client/main.rs'
+$taskMainSource=[IO.File]::ReadAllText($taskMain)
+if(!$taskMainSource.Contains('const MAX_VK_HASHES: usize = 6;')){throw 'Pinned CSQTT call-limit boundary changed'}
+$taskMainSource=$taskMainSource.Replace('const MAX_VK_HASHES: usize = 6;','const MAX_VK_HASHES: usize = 32;')
+[IO.File]::WriteAllText($taskMain,$taskMainSource,[Text.UTF8Encoding]::new($false))
 $taskCompiler=Join-Path $ToolsRoot 'rustup/toolchains/1.99.0-x86_64-pc-windows-gnullvm/bin'
 $taskLlvm=Join-Path $ToolsRoot 'llvm-mingw/llvm-mingw-20260922-ucrt-x86_64/bin'
 $taskCmake=Join-Path $ToolsRoot 'cmake/cmake-4.4.3-windows-x86_64/bin'

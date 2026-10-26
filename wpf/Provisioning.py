@@ -306,6 +306,8 @@ def provision_swg(api, options, host, links, username, password, sleep=time.slee
     calls = options.get("vk_calls") or [options.get("vk_call", "")]
     if not isinstance(calls, list) or not 1 <= len(calls) <= 32 or len(set(calls)) != len(calls) or any(not isinstance(call, str) or not re.fullmatch(r"https://vk\.(?:ru|com)/call/join/[A-Za-z0-9_=-]{16,512}", call) for call in calls):
         raise ProvisionError("Нужна корректная ссылка звонка VK.")
+    if kind == "csqtt" and line == "2.5" and len(calls) > 6:
+        raise ProvisionError("CSQTT 2.5 поддерживает не более 6 звонков VK.")
     envelope(api.request("POST", "/api/login", {"username": username, "password": password}), True)
     state = None
     for attempt in range(60):
@@ -322,8 +324,6 @@ def provision_swg(api, options, host, links, username, password, sleep=time.slee
     iface = "mf" + kind + secrets.token_hex(3)
     group = "csqtt" if kind == "csqtt" else "wdtt"
     if kind == "csqtt":
-        if line == "2.5" and len(calls) > 6:
-            raise ProvisionError("CSQTT 2.5 поддерживает не более 6 звонков VK.")
         # An absent line means 2.1, never 2.5. Do not deploy on an older node.
         for attempt in range(60):
             if line in state.get("snapshots", {}).get(node, {}).get("csqtt_lines", []):

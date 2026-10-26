@@ -29,8 +29,17 @@ namespace Mcrf.Wpf {
    string output=selected.Output;return new[]{selected.Row}.Concat(Candidates(report,selected.Service.Id).Where(row=>row!=selected.Row&&new SetupWizardSelection{Service=selected.Service,Row=row}.Output==output)).ToArray();
   }
   internal static void MergePlan(ClientState state,ZapretProfile[] profiles,RouteList[] routes,string byeStrategy){
-   var keys=new HashSet<string>(routes.Select(r=>r.BuiltinPreset));if(keys.Count!=routes.Length||keys.Any(k=>String.IsNullOrEmpty(k)||!k.StartsWith("wpf-setup:",StringComparison.Ordinal)))throw new InvalidOperationException("Некорректный план мастера.");
+   if(state==null||profiles==null||routes==null||profiles.Any(p=>p==null)||routes.Any(r=>r==null))throw new InvalidOperationException("Некорректный план мастера.");
+   var keys=new HashSet<string>(routes.Select(r=>r.BuiltinPreset));if(routes.Length==0||keys.Count!=routes.Length||keys.Any(k=>String.IsNullOrEmpty(k)||!k.StartsWith("wpf-setup:",StringComparison.Ordinal)))throw new InvalidOperationException("Некорректный план мастера.");
+   if(routes.Any(r=>r.Target!="direct"&&r.Target!="zapret"&&r.Target!="byetube"||r.Target!="zapret"&&!String.IsNullOrEmpty(r.ZapretProfileId)))throw new InvalidOperationException("В плане мастера выбран некорректный выход.");
+   if(routes.Any(r=>r.Target=="byetube")?(byeStrategy==null||!ByeTube.Strategies.Contains(byeStrategy)):byeStrategy!=null)throw new InvalidOperationException("В плане мастера не подтверждена стратегия ByeTube.");
    var oldIds=new HashSet<string>(state.Lists.Where(r=>keys.Contains(r.BuiltinPreset)).Select(r=>r.ZapretProfileId).Where(id=>!String.IsNullOrEmpty(id)));
+   var remaining=state.Lists.Where(r=>!keys.Contains(r.BuiltinPreset)).ToArray();
+   var obsolete=state.ZapretProfiles.Where(p=>!String.IsNullOrEmpty(p.WizardServiceId)&&keys.Contains("wpf-setup:"+p.WizardServiceId)&&oldIds.Contains(p.Id)&&!remaining.Any(r=>r.ZapretProfileId==p.Id)).ToArray();
+   if(obsolete.Any(p=>DefaultRouteRouting.Requested(state)=="zapret:"+p.Id))throw new InvalidOperationException("Профиль мастера используется для трафика вне правил. Сначала измените общий выход в маршрутах, затем повторите применение.");
+   if(profiles.Any(p=>String.IsNullOrEmpty(p.Id))||profiles.Select(p=>p.Id).Distinct().Count()!=profiles.Length||profiles.Any(p=>state.ZapretProfiles.Any(old=>old.Id==p.Id&&!obsolete.Contains(old))))throw new InvalidOperationException("План мастера содержит повторяющийся идентификатор профиля.");
+   if(routes.Any(r=>String.IsNullOrEmpty(r.Id))||routes.Select(r=>r.Id).Distinct().Count()!=routes.Length||routes.Any(r=>state.Lists.Any(old=>old.Id==r.Id&&!keys.Contains(old.BuiltinPreset))))throw new InvalidOperationException("План мастера конфликтует с сохранённым правилом.");
+   if(profiles.Any(p=>String.IsNullOrEmpty(p.WizardServiceId)||!routes.Any(r=>r.BuiltinPreset=="wpf-setup:"+p.WizardServiceId&&r.Target=="zapret"&&r.ZapretProfileId==p.Id))||routes.Any(r=>r.Target=="zapret"&&!profiles.Any(p=>p.Id==r.ZapretProfileId&&r.BuiltinPreset=="wpf-setup:"+p.WizardServiceId)))throw new InvalidOperationException("Профили мастера не связаны с выбранными сервисами.");
    state.Lists.RemoveAll(r=>keys.Contains(r.BuiltinPreset));state.ZapretProfiles.RemoveAll(p=>!String.IsNullOrEmpty(p.WizardServiceId)&&keys.Contains("wpf-setup:"+p.WizardServiceId)&&oldIds.Contains(p.Id)&&!state.Lists.Any(r=>r.ZapretProfileId==p.Id));
    state.ZapretProfiles.InsertRange(0,profiles);state.Lists.InsertRange(0,routes);if(byeStrategy!=null)state.ByeTubeStrategy=byeStrategy;
   }

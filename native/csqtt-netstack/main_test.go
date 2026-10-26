@@ -3,6 +3,7 @@ package main
 import (
  "context"
  "encoding/binary"
+ "fmt"
  "io"
  "net"
  "net/netip"
@@ -74,4 +75,11 @@ func TestCapacityQueuesAndRecovers(t *testing.T){
  for i:=0;i<socksMaxClients;i++{c:=connect(t,address);clients=append(clients,c);c.Write([]byte{5,1,0});auth:=make([]byte,2);if _,e=io.ReadFull(c,auth);e!=nil{t.Fatal("fill",i,e)}}
  extra:=connect(t,address);defer extra.Close();extra.Write([]byte{5,1,0});extra.SetReadDeadline(time.Now().Add(100*time.Millisecond));auth:=make([]byte,2);_,e=io.ReadFull(extra,auth);if timeout,ok:=e.(net.Error);!ok||!timeout.Timeout(){t.Fatal("overflow reset instead of queue",e)}
  clients[0].Close();extra.SetReadDeadline(time.Now().Add(2*time.Second));if _,e=io.ReadFull(extra,auth);e!=nil||auth[1]!=0{t.Fatal("queued client did not resume",e)}
+}
+
+func TestDotaRegionProbeFanoutKeepsPendingFlows(t *testing.T){
+ flows:=make(map[string]*socksUDPFlow);var peers []net.Conn;defer func(){for _,peer:=range peers{peer.Close()};for _,flow:=range flows{flow.connection.Close()}}()
+ const regions=128
+ for i:=0;i<regions;i++{left,right:=net.Pipe();peers=append(peers,right);prepareSocksUDPFlowSlot(flows,time.Now());key:=fmt.Sprintf("203.0.%d.%d:27015",i/250+1,i%250+1);flows[key]=&socksUDPFlow{connection:left,target:&net.UDPAddr{IP:net.IPv4(203,0,byte(i/250+1),byte(i%250+1)),Port:27015},lastUsed:time.Now()}}
+ if len(flows)!=regions{t.Fatalf("Steam/Dota region burst evicted pending replies: kept %d of %d",len(flows),regions)}
 }

@@ -1,10 +1,10 @@
-param([Parameter(Mandatory=$true)][string]$OutputRoot,[Parameter(Mandatory=$true)][string]$LicenseRoot)
+param([Parameter(Mandatory=$true)][string]$OutputRoot,[Parameter(Mandatory=$true)][string]$LicenseRoot,[string]$PackageVersion='capacity-20261023-1')
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $taskOut=[IO.Path]::GetFullPath($OutputRoot)
 if(!$taskOut.StartsWith('D:\MCRF\Builds\Windows\',[StringComparison]::OrdinalIgnoreCase)){throw 'Windows build output required'}
 foreach($taskLicense in @('LICENSE','THIRD-PARTY-NOTICES.txt')){Copy-Item -LiteralPath (Join-Path $LicenseRoot $taskLicense) -Destination (Join-Path $taskOut ('bridge/'+$taskLicense))}
-$taskVersion='capacity-20261023-1'
+$taskVersion=$PackageVersion
 $taskName='mcrf-csqtt-bridge-windows-amd64-'+$taskVersion+'.zip'
 $taskZip=Join-Path $taskOut $taskName
 if(Test-Path -LiteralPath $taskZip){throw 'Existing package retained'}

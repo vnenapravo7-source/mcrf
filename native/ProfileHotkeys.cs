@@ -27,6 +27,7 @@ namespace SplifyWin {
   sealed class Binding {public int Id;public string Target,Chord;}
   readonly Dictionary<string,Binding> bindings=new Dictionary<string,Binding>();int nextId=100;bool disposed;
   public event Action<string> Pressed;
+  public Dictionary<string,string> Snapshot(){return bindings.ToDictionary(pair=>pair.Key,pair=>pair.Value.Chord);}
   public ProfileHotkeyWindow(){CreateHandle(new CreateParams{Caption="MCRF hotkeys",Parent=new IntPtr(-3)});}
   public string Set(string target,string value){
    if(disposed)throw new ObjectDisposedException("ProfileHotkeyWindow");var spec=ProfileHotkey.Parse(value);string chord=spec==null?null:spec.ToString();Binding old;bindings.TryGetValue(target,out old);if(old!=null&&old.Chord==chord)return null;
@@ -37,6 +38,7 @@ namespace SplifyWin {
    if(old!=null)UnregisterHotKey(Handle,old.Id);bindings[target]=new Binding{Id=id,Target=target,Chord=chord};return null;
   }
   public void Retain(IEnumerable<string> targets){var keep=new HashSet<string>(targets);foreach(var id in bindings.Keys.Where(id=>!keep.Contains(id)).ToArray())Set(id,null);}
+  public void RetainChecked(IEnumerable<string> targets){var keep=new HashSet<string>(targets);foreach(var target in bindings.Keys.Where(id=>!keep.Contains(id)).ToArray()){var binding=bindings[target];if(!UnregisterHotKey(Handle,binding.Id))throw new InvalidOperationException("Не удалось снять прежнюю горячую клавишу Windows ("+Marshal.GetLastWin32Error()+"). Перезапустите MCRF.");bindings.Remove(target);}}
   public bool Dispatch(int id){var binding=bindings.Values.FirstOrDefault(b=>b.Id==id);if(binding==null)return false;var handler=Pressed;if(handler!=null)handler(binding.Target);return true;}
   protected override void WndProc(ref Message message){if(message.Msg==0x0312&&Dispatch(message.WParam.ToInt32())){message.Result=IntPtr.Zero;return;}base.WndProc(ref message);}
   public void Dispose(){if(disposed)return;disposed=true;foreach(var b in bindings.Values)UnregisterHotKey(Handle,b.Id);bindings.Clear();DestroyHandle();}

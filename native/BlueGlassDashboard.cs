@@ -69,7 +69,7 @@ namespace SplifyWin {
     public static string Display(string raw){if(String.IsNullOrWhiteSpace(raw))return "Сервер не выбран";string value=ListName(raw);while(value.Length>0&&(Char.IsSurrogate(value[0])||Char.IsSymbol(value[0])||Char.IsWhiteSpace(value[0])))value=value.Substring(1).TrimStart();if(value.Length>=3&&Country(value.Substring(0,2))!=""&& !Char.IsLetter(value[2]))value=value.Substring(2).TrimStart(' ','·','-','_');value=System.Text.RegularExpressions.Regex.Replace(value,@"^\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?\s+","");value=System.Text.RegularExpressions.Regex.Replace(value,@"\s+(?:WIREGUARD|AWG|VLESS|VMESS|HYSTERIA2?|TROJAN|TUIC|SOCKS|OPENFLUX)\b.*$","",System.Text.RegularExpressions.RegexOptions.IgnoreCase);return value.Length==0?raw:value;}
     public static void Flag(Graphics g,Rectangle r,string code){
       var saved=g.Save();g.SmoothingMode=SmoothingMode.AntiAlias;
-      using(var clip=UiShape.Round(r,r.Height/2)){
+      using(var clip=UiShape.Round(r,Math.Max(1,r.Height/10))){
         g.SetClip(clip);Color red=Color.FromArgb(210,43,63),blue=Color.FromArgb(35,80,170),yellow=Color.FromArgb(255,208,40);
         using(var b=new SolidBrush(Color.White))g.FillRectangle(b,r);
         if(String.IsNullOrEmpty(code)){using(var b=new SolidBrush(Color.FromArgb(50,72,111)))g.FillRectangle(b,r);using(var p=new Pen(Color.FromArgb(200,224,247),1.2f)){g.DrawEllipse(p,r.X+r.Width*.28f,r.Y+1,r.Width*.44f,r.Height-2);g.DrawLine(p,r.Left,r.Y+r.Height*.5f,r.Right,r.Y+r.Height*.5f);}}

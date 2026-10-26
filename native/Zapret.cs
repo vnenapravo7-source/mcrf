@@ -248,6 +248,7 @@ public ZapretRuntime(NetworkCore core){hostsCore=core;root=core.DataRoot;curl=co
       }finally{engineOperation.Release();}
     }
     public async Task StartProfiles(IEnumerable<ZapretProfile> profiles,CancellationToken cancellation){
+      ProfileRecovery.DemandHealthy(root);
       await engineOperation.WaitAsync(cancellation);try{lock(sync)autoPausedProfiles.Clear();
       cancellation.ThrowIfCancellationRequested();var enabled=profiles.Where(x=>x!=null&&x.Enabled).ToArray();var original=EngineProfiles(enabled,true);var ordinary=EngineProfiles(enabled,false);
       var arguments=await Task.Run(()=>{Prepare();var catalog=ZapretCatalog.Load(DirectoryPath);var run=Path.Combine(DirectoryPath,"run-"+Guid.NewGuid().ToString("N"));return new[]{original.Length==0?null:BuildProfileArguments(original,catalog,Path.Combine(run,"original")),ordinary.Length==0?null:"--wf-raw-part=false "+ExcludeOriginalScopes(BuildProfileArguments(ordinary,catalog,Path.Combine(run,"mcrf")),original,run)};},cancellation);

@@ -9,7 +9,7 @@ namespace Mcrf.Wpf {
  }
  public sealed partial class MainWindow {
   bool uiRecoveryPending;
-  void CompleteUiRecovery(){if(!uiRecoveryPending||closing||busy)return;uiRecoveryPending=false;Page(current);}
-  internal void RecoverUiFailure(Exception error){if(!UiFailureBoundary.IsItemsFailure(error))return;body.Children.Clear();uiRecoveryPending=true;Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle,new Action(CompleteUiRecovery));}
+  void CompleteUiRecovery(){if(!uiRecoveryPending||closing||closeRequested||busy)return;uiRecoveryPending=false;Page(current);}
+  internal void RecoverUiFailure(Exception error){if(closing||closeRequested||!UiFailureBoundary.IsItemsFailure(error))return;body.Children.Clear();uiRecoveryPending=true;Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle,new Action(CompleteUiRecovery));}
  }
 }

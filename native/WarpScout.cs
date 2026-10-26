@@ -28,7 +28,7 @@ namespace SplifyWin {
     }
     public static ServerNode ImportAccount(string text){
       var fields=new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(text);object priv,pub;
-      if(!fields.TryGetValue("private_key",out priv)||!fields.TryGetValue("peer_public_key",out pub)||Convert.ToString(pub)!=PeerPublicKey)throw new FormatException("Файл не содержит поддерживаемый аккаунт WARP.");
+      if(fields==null||!fields.TryGetValue("private_key",out priv)||!fields.TryGetValue("peer_public_key",out pub)||Convert.ToString(pub)!=PeerPublicKey)throw new FormatException("Файл не содержит поддерживаемый аккаунт WARP.");
       try{if(Convert.FromBase64String(Convert.ToString(priv)).Length!=32)throw new FormatException();}catch{throw new FormatException("Некорректный ключ аккаунта WARP.");}
       var addresses=new List<string>();
       foreach(string key in new[]{"ipv4","ipv6"}){object value;IPAddress ip;if(!fields.TryGetValue(key,out value)||String.IsNullOrWhiteSpace(Convert.ToString(value)))continue;if(!IPAddress.TryParse(Convert.ToString(value),out ip)||(key=="ipv4")!=(ip.AddressFamily==System.Net.Sockets.AddressFamily.InterNetwork))throw new FormatException("Некорректный адрес аккаунта WARP.");addresses.Add(ip.ToString()+(key=="ipv4"?"/32":"/128"));}
@@ -36,6 +36,7 @@ namespace SplifyWin {
       var config="[Interface]\nPrivateKey = "+Convert.ToString(priv)+"\nAddress = "+String.Join(", ",addresses)+"\nMTU = 1280\n[Peer]\nPublicKey = "+Convert.ToString(pub)+"\nEndpoint = engage.cloudflareclient.com:2408\nAllowedIPs = 0.0.0.0/0, ::/0\nPersistentKeepalive = 25\n";
       var node=Links.Read(config).Single();node.Name="WARP";return node;
     }
+    public static ServerNode ReadAccount(string path){ServerNode node=null;SecretStorage.ReadValidated(path,text=>{node=ImportAccount(text);});return node;}
     public static string AccountPath(NetworkCore core){return Path.Combine(core.DataRoot,"warp-account.json");}
     public static Task<ServerNode> GetOrCreate(NetworkCore core,CancellationToken cancellation,Action<string> progress,string accountId=null){
       if(accountId!=null&&!Regex.IsMatch(accountId,@"^[a-f0-9]{32}$"))throw new ArgumentException("Некорректный аккаунт WARP");var context=SynchronizationContext.Current;
@@ -43,7 +44,7 @@ namespace SplifyWin {
       return Task.Run(()=>{
         cancellation.ThrowIfCancellationRequested();string cached=accountId==null?AccountPath(core):Path.Combine(core.DataRoot,"warp-account-"+accountId+".json");
         // Never re-register an existing account: the CLI rotates its keys on register.
-        if(File.Exists(cached)){report("Используем сохранённый аккаунт WARP…");return ImportAccount(SecretStorage.Read(cached));}
+        if(File.Exists(cached)){report("Используем сохранённый аккаунт WARP…");return ReadAccount(cached);}
         string pending=Path.Combine(core.DataRoot,"warp-account-pending-"+Guid.NewGuid().ToString("N")+".json");Process owned=null;
         try{
           report("Создаём аккаунт WARP в Cloudflare…");
@@ -53,7 +54,7 @@ namespace SplifyWin {
           cancellation.ThrowIfCancellationRequested();string registrationOutput=stdout.GetAwaiter().GetResult()+"\n"+stderr.GetAwaiter().GetResult();
           if(owned.ExitCode!=0||!File.Exists(pending))throw new InvalidOperationException(RegistrationFailure(registrationOutput,owned.ExitCode));
           var node=ImportAccount(File.ReadAllText(pending));cancellation.ThrowIfCancellationRequested();
-          if(File.Exists(cached))return ImportAccount(SecretStorage.Read(cached));
+          if(File.Exists(cached))return ReadAccount(cached);
           SecretStorage.Write(cached,File.ReadAllText(pending));report("Аккаунт создан. Подбираем выход…");return node;
         }finally{
           if(owned!=null){try{if(!owned.HasExited){owned.Kill();owned.WaitForExit(1000);}}catch{}owned.Dispose();}
@@ -116,7 +117,7 @@ namespace SplifyWin {
       if(country=="foreign"&&(region.Length==0||region=="RU"))throw new InvalidOperationException("Нероссийский выход не подтверждён. Профиль не применён.");if(country!="any"&&country!="foreign"&&region!=country)throw new InvalidOperationException("Страна выхода "+(region.Length==0?"не определена":region)+" вместо "+country+". Профиль не применён.");
       if(excludeDme&&colo=="DME")throw new InvalidOperationException("Повторная проверка обнаружила узел DME. Профиль не применён.");
       node.Name="WARP · "+(region.Length>0?region:"выход")+(colo.Length>0?" · "+colo:"")+" · "+node.Protocol.ToUpperInvariant();
-      samples.Sort();return new WarpPickResult{Node=node,Milliseconds=(int)samples[1]};
+      samples.Sort();node.Latency=(int)samples[1];node.Healthy=true;return new WarpPickResult{Node=node,Milliseconds=(int)samples[1]};
     }
   }
 }

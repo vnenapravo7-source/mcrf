@@ -4,20 +4,15 @@
     {
       "Name": "OpenFlux",
       "Id": "openflux",
-      "Sha256": "e1a398efc07e7769167affdd84c8942a9b79d2e41c5b7d82668688a988098487",
-      "Size": 6160199,
-      "Version": "engines-2026-10-02-1",
-      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-openflux-windows-amd64.zip",
+      "Sha256": "2d307712eb844c7f7039ccd5605a8a1c6a98c234503240cad98eab42d4766eb9",
+      "Size": 31349248,
+      "Version": "0.16.0",
+      "Url": "https://github.com/OpenFluxTeam/OpenFlux/releases/download/v0.16.0/openflux-windows-amd64.exe",
       "Files": [
         {
-          "Size": 15303168,
+          "Size": 31349248,
           "Name": "openflux.exe",
-          "Sha256": "7aeb9ecd54dc26c7e2251fe649ac7a8bf127e119b4d6612c517be7e005e17a64"
-        },
-        {
-          "Size": 35149,
-          "Name": "LICENSE.openflux",
-          "Sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+          "Sha256": "2d307712eb844c7f7039ccd5605a8a1c6a98c234503240cad98eab42d4766eb9"
         }
       ]
     },
@@ -137,57 +132,57 @@
       "Size": 5151895
     },
     {
-      "Sha256": "e04e096925c91abc05380682291d7b3d147849818a28c9fdeb8c66109307f9c9",
-      "Name": "CSQTT 2.5 / Rebirth",
+      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-csqtt25-windows-amd64-calls32-20261023-1.zip",
+      "Version": "calls32-20261023-1",
+      "Size": 4615561,
+      "Sha256": "e886ab0f52c2403d88972aab7b4d7e80e6a77fcca208e311327553158271cfba",
       "Id": "csqtt25",
-      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-csqtt25-windows-amd64-vkturn-options-20261022-1.zip",
+      "Name": "CSQTT 2.5 / Rebirth",
       "Files": [
         {
-          "Size": 9282560,
+          "Sha256": "00ec6c15362c8ee6a6675e314db7351b2687f19350a3b2fe28f7bad2c64354a8",
           "Name": "csqtt25-client.exe",
-          "Sha256": "3cccbd96265e5553519c33bb13f074d536fd2e93429d3f13030fc0dd1e86477e"
+          "Size": 9283072
         },
         {
-          "Size": 2447,
-          "Name": "NOTICES.txt",
-          "Sha256": "01ec051b7b08b6590c01315dce4a63f33a172e6c508b20bd3bb36bee613e0ca3"
-        },
-        {
-          "Size": 185856,
+          "Sha256": "5de310284e361c8d10a92e0a18f8b17d2d5a0de1d091d9e3c0b92d86f9f6c7c2",
           "Name": "libunwind.dll",
-          "Sha256": "5de310284e361c8d10a92e0a18f8b17d2d5a0de1d091d9e3c0b92d86f9f6c7c2"
+          "Size": 185856
         },
         {
-          "Size": 4977,
+          "Sha256": "01ec051b7b08b6590c01315dce4a63f33a172e6c508b20bd3bb36bee613e0ca3",
+          "Name": "NOTICES.txt",
+          "Size": 2447
+        },
+        {
+          "Sha256": "a40d2e77c55592d930e593cea8143a634487225af511aec2da2910e8502c8c71",
           "Name": "LICENSE.transport",
-          "Sha256": "a40d2e77c55592d930e593cea8143a634487225af511aec2da2910e8502c8c71"
+          "Size": 4977
         }
-      ],
-      "Version": "vkturn-options-20261022-1",
-      "Size": 4615563
+      ]
     },
     {
-      "Sha256": "6e260e5eec812dc62617699cb2b1a0ff9d02db3a81cc1a5109baf99d470b69ff",
-      "Size": 2331371,
-      "Version": "capacity-20261023-1",
+      "Sha256": "4b1dced039b68a6a7afd72ad8793974968b6af8fd4155b1efe1dadadf0f64633",
+      "Size": 2332697,
+      "Version": "capacity-20261023-4",
       "Id": "csqtt-bridge",
-      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-csqtt-bridge-windows-amd64-capacity-20261023-1.zip",
+      "Url": "https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-csqtt-bridge-windows-amd64-capacity-20261023-4.zip",
       "Name": "Локальный IP-адаптер · CSQTT / QWDTT RAW",
       "Files": [
         {
-          "Size": 5889536,
-          "Name": "csqtt-netstack.exe",
-          "Sha256": "3027b9b947f664765a630407649ba932fb9f21e3d32efa2b08b756d7523d2332"
+          "Sha256": "d292f83fcb12e9bb29cc7eb3103060ac99cd0ef9f3b64edfaa15484c0b74f6fd",
+          "Size": 5892096,
+          "Name": "csqtt-netstack.exe"
         },
         {
+          "Sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
           "Size": 35149,
-          "Name": "LICENSE",
-          "Sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+          "Name": "LICENSE"
         },
         {
+          "Sha256": "2b7e0aad51d4a235a6cf5404072543cbeee0e2c0662822b7489b9bb07e99cc72",
           "Size": 124186,
-          "Name": "THIRD-PARTY-NOTICES.txt",
-          "Sha256": "2b7e0aad51d4a235a6cf5404072543cbeee0e2c0662822b7489b9bb07e99cc72"
+          "Name": "THIRD-PARTY-NOTICES.txt"
         }
       ]
     },

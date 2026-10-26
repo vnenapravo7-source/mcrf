@@ -23,7 +23,7 @@ pub(super) fn read() -> Result<super::Arguments, &'static str> {
     first.clear();
     let listen: SocketAddr=value.listen.parse().map_err(|_| "CSQTT_ERROR|Invalid private loopback listener")?;
     if !listen.ip().is_loopback() || !listen.is_ipv4() || listen.port()==0 || value.password.is_empty() || value.password.len()>4096
-        || (value.hashes.is_empty() && value.options.get("vk_hash_mode").map(String::as_str)!=Some("auto_js")) || value.hashes.len()>6 || value.hashes.iter().any(|h|h.len()<16 || h.len()>2048 || !h.bytes().all(|c|c.is_ascii_alphanumeric()||c==b'-'||c==b'_'||c==b'='||c==b'+'||c==b'/'))
+        || (value.hashes.is_empty() && value.options.get("vk_hash_mode").map(String::as_str)!=Some("auto_js")) || value.hashes.len()>32 || value.hashes.iter().any(|h|h.len()<16 || h.len()>2048 || !h.bytes().all(|c|c.is_ascii_alphanumeric()||c==b'-'||c==b'_'||c==b'='||c==b'+'||c==b'/'))
         || value.peer.len()>512 || value.peer.contains(['\r','\n','\0']) {
         return Err("CSQTT_ERROR|Invalid private endpoint or credentials");
     }
@@ -48,7 +48,7 @@ pub(super) fn read() -> Result<super::Arguments, &'static str> {
     if let Some(v)=value.options.get("generation") {arguments.generation=v.parse().map_err(|_|"MCRF_TURN_OPTIONS_V1|Invalid generation")?;}
     if let Some(v)=value.options.get("salt") {arguments.salt=v.clone();}
     arguments.exact_workers=true;
-    if std::env::var("MCRF_VALIDATE_ONLY").as_deref()==Ok("1") {println!("MCRF_CONFIG_PARSED|{}",serde_json::json!({"obfs":arguments.obfs,"fingerprint":arguments.fingerprint,"turn_transport":arguments.turn_transport,"captcha":arguments.captcha_mode,"auth":arguments.vk_auth_mode,"hash_mode":arguments.vk_hash_mode,"workers":arguments.workers,"exact":arguments.exact_workers,"turn_ips":arguments.custom_turn_ips,"client_ids":arguments.client_ids,"generation":arguments.generation}));std::process::exit(0);}
+    if std::env::var("MCRF_VALIDATE_ONLY").as_deref()==Ok("1") {println!("MCRF_CONFIG_PARSED|{}",serde_json::json!({"obfs":arguments.obfs,"fingerprint":arguments.fingerprint,"turn_transport":arguments.turn_transport,"captcha":arguments.captcha_mode,"auth":arguments.vk_auth_mode,"hash_mode":arguments.vk_hash_mode,"workers":arguments.workers,"exact":arguments.exact_workers,"hash_count":value.hashes.len(),"MCRF_CSQTT_CALLS32":true,"turn_ips":arguments.custom_turn_ips,"client_ids":arguments.client_ids,"generation":arguments.generation}));std::process::exit(0);}
     // 2.5 has no device-bound credential/generation. Never send legacy identity
     // fields as a new wire command or fall back to the 2.1 transport.
     let _=(value.device_id,value.generation,value.salt);

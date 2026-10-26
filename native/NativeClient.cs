@@ -690,7 +690,7 @@ void OnBlueAction(string key){if(key=="telegram-copy"){Clipboard.SetText(telegra
       RepositoryLink(box,"protocol3xui","Основные протоколы · 3x-ui Tunnels","https://github.com/vnenapravo7-source/3x-ui-tunnels",22,16,width);
       var main=L("VLESS (TCP, gRPC, WebSocket, XHTTP; TLS / REALITY), VMess, Trojan, Shadowsocks, WireGuard и AmneziaWG / WARP — встроены в клиент.",10,false,Muted);main.AutoSize=false;main.SetBounds(22,50,width,68);box.Controls.Add(main);
       var extra=L("Также: Hysteria 1/2, TUIC, AnyTLS, NaiveProxy, SSH, HTTP и SOCKS5. Доступность конкретного сервера зависит от его настроек.",10,false,Muted);extra.AutoSize=false;extra.SetBounds(22,122,width,56);box.Controls.Add(extra);
-      RepositoryLink(box,"protocolOpenFlux","OpenFlux · дополнительный движок","https://github.com/p1neappleXpress/OpenFlux",22,188,width);
+      RepositoryLink(box,"protocolOpenFlux","OpenFlux · дополнительный движок","https://github.com/OpenFluxTeam/OpenFlux",22,188,width);
       var flux=L("TCP-туннель с переключаемыми транспортами. Импорт openflux://v1/; движок запускается и останавливается вместе с подключением.",10,false,Muted);flux.AutoSize=false;flux.SetBounds(22,224,width,54);box.Controls.Add(flux);
       int half=(width-24)/2;
       RepositoryLink(box,"protocolCSQTT","CSQTT · репозиторий","https://github.com/amurcanov/csqtt",22,290,half);

@@ -1,0 +1,5 @@
+using System;using System.Linq;using System.Windows;using System.Windows.Controls;
+namespace Mcrf.Wpf {public sealed partial class MainWindow {
+ static bool IsCompactSettingsPage(string name){return new[]{"Автоопределение БС","Локальный прокси","Поведение программы","Оформление"}.Contains(name);}
+ void CompactSettingsPage(string name){CompactPageChrome(name);UIElement content;if(name=="Автоопределение БС")content=CompactBsSettings();else if(name=="Локальный прокси")content=CompactProxySettings();else if(name=="Оформление")content=CompactAppearanceParity();else{var behavior=new StackPanel();behavior.Children.Add(WindowBehaviorControls());var tools=ProfileTools();DetachProfileRecoveryButtons(tools);behavior.Children.Add(tools);content=behavior;}var panel=content as Panel;if(panel!=null){var heading=panel.Children.OfType<TextBlock>().FirstOrDefault();if(heading!=null&&heading.Text==name)panel.Children.Remove(heading);panel.Margin=new Thickness(0,4,0,8);}body.Children.Add(CompactScroll(content));FinishCompactPagePalette();}
+}}

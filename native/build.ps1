@@ -1,7 +1,16 @@
-param([string]$OutputPath,[string[]]$TestSources,[string]$TestEntryPoint,[switch]$Wpf,[string]$DependencyRoot,[string]$WinDivertDll,[string]$CoreExecutable)
+param([string]$OutputPath,[string[]]$TestSources,[string]$TestEntryPoint,[switch]$Wpf,[switch]$CompileOnly,[string]$DependencyRoot,[string]$WinDivertDll,[string]$CoreExecutable,[string]$BundledBridgeRoot)
 $ErrorActionPreference = 'Stop'
 if(!$CoreExecutable){throw 'Build native/singbox-host first, then pass -CoreExecutable. The old bundled core lacks private STOP support.'}
 $project = Split-Path -Parent $PSScriptRoot
+if(![IO.Path]::IsPathRooted($CoreExecutable)){throw 'CoreExecutable must be an explicit absolute path.'}
+$CoreExecutable=[IO.Path]::GetFullPath($CoreExecutable)
+if(!(Test-Path -LiteralPath $CoreExecutable -PathType Leaf)){throw 'CoreExecutable file is unavailable.'}
+$coreItem=Get-Item -LiteralPath $CoreExecutable -Force
+if(($coreItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'CoreExecutable must not be a symbolic link or reparse point.'}
+function Test-AsciiMarker([string]$Path,[string]$Marker){$needle=[Text.Encoding]::ASCII.GetBytes($Marker);$matched=0;$stream=[IO.File]::OpenRead($Path);try{$buffer=New-Object byte[] 65536;while(($read=$stream.Read($buffer,0,$buffer.Length))-gt 0){for($i=0;$i-lt$read;$i++){if($buffer[$i]-eq$needle[$matched]){$matched++;if($matched-eq$needle.Length){return $true}}else{$matched=if($buffer[$i]-eq$needle[0]){1}else{0}}}}return $false}finally{$stream.Dispose()}}
+function Assert-PrivateCore([string]$Path){$stream=[IO.File]::OpenRead($Path);$reader=[IO.BinaryReader]::new($stream);try{if($stream.Length -lt 512 -or $reader.ReadUInt16() -ne 0x5A4D){throw 'CoreExecutable is not a Windows PE file.'};$stream.Position=60;$offset=$reader.ReadInt32();if($offset -lt 64 -or $offset -gt $stream.Length-256){throw 'CoreExecutable has a damaged PE header.'};$stream.Position=$offset;if($reader.ReadUInt32() -ne 0x4550 -or $reader.ReadUInt16() -ne 0x8664){throw 'CoreExecutable must be Windows x64.'};$stream.Position=$offset+24;$magic=$reader.ReadUInt16();if($magic -ne 0x20B){throw 'CoreExecutable must use the PE32+ format.'};$stream.Position=$offset+24+68;if($reader.ReadUInt16() -ne 2){throw 'CoreExecutable must use the Windows GUI subsystem.'}}finally{$reader.Dispose()};if(!(Test-AsciiMarker $Path 'mcrf-stdin-control') -or !(Test-AsciiMarker $Path '1.14.2-lx.11-mcrf-stdin1')){throw 'CoreExecutable is not the pinned MCRF private-control core.'}}
+Assert-PrivateCore $CoreExecutable
+$trustedCoreHash=(Get-FileHash -LiteralPath $CoreExecutable -Algorithm SHA256).Hash
 $taskDependencyPrefix=[IO.Path]::GetFullPath((Join-Path $project 'work')).TrimEnd('\')+'\'
 if($DependencyRoot){$DependencyRoot=[IO.Path]::GetFullPath($DependencyRoot);if(!(Test-Path -LiteralPath $DependencyRoot -PathType Container)){throw 'Dependency directory is unavailable'}}
 function Resolve-TaskDependency([string]$Path){$full=[IO.Path]::GetFullPath($Path);if($DependencyRoot -and $full.StartsWith($taskDependencyPrefix,[StringComparison]::OrdinalIgnoreCase)){return Join-Path $DependencyRoot $full.Substring($taskDependencyPrefix.Length)};return $Path}
@@ -29,6 +38,8 @@ $resources = @(
   @((Join-Path $core 'sing-box.exe'), 'SplifyWin.Core.sing-box.exe'),
   @((Join-Path $project 'work/webview-sdk/package/lib/net462/Microsoft.Web.WebView2.Core.dll'), 'SplifyWin.Video.Microsoft.Web.WebView2.Core.dll'),
   @((Join-Path $project 'work/webview-sdk/package/lib/net462/Microsoft.Web.WebView2.WinForms.dll'), 'SplifyWin.Video.Microsoft.Web.WebView2.WinForms.dll'),
+  @((Join-Path $project 'work/webview-sdk/package/lib/net462/Microsoft.Web.WebView2.Wpf.dll'), 'Mcrf.Managed.Microsoft.Web.WebView2.Wpf.dll'),
+  @((Join-Path $project 'ports/android/app/src/main/assets/connection-scene-r10.html'), 'Mcrf.Android.connection-scene.html'),
   @((Join-Path $project 'work/webview-sdk/package/runtimes/win-x64/native/WebView2Loader.dll'), 'SplifyWin.Video.WebView2Loader.dll'),
   @((Join-Path $project 'work/webview-sdk/package/LICENSE.txt'), 'SplifyWin.Video.LICENSE.txt'),
   @((Join-Path $project 'work/webview-sdk/package/NOTICE.txt'), 'SplifyWin.Video.NOTICE.txt'),
@@ -75,7 +86,11 @@ Add-Type -AssemblyName System.IO.Compression
 $packedRoot=Join-Path $project 'work/packed-resources'
 New-Item -ItemType Directory -Path $packedRoot -Force | Out-Null
 foreach ($item in $resources) {
-  if($CoreExecutable -and $item[1] -eq 'SplifyWin.Core.sing-box.exe'){$item[0]=[IO.Path]::GetFullPath($CoreExecutable);if(!$item[0].StartsWith('D:\MCRF\Work\Windows\',[StringComparison]::OrdinalIgnoreCase)){throw 'Private core must be Windows-task-owned'}}
+  # Compile-only integration tests still exercise the real optional-engine
+  # catalogue.  Keep that small metadata resource so installed transports are
+  # discovered exactly as they are by the production application.
+  if($CompileOnly -and $item[1] -ne 'SplifyWin.Core.engine-catalog.json'){continue}
+  if($CoreExecutable -and $item[1] -eq 'SplifyWin.Core.sing-box.exe'){$item[0]=$CoreExecutable;if((Get-FileHash -LiteralPath $item[0] -Algorithm SHA256).Hash -ne $trustedCoreHash){throw 'CoreExecutable changed after trust validation.'}}
   if($item[1] -notin @('SplifyWin.Zapret.apps.WinDivert.dll','SplifyWin.Update.Installer.exe')){$item[0]=Resolve-TaskDependency $item[0]}
   # Optional transports are downloaded on demand, never embedded in mcrf.exe.
   if ([IO.Path]::GetFileName($item[0]) -match '^(openflux(?:-windows-amd64)?|csqtt(?:20|215|25)?-client|wdtt-client|qwdtt-client|libunwind)\.(exe|dll)$') {
@@ -101,6 +116,7 @@ $arguments += (Join-Path $PSScriptRoot 'VkMasqueRuntime.cs')
 $arguments += (Join-Path $PSScriptRoot 'CoreProcessHost.cs')
 $arguments += (Join-Path $PSScriptRoot 'TunIdentity.cs')
 $arguments += (Join-Path $PSScriptRoot 'ClientJournal.cs')
+$arguments += (Join-Path $PSScriptRoot 'FailureExplanations.cs')
 $arguments += (Join-Path $PSScriptRoot 'ChangeConfirmation.cs')
 $arguments += (Join-Path $PSScriptRoot 'HostsRepair.cs')
 $arguments += (Join-Path $PSScriptRoot 'HostsCandidates.cs')
@@ -143,10 +159,12 @@ $arguments += (Join-Path $PSScriptRoot 'VideoProbe.cs')
 $arguments += (Join-Path $PSScriptRoot 'BrowserVideoProbe.cs')
 $arguments += ('/r:'+(Join-Path $project 'work/webview-sdk/package/lib/net462/Microsoft.Web.WebView2.Core.dll'))
 $arguments += ('/r:'+(Join-Path $project 'work/webview-sdk/package/lib/net462/Microsoft.Web.WebView2.WinForms.dll'))
+if($Wpf){$arguments += ('/r:'+(Join-Path $project 'work/webview-sdk/package/lib/net462/Microsoft.Web.WebView2.Wpf.dll'))}
 $arguments += (Join-Path $PSScriptRoot 'ExitVerification.cs')
 $arguments += (Join-Path $PSScriptRoot 'SimpleDashboard.cs')
 $arguments += (Join-Path $PSScriptRoot 'ServiceConstructor.cs')
 $arguments += (Join-Path $PSScriptRoot 'ProfileStorage.cs')
+$arguments += (Join-Path $PSScriptRoot 'ProfileRecovery.cs')
 $arguments += (Join-Path $PSScriptRoot 'WindowsStartup.cs')
 $arguments += '/r:Microsoft.CSharp.dll'
 $arguments += (Join-Path $PSScriptRoot 'ByeTubeScan.cs')
@@ -182,11 +200,20 @@ if ($Wpf) {
 if ($TestSources) {
   if (-not $TestEntryPoint) { throw 'Tests require an explicit entry point.' }
   $arguments = @('/target:exe', "/main:$TestEntryPoint") + @($arguments | Where-Object { $_ -ne '/target:winexe' -and $_ -notlike '/win32manifest:*' })
-  $arguments += $TestSources
+  $arguments += @($TestSources | ForEach-Object { [IO.Path]::GetFullPath($_) })
 }
 $arguments=@($arguments | ForEach-Object {if($_ -like '/r:*'){'/r:'+(Resolve-TaskDependency $_.Substring(3))}else{$_}})
+if($BundledBridgeRoot){
+ $bundledCatalog=Join-Path $BundledBridgeRoot 'optional-engines.candidate.json'
+ $bundledData=Get-Content -LiteralPath $bundledCatalog -Raw | ConvertFrom-Json
+ $bundledPackage=$bundledData.Engines | Where-Object Id -EQ 'csqtt-bridge'
+ $bundledZip=Join-Path $BundledBridgeRoot ([IO.Path]::GetFileName($bundledPackage.Url))
+ if((Get-FileHash -LiteralPath $bundledZip).Hash -ne $bundledPackage.Sha256 -or (Get-Item -LiteralPath $bundledZip).Length -ne $bundledPackage.Size){throw 'Bundled bridge package mismatch'}
+ $arguments+=('/resource:'+$bundledCatalog+',Mcrf.Bundled.Bridge.catalog.json')
+ $arguments+=('/resource:'+$bundledZip+',Mcrf.Bundled.Bridge.zip')
+}
 $runtimeRows=@();$heavyArguments=@();$buildFolder=Split-Path -Parent ([IO.Path]::GetFullPath($OutputPath));$runtimeFolder=Join-Path $buildFolder 'runtime-components'
-if($Wpf -and !$TestSources){
+if($Wpf -and !$TestSources -and !$CompileOnly){
  New-Item -ItemType Directory -Path $runtimeFolder -Force | Out-Null
  foreach($argument in $arguments | Where-Object {$_ -like '/resource:*'}){$part=$argument.Substring(10);$split=$part.LastIndexOf(',');$file=$part.Substring(0,$split);$name=$part.Substring($split+1);if($name -notmatch '\.(exe|dll|zip|sys)(\.deflate)?$|^SplifyWin\.Presets\.bundle|^SplifyWin\.UI\.(NeonGlobe|BlueGlassBackdrop)\.png$'){continue};$hash=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant();$runtimeRows+=@{Name=$name;Hash=$hash;Size=(Get-Item -LiteralPath $file).Length};$heavyArguments+=$argument;$component=Join-Path $runtimeFolder "runtime-$hash.bin";if(!(Test-Path -LiteralPath $component)){Copy-Item -LiteralPath $file -Destination $component}}
  $runtimeCatalog=@{Format=1;Resources=@($runtimeRows)};$runtimeJson=Join-Path $buildFolder 'runtime-resources.json';$runtimeCatalog | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $runtimeJson -Encoding UTF8
@@ -194,7 +221,7 @@ if($Wpf -and !$TestSources){
 }
 & $compiler @arguments
 if ($LASTEXITCODE -ne 0) { throw "C# build failed: $LASTEXITCODE" }
-if($Wpf -and !$TestSources){
+if($Wpf -and !$TestSources -and !$CompileOnly){
  $thinFolder=Join-Path $buildFolder 'app';New-Item -ItemType Directory -Path $thinFolder -Force | Out-Null;$thinFile=Join-Path $thinFolder 'mcrf.exe';$marker=Join-Path $buildFolder 'thin-marker.txt';Set-Content -LiteralPath $marker -Value '1' -Encoding ASCII
  $thinArgs=@(('/out:'+$thinFile),('/resource:'+$marker+',Mcrf.Runtime.Thin'))+@($arguments | Where-Object {$_ -notlike '/out:*' -and $heavyArguments -notcontains $_})
  & $compiler @thinArgs

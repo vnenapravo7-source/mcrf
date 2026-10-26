@@ -9,8 +9,8 @@ using System.Windows.Media;
 using SplifyWin;
 namespace Mcrf.Wpf {
  public sealed partial class MainWindow {
-  async Task DeleteRoute(RouteList route){if(!Confirm("Удалить список «"+route.Name+"»?","Маршрутизация"))return;await RouteChange(()=>session.State.Lists.Remove(route));}
-  internal static void ReorderRoute(System.Collections.Generic.List<RouteList> routes,RouteList moving,RouteList destination,bool after){int target=routes.IndexOf(destination);if(moving==null||target<0||moving==destination)return;int source=routes.IndexOf(moving);if(source<0)return;routes.RemoveAt(source);target=routes.IndexOf(destination)+(after?1:0);routes.Insert(target,moving);}
+  async Task DeleteRoute(RouteList route){if(!Confirm("Удалить список «"+route.Name+"»?","Маршрутизация"))return;await ChangeSavedRoute(route.Id,current=>session.State.Lists.Remove(current));}
+  internal static void ReorderRoute(System.Collections.Generic.List<RouteList> routes,RouteList moving,RouteList destination,bool after){if(moving==null||destination==null)return;moving=routes.FirstOrDefault(r=>r.Id==moving.Id);destination=routes.FirstOrDefault(r=>r.Id==destination.Id);int target=routes.IndexOf(destination);if(moving==null||target<0||moving==destination)return;int source=routes.IndexOf(moving);if(source<0)return;routes.RemoveAt(source);target=routes.IndexOf(destination)+(after?1:0);routes.Insert(target,moving);}
   static T VisualAncestor<T>(DependencyObject child)where T:DependencyObject{while(child!=null){var found=child as T;if(found!=null)return found;child=child is Visual||child is System.Windows.Media.Media3D.Visual3D?VisualTreeHelper.GetParent(child):LogicalTreeHelper.GetParent(child);}return null;}
   void InstallRouteDrag(DataGrid table){
    table.AllowDrop=true;Point start=new Point();RouteList pending=null;bool dragging=false;

@@ -57,19 +57,24 @@ namespace SplifyWin {
       }
       cancellation.ThrowIfCancellationRequested();
     }
+    internal static string CaptchaFailureReason(Exception error,bool connectionCancelled){return error is OperationCanceledException?(connectionCancelled?"подключение отменено":"подтверждение не завершено вовремя"):JournalStyle.Redact(error==null?"неизвестная ошибка":error.Message);}
     public static void Start(ServerNode node,string csqttExecutable,string wdttExecutable,int port,Action<Process> register,Action<string> log,CancellationToken cancellation,Func<string,CancellationToken,System.Threading.Tasks.Task<string>> manualCaptcha=null,VkTurnPreferences vkSettings=null,string dataRoot=null,bool probeOnly=false){
       var json=new JavaScriptSerializer{MaxJsonLength=32768};
-      cancellation.ThrowIfCancellationRequested();if(port<1024||port>65535)throw new FormatException("Некорректный локальный порт туннеля");var settingsForNode=VkTurnOptions.ForNode(vkSettings??new VkTurnPreferences(),node);var nodeOptions=VkTurnSettings.Server(settingsForNode,node.Id);var profile=VkTurnOptions.Apply(node,TurnProfile.Parse(node.Link),nodeOptions);if(node.Protocol=="csqtt")profile.Csqtt25=CsqttGenerations.For(node).Id=="2.5";bool autoJs=VkTurnOptions.Value(nodeOptions,"vk_hash_mode")=="auto_js";if(autoJs&&!profile.Csqtt25&&String.IsNullOrEmpty(profile.VkToken)){if(!settingsForNode.Linked)throw new InvalidOperationException("Для Auto VK привяжите аккаунт в разделе VK TURN.");profile.VkToken=settingsForNode.Token;}if(autoJs&&probeOnly)throw new InvalidOperationException("Фоновый замер не создаёт сессию Auto JS; сначала выполните ручное подключение.");if(String.IsNullOrEmpty(profile.Password))throw new InvalidOperationException("Добавьте пароль подключения CSQTT перед запуском.");if(!autoJs){if(dataRoot!=null)profile.Hashes=VkTurnSettings.ResolveCalls(dataRoot,node.Id,node.Protocol,profile.Hashes,probeOnly,manualCaptcha,cancellation,profile.VkToken,nodeOptions).GetAwaiter().GetResult();else VkTurnSettings.Apply(profile,settingsForNode);}if(profile.Hashes.Length==0&&!autoJs)throw new InvalidOperationException("Добавьте звонки VK или включите автоматические звонки для этого сервера в разделе VK TURN.");string lastError="";int ready=0,captchaWaiting=0;string configIP=null,configDNS=null;object gate=new object();Process transport=null;
+      cancellation.ThrowIfCancellationRequested();if(port<1024||port>65535)throw new FormatException("Некорректный локальный порт туннеля");var settingsForNode=VkTurnOptions.ForNode(vkSettings??new VkTurnPreferences(),node);var nodeOptions=VkTurnSettings.Server(settingsForNode,node.Id);var profile=VkTurnOptions.Apply(node,TurnProfile.Parse(node.Link),nodeOptions);if(node.Protocol=="csqtt")profile.Csqtt25=CsqttGenerations.For(node).Id=="2.5";bool autoJs=VkTurnOptions.Value(nodeOptions,"vk_hash_mode")=="auto_js";if(autoJs&&!profile.Csqtt25&&String.IsNullOrEmpty(profile.VkToken)){if(!settingsForNode.Linked)throw new InvalidOperationException("Для Auto VK привяжите аккаунт в разделе VK TURN.");profile.VkToken=settingsForNode.Token;}if(autoJs&&probeOnly)throw new InvalidOperationException("Фоновый замер не создаёт сессию Auto JS; сначала выполните ручное подключение.");if(String.IsNullOrEmpty(profile.Password))throw new InvalidOperationException("Добавьте пароль подключения CSQTT перед запуском.");if(!autoJs){if(dataRoot!=null)profile.Hashes=VkTurnSettings.ResolveCalls(dataRoot,node.Id,node.Protocol,profile.Hashes,probeOnly,manualCaptcha,cancellation,profile.VkToken,nodeOptions,VkTurnSettings.MaximumCalls(node)).GetAwaiter().GetResult();else VkTurnSettings.Apply(profile,settingsForNode);}if(profile.Hashes.Length==0&&!autoJs)throw new InvalidOperationException("Добавьте звонки VK или включите автоматические звонки для этого сервера в разделе VK TURN.");string lastError="";int ready=0,captchaWaiting=0;string configIP=null,configDNS=null;object gate=new object();Process transport=null;System.Threading.Tasks.Task captchaTask=null;
       Action<string> output=line=>{
+        if(String.IsNullOrWhiteSpace(line))return;
+        lock(gate){if(lastError.StartsWith("FATAL_VK_RATE_LIMIT",StringComparison.Ordinal))return;}
+        string startupFailure=StartupFailure(line);if(startupFailure!=null){lock(gate)lastError=startupFailure;log(profile.Protocol.ToUpperInvariant()+": "+startupFailure);return;}
         if(profile.Protocol=="csqtt"&&line.StartsWith("CAPTCHA_SOLVE|",StringComparison.Ordinal)){
           var parts=line.Split(new[]{'|'},4);
           if(parts.Length!=4||!VkCalls.AllowedPage(parts[2])||manualCaptcha==null){lock(gate)lastError="VK требует ручную капчу. Откройте подключение из главного окна MCRF.";return;}
           if(Interlocked.CompareExchange(ref captchaWaiting,1,0)!=0)return;
           var owner=transport;
-          System.Threading.Tasks.Task.Run(async()=>{using(var timeout=CancellationTokenSource.CreateLinkedTokenSource(cancellation)){
+          captchaTask=System.Threading.Tasks.Task.Run(async()=>{using(var timeout=CancellationTokenSource.CreateLinkedTokenSource(cancellation)){
             timeout.CancelAfter(55000);
-            try{string proof=await manualCaptcha(parts[2],timeout.Token);if(!timeout.IsCancellationRequested&&owner!=null&&!owner.HasExited)SendPrivate(owner,"CAPTCHA_RESULT|"+(VkCalls.ValidProof(proof)?proof:"error:cancelled"));}
-            catch{}finally{Interlocked.Exchange(ref captchaWaiting,0);}
+            try{string proof=await manualCaptcha(parts[2],timeout.Token);if(timeout.IsCancellationRequested)throw new OperationCanceledException(timeout.Token);if(!VkCalls.ValidProof(proof))throw new InvalidOperationException("подтверждение отменено пользователем");if(owner!=null&&!owner.HasExited)SendPrivate(owner,"CAPTCHA_RESULT|"+proof);}
+            catch(Exception ex){string reason=CaptchaFailureReason(ex,cancellation.IsCancellationRequested);lock(gate)lastError="FATAL_CAPTCHA: "+reason;log(profile.Protocol.ToUpperInvariant()+": ошибка CAPTCHA: "+reason);if(owner!=null)try{if(!owner.HasExited)SendPrivate(owner,"CAPTCHA_RESULT|error:cancelled");}catch(Exception sendError){log(profile.Protocol.ToUpperInvariant()+": не удалось передать отказ CAPTCHA: "+JournalStyle.Redact(sendError.Message));}}
+            finally{Interlocked.Exchange(ref captchaWaiting,0);}
           }});return;
         }
         if(line.Contains("PROXY_READY|")){Interlocked.Exchange(ref ready,1);log(profile.Protocol.ToUpperInvariant()+": локальный SOCKS5 готов");return;}
@@ -83,7 +88,7 @@ namespace SplifyWin {
         }
         // Never forward VK response dumps, cookies or generated WG configs.
         if(line.IndexOf("PROXY_ERROR|",StringComparison.Ordinal)>=0||line.IndexOf("DENIED",StringComparison.OrdinalIgnoreCase)>=0||line.IndexOf("CSQTT_ERROR|",StringComparison.Ordinal)>=0){var safe=Redact(line,profile);lock(gate)lastError=safe;log(profile.Protocol.ToUpperInvariant()+": "+safe);}
-        else if(line.IndexOf("CAPTCHA",StringComparison.OrdinalIgnoreCase)>=0||line.IndexOf("КАПЧА",StringComparison.OrdinalIgnoreCase)>=0){lock(gate)lastError="VK требует капчу; автоматический вход ещё не подтверждён.";}
+        else if(IsCaptchaChallenge(line)){lock(gate)lastError="VK требует капчу; вход ещё не подтверждён.";}
       };
       Func<string> error=()=>{lock(gate)return lastError;};
       if(profile.Protocol=="wdtt"){
@@ -97,17 +102,29 @@ namespace SplifyWin {
       if(profile.Protocol=="csqtt"){var generation=CsqttGenerations.For(node);if(String.IsNullOrEmpty(csqttExecutable)||!String.Equals(Path.GetFileName(csqttExecutable),generation.Executable,StringComparison.OrdinalIgnoreCase))throw new FileNotFoundException("Скачайте движок "+generation.Label+". Другое поколение для этого подключения не используется.");}
       int workers=VkTurnSettings.ServerWorkers(settingsForNode,node.Id,profile.Csqtt25?"csqtt25":"csqtt",autoJs?6:profile.Hashes.Length,profile.Workers);
       if(workers!=18&&!HasWorkerControl(csqttExecutable))throw new InvalidOperationException("Для изменения потоков CSQTT обновите его Windows-модуль; старый движок настройку не поддерживает.");
+      if(profile.Csqtt25&&profile.Hashes.Length>6&&!Encoding.ASCII.GetString(File.ReadAllBytes(csqttExecutable)).Contains("MCRF_CSQTT_CALLS32"))throw new InvalidOperationException("Для более шести звонков обновите модуль CSQTT 2.5.");
       string captcha=VkTurnSettings.Server(vkSettings??new VkTurnPreferences(),node.Id).CaptchaMode;if(!String.IsNullOrEmpty(captcha)&&!Encoding.ASCII.GetString(File.ReadAllBytes(csqttExecutable)).Contains("MCRF_CSQTT_CAPTCHA_MODE"))throw new InvalidOperationException("Для выбора режима капчи обновите Windows-модуль CSQTT.");
       bool advanced=VkTurnOptions.NativeOptions(nodeOptions);if(advanced)VkTurnOptions.RequireModule(csqttExecutable);int rawPort=UdpPort();var csqtt=Spawn(csqttExecutable,CsqttGenerations.For(node).Id=="2.1.9"?"":"--mcrf-config-stdin",output,register,workers,String.IsNullOrEmpty(captcha)?"auto":captcha);transport=csqtt;
       var startup=new Dictionary<string,object>{{"peer",Address(profile.Host,profile.Port)},{"listen","127.0.0.1:"+rawPort},{"password",profile.Password},{"hashes",profile.Hashes},{"device_id",VkTurnOptions.Value(nodeOptions,"device_id",DeviceId())},{"generation",NextGeneration()},{"salt",Guid.NewGuid().ToString("N")}};var privateOptions=new Dictionary<string,string>(nodeOptions.Options);if(autoJs)privateOptions["vk_token"]=profile.VkToken;if(advanced)startup["options"]=privateOptions.Where(p=>!new[]{"server","server_port","password","hashes","device_id"}.Contains(p.Key)).ToDictionary(p=>p.Key,p=>p.Value);SendPrivate(csqtt,json.Serialize(startup));
       if(autoJs&&profile.Csqtt25)SendPrivate(csqtt,"VK_JS_BOOTSTRAP:"+Convert.ToBase64String(Encoding.UTF8.GetBytes(json.Serialize(new{token=profile.VkToken}))));
       Wait(csqtt,()=>{lock(gate)return configIP!=null;},error,cancellation,"CSQTT");
+      if(captchaTask!=null&&captchaTask.IsFaulted)captchaTask.GetAwaiter().GetResult();
       string ipText,dnsText;lock(gate){ipText=configIP;dnsText=configDNS;}
-      StartRawBridge(wdttExecutable,rawPort,ipText,dnsText,port,register,log,cancellation);
+      StartRawBridge(wdttExecutable,rawPort,ipText,dnsText,port,register,log,cancellation,1400,true);
     }
-    public static void StartRawBridge(string executable,int rawPort,string ip,string dns,int socksPort,Action<Process> register,Action<string> log,CancellationToken cancellation,int mtu=1300){
-      if(String.IsNullOrEmpty(executable)||!String.Equals(Path.GetFileName(executable),"csqtt-netstack.exe",StringComparison.OrdinalIgnoreCase))throw new FileNotFoundException("Скачайте компонент «Локальный IP-адаптер». Пакет WDTT не требуется.");
-      int ready=0;string error="";var child=Spawn(executable,"-csqtt-raw-peer 127.0.0.1:"+rawPort+" -csqtt-ip "+ZapretRuntime.Quote(ip)+" -csqtt-dns "+ZapretRuntime.Quote(dns)+" -socks-listen 127.0.0.1:"+socksPort+" -mtu "+mtu,line=>{if(line.Contains("PROXY_READY|"))Interlocked.Exchange(ref ready,1);else if(line.Contains("IP_ADAPTER_CAPACITY|queued"))log("Локальный IP-адаптер: достигнут предел соединений; новые подключения ожидают освобождения слота, а не сбрасываются.");else if(line.Contains("FATAL")){error="FATAL: локальный IP-адаптер не запустился";log("Локальный IP-адаптер: "+JournalStyle.Redact(line));}},register);
+    public static string StartupFailure(string line){
+      // Report only the classification: native error dumps can contain secrets.
+      if(!String.IsNullOrEmpty(line)&&Regex.IsMatch(line,@"(?i)\berror_code\b[^0-9\r\n]{0,6}9\b|\bflood\s+control\b"))return "FATAL_VK_RATE_LIMIT: VK временно ограничил подключения для внешнего IP (Flood control, код 9). Повторите подключение позже.";
+      return null;
+    }
+    public static bool IsCaptchaChallenge(string line){
+      // A configuration banner ("Captcha: AUTO") is not a challenge.
+      // Manual challenges are handled above by the structured SOLVE message.
+      return !String.IsNullOrEmpty(line)&&(line.IndexOf("CAPTCHA_REQUIRED",StringComparison.OrdinalIgnoreCase)>=0||line.IndexOf("CAPTCHA_WAIT",StringComparison.OrdinalIgnoreCase)>=0);
+    }
+    public static void StartRawBridge(string executable,int rawPort,string ip,string dns,int socksPort,Action<Process> register,Action<string> log,CancellationToken cancellation,int mtu=1280,bool csqttTransport=false){
+      if(String.IsNullOrEmpty(executable)||!String.Equals(Path.GetFileName(executable),"csqtt-netstack.exe",StringComparison.OrdinalIgnoreCase))throw new FileNotFoundException("Скачайте компонент «Локальный IP-адаптер». Пакет WDTT не требуется.");if(csqttTransport&&!Encoding.ASCII.GetString(File.ReadAllBytes(executable)).Contains("csqtt-transport"))throw new InvalidOperationException("Обновите компонент «Локальный IP-адаптер»: установленная версия не поддерживает мост CSQTT с MTU 1400.");
+      int ready=0;string error="";var child=Spawn(executable,"-csqtt-raw-peer 127.0.0.1:"+rawPort+" -csqtt-ip "+ZapretRuntime.Quote(ip)+" -csqtt-dns "+ZapretRuntime.Quote(dns)+" -socks-listen 127.0.0.1:"+socksPort+" -mtu "+mtu+(csqttTransport?" -csqtt-transport":""),line=>{if(line.Contains("PROXY_READY|"))Interlocked.Exchange(ref ready,1);else if(line.Contains("IP_ADAPTER_CAPACITY|queued"))log("Локальный IP-адаптер: достигнут предел соединений; новые подключения ожидают освобождения слота, а не сбрасываются.");else if(line.Contains("FATAL")){error="FATAL: локальный IP-адаптер не запустился";log("Локальный IP-адаптер: "+JournalStyle.Redact(line));}},register);
       Wait(child,()=>Volatile.Read(ref ready)!=0,()=>error,cancellation,"Локальный IP-адаптер");log("Локальный IP-адаптер: SOCKS5 готов");
     }
   }

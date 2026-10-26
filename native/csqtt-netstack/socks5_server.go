@@ -36,7 +36,11 @@ const (
 	socksReplyUnsupported = 0x07
 	socksReplyAddressType = 0x08
 	socksMaxUDPDatagram   = 64 * 1024
-	socksMaxUDPFlows      = 64
+	// Steam/Dota probes more than one hundred regions over one SOCKS UDP
+	// association and waits for the replies after sending the whole burst.
+	// Evicting at 64 closes the earliest (often nearest) probes before their
+	// replies arrive, so the game reports that no region latency is available.
+	socksMaxUDPFlows      = 512
 	socksMaxClients       = 512
 	socksHandshakeTimeout = 15 * time.Second
 	socksUDPFlowIdle      = 2 * time.Minute

@@ -6,7 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 namespace Mcrf.Wpf {
  public sealed partial class MainWindow {
-  UIElement RepositoryLink(string caption,string url){var text=new TextBlock{Margin=new Thickness(0,6,0,10)};var link=new Hyperlink(new Run(caption)){Foreground=Brush("#4EE7FC"),NavigateUri=new Uri(url)};link.RequestNavigate+=(s,e)=>{Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri){UseShellExecute=true});e.Handled=true;};text.Inlines.Add(link);return text;}
+  UIElement RepositoryLink(string caption,string url){var text=new TextBlock{Margin=new Thickness(0,6,0,10)};var link=new Hyperlink(new Run(caption)){Foreground=Brush(CompactVisualAccent),NavigateUri=new Uri(url)};link.RequestNavigate+=(s,e)=>{Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri){UseShellExecute=true});e.Handled=true;};text.Inlines.Add(link);return text;}
   sealed class ProtocolRow{public string Name,Features,Engine,Source;public string Optional;}
   UIElement ProtocolsContent(){
    var panel=new DockPanel();var intro=Text("Протокол определяется сервером. Дополнительные движки устанавливаются отдельно; существующие подключения сохраняются.");intro.Margin=new Thickness(0,8,0,14);DockPanel.SetDock(intro,Dock.Top);panel.Children.Add(intro);
