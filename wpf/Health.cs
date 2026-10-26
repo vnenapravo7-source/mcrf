@@ -10,16 +10,33 @@ namespace Mcrf.Wpf {
   DateTime lastBsDetection=DateTime.MinValue;bool bsDetectionSwitching;
   static string Rate(float kib){return kib>=1024?(kib/1024).ToString("0.0")+" МБ/с":kib.ToString("0")+" КБ/с";}
   internal static int AutoBsTransition(bool bsActive,int directResponses){if(directResponses<0)return 0;if(!bsActive&&directResponses==0)return 1;if(bsActive&&directResponses>0)return -1;return 0;}
-  DispatcherTimer firstSetupTimer;bool firstSetupScheduled;internal Func<bool> AdvancedOfferForTests;bool advancedOfferSaving;
+  DispatcherTimer firstSetupTimer;bool firstSetupScheduled;internal Func<bool> AdvancedOfferForTests;internal bool FirstSetupActiveForTests;bool advancedOfferSaving;
   static bool ShouldOfferFirstSetup(bool seen,bool diagnostic){return !seen&&!diagnostic;}
   static bool FirstSetupWindowReady(bool busy,bool visible,bool active,bool modal,bool closing){return !busy&&visible&&active&&!modal&&!closing;}
   void ScheduleFirstSetup(){
-   string build=typeof(MainWindow).Assembly.ManifestModule.ModuleVersionId.ToString("N");if(firstSetupScheduled||session==null||diagnostic||session.State.AdvancedOfferBuild==build)return;
+   if(firstSetupScheduled||session==null||!ShouldOfferFirstSetup(session.State.SetupSeen,diagnostic))return;
+   string build=typeof(MainWindow).Assembly.ManifestModule.ModuleVersionId.ToString("N");
    firstSetupScheduled=true;firstSetupTimer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(200)};
-   firstSetupTimer.Tick+=async(s,e)=>{if(closing||closeRequested||session==null){firstSetupTimer.Stop();return;}if(!FirstSetupWindowReady(busy,IsVisible,IsActive||AdvancedOfferForTests!=null,OwnedWindows.Cast<Window>().Any(w=>w.IsVisible),closing))return;firstSetupTimer.Stop();
-    bool wanted=AdvancedOfferForTests!=null?AdvancedOfferForTests():Confirm("Включить расширенные настройки? Они добавляют сохранённые правила, захват процессов, Zapret, WARP, мастер настройки и автодеплой. Выбор можно изменить в настройках.","Возможности MCRF");
-    advancedOfferSaving=true;try{await session.ChangeConfiguration(()=>{session.State.CompactAdvancedFeatures=wanted;session.State.InterfaceMode=wanted?0:1;session.State.AdvancedOfferBuild=build;});ApplyInterfaceMode();}catch(Exception ex){status.Text="Не удалось сохранить выбор возможностей: "+FailureExplanations.UserMessage(JournalStyle.Redact(ex.Message));}finally{advancedOfferSaving=false;}
-   };Closed+=(s,e)=>firstSetupTimer.Stop();firstSetupTimer.Start();
+   firstSetupTimer.Tick+=async(s,e)=>{
+    if(closing||closeRequested||session==null){firstSetupTimer.Stop();return;}
+    if(!FirstSetupWindowReady(busy,IsVisible,IsActive||FirstSetupActiveForTests||AdvancedOfferForTests!=null,OwnedWindows.Cast<Window>().Any(w=>w.IsVisible),closing))return;
+    firstSetupTimer.Stop();advancedOfferSaving=true;
+    try{
+     if(session.State.AdvancedOfferBuild!=build){
+      bool wanted=AdvancedOfferForTests!=null?AdvancedOfferForTests():ConfirmWithLabel("Включить расширенные настройки? Они добавляют сохранённые правила, захват процессов, Zapret, WARP и автодеплой. Выбор можно изменить в настройках.","Возможности MCRF","Включить");
+      if(closing||closeRequested)return;
+      await session.ChangeConfiguration(()=>{session.State.CompactAdvancedFeatures=wanted;session.State.InterfaceMode=wanted?0:1;session.State.AdvancedOfferBuild=build;});
+      if(closing||closeRequested)return;
+      ApplyInterfaceMode();Page(DefaultInterfacePage);
+     }
+     bool openWizard=ConfirmWithLabel("Открыть мастер настройки? Он поможет проверить подключение и выбрать подходящие стратегии. Проверка начнётся только по вашему нажатию.","Мастер настройки","Открыть мастер");
+     if(closing||closeRequested)return;
+     await session.ChangeConfiguration(()=>session.State.SetupSeen=true);
+     if(openWizard&&!closing&&!closeRequested)OpenDetachedWorkspace("Мастер настройки",SetupPage);
+    }catch(Exception ex){status.Text="Не удалось завершить первый запуск: "+FailureExplanations.UserMessage(JournalStyle.Redact(ex.Message));}
+    finally{advancedOfferSaving=false;}
+   };
+   Closed+=(s,e)=>firstSetupTimer.Stop();firstSetupTimer.Start();
   }
   async void CancelCoreStartup(){try{await Task.Run(()=>session.Core.Stop());}catch(Exception ex){status.Text=ex.Message;}}
   void RebuildAfterRollback(string message){Dispatcher.BeginInvoke(new Action(()=>{if(closing||closeRequested)return;Page(current);status.Text=message;}),System.Windows.Threading.DispatcherPriority.Background);}
