@@ -1,0 +1,73 @@
+{
+  "packageVersionCode": 9,
+  "hostEvidenceSha256": "b433c210f88551e8c3feb8226cb316db339b2d8259c71db06d4a48ae5de531ea",
+  "state": "COMPILED_NOT_EXECUTED",
+  "artifacts": [
+    {
+      "bytes": 19775216,
+      "nativeExecuted": false,
+      "abi": "arm64-v8a",
+      "elfChecked": true,
+      "sha256": "e39056c862559a80fa9a1760f8b3446e216e45a991eda15cd640c946f13d83e1",
+      "file": "arm64-v8a/libwdtt.so"
+    },
+    {
+      "bytes": 18904708,
+      "nativeExecuted": false,
+      "abi": "armeabi-v7a",
+      "elfChecked": true,
+      "sha256": "bf75973831e4f83724e28851155ab23e2ab813335f58be54fe06ffd4faf29568",
+      "file": "armeabi-v7a/libwdtt.so"
+    },
+    {
+      "bytes": 21018472,
+      "nativeExecuted": false,
+      "abi": "x86_64",
+      "elfChecked": true,
+      "sha256": "feab94e127e2e8b6651615c5bdcbb76be1172a54050c710b6a2ecaea93b9f502",
+      "file": "x86_64/libwdtt.so"
+    }
+  ],
+  "wdttDualFamilyContract": 1,
+  "legacyTransportStage": "",
+  "masqueMainInputSha256": "238a0f8b6d88af01bc5201bfb5f948d98b0627b819a6391abbc390d4697a452c",
+  "kind": "wdtt",
+  "providerOptionsContract": 1,
+  "turnHashPoolContract": 1,
+  "affectedLogSha256": "1d3db507e432288e5aeccbe1128bdc7f468c7cc8f7d6fd985f067f940b2563f5",
+  "nativeExecuted": false,
+  "stage": "D:/MCRF/Builds/Android/p3-turn-native-46f5e9b26ff74fcfb5f41ac629bd2767",
+  "processGroupContract": 0,
+  "turnFeatureInputs": [
+    {
+      "file": "mcrf_wdtt.go",
+      "sha256": "0ecf37e1228a329358dbe65eec895e066c2377e1c96dec1681c0e5a27d0255f2"
+    },
+    {
+      "file": "socks5_server.go",
+      "sha256": "af32dad785b38192ca541b6a6c4b4c4858671b4c8fd79d194ae98e1885c96226"
+    },
+    {
+      "file": "http_connect_server.go",
+      "sha256": "1a7272b51a35bc6f922a424d9bbccc8a04a2a65cd4da120c4df8f4114f71befa"
+    }
+  ],
+  "providerOptionsInputSha256": "0ecf37e1228a329358dbe65eec895e066c2377e1c96dec1681c0e5a27d0255f2",
+  "hostTests": "PASS 4 new affected cases; unchanged feature evidence retained separately",
+  "source": "D:/MCRF/Builds/Android/p3-turn-source-fabdba4c92054619a752ba0145bd5e63/module",
+  "processGroupInputs": [],
+  "affectedCases": [
+    "TestMcrfWdttExtendedHashPool",
+    "TestMcrfWdttIPv6TCPAddressAndFamily",
+    "TestMcrfWdttIPv6UDPReplyAndRequestRoundTrip"
+  ],
+  "sourceStable": true,
+  "captchaWaiterCapability": "",
+  "p3PerformanceAuthority": "human-20261023-finish-current-fixes-then-p3-p4",
+  "apkBuilt": false,
+  "newAffectedExecutionCount": 3,
+  "baselineReceiptSha256": "2e100cff4b643518cf4b1c819b321877fb8b7f0d485952bfd3fba47691e082d2",
+  "masqueContract": 1,
+  "packageVersionName": "0.1.0-performance.9",
+  "sourceManifestSha256": "05cc0459aed5a9d2482d870e35195ee0928f5899103ac29520c22a7de36db113"
+}

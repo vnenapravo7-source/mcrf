@@ -1,0 +1,121 @@
+{
+  "binaryExecuted": false,
+  "linkedModules": 17,
+  "files": [
+    {
+      "origin": "www.bamsoftware.com/git/dnstt.git COPYING",
+      "bytes": 7048,
+      "file": "DNSTT-LICENSE",
+      "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+    },
+    {
+      "origin": "Go toolchain",
+      "bytes": 1453,
+      "file": "go/LICENSE",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "origin": "github.com/andybalholm/brotli@v1.0.6",
+      "bytes": 1084,
+      "file": "dependencies/fdc0815492b5c6329ab9c592d86c37b69f8b424ae7186eccfe7b846009007def/LICENSE",
+      "sha256": "3d180008e36922a4e8daec11c34c7af264fed5962d07924aea928c38e8663c94"
+    },
+    {
+      "origin": "github.com/cloudflare/circl@v1.3.7",
+      "bytes": 3028,
+      "file": "dependencies/e12ff7fa80766fcefbfb52838534f6a3f724516842bad70715b3e3f052c5611d/LICENSE",
+      "sha256": "b0da1764fe4d13d610b695536fc3f2ebc362482d053a1cd258e36975bc6b97a7"
+    },
+    {
+      "origin": "github.com/flynn/noise@v1.0.0",
+      "bytes": 1544,
+      "file": "dependencies/7781ede46dd741d3ce16755e0dc58b6c201c6f056ce599a567fb6f85454fd35f/LICENSE",
+      "sha256": "42d4cb1b0c67fe32f716fca52b3d7148406b09c8024e3844ac0595707557da49"
+    },
+    {
+      "origin": "github.com/klauspost/compress@v1.17.4",
+      "bytes": 16733,
+      "file": "dependencies/7e7877fae212e622c6d6cf21be9e8df34937ff5564132a295c52a2c59a6f4d7f/LICENSE",
+      "sha256": "0d9e582ee4bff57bf1189c9e514e6da7ce277f9cd3bc2d488b22fbb39a6d87cf"
+    },
+    {
+      "origin": "github.com/klauspost/cpuid/v2@v2.2.6",
+      "bytes": 1078,
+      "file": "dependencies/1273115e63b2119cb369654d248d8172d630eb72e0b59b9ac08bd579af78036c/LICENSE",
+      "sha256": "5d966570d7a442d4e969892860a914e542c97f262c873baee8f0aa48e1f40212"
+    },
+    {
+      "origin": "github.com/klauspost/reedsolomon@v1.12.0",
+      "bytes": 1107,
+      "file": "dependencies/4adbeae212935b79a2f727fdd386d51a5d53b38a82dd671cad3ba6c38c6de553/LICENSE",
+      "sha256": "345aa942daa8c117669a85bd75f44a8364faceee962812ddb5a576977e0610ee"
+    },
+    {
+      "origin": "github.com/pkg/errors@v0.9.1",
+      "bytes": 1312,
+      "file": "dependencies/fa7f1e954b96b074817073092e12c24c9f822389d3c310eb3f824e08a068c565/LICENSE",
+      "sha256": "8d427fd87bc9579ea368fde3d49f9ca22eac857f91a9dec7e3004bdfab7dee86"
+    },
+    {
+      "origin": "github.com/refraction-networking/utls@v1.6.6",
+      "bytes": 1479,
+      "file": "dependencies/a94aadcea5e9ebde5792bd596da8d6819128c0bfa91cbf5e2bad88611f03fe59/LICENSE",
+      "sha256": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067"
+    },
+    {
+      "origin": "github.com/templexxx/cpu@v0.1.0",
+      "bytes": 1589,
+      "file": "dependencies/c8260242dd35e09100a36bd9dbd0dd90ace4fec9c4e4ee9fe759e646fffed791/LICENSE",
+      "sha256": "9ee43ec86c1e1d26ca4e2370901c20f3fc59c03be38fbd426ea41dd4bac5fe77"
+    },
+    {
+      "origin": "github.com/templexxx/xorsimd@v0.4.2",
+      "bytes": 1086,
+      "file": "dependencies/b3e7e3f33eb9b5aa317e18d8e25d3383b8ca8b077cfb93dcbbb510ed28c5f45b/LICENSE",
+      "sha256": "bde63724c59d6bd3a45e82c004aead471968b3622385b884ce22f67949c77734"
+    },
+    {
+      "origin": "github.com/tjfoc/gmsm@v1.4.1",
+      "bytes": 11357,
+      "file": "dependencies/9b786a2f885365077910e201edb385cea2dbb6d1134a548e78b29708357b08ae/LICENSE",
+      "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+    },
+    {
+      "origin": "github.com/xtaci/kcp-go/v5@v5.6.8",
+      "bytes": 1077,
+      "file": "dependencies/58b642129dd88c28ac6e38c75c5332b83f99be1a750f68bb81140ebf0f4c3225/LICENSE",
+      "sha256": "014febf829eb357136326626bb25a2c361894b90bb78daf0ec074133e35a8bf0"
+    },
+    {
+      "origin": "github.com/xtaci/smux@v1.5.24",
+      "bytes": 1071,
+      "file": "dependencies/7cf6d19f0887fe2866c26e970072eb658a85d149e806f2f9e423306d5dada636/LICENSE",
+      "sha256": "d3dc71253c64844d5f9a29f7b247e4e44db6dc049492d370ce43c399a0b54d75"
+    },
+    {
+      "origin": "golang.org/x/crypto@v0.21.0",
+      "bytes": 1479,
+      "file": "dependencies/a21cca9b574794548fa86ad80ae493c4663aae674d5de1264497bbc87399b9b0/LICENSE",
+      "sha256": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067"
+    },
+    {
+      "origin": "golang.org/x/net@v0.23.0",
+      "bytes": 1479,
+      "file": "dependencies/46dc23c8857c341eec11981b2f84f08f7c1439810b81d7b67236a2e009d44db5/LICENSE",
+      "sha256": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067"
+    },
+    {
+      "origin": "golang.org/x/sys@v0.18.0",
+      "bytes": 1479,
+      "file": "dependencies/d8cdfe35da6397c15dee6837722c2895fe49f7ef0ea52a6539ffb7406d17d6d5/LICENSE",
+      "sha256": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067"
+    },
+    {
+      "origin": "golang.org/x/text@v0.14.0",
+      "bytes": 1479,
+      "file": "dependencies/48412653c39783c56080902bc7869ac6bd2ec7317b61720bed459c7ad8b772b0/LICENSE",
+      "sha256": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067"
+    }
+  ],
+  "missingModules": []
+}

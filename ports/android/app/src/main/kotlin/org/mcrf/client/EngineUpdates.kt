@@ -17,9 +17,16 @@ object EngineUpdates {
     private class EngineUpdateUnavailable(message: String) : IllegalArgumentException(message)
     private val worker = Executors.newSingleThreadExecutor()
     private val busy = AtomicBoolean(false)
-    private val cancelled = AtomicBoolean(false)
+    @Volatile private var currentRun:EngineUpdateRun?=null
     private val installerResults=java.util.concurrent.ConcurrentLinkedQueue<Pair<Int,Int>>()
+    private val consentLock=Any()
+    private var livePreparedToken:String?=null // Only under consentLock, never restored from preferences.
     private fun prefs(context: Context) = context.getSharedPreferences("engine-updates", Context.MODE_PRIVATE)
+    private fun consentJournal(context:Context)=EngineConsentJournal.parse(prefs(context).getString("consentJournal",null))
+    private fun forgetConsent(context:Context,token:String) {
+        if(livePreparedToken==token)livePreparedToken=null
+        if(consentJournal(context)?.token==token)check(prefs(context).edit().remove("consentJournal").commit())
+    }
     data class Snapshot(val phase: EngineUpdatePolicy.Phase, val message: String, val received: Long, val total: Long)
     private fun save(context: Context, phase: EngineUpdatePolicy.Phase, message: String) {
         check(prefs(context).edit().putString("phase", phase.name).putString("message", message).commit())
@@ -56,7 +63,9 @@ object EngineUpdates {
     }
     fun confirmPendingReceipt(context:Context):Boolean {
         val pending=EngineUpdateGate.pending(context)?:return true
-        return EngineUpdateGate.complete(context,pending.token){gateReceipt(context,it)}
+        val confirmed=EngineUpdateGate.complete(context,pending.token){gateReceipt(context,it)}
+        if(confirmed)synchronized(consentLock){forgetConsent(context,pending.token)}
+        return confirmed
     }
     /** Called with actual Android onActivityResult, never inferred from focus or a timeout. */
     fun installerReturned(context:Context,request:Int,resultCode:Int) {
@@ -67,36 +76,55 @@ object EngineUpdates {
     }
     private fun drainInstallerResults(app:Context) {
         while(true){val result=installerResults.poll()?:return
-        try{
-            val pending=EngineUpdateGate.pending(app)
-            if(pending!=null&&pending.action in setOf("apk","remove")&&pending.requestCode==result.first){
-                EngineUpdateGate.complete(app,pending.token){gateReceipt(app,it)||result.second==android.app.Activity.RESULT_CANCELED}
-            }
-            recoverNow(app)
-        }catch(e:Exception){save(app,EngineUpdatePolicy.Phase.ERROR,e.message?.take(500)?:"Квитанция установщика пока не подтверждена.")}}
+        try{applyInstallerResult(app,result.first,result.second)}
+        catch(_:Exception){save(app,EngineUpdatePolicy.Phase.ERROR,"Квитанция установщика пока не подтверждена; проверь очередь обновления.")}}
     }
-    fun abortPreparedConsent(context:Context) {
-        if(snapshot(context).phase!=EngineUpdatePolicy.Phase.CONSENT)return
-        EngineUpdateGate.pending(context)?.takeIf{it.owner=="openflux_update"}?.let{EngineUpdateGate.complete(context,it.token){true}}
+    /** Same handler for queued Android callbacks and isolated negative fixtures.
+     * RESULT_OK alone is not an APK receipt; late request codes cannot clear a new token. */
+    internal fun applyInstallerResult(app:Context,request:Int,resultCode:Int) {
+        val pending=EngineUpdateGate.pending(app)
+        if(pending!=null&&pending.action in setOf("apk","remove")&&pending.requestCode==request){
+            if(EngineUpdateGate.complete(app,pending.token){gateReceipt(app,it)||resultCode==android.app.Activity.RESULT_CANCELED})
+                synchronized(consentLock){forgetConsent(app,pending.token)}
+        }
+        recoverNow(app)
+    }
+    fun abortPreparedConsent(context:Context,expectedToken:String?=null) = synchronized(consentLock) {
+        val pending=EngineUpdateGate.pending(context)?.takeIf{it.owner=="openflux_update"&&it.action=="apk"}?:return@synchronized
+        if(expectedToken!=null&&pending.token!=expectedToken)return@synchronized
+        if(!EngineConsentJournal.mayAbort(pending.token,consentJournal(context)))return@synchronized
+        if(!EngineUpdateGate.complete(context,pending.token){true})return@synchronized
+        forgetConsent(context,pending.token)
         save(context,EngineUpdatePolicy.Phase.QUEUED,"Подготовленный APK сохранён; установщик не запускался.")
     }
-    fun installerLaunchFailed(context:Context) {
-        EngineUpdateGate.pending(context)?.takeIf{it.owner=="openflux_update"}?.let{EngineUpdateGate.complete(context,it.token){true}}
+    fun installerLaunchFailed(context:Context,expectedToken:String) = synchronized(consentLock) {
+        val pending=EngineUpdateGate.pending(context)?.takeIf{it.owner=="openflux_update"&&it.action=="apk"&&it.token==expectedToken}?:return@synchronized
+        if(consentJournal(context)?.token!=expectedToken)return@synchronized
+        if(!EngineUpdateGate.complete(context,pending.token){true})return@synchronized
+        forgetConsent(context,pending.token)
         save(context,EngineUpdatePolicy.Phase.QUEUED,"Установщик не открылся; проверенный APK остаётся в очереди.")
     }
-    fun stopDownload() { cancelled.set(true) }
-    @Synchronized private fun run(context: Context, operation: (Context) -> Unit): Boolean {
-        if (!busy.compareAndSet(false, true)) return false
-        cancelled.set(false)
+    fun stopDownload() { currentRun?.cancel() }
+    private fun cancelled()=currentRun?.cancelled==true
+    private fun run(context: Context, operation: (Context) -> Unit): Boolean = runOwned(context,operation)!=null
+    @Synchronized private fun runOwned(context: Context, operation: (Context) -> Unit): EngineUpdateRun? {
+        if (!busy.compareAndSet(false, true)) return null
+        val attempt=EngineUpdateRun();currentRun=attempt
         val app = context.applicationContext
-        worker.execute {
+        try {worker.execute {
+            var failed=false
             try { operation(app) } catch (error: Exception) {
+                failed=true
                 save(app, EngineUpdatePolicy.Phase.ERROR, error.message?.take(500) ?: "Не удалось обновить движок. Повтори проверку.")
-            } finally { busy.set(false) }
-        }
-        return true
+            } finally {
+                attempt.finish(failed||runCatching{snapshot(app).phase==EngineUpdatePolicy.Phase.ERROR}.getOrDefault(true))
+                busy.set(false)
+            }
+        }}catch(error:Exception){attempt.finish(true);busy.set(false);throw error}
+        return attempt
     }
     private fun json(uri: URI): String {
+        if(cancelled())throw InterruptedException("Проверка обновления движка отменена.")
         require(uri.scheme == "https" && uri.host == "api.github.com" && uri.userInfo == null && uri.port == -1)
         val c = uri.toURL().openConnection() as HttpsURLConnection
         try {
@@ -152,10 +180,12 @@ object EngineUpdates {
         EnginePackages.verifyArchive(context, file, "openflux"); EnginePackages.verifyRequirements(context, file, setOf("openflux"))
         if (metadata(context, file) != revision(context)) throw EngineUpdateUnavailable("Этот APK не собран из обнаруженного стабильного commit OpenFlux. Ожидаем публикацию совместимого модуля MCRF.")
     }
-    fun check(context: Context, fetchAutomatically: Boolean = false): Boolean = run(context) { app ->
-        if (installationPending(app)) return@run
+    fun check(context: Context, fetchAutomatically: Boolean = false): Boolean = run(context) {checkNow(it,fetchAutomatically)}
+    internal fun checkScheduled(context:Context):EngineUpdateRun?=runOwned(context){checkNow(it,true)}
+    private fun checkNow(app:Context,fetchAutomatically:Boolean) {
+        if (installationPending(app)) return
         // A pending consent cannot be replaced by a periodic discovery operation.
-        if (prefs(app).contains("file")) { recoverNow(app); return@run }
+        if (prefs(app).contains("file")) { recoverNow(app); return }
         save(app, EngineUpdatePolicy.Phase.CHECKING, "Проверяем стабильную версию и точный commit оригинального OpenFlux…")
         val tag = EngineUpdatePolicy.stableTag(JSONArray(json(URI("https://api.github.com/repos/${EngineUpdatePolicy.UPSTREAM}/releases?per_page=100"))))
         // target_commitish may be a moving branch. Resolve the tag to the actual commit instead.
@@ -163,13 +193,14 @@ object EngineUpdates {
         check(prefs(app).edit().putString("sourceVersion", latest.version).putString("sourceCommit", latest.commit).putLong("checkedAt", System.currentTimeMillis()).commit())
         val installed = runCatching { metadata(app) }.getOrNull()
         if (installed != null && !EngineUpdatePolicy.needsUpdate(installed, latest)) {
-            save(app, EngineUpdatePolicy.Phase.CURRENT, "Установлен стабильный OpenFlux ${installed.version} · ${installed.commit.take(12)}."); return@run
+            save(app, EngineUpdatePolicy.Phase.CURRENT, "Установлен стабильный OpenFlux ${installed.version} · ${installed.commit.take(12)}."); return
         }
+        if(cancelled())throw InterruptedException("Проверка обновления движка отменена.")
         val candidate = try { EnginePackages.published("openflux") } catch (e: EnginePackage.Unpublished) {
-            save(app, EngineUpdatePolicy.Phase.UNPUBLISHED, "Оригинальный OpenFlux: $tag · ${latest.commit.take(12)}. Совместимый отдельный APK MCRF ещё не опубликован."); return@run
+            save(app, EngineUpdatePolicy.Phase.UNPUBLISHED, "Оригинальный OpenFlux: $tag · ${latest.commit.take(12)}. Совместимый отдельный APK MCRF ещё не опубликован."); return
         }
         if (prefs(app).getString("rejectedDigest", null) == candidate.sha256 && prefs(app).getString("rejectedCommit", null) == latest.commit) {
-            save(app, EngineUpdatePolicy.Phase.UNPUBLISHED, "Оригинальный OpenFlux: $tag. Опубликованный APK MCRF уже проверен и содержит другой исходный commit; ждём новый совместимый пакет."); return@run
+            save(app, EngineUpdatePolicy.Phase.UNPUBLISHED, "Оригинальный OpenFlux: $tag. Опубликованный APK MCRF уже проверен и содержит другой исходный commit; ждём новый совместимый пакет."); return
         }
         check(prefs(app).edit().putString("asset", assetJson(candidate).toString()).putLong("total", candidate.bytes).putLong("received", 0).commit())
         save(app, EngineUpdatePolicy.Phase.AVAILABLE, "OpenFlux $tag · ${latest.commit.take(12)}. Пакет MCRF: ${candidate.bytes} байт. Исходный commit будет проверен внутри подписанного APK.")
@@ -179,12 +210,12 @@ object EngineUpdates {
     private fun downloadNow(app: Context) {
         require(!prefs(app).contains("file")) { "Уже есть APK в очереди установки." }
         save(app, EngineUpdatePolicy.Phase.DOWNLOADING, "Загружаем отдельный APK и проверяем размер, SHA-256, подпись, интерфейс, ABI и исходный commit…")
-        val file = EnginePackages.download(app, asset(app), { cancelled.get() }, { received -> prefs(app).edit().putLong("received", received).apply() })
+        val file = EnginePackages.download(app, asset(app), { cancelled() }, { received -> prefs(app).edit().putLong("received", received).apply() })
         try {
             verify(app, file)
             retainPrevious(app)
-            check(!cancelled.get()) { "Загрузка отменена; установленный движок сохранён." }
-            val durable=EngineUpdateQueue.copyVerified(file,queueDirectory(app),asset(app)){cancelled.get()}
+            check(!cancelled()) { "Загрузка отменена; установленный движок сохранён." }
+            val durable=EngineUpdateQueue.copyVerified(file,queueDirectory(app),asset(app)){cancelled()}
             try { check(prefs(app).edit().putString("file",durable.name).putString("fileStore","noBackup").commit()) }
             catch(e:Exception){durable.delete();throw e}
             file.delete()
@@ -210,10 +241,39 @@ object EngineUpdates {
     }
     fun rollbackFile(context: Context): File? = File(context.noBackupFilesDir, "engine-update-rollback/openflux.apk").takeIf { it.isFile }
     private fun recoverNow(app: Context) {
+        val heldPreparation=synchronized(consentLock) {
+            val pending=EngineUpdateGate.pending(app)
+            if(pending?.owner=="openflux_update"&&pending.action=="apk") {
+                when(EngineConsentJournal.recovery(pending.token,consentJournal(app),livePreparedToken)) {
+                    EngineConsentJournal.Recovery.LIVE_PREPARATION -> {
+                        save(app,EngineUpdatePolicy.Phase.CONSENT,"Проверенный APK подготовлен; ожидаем завершение текущего действия.")
+                        true
+                    }
+                    EngineConsentJournal.Recovery.RELEASE_PREPARED -> {
+                        check(EngineUpdateGate.complete(app,pending.token){true})
+                        forgetConsent(app,pending.token)
+                        false
+                    }
+                    else -> false // Missing/stale/LAUNCHING witness never authorizes barrier removal.
+                }
+            } else false
+        }
+        if(heldPreparation)return
         val mutation=EngineUpdateGate.pending(app)
         if(mutation?.action in setOf("apk","remove")&&!confirmPendingReceipt(app)){
-            val operation=if(mutation?.action=="remove")"удаления"else"установки"
-            save(app,EngineUpdatePolicy.Phase.INSTALLING,"Ожидаем точную квитанцию $operation или системный результат отмены. Соединение защищено общим межпроцессным барьером.");return
+            synchronized(consentLock) {
+                val current=EngineUpdateGate.pending(app)
+                // Receipt hashing happened outside this lock. Do not publish a
+                // stale phase over a replacement or a newly prepared UI owner.
+                if(current!=null&&current.token==mutation?.token) {
+                    val live=current.owner=="openflux_update"&&current.action=="apk"&&
+                        EngineConsentJournal.recovery(current.token,consentJournal(app),livePreparedToken)==EngineConsentJournal.Recovery.LIVE_PREPARATION
+                    val operation=if(current.action=="remove")"удаления"else"установки"
+                    if(live)save(app,EngineUpdatePolicy.Phase.CONSENT,"Проверенный APK подготовлен; ожидаем завершение текущего действия.")
+                    else save(app,EngineUpdatePolicy.Phase.INSTALLING,"Ожидаем точную квитанцию $operation или системный результат отмены. Соединение защищено общим межпроцессным барьером.")
+                }
+            }
+            return
         }
         val file = queuedFile(app)
         if(mutation?.action=="remove"){
@@ -232,34 +292,58 @@ object EngineUpdates {
     }
     fun recover(context: Context): Boolean = run(context) { recoverNow(it) }
     /** Must run off the UI thread; caller checks its active/foreground state again before launch. */
-    fun consentFile(context: Context, active: Boolean): File? {
+    data class PreparedConsent(val file:File,val token:String)
+    fun consentFile(context: Context, active: Boolean): PreparedConsent? {
         if (active) { save(context, EngineUpdatePolicy.readyPhase(true), "Установка отложена до отключения VPN/прокси и завершения замера."); return null }
         check(!busy.get()) { "Дождись завершения проверки обновления." }
         val file = queuedFile(context) ?: return null
         verify(context, file)
         val expected=asset(context)
-        val lease=EngineUpdateGate.beginMutation(context,"openflux_update","apk","openflux",expected.sha256,expected.bytes)
-            ?: run{save(context,EngineUpdatePolicy.Phase.QUEUED,"Движок занят соединением, замером или другой установкой. APK сохранён.");return null}
+        val lease=synchronized(consentLock){EngineUpdateGate.beginMutation(context,"openflux_update","apk","openflux",expected.sha256,expected.bytes)}
+            ?: run{
+                // A second view owns no token and must not turn an outstanding
+                // installer's WAIT state back into an installable queue.
+                synchronized(consentLock) {
+                    if(EngineUpdateGate.pending(context)==null)
+                        save(context,EngineUpdatePolicy.Phase.QUEUED,"Движок занят соединением, замером или другой установкой. APK сохранён.")
+                }
+                return null
+            }
         try {
         cleanupInstallerCopy(context)
         // Existing provider exposes only a read-only cache URI. Durable bytes remain until exact installed receipt.
         val installer=EngineUpdateQueue.copyVerified(file,context.cacheDir,asset(context))
         try {check(prefs(context).edit().putString("installerFile",installer.name).commit())}
         catch(e:Exception){installer.delete();throw e}
-        save(context, EngineUpdatePolicy.readyPhase(false), "Подтверди установку отдельного модуля в системном окне Android.")
-        return installer
-        }catch(e:Exception){EngineUpdateGate.complete(context,lease.pending.token){true};throw e}
+        synchronized(consentLock) {
+            check(EngineUpdateGate.pending(context)?.token==lease.pending.token)
+            check(prefs(context).edit().putString("consentJournal",EngineConsentJournal.Entry(lease.pending.token,EngineConsentJournal.Stage.PREPARED).encode()).commit())
+            livePreparedToken=lease.pending.token
+            save(context, EngineUpdatePolicy.readyPhase(false), "Подтверди установку отдельного модуля в системном окне Android.")
+        }
+        return PreparedConsent(installer,lease.pending.token)
+        }catch(e:Exception){
+            synchronized(consentLock){
+                if(EngineUpdateGate.complete(context,lease.pending.token){true})forgetConsent(context,lease.pending.token)
+            }
+            throw e
+        }
     }
-    fun installing(context: Context):Int {
-        val pending=requireNotNull(EngineUpdateGate.pending(context));require(pending.owner=="openflux_update")
+    fun installing(context: Context,expectedToken:String):Int = synchronized(consentLock) {
+        val pending=requireNotNull(EngineUpdateGate.pending(context));require(pending.owner=="openflux_update"&&pending.action=="apk"&&pending.token==expectedToken)
+        require(EngineConsentJournal.mayAbort(expectedToken,consentJournal(context))&&livePreparedToken==expectedToken)
+        // Commit BEFORE the external call; crashes after this point keep the durable barrier.
+        check(prefs(context).edit().putString("consentJournal",EngineConsentJournal.Entry(expectedToken,EngineConsentJournal.Stage.LAUNCHING).encode()).commit())
+        livePreparedToken=null
         save(context, EngineUpdatePolicy.Phase.INSTALLING, "Ожидаем результат Android. Принятие обновления подтверждается точным SHA-256 установленного APK.")
-        return pending.requestCode
+        pending.requestCode
     }
-    @Synchronized fun cancel(context: Context): Boolean {
-        if (busy.get()) { cancelled.set(true); return false }
-        if (snapshot(context).phase == EngineUpdatePolicy.Phase.INSTALLING) return false
+    @Synchronized fun cancel(context: Context): Boolean = synchronized(consentLock) {
+        if (busy.get()) { stopDownload(); return@synchronized false }
+        if (snapshot(context).phase == EngineUpdatePolicy.Phase.INSTALLING) return@synchronized false
         abortPreparedConsent(context)
+        if(EngineUpdateGate.pending(context)!=null)return@synchronized false // Unknown/outstanding installer is not cancelled by a UI phase.
         queuedFile(context)?.delete();cleanupInstallerCopy(context);check(prefs(context).edit().remove("file").remove("fileStore").remove("asset").commit())
-        save(context, EngineUpdatePolicy.Phase.IDLE, "Очередь обновления очищена. Установленный движок сохранён."); return true
+        save(context, EngineUpdatePolicy.Phase.IDLE, "Очередь обновления очищена. Установленный движок сохранён."); true
     }
 }

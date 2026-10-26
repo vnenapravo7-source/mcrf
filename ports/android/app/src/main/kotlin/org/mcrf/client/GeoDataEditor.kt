@@ -13,7 +13,7 @@ class GeoDataEditor(private val activity: MainActivity, private val store: Routi
     private fun build(advanced:Boolean): LinearLayout = with(activity) {
         val editing=store.snapshotWithGeneration();val s = GeoDataConfig.value(editing.first); val body = card()
         val generation=editing.second
-        val opened=JSONObject(s.toString())
+        val baseline=RoutingEditBaseline(s)
         body.addView(text("Геоданные", 18, Loft.INK)); body.addView(text("GeoIP содержит IP-сети, GeoSite — домены. Файлы .dat скачиваются только для выбранных категорий или кнопкой ниже. Для sing-box выбранные категории преобразуются в совместимые правила.", 12, Loft.MUTED), space(8, 8))
         val status = text("", 12, Loft.MUTED)
         val form = RoutingDefaultsForm(activity, body, s) {
@@ -24,7 +24,11 @@ class GeoDataEditor(private val activity: MainActivity, private val store: Routi
                     "Loyalsoldier" -> { captured.put("geoipUrl", "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"); captured.put("geositeUrl", "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat") }
                     "v2fly" -> { captured.put("geoipUrl", "https://github.com/v2fly/geoip/releases/latest/download/geoip.dat"); captured.put("geositeUrl", "https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat") }
                 }
-                GeoDataConfig.validate(captured); store.editInGeneration(generation){it.put("geoData",RoutingDefaultsEdits.merge(GeoDataConfig.value(it),opened,captured))}; runOnUiThread {status.text = "Сохранено"}
+                GeoDataConfig.validate(captured)
+                baseline.commit(captured){previous,edited->
+                    store.editInGeneration(generation){it.put("geoData",RoutingDefaultsEdits.merge(GeoDataConfig.value(it),previous,edited))}
+                }
+                runOnUiThread {status.text = "Сохранено"}
             } catch (e: Exception) { runOnUiThread {status.text = e.message} }
             }
         }
@@ -61,7 +65,7 @@ class GeoDataEditor(private val activity: MainActivity, private val store: Routi
                     try {
                     val captured=store.snapshotWithGeneration()
                     runOnUiThread {
-                        android.app.AlertDialog.Builder(this@with).setTitle("Геоданные Steer")
+                        ThemedDialogBuilder(this@with).setTitle("Геоданные Steer")
                             .setMessage("Подготовить выбранные категории? Если геобазы ещё нет, она будет скачана с указанного источника. Маршруты, профили и активное подключение не меняются.")
                             .setNegativeButton("Отмена",null).setPositiveButton("Подготовить"){_,_ ->
                                 run(MainActivity.Operation {

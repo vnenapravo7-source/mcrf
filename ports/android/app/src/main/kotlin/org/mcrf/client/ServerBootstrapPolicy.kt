@@ -10,6 +10,28 @@ import java.security.SecureRandom
  * IPv6 website targets remain independent of this endpoint limitation. */
 internal class ServerBootstrapPolicy private constructor(val endpoint:PacketManagedDnsPlan.Endpoint,private val nativeDns:JSONObject?=null) {
     val requiresCore:Boolean get()=nativeDns!=null
+    /** Exact server-address context for a child transport. Unsupported custom
+     * detours/DoQ/H3 are refused by OptionalServerDns, never replaced by system. */
+    fun optionalContext(outbound:JSONObject=JSONObject()):JSONObject {
+        if(nativeDns!=null){
+            val config=JSONObject().put("dns",JSONObject(nativeDns.toString()))
+                .put("route",JSONObject().put("default_domain_resolver",nativeDns.getString("final")))
+                .put("outbounds",org.json.JSONArray().put(JSONObject().put("type","direct").put("tag","direct")))
+            return requireNotNull(OptionalServerDns.capture(config,outbound))
+        }
+        val value=JSONObject().put("type",if(endpoint.type=="system")"local"else endpoint.type)
+        if(endpoint.type!="system"){
+            value.put("server",endpoint.server).put("server_port",endpoint.port)
+            if(endpoint.path.isNotEmpty())value.put("path",endpoint.path)
+            if(endpoint.tlsName.isNotEmpty())value.put("tls",JSONObject().put("enabled",true).put("server_name",endpoint.tlsName))
+        }
+        // Even a basic context has a real tag. Resolve an explicit per-profile
+        // binding against it; an unknown tag must not become the global DNS.
+        value.put("tag","bootstrap")
+        val config=JSONObject().put("dns",JSONObject().put("servers",org.json.JSONArray().put(value)).put("final","bootstrap"))
+            .put("route",JSONObject().put("default_domain_resolver","bootstrap"))
+        return requireNotNull(OptionalServerDns.capture(config,outbound))
+    }
     /** A private DNS ingress, not a replacement profile/route or a second TUN.
      * Custom DNS is copied verbatim. References to unavailable proxy detours
      * fail native validation rather than being silently redirected to Direct. */

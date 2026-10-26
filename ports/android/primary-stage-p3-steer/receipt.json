@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "modules": {
+    "steer": {
+      "spi": 1,
+      "api": 2,
+      "entry": "org.mcrf.engines.steer.SteerEngine",
+      "versionCode": 16,
+      "moduleVersion": "0.3.3-mcrf.16",
+      "abis": [
+        "arm64-v8a",
+        "x86_64"
+      ],
+      "sourceRepository": "https://github.com/splify2/steer",
+      "sourceVersion": "0.3.3-mcrf-private-helper.16",
+      "sourceSha256": "209996f94a94229ac1de35bd4fd657f102c634666ec85b166fb498adbaaa4373",
+      "artifacts": [
+        {
+          "file": "runtime.aar",
+          "bytes": 17460075,
+          "sha256": "20cd89a13b6abb4bfe1bff3d2b443d7980b944658be0ca6e72b541abb6ceda0f"
+        },
+        {
+          "file": "adapter.aar",
+          "bytes": 13582,
+          "sha256": "0f3ecf64d3e8b1b85cd17b0fc4cc4824e54f2430428519621e0b47ce8c693719"
+        }
+      ],
+      "licenses": [
+        {
+          "file": "brotli.txt",
+          "bytes": 1084,
+          "sha256": "3d180008e36922a4e8daec11c34c7af264fed5962d07924aea928c38e8663c94"
+        },
+        {
+          "file": "kotlin-Apache-2.0.txt",
+          "bytes": 11358,
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "file": "kotlin-NOTICE.txt",
+          "bytes": 482,
+          "sha256": "0b09a83d3ef7795c7dec65e815866597c066c53898f2852a76599b8f5552941a"
+        },
+        {
+          "file": "libyaml-MIT.txt",
+          "bytes": 1121,
+          "sha256": "6c2ea37323f6191cb829c3ae906a878f5c5fafa03b53d4155c0ce8053a5c8944"
+        },
+        {
+          "file": "ngtcp2-MIT.txt",
+          "bytes": 1080,
+          "sha256": "542dd526d2ea23565f0571cc68df6f05ed11248a90ff0f32de19d8ba589db513"
+        },
+        {
+          "file": "okhttp-Apache-2.0.txt",
+          "bytes": 11358,
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "file": "okio-Apache-2.0.txt",
+          "bytes": 11358,
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "file": "steer-GPL-3.0.txt",
+          "bytes": 35823,
+          "sha256": "230184f60bae2feaf244f10a8bac053c8ff33a183bcc365b4d8b876d2b7f4809"
+        },
+        {
+          "file": "steer-tls49-NOTICES.txt",
+          "bytes": 47764,
+          "sha256": "ef084f38c358192edf6db1ce698d0c5c3d5f4116df554e583df49cb937f36b09"
+        },
+        {
+          "file": "wolfSSL-COPYING.txt",
+          "bytes": 35147,
+          "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+        },
+        {
+          "file": "zstd.txt",
+          "bytes": 1549,
+          "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8"
+        }
+      ],
+      "bundledDependencies": [
+        {
+          "file": "bundled/com.squareup.okhttp3_okhttp_4.12.0.jar",
+          "coordinate": "com.squareup.okhttp3:okhttp:4.12.0",
+          "sha256": "b1050081b14bb7a3a7e55a4d3ef01b5dcfabc453b4573a4fc019767191d5f4e0",
+          "bytes": 789531
+        },
+        {
+          "file": "bundled/com.squareup.okio_okio-jvm_3.6.0.jar",
+          "coordinate": "com.squareup.okio:okio-jvm:3.6.0",
+          "sha256": "67543f0736fc422ae927ed0e504b98bc5e269fda0d3500579337cb713da28412",
+          "bytes": 359580
+        },
+        {
+          "file": "bundled/org.jetbrains.kotlin_kotlin-stdlib-jdk8_1.9.10.jar",
+          "coordinate": "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10",
+          "sha256": "a4c74d94d64ce1abe53760fe0389dd941f6fc558d0dab35e47c085a11ec80f28",
+          "bytes": 965
+        },
+        {
+          "file": "bundled/org.jetbrains.kotlin_kotlin-stdlib-jdk7_1.9.10.jar",
+          "coordinate": "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.10",
+          "sha256": "ac6361bf9ad1ed382c2103d9712c47cdec166232b4903ed596e8876b0681c9b7",
+          "bytes": 959
+        },
+        {
+          "file": "bundled/org.jetbrains.kotlin_kotlin-stdlib_2.2.10.jar",
+          "coordinate": "org.jetbrains.kotlin:kotlin-stdlib:2.2.10",
+          "sha256": "9c67cc79efd6b9215b49d2a4308f5f3433537376c7c88e89bdd6729bd096e61a",
+          "bytes": 1750374
+        },
+        {
+          "file": "bundled/org.jetbrains_annotations_13.0.jar",
+          "coordinate": "org.jetbrains:annotations:13.0",
+          "sha256": "ace2a10dc8e2d5fd34925ecac03e4988b2c0f851650c94b8cef49ba1bd111478",
+          "bytes": 17536
+        }
+      ],
+      "p2ReadinessSha256": "4b4f5fc3ca6631109f424b31c4706506b37294b45dcaee8cb8f5b1b21cd939f9",
+      "tls49": {
+        "library": "libmcrf_utls49.so",
+        "abiSha256": {
+          "arm64-v8a": "a19a8343c0b80f273387b7a073c3c68bed114e74597c964b9459761580ba1cd4",
+          "x86_64": "1841f73111eafc561d5a825aedb7e411cc4cac9d878b36d97aeb88f3df6bc4a1"
+        }
+      },
+      "p3SocksCandidate": true,
+      "p3SocksProofSha256": "e04416359ed0c159a3f4f9c52142aa93ab83ce8771607fe02c5320c4bbd493f8",
+      "socksUdpSourcePort": 1,
+      "privateHelperProfile": 1
+    }
+  }
+}

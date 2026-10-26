@@ -27,14 +27,47 @@ public final class DeviceSmokeInstrumentation extends Instrumentation {
     private String mode;
     private String fixtureName;
     private String expectedExit;
+    private Bundle reviewArguments;
     private final StringBuilder report = new StringBuilder();
-    @Override public void onCreate(Bundle arguments) { super.onCreate(arguments); mode = arguments == null ? "native" : arguments.getString("mode", "native"); fixtureName = arguments == null ? "direct.json" : arguments.getString("fixture", "direct.json"); expectedExit = arguments == null ? "" : arguments.getString("expectedExit", ""); start(); }
+    @Override public void onCreate(Bundle arguments) {
+        super.onCreate(arguments);
+        reviewArguments = new Bundle();
+        if (arguments != null) for (String key : new String[]{"candidate_apk_sha256","candidate_native_sha256","candidate_native_bytes","candidate_abi"}) {
+            String value = arguments.getString(key); if (value != null) reviewArguments.putString(key,value);
+        }
+        mode = arguments == null ? "native" : arguments.getString("mode", "native");
+        fixtureName = arguments == null ? "direct.json" : arguments.getString("fixture", "direct.json");
+        expectedExit = arguments == null ? "" : arguments.getString("expectedExit", "");
+        start();
+    }
 
     @Override public void onStart() {
         Bundle result = new Bundle();
         File temporary = new File(getTargetContext().getCacheDir(), "mcrf-test-" + UUID.randomUUID());
         int code = Activity.RESULT_OK;
         try {
+            if(mode.equals("post55-local-review")){Post55LocalDeviceChecks.run(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-backup-failure-review")){Post55BackupFailureDeviceChecks.run(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-engine-consent-review")){Post55EngineConsentDeviceChecks.run(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-routing-read-review")){Post55RoutingReadDeviceChecks.run(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-optional-death-review")){Post55OptionalDeathDeviceChecks.run(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-binder-review")){Post55OpenFluxBinderDeviceChecks.run(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-remote-review")){Post55OpenFluxRemoteDeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-parcel-review")){Post55OpenFluxParcelDeviceChecks.run(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-inline-parcel-review")){Post55OpenFluxInlineParcelDeviceChecks.run(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-inline-remote-review")){Post55OpenFluxInlineRemoteDeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-own-view-lifecycle-review")){Post55OpenFluxOwnViewLifecycleDeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-server-parcel-review")){Post55OpenFluxServerParcelDeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-http-server-review")){Post55OpenFluxHttpServerDeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-http-client-review")){Post55OpenFluxHttpClientDeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-http-connection-review")){Post55OpenFluxHttpConnectionDeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-http-transfer-review")){Post55OpenFluxHttpTransferDeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-http-malformed-review")){Post55OpenFluxHttpMalformedDeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-http-unbind-review")){Post55OpenFluxHttpUnbindDeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-http-remote-review")){Post55OpenFluxHttpRemoteDeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-http-view-review")){Post55OpenFluxHttpViewLifecycleDeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-layout-review")){Post55OpenFluxLayoutDeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("post55-openflux-candidate-review")){Post55OpenFluxCandidateDeviceChecks.run(getTargetContext(),temporary,reviewArguments,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
             if(mode.equals("p2-expansion-private")){if(!temporary.mkdir())throw new Exception("Cannot create expanded P2 fixture");ExpandedP2DeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
             if(mode.equals("connection-animations")){report.append(ConnectionAnimationDeviceChecks.run(this));check(true,"Whole P0 item40 presentation batch in fresh disposable UID");return;}
             if(mode.equals("usage-colors")){report.append(UsageColorsDeviceChecks.run(this));check(true,"Isolated first-use choices and custom theme colors");return;}

@@ -36,9 +36,9 @@ object EngineUpdateScripts {
         val info=pm.getApplicationInfo(CANDIDATE_PACKAGE,PackageManager.GET_META_DATA)
         require(info.enabled && pm.checkSignatures(context.packageName,CANDIDATE_PACKAGE)==PackageManager.SIGNATURE_MATCH &&
             info.metaData?.getInt("org.mcrf.engines.interface")==1 && info.metaData?.getString("org.mcrf.engines.kind")=="openflux" &&
-            info.metaData?.getInt("org.mcrf.engines.script-updater")==1 && info.metaData?.getString("org.mcrf.engines.source.repository")==EngineUpdatePolicy.UPSTREAM &&
-            info.metaData?.getString("org.mcrf.engines.source.version")=="v0.7.3" &&
-            info.metaData?.getString("org.mcrf.engines.source.commit")=="f12e981629a18c8c01007d59ac002254c02972bb") { "Установленный candidate не подтверждает signed .flux capability." }
+            info.metaData?.getInt("org.mcrf.engines.script-updater")==1 && info.metaData?.getString("org.mcrf.engines.source.repository")==EngineUpdatePolicy.LEGACY_UPSTREAM &&
+            OpenFluxProfile.supportsScriptSource(info.metaData?.getString("org.mcrf.engines.source.version"),
+                info.metaData?.getString("org.mcrf.engines.source.commit"))) { "Установленный candidate не подтверждает signed .flux capability." }
         val root=File(info.nativeLibraryDir).canonicalFile
         return File(root,"libopenflux.so").also { require(it.canonicalFile.parentFile==root && it.isFile && it.canExecute()) }
     }
@@ -94,14 +94,18 @@ object EngineUpdateScripts {
             safeToClear=result.optString("code")!="update_busy"
             return result
         } finally {
-            child?.let { process -> if(process.isAlive){process.destroy();if(!process.waitFor(3,TimeUnit.SECONDS)){process.destroyForcibly();process.waitFor(3,TimeUnit.SECONDS)}} }
-            if(lease!=null){
-                // A retained marker may represent the missing-current rename gap. A failed
-                // recovery launch or blocked response is not proof that the old mutation ended safely.
-                if(interrupted==null&&(child==null||safeToClear&&child?.isAlive==false))EngineUpdateGate.complete(context,lease.pending.token){true}
-                lease.close() // An interrupted/ambiguous operation keeps the durable marker.
-            }
-            privateRequest.delete();if(isMutation)mutating.set(false)
+            EngineScriptCleanup.finish(
+                child=child?.let { process -> AutoCloseable { OptionalCoreTermination.release(process,graceful=false) } },
+                complete={
+                    // A retained marker may represent the missing-current rename gap. A failed
+                    // recovery launch or blocked response is not proof that the old mutation ended safely.
+                    if(lease!=null&&interrupted==null&&(child==null||safeToClear&&child?.isAlive==false))
+                        EngineUpdateGate.complete(context,lease.pending.token){true}
+                },
+                release={lease?.close()}, // An interrupted/ambiguous operation keeps the durable marker.
+                deleteRequest={privateRequest.delete()},
+                finished={if(isMutation)mutating.set(false)},
+            )
         }
     }
 }

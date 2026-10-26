@@ -1,0 +1,1 @@
+/* Copyright 2015, Kenneth MacKay. Licensed under the BSD 2-clause license. */

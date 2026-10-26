@@ -5,9 +5,11 @@ import android.os.SystemClock
 import org.json.JSONObject
 
 /** The typed map cannot accidentally be merged into sing-box's persisted pings. */
-internal class SteerProbeDelays(values:Map<String,Long>,completedAt:Map<String,Long>,val moduleSha:String,val networkHandle:Long):Map<String,Long> by java.util.Collections.unmodifiableMap(LinkedHashMap(values)) {
+internal class SteerProbeDelays(values:Map<String,Long>,completedAt:Map<String,Long>,val moduleSha:String,val networkHandle:Long,
+    assisted:Map<String,AssistedSteerProbeBinding> = emptyMap()):Map<String,Long> by java.util.Collections.unmodifiableMap(LinkedHashMap(values)) {
     val completedAt:Map<String,Long> = java.util.Collections.unmodifiableMap(LinkedHashMap(completedAt))
-    init {require(values.keys==completedAt.keys&&values.values.all {it>=-1}&&completedAt.values.all {it>=0}&&moduleSha.matches(Regex("[0-9a-f]{64}"))&&networkHandle>0)}
+    val assisted:Map<String,AssistedSteerProbeBinding> = java.util.Collections.unmodifiableMap(LinkedHashMap(assisted))
+    init {require(values.keys==completedAt.keys&&values.values.all {it>=-1}&&completedAt.values.all {it>=0}&&moduleSha.matches(Regex("[0-9a-f]{64}"))&&networkHandle>0&&values.keys.containsAll(assisted.keys))}
 }
 
 /** Volatile presentation hints only. Actual automatic admission always probes

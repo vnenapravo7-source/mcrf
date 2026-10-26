@@ -1,0 +1,14 @@
+{
+  "retainedEvidenceSha256": "a7e92cbad5e65e0a9ca234edf8f4432273fbd0d74b0a27f6c67d620840f33c41",
+  "newRuntimeSha256": "52268ee55bb5bdf24fc7b0fa4f506d5596b06f4cc1544d503f1b1ff9a7ab5bc0",
+  "baselineReceipt": "D:/MCRF/Builds/Android/next-independent-20d0f883b4cf419c8d155969a0f54408/source/ports/android/native-stage-csqtt25/receipt.json",
+  "authority": "human-20261023-finish-current-fixes-then-p3-p4",
+  "newOwnerExecution": false,
+  "sourceManifestSha256": "e93d7ed59927adb1389eab1a586cc4048e6777b4a182dc8fa8f20d294f478299",
+  "newPerformanceBridgeSha256": "ed51c23be049de960da243f03ffbb284ef0639d93f3a94cd07e0e01242533355",
+  "oldPerformanceBridgeSha256": "77e367c683dd7aee3232a357d5c2c06f2d0c281dfb3113752df3e9bed58ebded",
+  "hostEvidenceSha256": "e9673468cde916359f585060f4110d67cdcbfd1d6adb5f46b4fdec12cfc25d44",
+  "oldRuntimeSha256": "a0dc53504a24bd33a1aee764c493eec47f220c2370eb6311b3ea4fe8dc5ad96f",
+  "newAbiRuntimeAccepted": false,
+  "baselineReceiptSha256": "35bf07aadc97339fd3d6329d38139c289b5e1b7c6be07bb03e46ed05fa3d53f4"
+}

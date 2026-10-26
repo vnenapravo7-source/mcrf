@@ -1,0 +1,61 @@
+{
+  "missingModules": [],
+  "linkedModules": 6,
+  "files": [
+    {
+      "origin": "ttrroyy/qThroneMobile SwiftSSTP MIT",
+      "bytes": 1100,
+      "file": "SSTP-LICENSE",
+      "sha256": "4153dae3f9e3d7c206a141bad5c66ef139edd015a2f1490feccc0ebb41f2c0a3"
+    },
+    {
+      "origin": "Go toolchain",
+      "bytes": 1453,
+      "file": "go/LICENSE",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "origin": "github.com/google/btree@v1.1.2",
+      "bytes": 11358,
+      "file": "dependencies/0786d29b96d7b3a31e345f70c40d8cbc00407790255b850ab94238d5525fe9d9/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "origin": "golang.org/x/crypto@v0.49.0",
+      "bytes": 1453,
+      "file": "dependencies/a21cca9b574794548fa86ad80ae493c4663aae674d5de1264497bbc87399b9b0/LICENSE",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "origin": "golang.org/x/exp@v0.0.0-20250711185948-6ae5c78190dc",
+      "bytes": 1453,
+      "file": "dependencies/8fe1ce87eba8489261de08ef423065a9bb4237c9f8c91e851c0e151c6d3a4827/LICENSE",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "origin": "golang.org/x/sys@v0.43.0",
+      "bytes": 1453,
+      "file": "dependencies/d8cdfe35da6397c15dee6837722c2895fe49f7ef0ea52a6539ffb7406d17d6d5/LICENSE",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "origin": "golang.org/x/time@v0.15.0",
+      "bytes": 1453,
+      "file": "dependencies/1528408f5fd1939c03c9c06988c7b8a40553c7043d05a55797da0d4b22791e68/LICENSE",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "origin": "gvisor.dev/gvisor@v0.0.0-20260906120324-45bde0d1defa",
+      "bytes": 365,
+      "file": "dependencies/30cb8d0b7ebe24826718f9663e77e20f398253d938c4fb2ba2e8b8d080a01f2a/AUTHORS",
+      "sha256": "16818597d03ff1b20e9a5e6eeedb3108acde75ec30c3edba534892b1a66b1e71"
+    },
+    {
+      "origin": "gvisor.dev/gvisor@v0.0.0-20260906120324-45bde0d1defa",
+      "bytes": 14110,
+      "file": "dependencies/30cb8d0b7ebe24826718f9663e77e20f398253d938c4fb2ba2e8b8d080a01f2a/LICENSE",
+      "sha256": "0fbab5c58efbdf6d31e8085214f2dd821659c03d73cff3ed2b08e98826ea1cd9"
+    }
+  ],
+  "binaryExecuted": false
+}

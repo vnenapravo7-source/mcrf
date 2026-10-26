@@ -1,0 +1,14 @@
+=== RUN   TestMcrfSlipstreamParentDeathStopsCore
+    process_linux_test.go:168: owned wrapper core was not found
+--- FAIL: TestMcrfSlipstreamParentDeathStopsCore (1.07s)
+=== RUN   TestMcrfSlipstreamStdinEOFStopsCore
+    process_linux_test.go:181: owned wrapper core was not found
+--- FAIL: TestMcrfSlipstreamStdinEOFStopsCore (0.07s)
+=== RUN   TestMcrfSlipstreamOwnedWireData
+MCRF_READY
+--- PASS: TestMcrfSlipstreamOwnedWireData (2.09s)
+=== RUN   TestMcrfSlipstreamOriginalCServerInterop
+MCRF_READY
+    wire_linux_test.go:191: owned CONNECT
+--- FAIL: TestMcrfSlipstreamOriginalCServerInterop (3.39s)
+FAIL

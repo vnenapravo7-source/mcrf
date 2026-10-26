@@ -1,0 +1,17 @@
+{
+  "kind": "csqtt",
+  "retainedTestsReplayed": false,
+  "toolchainSha256": "21761eceb9302062c9623fb699f332c8c7fe000f15f70efe8da01a2cfbbc16b9",
+  "cases": [
+    "TestMcrfRawMTUOnActualBulkUpload",
+    "TestMcrfRawMTUCeilingPreservesSmallerServerValue",
+    "TestMcrfIPRelayBuffersOnOwnedSocket",
+    "TestMcrfSOCKSAdmissionQueuesAndResumes"
+  ],
+  "nativeExecuted": false,
+  "sourceManifestSha256": "6d2700e295f49ccbbdd7337b4d9a60b86026cdf63d7cefb87598e45152c5a542",
+  "state": "PASS_P3_TURN_PERFORMANCE_HOST",
+  "skipped": 0,
+  "failures": 0,
+  "logSha256": "03e2ab43d1fe1e1d00bf735c401d54284ee9e26333a3af0a0c823ad8c1a3b8d4"
+}

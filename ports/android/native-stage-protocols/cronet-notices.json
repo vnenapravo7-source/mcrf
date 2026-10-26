@@ -1,0 +1,895 @@
+{
+  "classifiedNonThirdParty": [
+    {
+      "evidence": "src/components/cronet/license/constants.py",
+      "file": "src/build/internal/README.chromium",
+      "reason": "upstream-not-third-party"
+    },
+    {
+      "evidence": "src/components/cronet/license/tests/target_a/BUILD.gn",
+      "file": "src/components/cronet/license/tests/target_a/README.chromium",
+      "reason": "empty-upstream-metadata-fixture-no-source"
+    },
+    {
+      "evidence": "src/components/cronet/license/tests/target_b/BUILD.gn",
+      "file": "src/components/cronet/license/tests/target_b/README.chromium",
+      "reason": "empty-upstream-metadata-fixture-no-source"
+    },
+    {
+      "evidence": "src/components/cronet/license/tests/target_c/BUILD.gn",
+      "file": "src/components/cronet/license/tests/target_c/README.chromium",
+      "reason": "empty-upstream-metadata-fixture-no-source"
+    }
+  ],
+  "missing": [],
+  "files": [
+    {
+      "bytes": 1586,
+      "sha256": "2b5d44220cee7d541efdef3126ce838b2e73eaebae2f441af3573cb2c0af4d70",
+      "file": "LICENSE"
+    },
+    {
+      "bytes": 1575,
+      "sha256": "325b8440550179bd46d3389d9defd6cdab7bb9a3519ef38d2eda008dd02236ab",
+      "file": "LSS-LICENSE.txt"
+    },
+    {
+      "bytes": 2972,
+      "sha256": "ae2d3b97458386f96361055be1897d84d178a62df8a8a46a6afb24d80a3708b5",
+      "file": "Perfetto-LSS-NOTICE.txt"
+    },
+    {
+      "bytes": 1732,
+      "sha256": "6e5e117324afd944dcf67f36cf329843bc1a92229a8cd9bb573d7a83130fea7d",
+      "file": "Protobuf-BSD.txt"
+    },
+    {
+      "bytes": 20089,
+      "sha256": "b23e682fda7310afe43505ed6041919ccff8f9e0c6799ebd7542cbcef11102e3",
+      "file": "src/base/allocator/partition_allocator/src/partition_alloc/third_party/apple_apsl/LICENSE"
+    },
+    {
+      "bytes": 1548,
+      "sha256": "ee82868a98861e747f798df807e400f02318d019e0afaaf165d465a6526be83b",
+      "file": "src/base/allocator/partition_allocator/src/partition_alloc/third_party/apple_apsl/README.chromium"
+    },
+    {
+      "bytes": 1129,
+      "sha256": "f73808434bdb64d9d6a059a91514c5347f1002239d12e772a00c72d461ef806e",
+      "file": "src/base/third_party/cityhash_v103/COPYING"
+    },
+    {
+      "bytes": 971,
+      "sha256": "c37810ed4d957b2a4170232ca189b9d723abc7ee9e9c2caa329e836c27516c6c",
+      "file": "src/base/third_party/cityhash_v103/README.chromium"
+    },
+    {
+      "bytes": 1129,
+      "sha256": "f73808434bdb64d9d6a059a91514c5347f1002239d12e772a00c72d461ef806e",
+      "file": "src/base/third_party/cityhash/COPYING"
+    },
+    {
+      "bytes": 959,
+      "sha256": "745ca65d7762e565ec910d38a88badf817006e790c2cea3b8566b20a86de3fca",
+      "file": "src/base/third_party/cityhash/README.chromium"
+    },
+    {
+      "bytes": 1527,
+      "sha256": "4af93c12062c58058378de2397dc1c92bbff9ddfb1d583a01c84127557ce97ca",
+      "file": "src/base/third_party/double_conversion/LICENSE"
+    },
+    {
+      "bytes": 500,
+      "sha256": "5b6f2a88485bb23f66708ad038c44ddaacea27a92699ec2cc332aea6f539d7e5",
+      "file": "src/base/third_party/double_conversion/README.chromium"
+    },
+    {
+      "bytes": 3674,
+      "sha256": "5d85142a5609ad177a2d7a2e7cae060b886b8b42f25c5b9803cf0cb5ee04ad2f",
+      "file": "src/base/third_party/icu/LICENSE"
+    },
+    {
+      "bytes": 778,
+      "sha256": "1cd292a23b3e59b9537a60c619b5e1c607340a73325f9bcb5f6ac028eaed3df9",
+      "file": "src/base/third_party/icu/README.chromium"
+    },
+    {
+      "bytes": 16726,
+      "sha256": "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04",
+      "file": "src/base/third_party/nspr/LICENSE"
+    },
+    {
+      "bytes": 544,
+      "sha256": "209d41209ae24c8a6c99c315853922df2bafd35fdde101193ddc82ffcd2b7310",
+      "file": "src/base/third_party/nspr/README.chromium"
+    },
+    {
+      "bytes": 1527,
+      "sha256": "90b2201c340cee36b40a443f949d9eb416f0a0d204c32d350aff87fedeb67ae8",
+      "file": "src/base/third_party/superfasthash/LICENSE"
+    },
+    {
+      "bytes": 948,
+      "sha256": "483c058040c840bcc8ad350255b654db90bc0c4d2f8005a7c6f0ba86c0d62b13",
+      "file": "src/base/third_party/superfasthash/README.chromium"
+    },
+    {
+      "bytes": 1560,
+      "sha256": "538edc6f52c563cf06eca1bac8dd785ff60ef5a371a950265700d5d40386db6e",
+      "file": "src/base/third_party/symbolize/LICENSE"
+    },
+    {
+      "bytes": 2080,
+      "sha256": "fe4fb0b625846d3fd90eff8155a82f1b1e316445bc6bd7e49814724dc6a678d6",
+      "file": "src/base/third_party/symbolize/README.chromium"
+    },
+    {
+      "bytes": 1094,
+      "sha256": "18351de3d7e2dc469cc83e77d38a3e25d010251e34eb348bbd1a76275e313997",
+      "file": "src/base/third_party/xdg_user_dirs/LICENSE"
+    },
+    {
+      "bytes": 499,
+      "sha256": "0e12f8eb866392eccc0e2dd86cacb9e6f46c789ca7b38ecab79bc4c6664bf347",
+      "file": "src/base/third_party/xdg_user_dirs/README.chromium"
+    },
+    {
+      "bytes": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "file": "src/build/android/incremental_install/third_party/AndroidHiddenApiBypass/LICENSE"
+    },
+    {
+      "bytes": 577,
+      "sha256": "c749b388ec0d9fb19e6cc8427b2c9a51835b43f405ed21f5e6e988ccdab97018",
+      "file": "src/build/android/incremental_install/third_party/AndroidHiddenApiBypass/README.chromium"
+    },
+    {
+      "bytes": 2189,
+      "sha256": "f67b4c4b4f467e9c80feca1995e02ea185fd44ba422611f8704e62fed7db1d31",
+      "file": "src/build/internal/README.chromium"
+    },
+    {
+      "bytes": 6560,
+      "sha256": "265dabd02de9199fe2431ac4ffa1b2dcce027305f55c8372ff8622255ae8a4c0",
+      "file": "src/components/cronet/license/constants.py"
+    },
+    {
+      "bytes": 220,
+      "sha256": "b103996bd7b6fffbdbd14b6ba6afa5ec11b23c7a995c073e6b33346d5bed9412",
+      "file": "src/components/cronet/license/tests/target_a/BUILD.gn"
+    },
+    {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "file": "src/components/cronet/license/tests/target_a/README.chromium"
+    },
+    {
+      "bytes": 220,
+      "sha256": "b3e0f3fa0dccc39327b38510cefa8077328e3bb457dc24ae706850009bb12923",
+      "file": "src/components/cronet/license/tests/target_b/BUILD.gn"
+    },
+    {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "file": "src/components/cronet/license/tests/target_b/README.chromium"
+    },
+    {
+      "bytes": 162,
+      "sha256": "1c2f9ac111e1acf3d4701991753fcf1ae3371cc37a4f09be77b4a8d0ecbd8e35",
+      "file": "src/components/cronet/license/tests/target_c/BUILD.gn"
+    },
+    {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "file": "src/components/cronet/license/tests/target_c/README.chromium"
+    },
+    {
+      "bytes": 1536,
+      "sha256": "368cca1106be99d39ecd32a38d8305585d802a475effb66380b91ffc9bcf709b",
+      "file": "src/LICENSE"
+    },
+    {
+      "bytes": 1699,
+      "sha256": "bed70fc84f1bea2b4b144564b9a0f9a5a3bc7b0d78f6e62092aeb689cac56bdd",
+      "file": "src/net/third_party/mozilla_security_manager/LICENSE"
+    },
+    {
+      "bytes": 603,
+      "sha256": "8f01b4b89bbac7c0f8e83de0ca690867fa256ff88577195f9afa0188f5f7c552",
+      "file": "src/net/third_party/mozilla_security_manager/README.chromium"
+    },
+    {
+      "bytes": 18122,
+      "sha256": "6d29b685206b28617dd9ac13818ccc943e57df68aeea1db0f4a5539f4507a9aa",
+      "file": "src/net/third_party/mozilla_win/LICENSE"
+    },
+    {
+      "bytes": 703,
+      "sha256": "1ce561b0559c4d60bedc7b237d1869a14af4de5d0d9e4b0558945b838933ad14",
+      "file": "src/net/third_party/mozilla_win/README.chromium"
+    },
+    {
+      "bytes": 320,
+      "sha256": "b4a1ff1c6c531cc2163f68193272ad9b94d6ba26eafb54b3b95d8948cb105f0f",
+      "file": "src/net/third_party/quiche/README.chromium"
+    },
+    {
+      "bytes": 1559,
+      "sha256": "845022e0c1db1abb41a6ba4cd3c4b674ec290f3359d9d3c78ae558d4c0ed9308",
+      "file": "src/net/third_party/quiche/src/LICENSE"
+    },
+    {
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "file": "src/net/third_party/uri_template/LICENSE"
+    },
+    {
+      "bytes": 921,
+      "sha256": "30e024609bce7f4087acc20b368b219271c1801d6f871bcfc684aa0772c47bfa",
+      "file": "src/net/third_party/uri_template/README.chromium"
+    },
+    {
+      "bytes": 11361,
+      "sha256": "c79a7fea0e3cac04cd43f20e7b648e5a0ff8fa5344e644b0ee09ca1162b62747",
+      "file": "src/third_party/abseil-cpp/LICENSE"
+    },
+    {
+      "bytes": 2223,
+      "sha256": "7fabebe1b11ac248b8c1e14d75ccd27d703d617c224cbb46f2a6ab935df6d597",
+      "file": "src/third_party/abseil-cpp/README.chromium"
+    },
+    {
+      "bytes": 20089,
+      "sha256": "b23e682fda7310afe43505ed6041919ccff8f9e0c6799ebd7542cbcef11102e3",
+      "file": "src/third_party/apple_apsl/LICENSE"
+    },
+    {
+      "bytes": 702,
+      "sha256": "c45bed1b18f30ff6e2934298fcfd3e4f6c857754652427025926be8d24a4fd46",
+      "file": "src/third_party/apple_apsl/README.chromium"
+    },
+    {
+      "bytes": 445,
+      "sha256": "067c0426e728c71a990b93bffcd1e45b238e9d8268345a84820ae70906afafa6",
+      "file": "src/third_party/boringssl/README.chromium"
+    },
+    {
+      "bytes": 13115,
+      "sha256": "827c8d8fc207c2392794eef9e00fe246f9f61fdcc132556c275be3dd8c3cd97f",
+      "file": "src/third_party/boringssl/src/LICENSE"
+    },
+    {
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "file": "src/third_party/boringssl/src/third_party/benchmark/LICENSE"
+    },
+    {
+      "bytes": 638,
+      "sha256": "9eacbcb81be660840c714a560a9d65ba07913db98dd4baf969f78dd499fdd60f",
+      "file": "src/third_party/boringssl/src/third_party/fiat/LICENSE"
+    },
+    {
+      "bytes": 382,
+      "sha256": "f26cbdbcacc44a02bdcdc8280e3b788eedc2bf35f12aa81e1137191fd8f1e207",
+      "file": "src/third_party/boringssl/src/third_party/fiat/README.chromium"
+    },
+    {
+      "bytes": 1084,
+      "sha256": "3d180008e36922a4e8daec11c34c7af264fed5962d07924aea928c38e8663c94",
+      "file": "src/third_party/brotli/LICENSE"
+    },
+    {
+      "bytes": 1156,
+      "sha256": "227ddaffa9d6c90b6fb33b7d141726cc655ee1ce82c1a8aa2c09717434850470",
+      "file": "src/third_party/brotli/README.chromium"
+    },
+    {
+      "bytes": 581,
+      "sha256": "08010573ca27db7cb74f712f3bef3be27f399f46a3977593beeef18368514ea2",
+      "file": "src/third_party/cpu_features/README.chromium"
+    },
+    {
+      "bytes": 12876,
+      "sha256": "af272c1b4dd08dd61d43e001d3134119d03ca7a2b057a64f7355fdf27fbea3dd",
+      "file": "src/third_party/cpu_features/src/LICENSE"
+    },
+    {
+      "bytes": 1458,
+      "sha256": "57faf03e216d5628169a779df31a842347e55c8e6567e1107b6cb8fb90175b59",
+      "file": "src/third_party/jni_zero/LICENSE"
+    },
+    {
+      "bytes": 489,
+      "sha256": "ce77235b508cceb4b5dfcd1903cf28262f902f5a2312fe8248658aec049873b7",
+      "file": "src/third_party/jni_zero/README.chromium"
+    },
+    {
+      "bytes": 301,
+      "sha256": "94b83e180a70242bed69838b476eaee19e8c3b589d799a20a016869cc987a93c",
+      "file": "src/third_party/libc++/README.chromium"
+    },
+    {
+      "bytes": 16703,
+      "sha256": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b",
+      "file": "src/third_party/libc++/src/LICENSE.TXT"
+    },
+    {
+      "bytes": 309,
+      "sha256": "3da2026112dd7b25e6ce597787bbfc2e3ef3dfa003cc006288cc378d2443f3e4",
+      "file": "src/third_party/libc++abi/README.chromium"
+    },
+    {
+      "bytes": 16706,
+      "sha256": "e2b35be49f7284a45b7baca8fc7b3ab7440e7902392b2528a457816b5bb2a15c",
+      "file": "src/third_party/libc++abi/src/LICENSE.TXT"
+    },
+    {
+      "bytes": 529,
+      "sha256": "62a25d00b220977dc45cce50af6a074efbd08f1c113a18d38cf919ba0f3ba8be",
+      "file": "src/third_party/libunwind/README.chromium"
+    },
+    {
+      "bytes": 16706,
+      "sha256": "b5efebcaca80879234098e52d1725e6d9eb8fb96a19fce625d39184b705f7b6d",
+      "file": "src/third_party/libunwind/src/LICENSE.TXT"
+    },
+    {
+      "bytes": 338,
+      "sha256": "63c1b20708ebe5a7cc6f2cc957e01cba36877429961ea87bf392fb3519ccb20d",
+      "file": "src/third_party/llvm-libc/README.chromium"
+    },
+    {
+      "bytes": 15140,
+      "sha256": "ebcd9bbf783a73d05c53ba4d586b8d5813dcdf3bbec50265860ccc885e606f47",
+      "file": "src/third_party/llvm-libc/src/LICENSE.TXT"
+    },
+    {
+      "bytes": 1721,
+      "sha256": "d47e8390fb0d7ad4a18f26aedd6283c7ab6b5b4fabab536ccb4db7f9f6d90c08",
+      "file": "src/third_party/modp_b64/LICENSE"
+    },
+    {
+      "bytes": 976,
+      "sha256": "a728c6fd7330bd52bd392f1a0072de2433627fba0854a076ecb826ad7a77d8ee",
+      "file": "src/third_party/modp_b64/README.chromium"
+    },
+    {
+      "bytes": 1554,
+      "sha256": "7436a7c46b6e4d969b41e1ce387885ae4ced25710662189ff2983665253729ac",
+      "file": "src/third_party/nasm/LICENSE"
+    },
+    {
+      "bytes": 2978,
+      "sha256": "a5e12d92820f96082cfa934fca007c7f9fe63bcb868a5eee873715b270e25bdd",
+      "file": "src/third_party/nasm/README.chromium"
+    },
+    {
+      "bytes": 1002,
+      "sha256": "845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243",
+      "file": "src/third_party/nasm/zlib/LICENSE"
+    },
+    {
+      "bytes": 1091,
+      "sha256": "02de69b64fc36d9e938f418e52723e42f0b2b226d58a9cb3c8dcbdf7059f5074",
+      "file": "src/third_party/protobuf/third_party/utf8_range/LICENSE"
+    },
+    {
+      "bytes": 1059,
+      "sha256": "fc8dbc04e03ad4efc08a647ffe7f995b811a95bc04c0e85a56d5277c6593fa5f",
+      "file": "src/third_party/simdutf/LICENSE"
+    },
+    {
+      "bytes": 1120,
+      "sha256": "6473dd8c53339fc113f3c5de62a3a74b3b25fc222e986a1fe43daa49ccb2bb80",
+      "file": "src/third_party/simdutf/README.chromium"
+    },
+    {
+      "bytes": 1599,
+      "sha256": "1c994e86bedc619e79566df1b09bf1d0888f176608ff67c68803e5e1ad20f17f",
+      "file": "src/third_party/zlib/contrib/minizip/README.chromium"
+    },
+    {
+      "bytes": 1002,
+      "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2",
+      "file": "src/third_party/zlib/LICENSE"
+    },
+    {
+      "bytes": 1654,
+      "sha256": "18f3b809738eb94ac818546ca8a67563691697aecaa77f052610264dee8ba5b7",
+      "file": "src/third_party/zlib/README.chromium"
+    },
+    {
+      "bytes": 711,
+      "sha256": "068e9124e866edc1f670b5443689686be13b0c21cadc36ddd85240d074ca8e53",
+      "file": "src/third_party/zstd/README.chromium"
+    },
+    {
+      "bytes": 18091,
+      "sha256": "f9c375a1be4a41f7b70301dd83c91cb89e41567478859b77eef375a52d782505",
+      "file": "src/third_party/zstd/src/COPYING"
+    },
+    {
+      "bytes": 1549,
+      "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8",
+      "file": "src/third_party/zstd/src/LICENSE"
+    },
+    {
+      "bytes": 3200,
+      "sha256": "284545e873c704952e5b1b39d457dd83a3b115a51d9f1eb5175137bd69b8fa1b",
+      "file": "src/url/third_party/mozilla/LICENSE.txt"
+    },
+    {
+      "bytes": 391,
+      "sha256": "0f6c477c8205103963e989309c0dc6f6b369398d5dfc65b4ad80792443cd715b",
+      "file": "src/url/third_party/mozilla/README.chromium"
+    }
+  ],
+  "commit": "72a06c9fca0e2d228588c7f3074bf7efff3ff686",
+  "original": [
+    {
+      "bytes": 1586,
+      "sha256": "2b5d44220cee7d541efdef3126ce838b2e73eaebae2f441af3573cb2c0af4d70",
+      "file": "LICENSE",
+      "gitBlob": "a32e00ce6be3620adca152e53734f7de8fda38cf"
+    },
+    {
+      "bytes": 1536,
+      "sha256": "368cca1106be99d39ecd32a38d8305585d802a475effb66380b91ffc9bcf709b",
+      "file": "src/LICENSE",
+      "gitBlob": "2249a28657f86c645f8978b75babc1bd52aca318"
+    },
+    {
+      "bytes": 20089,
+      "sha256": "b23e682fda7310afe43505ed6041919ccff8f9e0c6799ebd7542cbcef11102e3",
+      "file": "src/base/allocator/partition_allocator/src/partition_alloc/third_party/apple_apsl/LICENSE",
+      "gitBlob": "9fb3c2cee31bc64eb33081a9b816476b30f0eb46"
+    },
+    {
+      "bytes": 1129,
+      "sha256": "f73808434bdb64d9d6a059a91514c5347f1002239d12e772a00c72d461ef806e",
+      "file": "src/base/third_party/cityhash/COPYING",
+      "gitBlob": "bf15194dd5a08b1a9bdac71ae19a3271d600089e"
+    },
+    {
+      "bytes": 1129,
+      "sha256": "f73808434bdb64d9d6a059a91514c5347f1002239d12e772a00c72d461ef806e",
+      "file": "src/base/third_party/cityhash_v103/COPYING",
+      "gitBlob": "bf15194dd5a08b1a9bdac71ae19a3271d600089e"
+    },
+    {
+      "bytes": 1527,
+      "sha256": "4af93c12062c58058378de2397dc1c92bbff9ddfb1d583a01c84127557ce97ca",
+      "file": "src/base/third_party/double_conversion/LICENSE",
+      "gitBlob": "933718a9ef9dae4cb4afa56e490211760d8a949f"
+    },
+    {
+      "bytes": 3674,
+      "sha256": "5d85142a5609ad177a2d7a2e7cae060b886b8b42f25c5b9803cf0cb5ee04ad2f",
+      "file": "src/base/third_party/icu/LICENSE",
+      "gitBlob": "2882e4ebda99a6b2b665f728e51f1711eb002c0b"
+    },
+    {
+      "bytes": 16726,
+      "sha256": "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04",
+      "file": "src/base/third_party/nspr/LICENSE",
+      "gitBlob": "d0a1fa1482eea82e19510e7920cbe3a03e41f691"
+    },
+    {
+      "bytes": 1527,
+      "sha256": "90b2201c340cee36b40a443f949d9eb416f0a0d204c32d350aff87fedeb67ae8",
+      "file": "src/base/third_party/superfasthash/LICENSE",
+      "gitBlob": "3c40a3ecd791a2137e466ffd216e9813d0e98e90"
+    },
+    {
+      "bytes": 1560,
+      "sha256": "538edc6f52c563cf06eca1bac8dd785ff60ef5a371a950265700d5d40386db6e",
+      "file": "src/base/third_party/symbolize/LICENSE",
+      "gitBlob": "433a3d1512c7ac9ca9d9fb997e1d1b43e85e73f5"
+    },
+    {
+      "bytes": 1094,
+      "sha256": "18351de3d7e2dc469cc83e77d38a3e25d010251e34eb348bbd1a76275e313997",
+      "file": "src/base/third_party/xdg_user_dirs/LICENSE",
+      "gitBlob": "540e8031c74359508a7038b69bdee24b1a2a692a"
+    },
+    {
+      "bytes": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "file": "src/build/android/incremental_install/third_party/AndroidHiddenApiBypass/LICENSE",
+      "gitBlob": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64"
+    },
+    {
+      "bytes": 1699,
+      "sha256": "bed70fc84f1bea2b4b144564b9a0f9a5a3bc7b0d78f6e62092aeb689cac56bdd",
+      "file": "src/net/third_party/mozilla_security_manager/LICENSE",
+      "gitBlob": "17de8fbeb1b62165eb301e474069f36815e32a64"
+    },
+    {
+      "bytes": 18122,
+      "sha256": "6d29b685206b28617dd9ac13818ccc943e57df68aeea1db0f4a5539f4507a9aa",
+      "file": "src/net/third_party/mozilla_win/LICENSE",
+      "gitBlob": "0c53cdf58cb1737c12a931d1f23ee912f1a9e8db"
+    },
+    {
+      "bytes": 1559,
+      "sha256": "845022e0c1db1abb41a6ba4cd3c4b674ec290f3359d9d3c78ae558d4c0ed9308",
+      "file": "src/net/third_party/quiche/src/LICENSE",
+      "gitBlob": "a32e00ce6be3620adca152e53734f7de8fda38cf"
+    },
+    {
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "file": "src/net/third_party/uri_template/LICENSE",
+      "gitBlob": "d645695673349e3947e8e5ae42332d0ac3164cd7"
+    },
+    {
+      "bytes": 11361,
+      "sha256": "c79a7fea0e3cac04cd43f20e7b648e5a0ff8fa5344e644b0ee09ca1162b62747",
+      "file": "src/third_party/abseil-cpp/LICENSE",
+      "gitBlob": "ccd61dcfe3dbcdf77a72794d7794b1e112a39e0b"
+    },
+    {
+      "bytes": 20089,
+      "sha256": "b23e682fda7310afe43505ed6041919ccff8f9e0c6799ebd7542cbcef11102e3",
+      "file": "src/third_party/apple_apsl/LICENSE",
+      "gitBlob": "9fb3c2cee31bc64eb33081a9b816476b30f0eb46"
+    },
+    {
+      "bytes": 13115,
+      "sha256": "827c8d8fc207c2392794eef9e00fe246f9f61fdcc132556c275be3dd8c3cd97f",
+      "file": "src/third_party/boringssl/src/LICENSE",
+      "gitBlob": "37a5b7439bf6d245179326da069fa561e20067ef"
+    },
+    {
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "file": "src/third_party/boringssl/src/third_party/benchmark/LICENSE",
+      "gitBlob": "d645695673349e3947e8e5ae42332d0ac3164cd7"
+    },
+    {
+      "bytes": 638,
+      "sha256": "9eacbcb81be660840c714a560a9d65ba07913db98dd4baf969f78dd499fdd60f",
+      "file": "src/third_party/boringssl/src/third_party/fiat/LICENSE",
+      "gitBlob": "3bc4b882eb49636a5d0a154867a8325becbff0ab"
+    },
+    {
+      "bytes": 1084,
+      "sha256": "3d180008e36922a4e8daec11c34c7af264fed5962d07924aea928c38e8663c94",
+      "file": "src/third_party/brotli/LICENSE",
+      "gitBlob": "33b7cdd2dbaeddce1e35aa1a13f63d71154dc42f"
+    },
+    {
+      "bytes": 12876,
+      "sha256": "af272c1b4dd08dd61d43e001d3134119d03ca7a2b057a64f7355fdf27fbea3dd",
+      "file": "src/third_party/cpu_features/src/LICENSE",
+      "gitBlob": "a7043c6fdedacc991803384333201058ea1a8865"
+    },
+    {
+      "bytes": 1458,
+      "sha256": "57faf03e216d5628169a779df31a842347e55c8e6567e1107b6cb8fb90175b59",
+      "file": "src/third_party/jni_zero/LICENSE",
+      "gitBlob": "3e34df65794d8467d50b4690fb42fee83d3c2579"
+    },
+    {
+      "bytes": 16703,
+      "sha256": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b",
+      "file": "src/third_party/libc++/src/LICENSE.TXT",
+      "gitBlob": "e159d283443f92ac78b964d2bccebe8f95d5d445"
+    },
+    {
+      "bytes": 16706,
+      "sha256": "e2b35be49f7284a45b7baca8fc7b3ab7440e7902392b2528a457816b5bb2a15c",
+      "file": "src/third_party/libc++abi/src/LICENSE.TXT",
+      "gitBlob": "b75c0441bcd5be32b5a07e2a1ffc7e67b6d99f16"
+    },
+    {
+      "bytes": 16706,
+      "sha256": "b5efebcaca80879234098e52d1725e6d9eb8fb96a19fce625d39184b705f7b6d",
+      "file": "src/third_party/libunwind/src/LICENSE.TXT",
+      "gitBlob": "1e3120621caeb62648745a42f7a9a25d1e2731ab"
+    },
+    {
+      "bytes": 15140,
+      "sha256": "ebcd9bbf783a73d05c53ba4d586b8d5813dcdf3bbec50265860ccc885e606f47",
+      "file": "src/third_party/llvm-libc/src/LICENSE.TXT",
+      "gitBlob": "24806ab4c9eb291db4d28e159901f7a0901b9fd1"
+    },
+    {
+      "bytes": 1721,
+      "sha256": "d47e8390fb0d7ad4a18f26aedd6283c7ab6b5b4fabab536ccb4db7f9f6d90c08",
+      "file": "src/third_party/modp_b64/LICENSE",
+      "gitBlob": "55af76f3eb690dd59e74f3e8f3cc9ef7523cf384"
+    },
+    {
+      "bytes": 1554,
+      "sha256": "7436a7c46b6e4d969b41e1ce387885ae4ced25710662189ff2983665253729ac",
+      "file": "src/third_party/nasm/LICENSE",
+      "gitBlob": "5425798463e7229a333bbc82a3dc035d32ae0690"
+    },
+    {
+      "bytes": 1002,
+      "sha256": "845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243",
+      "file": "src/third_party/nasm/zlib/LICENSE",
+      "gitBlob": "ab8ee6f71428c3e4646b12b64ad387cde33462e5"
+    },
+    {
+      "bytes": 1091,
+      "sha256": "02de69b64fc36d9e938f418e52723e42f0b2b226d58a9cb3c8dcbdf7059f5074",
+      "file": "src/third_party/protobuf/third_party/utf8_range/LICENSE",
+      "gitBlob": "e59f14fa55de789cc2aa634e9788e0514be74611"
+    },
+    {
+      "bytes": 1059,
+      "sha256": "fc8dbc04e03ad4efc08a647ffe7f995b811a95bc04c0e85a56d5277c6593fa5f",
+      "file": "src/third_party/simdutf/LICENSE",
+      "gitBlob": "74c8302ba92830e170dfae35957468edd2e25271"
+    },
+    {
+      "bytes": 1002,
+      "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2",
+      "file": "src/third_party/zlib/LICENSE",
+      "gitBlob": "b7a69d058e616651eae27b3f90c0b7fd36c099b2"
+    },
+    {
+      "bytes": 18091,
+      "sha256": "f9c375a1be4a41f7b70301dd83c91cb89e41567478859b77eef375a52d782505",
+      "file": "src/third_party/zstd/src/COPYING",
+      "gitBlob": "ecbc0593737be657aef92e3adcf3bcbd6fdb812e"
+    },
+    {
+      "bytes": 1549,
+      "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8",
+      "file": "src/third_party/zstd/src/LICENSE",
+      "gitBlob": "75800288cc243f164b9d130f125e2ffae28f8e39"
+    },
+    {
+      "bytes": 3200,
+      "sha256": "284545e873c704952e5b1b39d457dd83a3b115a51d9f1eb5175137bd69b8fa1b",
+      "file": "src/url/third_party/mozilla/LICENSE.txt",
+      "gitBlob": "ac40837824a53cc81e012577d8036abb829c7438"
+    },
+    {
+      "bytes": 1548,
+      "sha256": "ee82868a98861e747f798df807e400f02318d019e0afaaf165d465a6526be83b",
+      "file": "src/base/allocator/partition_allocator/src/partition_alloc/third_party/apple_apsl/README.chromium",
+      "gitBlob": "980b48323a27e245b76ec029227d4100e2b2d0a3"
+    },
+    {
+      "bytes": 959,
+      "sha256": "745ca65d7762e565ec910d38a88badf817006e790c2cea3b8566b20a86de3fca",
+      "file": "src/base/third_party/cityhash/README.chromium",
+      "gitBlob": "46bed48caf0baecf16c5a72d21cc7ac77ae4b617"
+    },
+    {
+      "bytes": 971,
+      "sha256": "c37810ed4d957b2a4170232ca189b9d723abc7ee9e9c2caa329e836c27516c6c",
+      "file": "src/base/third_party/cityhash_v103/README.chromium",
+      "gitBlob": "45a3dc42edbd39f309d5eb58c1542e6441612fa3"
+    },
+    {
+      "bytes": 500,
+      "sha256": "5b6f2a88485bb23f66708ad038c44ddaacea27a92699ec2cc332aea6f539d7e5",
+      "file": "src/base/third_party/double_conversion/README.chromium",
+      "gitBlob": "902815ef0fbc2d6bf336bb0a4e382400539e883c"
+    },
+    {
+      "bytes": 778,
+      "sha256": "1cd292a23b3e59b9537a60c619b5e1c607340a73325f9bcb5f6ac028eaed3df9",
+      "file": "src/base/third_party/icu/README.chromium",
+      "gitBlob": "1c270bdc344c2c78cedbac33515c29573db01e5a"
+    },
+    {
+      "bytes": 544,
+      "sha256": "209d41209ae24c8a6c99c315853922df2bafd35fdde101193ddc82ffcd2b7310",
+      "file": "src/base/third_party/nspr/README.chromium",
+      "gitBlob": "d46b44ee5133978511d41b9062f5e8c839676d47"
+    },
+    {
+      "bytes": 948,
+      "sha256": "483c058040c840bcc8ad350255b654db90bc0c4d2f8005a7c6f0ba86c0d62b13",
+      "file": "src/base/third_party/superfasthash/README.chromium",
+      "gitBlob": "60c21a9fb170206d27dd022d6ae5e20686dd2e03"
+    },
+    {
+      "bytes": 2080,
+      "sha256": "fe4fb0b625846d3fd90eff8155a82f1b1e316445bc6bd7e49814724dc6a678d6",
+      "file": "src/base/third_party/symbolize/README.chromium",
+      "gitBlob": "805f6cb374237f9952418de47e880641521f9621"
+    },
+    {
+      "bytes": 499,
+      "sha256": "0e12f8eb866392eccc0e2dd86cacb9e6f46c789ca7b38ecab79bc4c6664bf347",
+      "file": "src/base/third_party/xdg_user_dirs/README.chromium",
+      "gitBlob": "6d4da4202aaf231d94042b30f2036962853a563a"
+    },
+    {
+      "bytes": 577,
+      "sha256": "c749b388ec0d9fb19e6cc8427b2c9a51835b43f405ed21f5e6e988ccdab97018",
+      "file": "src/build/android/incremental_install/third_party/AndroidHiddenApiBypass/README.chromium",
+      "gitBlob": "0b36bdeb8fa6776c62193bae80b22ce55317ce58"
+    },
+    {
+      "bytes": 2189,
+      "sha256": "f67b4c4b4f467e9c80feca1995e02ea185fd44ba422611f8704e62fed7db1d31",
+      "file": "src/build/internal/README.chromium",
+      "gitBlob": "4624830d218bbb4b7e33e2a280d5ddf5b43abbbe"
+    },
+    {
+      "bytes": 6560,
+      "sha256": "265dabd02de9199fe2431ac4ffa1b2dcce027305f55c8372ff8622255ae8a4c0",
+      "file": "src/components/cronet/license/constants.py",
+      "gitBlob": "5a617168c446a9618be77d6975fe7faf453043f0"
+    },
+    {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "file": "src/components/cronet/license/tests/target_a/README.chromium",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "bytes": 220,
+      "sha256": "b103996bd7b6fffbdbd14b6ba6afa5ec11b23c7a995c073e6b33346d5bed9412",
+      "file": "src/components/cronet/license/tests/target_a/BUILD.gn",
+      "gitBlob": "a5afb6832e9337049b4d16a1d6ead011f15a5981"
+    },
+    {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "file": "src/components/cronet/license/tests/target_b/README.chromium",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "bytes": 220,
+      "sha256": "b3e0f3fa0dccc39327b38510cefa8077328e3bb457dc24ae706850009bb12923",
+      "file": "src/components/cronet/license/tests/target_b/BUILD.gn",
+      "gitBlob": "db912545c0a3079f559ed8b3c1a0fc8ae31d40b9"
+    },
+    {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "file": "src/components/cronet/license/tests/target_c/README.chromium",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "bytes": 162,
+      "sha256": "1c2f9ac111e1acf3d4701991753fcf1ae3371cc37a4f09be77b4a8d0ecbd8e35",
+      "file": "src/components/cronet/license/tests/target_c/BUILD.gn",
+      "gitBlob": "f23d586f23c6bbf37bfcd041d83200b88b8f092b"
+    },
+    {
+      "bytes": 603,
+      "sha256": "8f01b4b89bbac7c0f8e83de0ca690867fa256ff88577195f9afa0188f5f7c552",
+      "file": "src/net/third_party/mozilla_security_manager/README.chromium",
+      "gitBlob": "2e21250a53c5e28d654d17477ad4085a88c1949b"
+    },
+    {
+      "bytes": 703,
+      "sha256": "1ce561b0559c4d60bedc7b237d1869a14af4de5d0d9e4b0558945b838933ad14",
+      "file": "src/net/third_party/mozilla_win/README.chromium",
+      "gitBlob": "bb90e47e3f216280f5778e7d82df179b5c6b0d65"
+    },
+    {
+      "bytes": 320,
+      "sha256": "b4a1ff1c6c531cc2163f68193272ad9b94d6ba26eafb54b3b95d8948cb105f0f",
+      "file": "src/net/third_party/quiche/README.chromium",
+      "gitBlob": "ed8e1f5e3d268a1e68a61d14b8c40640e7f8c343"
+    },
+    {
+      "bytes": 921,
+      "sha256": "30e024609bce7f4087acc20b368b219271c1801d6f871bcfc684aa0772c47bfa",
+      "file": "src/net/third_party/uri_template/README.chromium",
+      "gitBlob": "3cfb99837489509b18d43610a29f742ac85801ec"
+    },
+    {
+      "bytes": 2223,
+      "sha256": "7fabebe1b11ac248b8c1e14d75ccd27d703d617c224cbb46f2a6ab935df6d597",
+      "file": "src/third_party/abseil-cpp/README.chromium",
+      "gitBlob": "27777eed6501dba5c4b042d0d89691d28bc764eb"
+    },
+    {
+      "bytes": 702,
+      "sha256": "c45bed1b18f30ff6e2934298fcfd3e4f6c857754652427025926be8d24a4fd46",
+      "file": "src/third_party/apple_apsl/README.chromium",
+      "gitBlob": "3c36c238ca1dcf71e5ee1dfb9ca492e68a143469"
+    },
+    {
+      "bytes": 445,
+      "sha256": "067c0426e728c71a990b93bffcd1e45b238e9d8268345a84820ae70906afafa6",
+      "file": "src/third_party/boringssl/README.chromium",
+      "gitBlob": "19154f9c897104d6f3d6c1cebf26fc4f7647b1aa"
+    },
+    {
+      "bytes": 382,
+      "sha256": "f26cbdbcacc44a02bdcdc8280e3b788eedc2bf35f12aa81e1137191fd8f1e207",
+      "file": "src/third_party/boringssl/src/third_party/fiat/README.chromium",
+      "gitBlob": "383024b8368074509076d28ec381a191fd353fc5"
+    },
+    {
+      "bytes": 1156,
+      "sha256": "227ddaffa9d6c90b6fb33b7d141726cc655ee1ce82c1a8aa2c09717434850470",
+      "file": "src/third_party/brotli/README.chromium",
+      "gitBlob": "bee4db5fa3e9f79e6f485978db70901087efe660"
+    },
+    {
+      "bytes": 581,
+      "sha256": "08010573ca27db7cb74f712f3bef3be27f399f46a3977593beeef18368514ea2",
+      "file": "src/third_party/cpu_features/README.chromium",
+      "gitBlob": "376a08ac87bcbb849e99601c3299fd28c95f7e70"
+    },
+    {
+      "bytes": 489,
+      "sha256": "ce77235b508cceb4b5dfcd1903cf28262f902f5a2312fe8248658aec049873b7",
+      "file": "src/third_party/jni_zero/README.chromium",
+      "gitBlob": "ce347fcf992039dc6ba8a5edd23986b89d3c7c72"
+    },
+    {
+      "bytes": 301,
+      "sha256": "94b83e180a70242bed69838b476eaee19e8c3b589d799a20a016869cc987a93c",
+      "file": "src/third_party/libc++/README.chromium",
+      "gitBlob": "072653e1878813d903c02042b980610f7c6c46d9"
+    },
+    {
+      "bytes": 309,
+      "sha256": "3da2026112dd7b25e6ce597787bbfc2e3ef3dfa003cc006288cc378d2443f3e4",
+      "file": "src/third_party/libc++abi/README.chromium",
+      "gitBlob": "fa77ac027ca94e5fa0f00b590d2874909f2276b3"
+    },
+    {
+      "bytes": 529,
+      "sha256": "62a25d00b220977dc45cce50af6a074efbd08f1c113a18d38cf919ba0f3ba8be",
+      "file": "src/third_party/libunwind/README.chromium",
+      "gitBlob": "66450d88050bd9c01f6b37b925ff5b971af0d33d"
+    },
+    {
+      "bytes": 338,
+      "sha256": "63c1b20708ebe5a7cc6f2cc957e01cba36877429961ea87bf392fb3519ccb20d",
+      "file": "src/third_party/llvm-libc/README.chromium",
+      "gitBlob": "6c13c5f116d30ff7819308e1c28d76fac981c869"
+    },
+    {
+      "bytes": 976,
+      "sha256": "a728c6fd7330bd52bd392f1a0072de2433627fba0854a076ecb826ad7a77d8ee",
+      "file": "src/third_party/modp_b64/README.chromium",
+      "gitBlob": "616d5844176a48d463035b0253bcd0717b9920e3"
+    },
+    {
+      "bytes": 2978,
+      "sha256": "a5e12d92820f96082cfa934fca007c7f9fe63bcb868a5eee873715b270e25bdd",
+      "file": "src/third_party/nasm/README.chromium",
+      "gitBlob": "6420336726bf6317c6df6481b63d1b3cf148e611"
+    },
+    {
+      "bytes": 1120,
+      "sha256": "6473dd8c53339fc113f3c5de62a3a74b3b25fc222e986a1fe43daa49ccb2bb80",
+      "file": "src/third_party/simdutf/README.chromium",
+      "gitBlob": "003c53476cc0e4a9f0460d0664480b622e7552bb"
+    },
+    {
+      "bytes": 1654,
+      "sha256": "18f3b809738eb94ac818546ca8a67563691697aecaa77f052610264dee8ba5b7",
+      "file": "src/third_party/zlib/README.chromium",
+      "gitBlob": "232ef66aeb2b4442e327d2cca67ba19fc48833cd"
+    },
+    {
+      "bytes": 1599,
+      "sha256": "1c994e86bedc619e79566df1b09bf1d0888f176608ff67c68803e5e1ad20f17f",
+      "file": "src/third_party/zlib/contrib/minizip/README.chromium",
+      "gitBlob": "78cbd20018b1ad7ac5b1e95ef80c190e84e8a4e3"
+    },
+    {
+      "bytes": 711,
+      "sha256": "068e9124e866edc1f670b5443689686be13b0c21cadc36ddd85240d074ca8e53",
+      "file": "src/third_party/zstd/README.chromium",
+      "gitBlob": "d5b2f5e1a7b26e94e9aee10dd4a923525db7211c"
+    },
+    {
+      "bytes": 391,
+      "sha256": "0f6c477c8205103963e989309c0dc6f6b369398d5dfc65b4ad80792443cd715b",
+      "file": "src/url/third_party/mozilla/README.chromium",
+      "gitBlob": "0ff29b64861045e90c506c0e8e7d092e66180e75"
+    }
+  ],
+  "chromiumVersion": "150.0.7871.63",
+  "scope": "conservative-source-notice-superset",
+  "repository": "SagerNet/naiveproxy"
+}

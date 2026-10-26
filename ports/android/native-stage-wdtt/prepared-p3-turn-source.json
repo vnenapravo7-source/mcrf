@@ -1,0 +1,33 @@
+{
+  "performanceSourceSha256": "52a7262554aa3e4d1de554520e19a6af0630085c53d1add307348a994e9c1b9d",
+  "module": "D:/MCRF/Builds/Android/p3-turn-source-fabdba4c92054619a752ba0145bd5e63/module",
+  "kind": "wdtt",
+  "compiled": false,
+  "baselineReceiptSha256": "2e100cff4b643518cf4b1c819b321877fb8b7f0d485952bfd3fba47691e082d2",
+  "baselineReceipt": "D:/MCRF/Builds/Android/next-independent-20d0f883b4cf419c8d155969a0f54408/source/ports/android/native-stage-wdtt/receipt.json",
+  "sourceStable": true,
+  "state": "P3_TURN_SOURCE_PREPARED_NOT_COMPILED",
+  "executed": false,
+  "baselinePreparedSha256": "ef13076427aacd816352374b610325a2f114e292b0d824aff9aa957a50051b49",
+  "manifestSha256": "05cc0459aed5a9d2482d870e35195ee0928f5899103ac29520c22a7de36db113",
+  "localPathprobeSource": {
+    "sameModuleIdentity": true,
+    "original": "D:\\MCRF\\Projects\\MCRF\\work\\ports-test-2026-10-14\\swg-mobile-79ce1a0c19034e34a8b8614c2339ce22\\wdtt\\pathprobe",
+    "inputs": [
+      {
+        "file": "go.mod",
+        "sha256": "4b34a0658fef32181b61c970e11f14a4dd7c806d83c9d869314f1cf9b453d7c2"
+      },
+      {
+        "file": "protocol.go",
+        "sha256": "9b24a7317e26807e8625c556ce225ae58304e5e1a06e219b8ca54149cd3de610"
+      },
+      {
+        "file": "worker.go",
+        "sha256": "ec2a2338079f5859c187aadb51c080bb59c242caa9cd73b1ccfd25234d4e3453"
+      }
+    ],
+    "licenseSha256": "230184f60bae2feaf244f10a8bac053c8ff33a183bcc365b4d8b876d2b7f4809",
+    "copiedWithoutCodeChanges": true
+  }
+}

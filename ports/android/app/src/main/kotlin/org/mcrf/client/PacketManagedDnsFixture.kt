@@ -48,7 +48,10 @@ object PacketManagedDnsFixture {
             live();val query=PacketFixtureDns.query(nonce,ipv6,SecureRandom().nextInt(65536))
             val cancellation=CancellationSignal();val answer=CompletableFuture<ByteArray?>()
             try{
-                DnsResolver.getInstance().rawQuery(network,query,DnsResolver.FLAG_NO_CACHE_LOOKUP or DnsResolver.FLAG_NO_CACHE_STORE,
+                // Both cache-control flags are public combinable DNS bit flags.
+                @android.annotation.SuppressLint("WrongConstant")
+                val noCacheFlags=DnsResolver.FLAG_NO_CACHE_LOOKUP or DnsResolver.FLAG_NO_CACHE_STORE
+                DnsResolver.getInstance().rawQuery(network,query,noCacheFlags,
                     Executor {it.run()},cancellation,object:DnsResolver.Callback<ByteArray>{
                         override fun onAnswer(packet:ByteArray,rcode:Int){if(rcode==fixture.dnsRcode)answer.complete(packet.clone())else answer.completeExceptionally(IllegalStateException("PACKET_MANAGED_FRAMEWORK_RCODE"))}
                         override fun onError(error:DnsResolver.DnsException){

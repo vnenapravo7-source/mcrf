@@ -1,0 +1,13 @@
+{
+  "manifestSha256": "6d2700e295f49ccbbdd7337b4d9a60b86026cdf63d7cefb87598e45152c5a542",
+  "executed": false,
+  "state": "P3_TURN_SOURCE_PREPARED_NOT_COMPILED",
+  "performanceSourceSha256": "9da572165e2f01da1418ac485e7d4280134780a8f01709aa1be7467e1b028e6e",
+  "compiled": false,
+  "kind": "qwdtt",
+  "baselineReceiptSha256": "6ffc23c18ecfc68c8414864529540695f31f3e6f0d8b2e5501b64b65cbcfb51f",
+  "sourceStable": true,
+  "baselinePreparedSha256": "daf3ea18c3dda8da594dc6b98c98ac047e0d2bd300307aff3ccb8567dae289c9",
+  "module": "D:/MCRF/Builds/Android/p3-turn-source-ab461da06329483eaa3a06139f2608c2/module",
+  "baselineReceipt": "D:/MCRF/Builds/Android/next-independent-20d0f883b4cf419c8d155969a0f54408/source/ports/android/native-stage-qwdtt/receipt.json"
+}

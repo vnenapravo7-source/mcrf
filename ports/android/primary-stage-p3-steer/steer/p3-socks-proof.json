@@ -1,0 +1,74 @@
+{
+  "retainedRuntimeSha256": "8ba204a96a6cac656f1d4d39baa2df485e40784002d2fe565f3c60463e14b89d",
+  "sourceManifestSha256": "209996f94a94229ac1de35bd4fd657f102c634666ec85b166fb498adbaaa4373",
+  "abiExecuted": "x86_64",
+  "state": "VERIFIED_NEW_SOCKS_C_ONLY",
+  "nonNativeUnchanged": true,
+  "cases": [
+    "mcrf_socks_udp_test",
+    "mcrf_socks_local_udp_test",
+    "mcrf_socks_udp_wire_test",
+    "mcrf_private_socks_profile_test"
+  ],
+  "retainedAdapterSha256": "0f3ecf64d3e8b1b85cd17b0fc4cc4824e54f2430428519621e0b47ce8c693719",
+  "version": 1,
+  "retainedSocks": {
+    "unchangedFixtureSources": true,
+    "testsReplayed": false,
+    "receiptSha256": "348445f3f21527c37dd4168c8aac09918bd6abb5ae051347900c3f5759d80f4c",
+    "stage": "D:/MCRF/Builds/Android/p3-steer-native-a6413bb4c75042f0ae414ee384e4483c"
+  },
+  "attempts": [
+    {
+      "case": "mcrf_socks_udp_test",
+      "exit": 0,
+      "log": "mcrf_socks_udp_test.log",
+      "binarySha256": "29053ff44c056ca0a9515eb37c27202099dfff8899d36a10d4d32cf928b070a6",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "abi": "x86_64"
+    },
+    {
+      "case": "mcrf_socks_local_udp_test",
+      "exit": 0,
+      "log": "mcrf_socks_local_udp_test.log",
+      "binarySha256": "89b9684c0b6ce54949f0ad566ea81acd768602314d2e8350c45403c5a3e159fb",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "abi": "x86_64"
+    },
+    {
+      "case": "mcrf_socks_udp_wire_test",
+      "exit": 0,
+      "log": "mcrf_socks_udp_wire_test.log",
+      "binarySha256": "cb1ae4891b13d604c7cf47ecc8772d313565418e739e6b78fe453a8a6c81ca52",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "abi": "x86_64"
+    },
+    {
+      "case": "mcrf_private_socks_profile_test",
+      "exit": 0,
+      "log": "mcrf_private_socks_profile_test.log",
+      "binarySha256": "a99a11bdc111878b70dbc0f786db69cd0da92d61daa54d0deb257d541dc3a9a5",
+      "logSha256": "324f8d83a1c9b6d05ae19a67419b7d098e2da16c40bef34c2d4cf2e58bb6dc96",
+      "abi": "x86_64"
+    }
+  ],
+  "nativeArtifacts": [
+    {
+      "nativeExecuted": false,
+      "abi": "arm64-v8a",
+      "sha256": "cd38d2fab16cb2140b3fa55d0030f06271b1c376e9f065a750bbea058d563673",
+      "file": "arm64-v8a/libsteer_vpn.so",
+      "bytes": 14691080,
+      "elfChecked": true
+    },
+    {
+      "nativeExecuted": false,
+      "abi": "x86_64",
+      "sha256": "42de85d5c15ffd00cfbd8ef8e295fbf2257465dfd3ea96a4f6c70a3a86e95a1f",
+      "file": "x86_64/libsteer_vpn.so",
+      "bytes": 14454888,
+      "elfChecked": true
+    }
+  ],
+  "privateHelperProfile": 1
+}

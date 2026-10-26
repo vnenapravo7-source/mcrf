@@ -1,0 +1,11 @@
+=== RUN   TestMcrfProtocolsPhysicalNetworkBinding
+--- PASS: TestMcrfProtocolsPhysicalNetworkBinding (0.00s)
+=== RUN   TestMcrfProtocolsSshOriginalWire
+--- PASS: TestMcrfProtocolsSshOriginalWire (0.01s)
+=== RUN   TestMcrfProtocolsTuicOriginalWire
+--- PASS: TestMcrfProtocolsTuicOriginalWire (0.01s)
+=== RUN   TestMcrfProtocolsAnyTlsOriginalWire
+--- PASS: TestMcrfProtocolsAnyTlsOriginalWire (0.01s)
+=== RUN   TestMcrfProtocolsNaiveCronetOriginalWire
+--- PASS: TestMcrfProtocolsNaiveCronetOriginalWire (0.01s)
+PASS

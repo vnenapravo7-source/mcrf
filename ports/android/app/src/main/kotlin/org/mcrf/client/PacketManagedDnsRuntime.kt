@@ -76,7 +76,15 @@ class PacketManagedDnsRuntime(
     private fun checkLive(){
         if(closed.get()||stopped())throw IOException("PACKET_DNS_RETIRED")
         val caps=manager.getNetworkCapabilities(network)?:throw IOException("PACKET_DNS_VPN_GONE")
-        require(caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)&&caps.ownerUid==android.os.Process.myUid()){"PACKET_DNS_OWNED_VPN_REQUIRED"}
+        // Android10 has no public ownerUid. The exact network handle was passed
+        // with our live owned TUN; revalidate its complete original address plan.
+        val owned=if(android.os.Build.VERSION.SDK_INT>=30)caps.ownerUid==android.os.Process.myUid()
+            else manager.getLinkProperties(network)?.linkAddresses?.let {actual->
+                actual.size==original.addresses.size&&original.addresses.all {cidr->
+                    val parts=cidr.split('/');actual.any {it.address==InetAddress.getByName(parts[0])&&it.prefixLength==parts[1].toInt()}
+                }
+            }==true
+        require(caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)&&owned){"PACKET_DNS_OWNED_VPN_REQUIRED"}
     }
     fun start(){
         check(started.compareAndSet(false,true));checkLive()

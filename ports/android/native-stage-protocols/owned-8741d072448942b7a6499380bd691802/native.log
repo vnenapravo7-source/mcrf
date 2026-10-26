@@ -1,0 +1,36 @@
+=== RUN   TestMcrfProtocolsPhysicalNetworkBinding
+    network_test.go:32: PROTOCOL_PHYSICAL_NETWORK_BIND_FAILED
+--- FAIL: TestMcrfProtocolsPhysicalNetworkBinding (0.00s)
+=== RUN   TestMcrfProtocolsStrictConfig
+--- PASS: TestMcrfProtocolsStrictConfig (0.00s)
+=== RUN   TestMcrfProtocolsSshHostTrust
+--- PASS: TestMcrfProtocolsSshHostTrust (0.00s)
+=== RUN   TestMcrfProtocolsDnsNotSilentlyDropped
+--- PASS: TestMcrfProtocolsDnsNotSilentlyDropped (0.00s)
+=== RUN   TestMcrfProtocolsAddressFraming
+--- PASS: TestMcrfProtocolsAddressFraming (0.00s)
+=== RUN   TestMcrfProtocolsAnonymousAndBadPasswordRejected
+--- PASS: TestMcrfProtocolsAnonymousAndBadPasswordRejected (0.00s)
+=== RUN   TestMcrfProtocolsOwnerEofAndStop
+--- PASS: TestMcrfProtocolsOwnerEofAndStop (0.00s)
+=== RUN   TestMcrfProtocolsDiagnosticPrivacy
+--- PASS: TestMcrfProtocolsDiagnosticPrivacy (0.00s)
+=== RUN   TestMcrfProtocolsSshOriginalWire
+    ssh_wire_test.go:128: dial tcp 127.0.0.1:35215: PROTOCOL_PHYSICAL_NETWORK_BIND_FAILED
+--- FAIL: TestMcrfProtocolsSshOriginalWire (0.03s)
+=== RUN   TestMcrfProtocolsSystemDnsLifecycle
+--- PASS: TestMcrfProtocolsSystemDnsLifecycle (0.00s)
+=== RUN   TestMcrfProtocolsUdpSourcePortPin
+--- PASS: TestMcrfProtocolsUdpSourcePortPin (0.15s)
+=== RUN   TestMcrfProtocolsDescriptor
+--- PASS: TestMcrfProtocolsDescriptor (0.00s)
+=== RUN   TestMcrfProtocolsTuicOriginalWire
+    wire_test.go:152: dial udp 127.0.0.1:33997: PROTOCOL_PHYSICAL_NETWORK_BIND_FAILED
+--- FAIL: TestMcrfProtocolsTuicOriginalWire (0.01s)
+=== RUN   TestMcrfProtocolsAnyTlsOriginalWire
+    wire_test.go:153: failed to create session: dial tcp 127.0.0.1:46809: PROTOCOL_PHYSICAL_NETWORK_BIND_FAILED
+--- FAIL: TestMcrfProtocolsAnyTlsOriginalWire (0.01s)
+=== RUN   TestMcrfProtocolsNaiveCronetOriginalWire
+    wire_test.go:154: connection failed
+--- FAIL: TestMcrfProtocolsNaiveCronetOriginalWire (0.01s)
+FAIL

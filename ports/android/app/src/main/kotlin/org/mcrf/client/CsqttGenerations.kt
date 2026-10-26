@@ -61,7 +61,7 @@ object CsqttGenerations {
         return value
     }
     fun label(profile:JSONObject)=if(family(profile)==modern)modernImplementations.getValue(implementation(profile))else family(profile).label
-    fun engineLabel(kind:String)=families.singleOrNull {it.engine==kind}?.let {if(it==modern)"CSQTT v2.5.x · Original / Rebirth / SWG"else it.label}?:kind.uppercase(java.util.Locale.ROOT)
+    fun engineLabel(kind:String)=if(kind==CompactProtocolPolicy.KIND)"Steer · TUIC / AnyTLS / Naive / SSH"else families.singleOrNull {it.engine==kind}?.let {if(it==modern)"CSQTT v2.5.x · Original / Rebirth / SWG"else it.label}?:kind.uppercase(java.util.Locale.ROOT)
     fun requireLegacyOptions(profile:JSONObject){
         if(family(profile).engine=="csqtt20")require(profile.opt("turn_tcp").let {it==null||it==false||it.toString() in setOf("false","0")}){
             "CSQTT 2.0 поддерживает только UDP до TURN. TCP требует другого поколения сервера; автоматической подмены нет."

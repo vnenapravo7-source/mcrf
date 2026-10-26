@@ -1,0 +1,34 @@
+{
+  "priority": 2,
+  "state": "OWNED_ANDROID_KERNEL_PASS_APP_UNVERIFIED",
+  "passed": true,
+  "sourceStable": true,
+  "sourceReadySha256": "4b4f5fc3ca6631109f424b31c4706506b37294b45dcaee8cb8f5b1b21cd939f9",
+  "kernelEvidence": "D:\\MCRF\\Builds\\Android\\p2-kernel-0da83243e3d7459db90e9b3111aa9b97\\android-kernel.json",
+  "kernelEvidenceSha256": "0a14b5290d6de7bd9eda7b672a72d4bc96961e4f748fdd4d99b285a3a0e365f3",
+  "producerSha256": "8c90dd17623f2a222542548608eb7b99b6b525a3ecb2463bd520b82ea3173212",
+  "component": "group",
+  "cases": [
+    "TestMcrfProcessGroupLinuxRealAckAndWholeTreeRetirement",
+    "TestMcrfProcessGroupPrivateAckIsExactAndOneShot",
+    "TestMcrfProcessGroupCancelNeverStartsUnacknowledgedChild",
+    "TestMcrfProcessGroupMalformedNonceRejectedBeforeOsOperation",
+    "TestMcrfProcessGroupDesktopFixtureDoesNotChangeItsProcessGroup",
+    "TestMcrfProcessGroupChildDoesNotInheritPrivateAckCapability",
+    "TestMcrfChildInputBlockedPipeCannotBlockReservedStopOrReorderProofs",
+    "TestMcrfChildInputFailureWipesAndNeverRetriesOrReopens"
+  ],
+  "newExecution": false,
+  "androidAppAccepted": false,
+  "goSha256": "21761eceb9302062c9623fb699f332c8c7fe000f15f70efe8da01a2cfbbc16b9",
+  "inputs": {
+    "mcrf_process_group.go": "5f6ce1f3c34f866b1daed55b54b6e54474a712cede627138d772ab6f8a1dd01a",
+    "mcrf_process_group_linux.go": "ad5ae78732a13114485c3c1a0a0dfa857cf35b211f91498987f1faf7a59f36eb",
+    "mcrf_process_group_test.go": "0b7310c7734aa8ccc0148789bb5b574483ad35dc872a583051685bd57cf18d68",
+    "mcrf_process_group_linux_test.go": "d7a496b285051a67bd001bc25a0cdf61826f64db4a9420cb1608596f4cd7f74e",
+    "mcrf_child_input.go": "49b922a5800f892627f78033899904bf55f5feffe8f3af305a0e75a411bb06fa",
+    "mcrf_child_input_test.go": "69fdc65ac3ea063907621a0a54a1feae4cf2fba320cd21c2cb95dba0e6e44cab"
+  },
+  "logSha256": "728bde3c65e0a34b1308593916dfc8dd2f5d5d5294425eddb68388d7717fd895",
+  "testBinarySha256": "e8b5f3fcb9d420425eb6216d5541d287dee541a4d8f15c4efaf63873c796a3a6"
+}

@@ -4,7 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 object OptionalCoreConfig {
-    data class Request(val kind: String,val outbound: JSONObject,val certificateStore: String? = null,val serverDns:JSONObject?=null)
+    data class Request(val kind: String,val outbound: JSONObject,val certificateStore: String? = null,val serverDns:JSONObject?=null,val physicalNetworkHandle:Long?=null)
     /** Called on each selected outbound BEFORE the base core tuning pass. No source mutation. */
     fun prepare(source: JSONObject, settings: OptionalCoreSettings,serverDns:(JSONObject)->JSONObject?={null}): Request? {
         settings.validate();val out=JSONObject(source.toString());val type=out.optString("type")
@@ -49,14 +49,15 @@ object OptionalCoreConfig {
     }
     fun privateConfig(request: Request,port: Int,user: String,password: String): JSONObject {
         require(port in 1..65535 && user.toByteArray().size in 16..255 && password.toByteArray().size in 16..255)
-        require(request.certificateStore==null || request.kind=="tls-core" && request.certificateStore in setOf("system","mozilla")) {"Этот optional core не поддерживает выбранное хранилище CA."}
+        require(request.certificateStore==null || request.kind in setOf("tls-core","protocols") && request.certificateStore in setOf("system","mozilla")) {"Этот optional core не поддерживает выбранное хранилище CA."}
+        require(request.physicalNetworkHandle==null||request.kind=="protocols"&&request.physicalNetworkHandle>0){"Физическая сеть допустима только для протокольного модуля."}
         return JSONObject().put("api",1).put("socks","127.0.0.1:$port").put("socks_user",user).put("socks_pass",password).put("outbound",JSONObject(request.outbound.toString()))
-            .also {request.certificateStore?.let {store -> it.put("certificate_store",store)};request.serverDns?.let {itDns->it.put("server_dns",JSONObject(itDns.toString()))}}
+            .also {request.certificateStore?.let {store -> it.put("certificate_store",store)};request.serverDns?.let {itDns->it.put("server_dns",JSONObject(itDns.toString()))};request.physicalNetworkHandle?.let {network->it.put("physical_network_handle",network)}}
     }
     /** Replaces only the chosen tag; existing routing/DNS remain with base libbox. */
     fun bridgeOutbound(tag: String,port: Int,user: String,password: String,kind: String = "tls-core"): JSONObject {
         require(tag.isNotBlank());require(port in 1..65535)
-        require(kind in setOf("xray","tls-core"))
+        require(kind in setOf("xray","tls-core","protocols"))
         return JSONObject().put("type","socks").put("tag",tag).put("server","127.0.0.1").put("server_port",port)
             .put("version","5").put("username",user).put("password",password).also {if(kind=="tls-core")it.put("network","tcp")}
     }

@@ -6,9 +6,12 @@ import org.json.JSONObject
 /** One dispatcher/TUN, multiple explicitly selected saved SERVER profiles.
  * No per-rule engine choice, automatic fallback, preference or catalogue write. */
 internal class RouteServerPlan(settings:JSONObject,catalogue:List<ServerImport.Server>) {
-    private val pools=GeoDataConfig.orderedRules(settings).let {rules->(0 until rules.length()).map {rules.getJSONObject(it)}
+    private val ruleSources=GeoDataConfig.orderedRules(settings).let {rules->(0 until rules.length()).map {rules.getJSONObject(it)}}+listOfNotNull(settings.optJSONObject(RoutingConnectionBinding.DEFAULT))
+    private val bound=RoutingConnectionBinding.enabled(settings)&&settings.has(RoutingConnectionBinding.RUNTIME)
+    private val pools=ruleSources.let {rules->rules
         .filter {it.optBoolean("enabled",true)&&it.has(POOL)}.map {ids(it).sorted()}.distinct()}
-    private val fixed=GeoDataConfig.orderedRules(settings).let {rules->(0 until rules.length()).map {rules.getJSONObject(it)}
+    private val poolInitial=if(bound)pools.associateWith{RoutingConnectionBinding.initial(settings,it)}else emptyMap()
+    private val fixed=ruleSources.let {rules->rules
         .filter {it.optBoolean("enabled",true)&&it.has(KEY)}.map {it.getString(KEY)}.toSet()}
     fun poolOnly(id:String)=id !in fixed&&pools.any {id in it}
     private val captured:List<ServerImport.Server>
@@ -19,7 +22,7 @@ internal class RouteServerPlan(settings:JSONObject,catalogue:List<ServerImport.S
         captured=ids.map {id->
             val entry=available[id]?.singleOrNull()
                 ?:throw IllegalArgumentException("Сервер правила удалён или изменён. Выберите его заново в правиле маршрутизации.")
-            require(selectable(entry)) {"Сервер «${entry.name}» нельзя использовать отдельно в правиле: нужен одиночный профиль без собственной конфигурации маршрутов."}
+            require(selectable(entry)||bound&&RoutingConnectionBinding.eligible(entry,entry.carrier!=null)) {"Сервер «${entry.name}» нельзя использовать отдельно в правиле: нужен одиночный профиль без собственной конфигурации маршрутов."}
             copy(entry)
         }
         require(captured.count {it.carrier!=null}<=8) {"В правилах допускается до 8 дополнительных транспортов одновременно."}
@@ -44,9 +47,9 @@ internal class RouteServerPlan(settings:JSONObject,catalogue:List<ServerImport.S
         }
         pools.forEach {ids->
             val tag=poolTag(ids);require(tags.add(tag)) {"Тег группы серверов правила занят исходным профилем."}
-            outputs.put(JSONObject().put("type","urltest").put("tag",tag).put("outbounds",JSONArray(ids.map {RouteServerPlan.tag(it)}))
-                .put("url","https://www.gstatic.com/generate_204").put("interval","1m").put("tolerance",0)
-                .put("interrupt_exist_connections",false))
+            outputs.put(if(bound)JSONObject().put("type","selector").put("tag",tag).put("outbounds",JSONArray(ids.map{RouteServerPlan.tag(it)})).put("default",RouteServerPlan.tag(poolInitial.getValue(ids))).put("interrupt_exist_connections",false)
+                else JSONObject().put("type","urltest").put("tag",tag).put("outbounds",JSONArray(ids.map {RouteServerPlan.tag(it)}))
+                    .put("url","https://www.gstatic.com/generate_204").put("interval","1m").put("tolerance",0).put("interrupt_exist_connections",false))
         }
         if(endpoints.length()>0)config.put("endpoints",endpoints)
         return config
@@ -76,6 +79,7 @@ internal class RouteServerPlan(settings:JSONObject,catalogue:List<ServerImport.S
             repeat(rules.length()){index->val rule=rules.getJSONObject(index);validate(rule)
                 if(rule.optBoolean("enabled",true))ids.addAll(RouteServerPlan.ids(rule))
             }
+            settings.optJSONObject(RoutingConnectionBinding.DEFAULT)?.let{ids.addAll(RouteServerPlan.ids(it))}
             require(ids.size<=32) {"В правилах допускается до 32 разных серверов."}
             return ids.toList()
         }
@@ -85,7 +89,7 @@ internal class RouteServerPlan(settings:JSONObject,catalogue:List<ServerImport.S
             return rule.optJSONArray(POOL)?.let {a->(0 until a.length()).map {a.getString(it)}}
                 ?:rule.optString(KEY).takeIf(String::isNotEmpty)?.let(::listOf)?:emptyList()
         }
-        private fun poolTag(ids:List<String>):String {
+        internal fun poolTag(ids:List<String>):String {
             require(ids.size in 2..32)
             ids.forEach(::tag)
             val hash=java.security.MessageDigest.getInstance("SHA-256").digest(ids.sorted().joinToString(",").toByteArray(Charsets.UTF_8))

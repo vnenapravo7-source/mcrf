@@ -43,7 +43,7 @@ object UsageFeatures {
     fun connection(entry:ServerImport.Server,features:Set<Feature>)=when(entry.protocol){
         "openflux"->Feature.OPENFLUX in features
         "s3-bypass",S3BypassProfile.KIND->Feature.S3_BYPASS in features
-        "csqtt","qwdtt","wdtt","olcrtc","dnstt"->Feature.WHITELIST in features
+        "csqtt","qwdtt","wdtt","olcrtc","dnstt",VayDnsProfile.KIND,SlipstreamProfile.KIND,SstpProfile.KIND,MasterDnsProfile.KIND->Feature.WHITELIST in features
         else->true
     }
     fun showModeSwitch(features:Set<Feature>)=Feature.PROXY in features&&usesVpn(features)
@@ -83,7 +83,7 @@ object UsageFeatures {
         "tgws"->telegram(features)
         "openflux"->Feature.OPENFLUX in features
         "s3-bypass",S3BypassProfile.KIND->Feature.S3_BYPASS in features
-        "csqtt","csqtt25","qwdtt","wdtt","olcrtc","dnstt"->Feature.WHITELIST in features
+        "csqtt","csqtt25","qwdtt","wdtt","olcrtc","dnstt",VayDnsProfile.KIND,SlipstreamProfile.KIND,SstpProfile.KIND,MasterDnsProfile.KIND->Feature.WHITELIST in features
         "xray","tls-core"->Feature.VPN in features||Feature.PROXY in features
         else->true
     }

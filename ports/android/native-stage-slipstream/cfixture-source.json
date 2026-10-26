@@ -1,0 +1,14 @@
+{
+  "executed": false,
+  "compiled": false,
+  "commit": "397850b16e70a52513269134b2c7b9aa13a56745",
+  "manifestSha256": "dfad1449fc02cc5135fa6ead716a2509ca6e1d3b54405a9d878b387b339d7f9b",
+  "state": "C_FIXTURE_SOURCE_PREPARED",
+  "loopbackOnly": true,
+  "submodules": {
+    "subprojects/picoquic": "2ee2ecd189354791e15cc1ff9db86e4e4b8eba10",
+    "extern/SPCDNS": "d291537e1f66b4a7ede069b949a8db0f94c59246",
+    "extern/lua-resty-base-encoding": "bd9246f681806b26469e0d874c893dcab4975aeb",
+    "extern/quick_arg_parser": "153b0accc1f0201df9d2fd169bafaeee53e6f300"
+  }
+}

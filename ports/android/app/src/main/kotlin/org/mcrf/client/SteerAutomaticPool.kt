@@ -7,9 +7,9 @@ import org.json.JSONObject
  * probe can still measure the compatible catalogue on explicit request. */
 internal class SteerAutomaticPool(entries:List<ServerImport.Server>,marked:Set<String>,private val epoch:Long) {
     val measurements:List<ServerImport.Server> = java.util.Collections.unmodifiableList(entries.filter {entry->
-        entry.id in marked&&SteerProbePlan.supports(entry)&&try {SteerProbePlan.profile(entry);true}catch(_:Exception){false}
-    }.map {entry->ServerImport.Server(entry.original,entry.name,entry.protocol,entry.host,entry.port,
-        entry.outbound?.let {JSONObject(it.toString())},null,null)})
+        entry.id in marked&&compatible(entry)
+    }.map {entry->ServerImport.Server(original=entry.original,name=entry.name,protocol=entry.protocol,host=entry.host,port=entry.port,
+        outbound=entry.outbound?.let {JSONObject(it.toString())},endpoint=null,configuration=null,profileDns=entry.profileDns.toList())})
     private val marks=marked.toSet()
     val candidates:List<ServerImport.Server> get()=measurements.filter {it.id in marks}
     init {require(epoch>0&&measurements.size<=256&&measurements.map {it.id}.toSet().size==measurements.size)}
@@ -30,6 +30,8 @@ internal class SteerAutomaticPool(entries:List<ServerImport.Server>,marked:Set<S
     fun stillMarked(candidates:List<ServerImport.Server>,latest:List<ServerImport.Server>,currentMarks:Set<String>)=
         candidates.filter {entry->entry.id in currentMarks&&latest.any {it.id==entry.id&&SteerProbePlan.fingerprint(it)==SteerProbePlan.fingerprint(entry)}}
     companion object {
+        fun compatible(entry:ServerImport.Server):Boolean = CompactProtocolPolicy.eligible(entry)||
+            SteerProbePlan.supports(entry)&&try {SteerProbePlan.profile(entry);true}catch(_:Exception){false}
         fun better(candidateDelay:Long,currentDelay:Long,tolerance:Int)=candidateDelay>=0&&currentDelay>=0&&
             candidateDelay+tolerance.coerceIn(0,10000)<currentDelay
     }

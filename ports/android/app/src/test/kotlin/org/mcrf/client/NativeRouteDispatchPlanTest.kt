@@ -119,17 +119,38 @@ class NativeRouteDispatchPlanTest {
         assertEquals(input.getJSONObject("dns").toString(),result.getJSONObject("dns").toString())
         assertThrows(IllegalArgumentException::class.java){NativeRouteDispatchPlan.forSteer(tls,extra)}
     }
-    @Test fun dispatcherOnlyProtocolsAreNotRewrittenAsSteerOrTheMainServer(){
+    @Test fun compactRouteProtocolsRequireOwnedHelpersInsteadOfPretendSteerUris(){
         val main=server("main")
         for(uri in listOf("anytls://owned@anytls.example.test:443", "ssh://owned:fixture@ssh.example.test:22",
             "tuic://00000000-0000-4000-8000-000000000001:owned@tuic.example.test:443")){
             val other=ServerImport.read(uri).single();val native=plan(main,other)
-            assertEquals(listOf(main.id),native.bindings.map {it.id})
+            assertEquals(listOf(main.id,other.id),native.bindings.map {it.id})
+            val binding=native.bindings.single {it.id==other.id}
+            assertEquals("",binding.secretProfile())
+            assertEquals(other.protocol,binding.assistedEntry()!!.protocol)
             val input=source(main,other);val before=input.getJSONArray("outbounds").getJSONObject(1).toString()
-            val result=native.replace(input,mapOf(main.id to bridge()))
-            assertEquals(before,result.getJSONArray("outbounds").getJSONObject(1).toString())
+            val result=native.replace(input,native.bindings.associate {it.id to bridge()})
+            assertEquals(NativeRouteDispatchPlan.TYPE,result.getJSONArray("outbounds").getJSONObject(1).getString("type"))
+            assertEquals(before,input.getJSONArray("outbounds").getJSONObject(1).toString())
             assertEquals(input.getJSONObject("dns").toString(),result.getJSONObject("dns").toString())
-            assertEquals(RouteServerPlan.tag(other.id),result.getJSONObject("route").getJSONArray("rules").getJSONObject(0).getString("outbound"))
+            val rules=result.getJSONObject("route").getJSONArray("rules")
+            assertEquals(3,rules.length()) // Resolve routed host, original route, resolve final host.
+            assertEquals("resolve",rules.getJSONObject(0).getString("action"))
+            assertEquals(input.getJSONObject("route").getJSONArray("rules").getJSONObject(0).toString(),rules.getJSONObject(1).toString())
+            assertEquals(RouteServerPlan.tag(other.id),rules.getJSONObject(1).getString("outbound"))
+            assertEquals("resolve",rules.getJSONObject(2).getString("action"))
         }
+    }
+    @Test fun compactMainAndRouteCaptureKeepIndependentOriginalsAndRejectPostCaptureMutation(){
+        val main=ServerImport.read("anytls://owned@main.example.test:443").single()
+        val other=server("other");val captured=plan(main,other)
+        val binding=captured.bindings.single {it.id==main.id}
+        assertEquals(main.id,binding.assistedEntry()!!.id)
+        val original=binding.assistedEntry()!!.outbound!!.toString()
+        binding.assistedEntry()!!.outbound!!.put("password","different-owned-value")
+        assertEquals(original,binding.assistedEntry()!!.outbound!!.toString())
+        main.outbound!!.put("password","edited-source-value")
+        assertEquals(original,binding.assistedEntry()!!.outbound!!.toString())
+        assertThrows(IllegalArgumentException::class.java){captured.replace(source(main,other),captured.bindings.associate {it.id to bridge()})}
     }
 }

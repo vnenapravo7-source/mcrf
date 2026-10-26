@@ -12,3 +12,5 @@ if(providers.gradleProperty("p2DispatcherStage").isPresent){
 if (providers.gradleProperty("wgBackendStage").isPresent) include(":wg-module")
 // Common P1 acceptance only, never a default app/release dependency.
 if (providers.gradleProperty("p1OwnerFixture").orNull == "true") include(":p1-owner-probe", ":p1-owner-peer")
+// Owned emulator-native protocol fixtures; never a main/release dependency.
+if (providers.gradleProperty("protocolsOwnedFixture").orNull == "true") include(":protocols-owned-fixture")

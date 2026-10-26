@@ -67,9 +67,9 @@ class CompatibilityImportContractsTest {
         val changed = JSONObject(CompatibilityImportQwdtt.applyNew(raw.toString(), defaults))
         assertEquals("auto", changed.getString("hash_source")); assertFalse(changed.has("token")); assertEquals(1, calls)
         raw.put("hashes", JSONArray().put("synthetic_fixture_call_hash"))
-        assertEquals(raw.toString(), CompatibilityImportQwdtt.applyNew(raw.toString(), defaults)); assertEquals(1, calls)
+        assertEquals(JSONObject(raw.toString()).put("mode","raw").toString(), CompatibilityImportQwdtt.applyNew(raw.toString(), defaults)); assertEquals(1, calls)
         raw.remove("hashes"); raw.put("hash_source", "manual")
-        assertEquals(raw.toString(), CompatibilityImportQwdtt.applyNew(raw.toString(), defaults)); assertEquals(1, calls)
+        assertEquals(JSONObject(raw.toString()).put("mode","raw").toString(), CompatibilityImportQwdtt.applyNew(raw.toString(), defaults)); assertEquals(1, calls)
     }
     @Test fun qwdttUriAndMixedListDefaultsRemainImportable() {
         val source = "qwdtt://config?peer=example.invalid%3A56000&password=synthetic"

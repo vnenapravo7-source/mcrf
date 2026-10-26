@@ -5,8 +5,9 @@ import java.util.ArrayDeque
 
 /** Exact-child bounded stdin owner. Completion means this writer thread exited,
  * NEVER that a native child (or its descendants) exited. */
-class CarrierIpcWriter(private val output:OutputStream,private val maxCommands:Int=32,private val maxBytes:Int=131072) {
-    init {require(maxCommands in 1..32&&maxBytes in 16384..131072)}
+class CarrierIpcWriter(private val output:OutputStream,private val maxCommands:Int=32,private val maxBytes:Int=131072,
+                       private val maxCommandBytes:Int=16384) {
+    init {require(maxCommands in 1..32&&maxBytes in 16384..131072&&maxCommandBytes in 16384..maxBytes)}
     data class Completion(val writerExited:Boolean,val stopWritten:Boolean,val failed:Boolean)
     private val lock=Object()
     private val pending=ArrayDeque<ByteArray>()
@@ -21,7 +22,7 @@ class CarrierIpcWriter(private val output:OutputStream,private val maxCommands:I
 
     /** A bounded defensive copy; rejection does not edit or retain the caller's proof. */
     fun offer(command:ByteArray):Boolean {
-        require(command.size in 1..16384&&command.last()==10.toByte())
+        require(command.size in 1..maxCommandBytes&&command.last()==10.toByte())
         synchronized(lock) {
             if(sealed||commands>=maxCommands||bytes+command.size>maxBytes)return false
             pending.addLast(command.copyOf());commands++;bytes+=command.size
@@ -31,15 +32,26 @@ class CarrierIpcWriter(private val output:OutputStream,private val maxCommands:I
     /** Reserved terminal command: admission closes even when the data queue is full.
      * No OutputStream method or wait is called while holding this monitor. */
     fun requestStop() {synchronized(lock){sealed=true;lock.notifyAll()}}
+    /** OpenFlux may have an asynchronous reply callback. Do not drain new replies
+     * ahead of STOP after its owner has closed. A write already removed from the
+     * queue remains owned by the writer; never close its stream under this lock. */
+    fun requestStopDiscardingPending() {synchronized(lock){
+        sealed=true
+        discardPendingLocked()
+        lock.notifyAll()
+    }}
+    private fun discardPendingLocked() {
+        while(pending.isNotEmpty()) {
+            val command=pending.removeFirst();commands--;bytes-=command.size;command.fill(0)
+        }
+    }
     /** The OS has confirmed the exact child died. Discard proofs which can no
      * longer be delivered; never replay them into a replacement process. The
      * in-flight write/close is still owned until awaitCompletion observes exit. */
     fun childExited() {synchronized(lock){
         childDead=true
         sealed=true
-        while(pending.isNotEmpty()) {
-            val command=pending.removeFirst();commands--;bytes-=command.size;command.fill(0)
-        }
+        discardPendingLocked()
         lock.notifyAll()
     }}
     fun awaitCompletion(timeoutMillis:Long):Completion {

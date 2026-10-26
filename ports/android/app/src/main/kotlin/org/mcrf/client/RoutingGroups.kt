@@ -14,6 +14,11 @@ internal object RoutingGroups {
         if(state.has(key))out.put(key,copy(state.get(key)))
     }}
     private fun copy(value:Any):Any=when(value){is JSONObject->JSONObject(value.toString());is JSONArray->JSONArray(value.toString());else->value}
+    /** Root fields already describe the active group. Storage/navigation metadata is
+     * not a native setting; keep every other field so unsupported effects fail closed. */
+    fun runtime(state:JSONObject)=JSONObject().also {out->state.keys().forEach {key->
+        if(key!=KEY&&key!=RoutingConnectionBinding.KEY&&key!=RoutingConnectionBinding.RUNTIME&&key!=RoutingConnectionBinding.DEFAULT)out.put(key,copy(state.get(key)))
+    }}
     fun ensure(state:JSONObject) {
         if(state.has(KEY))return
         state.put(KEY,JSONObject().put("active",ids.first()).put("groups",JSONArray(ids.mapIndexed {i,id->

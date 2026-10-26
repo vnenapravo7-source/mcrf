@@ -10,8 +10,12 @@ internal object CarrierStreamDefaultsUi {
         box.addView(text("При частой смене вышек возможны лимиты и снижение скорости. В поездке временно отключите БС или уменьшите число потоков до 36 или ниже.",12,Loft.MUTED),space(8,12))
         box.addView(text("Общее значение для каждого транспорта. Доступный предел зависит от числа звонков. Применится при следующем подключении.",12,Loft.MUTED),space(0,12))
         var settings=org.json.JSONObject()
-        run(MainActivity.Operation {settings=CarrierStreamDefaults.load(activity);""},false,Runnable {
+        var loaded=false
+        val loadStatus=text("Загрузка настроек потоков…",12,Loft.MUTED)
+        box.addView(loadStatus,space(0,8))
+        runAfterSuccess(MainActivity.Operation {settings=CarrierStreamDefaults.load(activity);loaded=true;""},false,Runnable {
             if(isDestroyed||isFinishing||!box.isAttachedToWindow)return@Runnable
+            box.removeView(loadStatus)
             val titles=listOf("CSQTT","CSQTT 2.5 · swg-panel","QWDTT","WDTT")
             val sliders=mutableListOf<StreamCountSlider>()
             CarrierStreamDefaults.kinds.forEachIndexed {index,kind->
@@ -28,6 +32,8 @@ internal object CarrierStreamDefaultsUi {
                 }
                 sliders.add(slider);box.addView(slider,LinearLayout.LayoutParams(-1,-2))
             }
+        },Runnable {
+            if(!loaded)loadStatus.text="Настройки потоков не загружены. Откройте Vk Turn повторно."
         })
         box
     }

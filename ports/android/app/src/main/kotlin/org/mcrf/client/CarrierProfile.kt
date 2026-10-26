@@ -41,6 +41,10 @@ object CarrierProfile {
         return fromJson(link, data)
     }
     @JvmStatic fun fromJson(source: String, raw: JSONObject): ServerImport.Server {
+        if(raw.optString("type")==VayDnsProfile.KIND)return VayDnsProfile.fromJson(source,raw)
+        if(raw.optString("type")==SlipstreamProfile.KIND)return SlipstreamProfile.fromJson(source,raw)
+        if(raw.optString("type")==SstpProfile.KIND)return SstpProfile.fromJson(source,raw)
+        if(raw.optString("type")==MasterDnsProfile.KIND)return MasterDnsProfile.fromJson(source,raw)
         if(S3BypassProfile.isProfile(raw))return S3BypassProfile.fromJson(source,raw)
         if (raw.optString("type") == "openflux") return OpenFluxProfile.fromJson(source, raw)
         if (raw.optString("type") in SwgProfile.TYPES) return SwgProfile.fromJson(source, raw)
@@ -99,7 +103,7 @@ object CarrierProfile {
     private fun resolver(address: String): URI = URI("tcp://$address").also {
         require(it.host != null && it.port in 1..65535 && it.userInfo == null && it.path.isEmpty() && it.query == null && it.fragment == null)
     }
-    private fun numericResolver(address: String) {
+    internal fun numericResolver(address: String) {
         val host = resolver(address).host.replace("[", "").replace("]", "")
         require(RouteRules.literal(host) != null)
     }

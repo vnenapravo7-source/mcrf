@@ -1,4 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -10,13 +10,15 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <!-- Per-app VPN routing requires the installed application inventory;
+         dynamic signed engine packages alone are not the complete use case. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
-    <queries><package android:name="org.mcrf.engines" /><package android:name="org.mcrf.engines.xray" /><package android:name="org.mcrf.engines.tlscore" /><package android:name="org.mcrf.engines.singbox" /><package android:name="org.mcrf.engines.steer" /><package android:name="org.mcrf.engines.tgws" /><package android:name="org.mcrf.engines.s3bypass" /><package android:name="org.mcrf.engines.openflux.diagnostic" /><intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent><intent><action android:name="android.settings.VIEW_ADVANCED_POWER_USAGE_DETAIL" /><data android:scheme="package" /></intent></queries>
+<queries><package android:name="org.mcrf.engines.protocols" /><package android:name="org.mcrf.engines.masterdnsvpn" /><package android:name="org.mcrf.engines.vaydns" /><package android:name="org.mcrf.engines.slipstream" /><package android:name="org.mcrf.engines.sstp" /><package android:name="org.mcrf.engines" /><package android:name="org.mcrf.engines.xray" /><package android:name="org.mcrf.engines.tlscore" /><package android:name="org.mcrf.engines.singbox" /><package android:name="org.mcrf.engines.steer" /><package android:name="org.mcrf.engines.tgws" /><package android:name="org.mcrf.engines.s3bypass" /><package android:name="org.mcrf.engines.openflux.diagnostic" /><intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent><intent><action android:name="android.settings.VIEW_ADVANCED_POWER_USAGE_DETAIL" /><data android:scheme="package" /></intent><package android:name="org.mcrf.engines.openflux.candidate" /></queries>
     <application android:name=".McrfApplication" android:label="MCRF" android:icon="@drawable/mcrf_logo" android:theme="@style/AppTheme" android:allowBackup="false" android:usesCleartextTraffic="false">
         <service android:name=".VpnQuickTile" android:label="VPN" android:icon="@drawable/qs_vpn" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE" android:exported="true"><intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter></service>
         <service android:name=".BsQuickTile" android:label="БС" android:icon="@drawable/qs_bs" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE" android:exported="true"><intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter></service>
@@ -27,7 +29,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" /><category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="openflux" /><data android:scheme="csqtt" /><data android:scheme="wdtt" /><data android:scheme="qwdtt" />
-                <data android:scheme="s3bypass" /><data android:scheme="olcrtc" /><data android:scheme="dnstt" /><data android:scheme="vless" /><data android:scheme="vmess" />
+                <data android:scheme="sstp" /><data android:scheme="s3bypass" /><data android:scheme="olcrtc" /><data android:scheme="dnstt" /><data android:scheme="vless" /><data android:scheme="vmess" />
                 <data android:scheme="trojan" /><data android:scheme="ss" /><data android:scheme="socks" /><data android:scheme="hysteria2" />
                 <data android:scheme="hy2" /><data android:scheme="tuic" /><data android:scheme="wireguard" />
                 <data android:scheme="happ" /><data android:scheme="mcrf" /><data android:scheme="v2raytun" /><data android:scheme="wg" /><data android:scheme="awg" />
@@ -45,6 +47,12 @@
         <activity android:name=".QrScanActivity" android:exported="false" />
         <activity android:name=".CarrierCaptchaActivity" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden" android:windowSoftInputMode="adjustResize" />
         <receiver android:name=".CarrierChallengeCancelReceiver" android:exported="false" />
+        <activity android:name=".OpenFluxVerificationActivity" android:process=":openfluxVerification" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".OpenFluxInlineVerificationActivity" android:process=":openfluxVerification" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".OpenFluxHttpVerificationActivity" android:process=":openfluxVerification" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden" android:windowSoftInputMode="adjustResize" />
+        <service android:name=".OpenFluxVerificationService" android:exported="false" />
+        <service android:name=".OpenFluxHttpVerificationService" android:exported="false" />
+        <receiver android:name=".OpenFluxVerificationCancelReceiver" android:exported="false" />
         <activity android:name=".VkRelayLoginActivity" android:exported="false" />
         <provider android:name=".EnginePackageProvider" android:authorities="${applicationId}.engine-package" android:exported="false" android:grantUriPermissions="true" />
         <service android:name=".McrfVpnService" android:exported="false" android:permission="android.permission.BIND_VPN_SERVICE" android:foregroundServiceType="specialUse" android:stopWithTask="false">

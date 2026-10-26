@@ -1,0 +1,574 @@
+[
+  {
+    "sha256": "a0f1b3f196005e330a01aff3e3bda685478d0dc1deda624db4a79dbbff681494",
+    "path": "bridge/config_test.go"
+  },
+  {
+    "sha256": "d804860b3ac2483c63ec6e00970537b92807e47d82f1359701881d79c1c3d75b",
+    "path": "bridge/config.go"
+  },
+  {
+    "sha256": "3920c65084b255309eb740d00ffdf563e918837cb19ba4887b66d37c853ae5db",
+    "path": "bridge/fixture_process_linux_test.go"
+  },
+  {
+    "sha256": "38306da3e364c26deb44b3533ba0c936dd0269db77dfdc1081a138d2efaf86b8",
+    "path": "bridge/go.mod"
+  },
+  {
+    "sha256": "c14e2dd65079d4603e761fb49bf9b9cd4ee1c76aa0cf7899e17ce4138443426f",
+    "path": "bridge/main.go"
+  },
+  {
+    "sha256": "555c0d382f741e5ecc59c9235d98583cbd7087812e7e141ba264bdfbbd65c8f4",
+    "path": "bridge/mcrf_socks.go"
+  },
+  {
+    "sha256": "250163eba4a7d57a91593d8113d113705c55362b004f2d3f28346bcacfa0e245",
+    "path": "bridge/process_linux_test.go"
+  },
+  {
+    "sha256": "a09bebb9737d8ddfb183493278c0c5c0a9d79cd3dac8ddc26ddebc912db2e9e4",
+    "path": "bridge/process_linux.go"
+  },
+  {
+    "sha256": "489cabb14755988d627b637e2ce8223649484bf3a727eb18833a680d9607402a",
+    "path": "bridge/process_other.go"
+  },
+  {
+    "sha256": "170d03fac34f2c65be4598ffa8103de6e2f5f0c1be1c66cea6c7b31a740eb502",
+    "path": "bridge/relay_linux_test.go"
+  },
+  {
+    "sha256": "fe938d48d8ffc09a63cdd0c03a4c9773278a57b42eb9d0fdb5eef6dfb6322637",
+    "path": "bridge/wire_linux_test.go"
+  },
+  {
+    "sha256": "e363e7c15ea7018bd6021602769a696aeb42b6eb2697f00d9441bf6fae21619b",
+    "path": "rust/.gitignore"
+  },
+  {
+    "sha256": "dac4126c49eae3b6b1d610db3089111cdb156ce19f269a552b6db803ee186ea0",
+    "path": "rust/.gitmodules"
+  },
+  {
+    "sha256": "68bd93b3079423a1e473b55b8df912893ca3020c2b2181c7313674eb62a5a25e",
+    "path": "rust/AGENTS.md"
+  },
+  {
+    "sha256": "5ffb4addfc7eac9142bf090b6e1fcc4c4c7ea979a122639e67b057a82255b99e",
+    "path": "rust/Cargo.lock"
+  },
+  {
+    "sha256": "8d481cc2f10b9d15135102b154086b24b1c8809cf928e5cb94cc46b48ea5fe81",
+    "path": "rust/Cargo.toml"
+  },
+  {
+    "sha256": "738402bc5900af1b14b9f2698c74b3f2f5b52bd2fcf5f83c176fde20517a43cb",
+    "path": "rust/CODE_OF_CONDUCT.md"
+  },
+  {
+    "sha256": "1b314358ba433cb82e636aa76cc18b43fdb04582ce6a7d3917ab06a3b20824da",
+    "path": "rust/CONTRIBUTING.md"
+  },
+  {
+    "sha256": "abd390ba2902969660e3d64d5218da36d4e248463c17e3cb74cc9e25ba5829f4",
+    "path": "rust/crates/slipstream-client/Cargo.toml"
+  },
+  {
+    "sha256": "de13303b51f59c2d8ed2d1f980bd799e80df4292a704779aa056e2ff9b02d310",
+    "path": "rust/crates/slipstream-client/src/dns.rs"
+  },
+  {
+    "sha256": "48679a851fd46c47fd7cbd57efabc3aded255fabdc59314b65cd0e2982954c86",
+    "path": "rust/crates/slipstream-client/src/dns/debug.rs"
+  },
+  {
+    "sha256": "4c47742f7a1a2d5bed62053e18e8c112904af8bd6c6ce2a3160d3272fd4849ad",
+    "path": "rust/crates/slipstream-client/src/dns/path.rs"
+  },
+  {
+    "sha256": "6383f1ee6fbd92074f6913b0f913df3b8625f0e953667d6f6f06fe3060d5beff",
+    "path": "rust/crates/slipstream-client/src/dns/poll.rs"
+  },
+  {
+    "sha256": "5283d6fda1f311a4a50a2a205e737dc3d8f2c2eda58da1db23a4d60c10438387",
+    "path": "rust/crates/slipstream-client/src/dns/resolver.rs"
+  },
+  {
+    "sha256": "33106bd8adefe3953a908a9d992fdefa8a16313653c4b9d2d4fc5c52a7f04f04",
+    "path": "rust/crates/slipstream-client/src/dns/response.rs"
+  },
+  {
+    "sha256": "7aa6508b75e74e25f32de9e9a86deef48ab54950ea94af2e1d5e9490e9537066",
+    "path": "rust/crates/slipstream-client/src/error.rs"
+  },
+  {
+    "sha256": "0e84ac396071f1c39aa5ded73227277ed83ed10859e13dd41cb0b3f4e1eb0579",
+    "path": "rust/crates/slipstream-client/src/main.rs"
+  },
+  {
+    "sha256": "d8b077682506e63d5c6b2cacdd521fb0d8a8e707dbe017ecbf77697c6ad83fa8",
+    "path": "rust/crates/slipstream-client/src/pacing.rs"
+  },
+  {
+    "sha256": "9261d0cff634bef1cc2f2abd7778aa2e81abbfda5fa7acbbe6f58c8e3f389600",
+    "path": "rust/crates/slipstream-client/src/pinning.rs"
+  },
+  {
+    "sha256": "1a966f5b5a0299249b069819f690754233824b921c2129a3e3b9d40598287d2b",
+    "path": "rust/crates/slipstream-client/src/private_listener.rs"
+  },
+  {
+    "sha256": "c33d3d5f5259b711bb93b56b604ef323bd8a2ad4e81d6e32323701c429dd6bc1",
+    "path": "rust/crates/slipstream-client/src/runtime.rs"
+  },
+  {
+    "sha256": "d753f15965bedc2d0173f74ad4ba5965e95f5dd8904160d03ad0668a62036702",
+    "path": "rust/crates/slipstream-client/src/runtime/path.rs"
+  },
+  {
+    "sha256": "e61dff20941c0f5994e03ea8c0c69c6a42126aa0edda9ca055d1899861077933",
+    "path": "rust/crates/slipstream-client/src/runtime/setup.rs"
+  },
+  {
+    "sha256": "a334e929accec10c924a78f71849b06b02d25f3b49009703b89503132155d0e4",
+    "path": "rust/crates/slipstream-client/src/streams.rs"
+  },
+  {
+    "sha256": "a9c25ca57f40b1a920f4ffa0313f18b779ef13132f2b154ade6b8ea4385c558c",
+    "path": "rust/crates/slipstream-client/src/streams/acceptor.rs"
+  },
+  {
+    "sha256": "7872c0418cc772c03f79377c8e6c38c6bd0d3a318dd92dadfb3c43308dd8741e",
+    "path": "rust/crates/slipstream-client/src/streams/callback.rs"
+  },
+  {
+    "sha256": "c4eba786f76f229e3d080fd9af9881d46c9ed89083eb2dd908892b55aac79df0",
+    "path": "rust/crates/slipstream-client/src/streams/command_dispatch.rs"
+  },
+  {
+    "sha256": "6e9efea66a43bddfd35b7c4e5ea23954bc1de6fa8191559e4e081409f0254317",
+    "path": "rust/crates/slipstream-client/src/streams/invariants.rs"
+  },
+  {
+    "sha256": "81e2e85785f5278a9712fd78771de2dc0a7077243d7f974fa9888e8f7970429f",
+    "path": "rust/crates/slipstream-client/src/streams/io_tasks.rs"
+  },
+  {
+    "sha256": "1953486d306f7592c9f51463f60188121b72f23ede3a500b1630900aa9406fb0",
+    "path": "rust/crates/slipstream-client/src/streams/state.rs"
+  },
+  {
+    "sha256": "1d8ba86d952dd4b5d8d2a3e2c8d88ff8885d8d530557195c504e588d163c5cd4",
+    "path": "rust/crates/slipstream-client/src/streams/test_hooks.rs"
+  },
+  {
+    "sha256": "20afeb6e9311ee83b8164cb6103179e868de9c57264c7fc99d3155214d00bbd3",
+    "path": "rust/crates/slipstream-client/src/streams/tests.rs"
+  },
+  {
+    "sha256": "b88d3a81e4f307ebd65ad17b409d8376c60650d870005da2d9af9462113b3cf7",
+    "path": "rust/crates/slipstream-core/Cargo.toml"
+  },
+  {
+    "sha256": "706938e2a27db0824f9de3acafbe0ec05f6732d24b58c004355bf60043bcf5ae",
+    "path": "rust/crates/slipstream-core/src/cli.rs"
+  },
+  {
+    "sha256": "315a2101950ec9911b709bd8409d5cc81d3300c35b949e67aa4d4891453e13a1",
+    "path": "rust/crates/slipstream-core/src/flow_control.rs"
+  },
+  {
+    "sha256": "54d63e519ddf921b16bd941970cf65c1f820efcc52828e65533467d280b55b41",
+    "path": "rust/crates/slipstream-core/src/invariants.rs"
+  },
+  {
+    "sha256": "af25134b8495c260ba3f19be814cc455ff8859339e1ebf2823c90e8d3b9efc69",
+    "path": "rust/crates/slipstream-core/src/lib.rs"
+  },
+  {
+    "sha256": "6a7b81f57ce47d10d090dfb8200c4c7b4d2ca0f76716996aa2d66d249e0cbb4c",
+    "path": "rust/crates/slipstream-core/src/macros.rs"
+  },
+  {
+    "sha256": "9c68042153c2fb68f5c5e223cd75b790e2b93313762d6a27908aca4b02094986",
+    "path": "rust/crates/slipstream-core/src/net.rs"
+  },
+  {
+    "sha256": "16d4b5b6cb2a4b3d4e35bdd41c122f276b3d420436d7934f5036e2b1606bf93a",
+    "path": "rust/crates/slipstream-core/src/sip003.rs"
+  },
+  {
+    "sha256": "a6b4346bb36094e57927fb4286a9d731200b0127953a57ade4483f4d40029045",
+    "path": "rust/crates/slipstream-core/src/stream.rs"
+  },
+  {
+    "sha256": "632eb100628d7d20a2aff54d1fed635e6f8f0bd544bebe642fe173f60fe4f6b9",
+    "path": "rust/crates/slipstream-core/src/tcp.rs"
+  },
+  {
+    "sha256": "221565fbf1e784460353e60c27c7e712e6c092f141560cd17bfc7098c2c01d35",
+    "path": "rust/crates/slipstream-core/src/test_support.rs"
+  },
+  {
+    "sha256": "19ec489f0721389875432749ac38dfb4ce94e90e9196b84f6749dd253a1b415a",
+    "path": "rust/crates/slipstream-dns/Cargo.toml"
+  },
+  {
+    "sha256": "649b2b29bf89ac614b8160a57999f57a83ec15726703368338921d9b8c6f3b6b",
+    "path": "rust/crates/slipstream-dns/src/base32.rs"
+  },
+  {
+    "sha256": "f97c4cb771a9d8c7e576488edc0b5d1f5b910e365cacef58cef2f22e9089b242",
+    "path": "rust/crates/slipstream-dns/src/bin/bench_dns.rs"
+  },
+  {
+    "sha256": "6080c0eee7c5d56f98dcd75476c7dcfe75a80de0a57ee768247a0b23e52efe1b",
+    "path": "rust/crates/slipstream-dns/src/codec.rs"
+  },
+  {
+    "sha256": "ffb3976b2e01c9b5589e71016faf0f14f88a3fb82cde1a4fc3120e23bd66b5d8",
+    "path": "rust/crates/slipstream-dns/src/dots.rs"
+  },
+  {
+    "sha256": "fcc110eef56ada79f70c516a19f244d9b5775baf09e3ba2a7fb88f1868bfbcc5",
+    "path": "rust/crates/slipstream-dns/src/lib.rs"
+  },
+  {
+    "sha256": "f9d9bb44411faa6b8ead101bfe6052b747a7ef147e0992aaffa5be80cdf7f5b9",
+    "path": "rust/crates/slipstream-dns/src/name.rs"
+  },
+  {
+    "sha256": "502d7b9aa8f1cd06323c90d4c068e48abbf59fda624a57f94c20f2a92d6cc582",
+    "path": "rust/crates/slipstream-dns/src/types.rs"
+  },
+  {
+    "sha256": "f97c0532fcfe0d2b33646b231f62a6feccef5a5e438a5496b822d47a95506ccf",
+    "path": "rust/crates/slipstream-dns/src/wire.rs"
+  },
+  {
+    "sha256": "8a08573b8ea18df6656aac0ce2dc49cf6bd3dff0aea804047c02e3b022315ffb",
+    "path": "rust/crates/slipstream-dns/tests/multi_domain.rs"
+  },
+  {
+    "sha256": "9dcc3845da208a378f4c6d0e057f05ca7cc6ead260b79b1a1eb34f6c4024caf1",
+    "path": "rust/crates/slipstream-dns/tests/vectors.rs"
+  },
+  {
+    "sha256": "6817eb4d7f23746392b348f5642430f4b6081d48e0a905450dd110772f836b79",
+    "path": "rust/crates/slipstream-ffi/build.rs"
+  },
+  {
+    "sha256": "8c39d156a4b96c365a8d1e53ec40b842e4734d3c733a2ef9db7024aa60fb4c5a",
+    "path": "rust/crates/slipstream-ffi/build/android.rs"
+  },
+  {
+    "sha256": "8922c6983702748bfe201dd6d206eea6ae153ce00b2099c40981ca9dda6b4c33",
+    "path": "rust/crates/slipstream-ffi/build/cc.rs"
+  },
+  {
+    "sha256": "c04aa309f1fae672b0f02cb0a980c935411a7ebe8da99bcbf4633dcc9f35b957",
+    "path": "rust/crates/slipstream-ffi/build/openssl.rs"
+  },
+  {
+    "sha256": "52b6f8b1287dd65c5f431f95017d2cb87879544c1928f854cf0ac7e3b07166a9",
+    "path": "rust/crates/slipstream-ffi/build/picoquic.rs"
+  },
+  {
+    "sha256": "649eae6a065a63adfe0edfbca8fadac8a814b72dcc075be7839d68c457f73f10",
+    "path": "rust/crates/slipstream-ffi/build/util.rs"
+  },
+  {
+    "sha256": "bc09aa224f5860e0f43049867bf6ee7cf61b277d39d337fe300024ecd21eb829",
+    "path": "rust/crates/slipstream-ffi/Cargo.toml"
+  },
+  {
+    "sha256": "d7bf67cc4fddbcb63dc7114113de1e60d5877c3c7b9f82e63fd19b324fd7c87c",
+    "path": "rust/crates/slipstream-ffi/cc/picotls_layout.c"
+  },
+  {
+    "sha256": "249d329aa826b6a20d6168e57494387f8807523230f6717c9e91481cdc0f2742",
+    "path": "rust/crates/slipstream-ffi/cc/slipstream_mixed_cc.c"
+  },
+  {
+    "sha256": "7825c0978e22287744e45ce70568bdabc9699afd14e04828396cd3c0f000a349",
+    "path": "rust/crates/slipstream-ffi/cc/slipstream_poll.c"
+  },
+  {
+    "sha256": "278e0617742e1bf61e5ad87db0ebb217b49249873799d5633b7891aa8cf4ca8b",
+    "path": "rust/crates/slipstream-ffi/cc/slipstream_server_cc.c"
+  },
+  {
+    "sha256": "0cdcc95b2eedc07b2e9efa0c05c4a49fc9511d7b9bd3f4dff57b7ad007c0d0ad",
+    "path": "rust/crates/slipstream-ffi/cc/slipstream_stateless_packet.c"
+  },
+  {
+    "sha256": "bbb671da76880aba4e7785b5168f6246b82ae545ea0c0b0259fcb9e505d5ff10",
+    "path": "rust/crates/slipstream-ffi/cc/slipstream_test_helpers.c"
+  },
+  {
+    "sha256": "e1100faf9d6e39784b06fb8dbabe8a53306beff40f87773c6460a40306a774c2",
+    "path": "rust/crates/slipstream-ffi/src/lib.rs"
+  },
+  {
+    "sha256": "e62bba32ac6a4372d65a9f5f5dd39a090d9cc9a9b59ea8b70e51a0adca182449",
+    "path": "rust/crates/slipstream-ffi/src/picoquic.rs"
+  },
+  {
+    "sha256": "076c1cf4b5652e53f6e9555971cb8e0ede0e212a6e34cfe8bed15bdee5aa968b",
+    "path": "rust/crates/slipstream-ffi/src/runtime.rs"
+  },
+  {
+    "sha256": "787b2d6e7e5a51014e7d862c471a05a4ba2ccbdec608e7ed45fe6b6d0f0b34cd",
+    "path": "rust/crates/slipstream-ffi/tests/backpressure.rs"
+  },
+  {
+    "sha256": "3efa0d761ee3137d60579cb9a7b86a54387d0df9860a03dc37157c00bccdb528",
+    "path": "rust/crates/slipstream-ffi/tests/runtime.rs"
+  },
+  {
+    "sha256": "febeec4b73dd99b74479cd373e5258438287c2788e2295be05d7ea4ccea10bc4",
+    "path": "rust/crates/slipstream-server/Cargo.toml"
+  },
+  {
+    "sha256": "add8f6ab7e265179805b724e8402c26676b71e40b5e58f7b7d4597ce0ea31eb0",
+    "path": "rust/crates/slipstream-server/src/config.rs"
+  },
+  {
+    "sha256": "1b8567253f2c63db87ae37a32b163765a1d994d642929ffbcdbf08c6dd32f6bb",
+    "path": "rust/crates/slipstream-server/src/main.rs"
+  },
+  {
+    "sha256": "adf8197897220ad9acfb43608cb7682258f69658f859d5fcd94fa7dd8cd8d0fc",
+    "path": "rust/crates/slipstream-server/src/server.rs"
+  },
+  {
+    "sha256": "0aff2012158ce110bbf3065f9052ee8ca98b745081750d23924c4daf5b460131",
+    "path": "rust/crates/slipstream-server/src/streams.rs"
+  },
+  {
+    "sha256": "d596792745ff0c8dc53f798c6942f9d64b479815f264d08efa061e6e3b2c0570",
+    "path": "rust/crates/slipstream-server/src/streams/command_dispatch.rs"
+  },
+  {
+    "sha256": "ef7a66c8d5b964652b5b25b940122c4bb1b9abf67aef3320c2b672a60add4807",
+    "path": "rust/crates/slipstream-server/src/streams/metrics.rs"
+  },
+  {
+    "sha256": "ecf919c5bc1ba72de2bc3fbf6c0de04113e10a664035f947f4a7f3220f33d5de",
+    "path": "rust/crates/slipstream-server/src/target.rs"
+  },
+  {
+    "sha256": "cedef0bfa5ee7449f61af2702bc30d5244ac179471282df7d25fd69c770379dd",
+    "path": "rust/crates/slipstream-server/src/udp_fallback.rs"
+  },
+  {
+    "sha256": "f7b3bbc63494448a16c59a4c93a8ea44de42ab9c9380fff12a0acadf200a9b19",
+    "path": "rust/crates/slipstream-server/src/udp_fallback/decode.rs"
+  },
+  {
+    "sha256": "af3bcb5505e73fef3326fe4485e770a6cde1c7fd471c04e45751e24c1980349e",
+    "path": "rust/crates/slipstream-server/src/udp_fallback/forwarding.rs"
+  },
+  {
+    "sha256": "af401387c3978d8ea4f0ed45fff4028b169b14a504e8d52c17bcfecdc20c32fd",
+    "path": "rust/crates/slipstream-server/src/udp_fallback/session.rs"
+  },
+  {
+    "sha256": "02aa244e6cd9f65c4f931f4307242813565f3923014ebf9ab61c0c83d7ba5c28",
+    "path": "rust/crates/slipstream-server/src/udp_fallback/tests.rs"
+  },
+  {
+    "sha256": "3620648845479e82812e5677be6160f3b22506f7091cdaa88a5c5e6d1f7dbf62",
+    "path": "rust/crates/slipstream-server/tests/cert_pinning_e2e.rs"
+  },
+  {
+    "sha256": "7c6098883b5945c600e6df26b3a7d4e91e4aae3508b13fd4118eb87935138c34",
+    "path": "rust/crates/slipstream-server/tests/epipe_reset_e2e.rs"
+  },
+  {
+    "sha256": "0d8be4a623f38128efe423c115f49008707651cd730df5b9acdbd87457cc7253",
+    "path": "rust/crates/slipstream-server/tests/flow_control_e2e.rs"
+  },
+  {
+    "sha256": "0f404cd024cbccd6e4da6d4e942757ed09b7ca410302d5b73fdaaf79d737f048",
+    "path": "rust/crates/slipstream-server/tests/idle_gc_e2e.rs"
+  },
+  {
+    "sha256": "8ac9ad2c7e3a6d1b9f44bae3cfb26983b81b87398f9e5cd3c84fd67d6d8b1218",
+    "path": "rust/crates/slipstream-server/tests/restart_reconnect_e2e.rs"
+  },
+  {
+    "sha256": "5015f0cfcd6983aa22bfe13b82dbc936d851eb52e0b65ea4f8b5c8643b7c061a",
+    "path": "rust/crates/slipstream-server/tests/stream_limit_e2e.rs"
+  },
+  {
+    "sha256": "bce68833ada5572166396bc5a232b008a5377082dab5c57939643b042bcfdecf",
+    "path": "rust/crates/slipstream-server/tests/support/mod.rs"
+  },
+  {
+    "sha256": "b5ed68796a47acc85830febf272df531feb1e0b516a881932594d13c32d6aa36",
+    "path": "rust/crates/slipstream-server/tests/target_read_error_reset_e2e.rs"
+  },
+  {
+    "sha256": "42dcb0820b2e183b2fe188a91f9b2ef2c36a4111ad72b1914b9cbd3406feb354",
+    "path": "rust/crates/slipstream-server/tests/udp_fallback_e2e.rs"
+  },
+  {
+    "sha256": "6f18be5b3f1504089d7b4f53d8c52cd1c913c8da705fb55d9a635962eb2352c2",
+    "path": "rust/docs/benchmarks-results.md"
+  },
+  {
+    "sha256": "acd3f25487667b72d928e3c825bd62ee6c9ead9e2a1027738818d2fa352cff86",
+    "path": "rust/docs/benchmarks.md"
+  },
+  {
+    "sha256": "2dc2fbf17963a200b6646f67733797a1f89cb6005b6c605c81c7952288f3d5bd",
+    "path": "rust/docs/build.md"
+  },
+  {
+    "sha256": "79e43fa810652225665314a93da6d713630cf66effcc3813e49a850899ddda66",
+    "path": "rust/docs/config.md"
+  },
+  {
+    "sha256": "379df2a634621f59cd048564b339652abbc0e7bb47430e97005d4e42686fcfb8",
+    "path": "rust/docs/design.md"
+  },
+  {
+    "sha256": "8b21816177b0ea370b481a4cd2ba3ec29a5b40a5da09591be2dad0db712a45c8",
+    "path": "rust/docs/dns-codec.md"
+  },
+  {
+    "sha256": "635cdab43f73eb5f240bce9c1e96264aeb3f18a1feccc5f8ddb91ab6d72154cc",
+    "path": "rust/docs/interop.md"
+  },
+  {
+    "sha256": "f03494d0099740e244f7c707e14a0df67d638376473c802c207d0a97dd021d81",
+    "path": "rust/docs/picoquic-changes.md"
+  },
+  {
+    "sha256": "97bbc47c87a9608ec9d26827bcc181168b9dc90f5a4525570bad65874d5d6adf",
+    "path": "rust/docs/profiling.md"
+  },
+  {
+    "sha256": "8dce4c997a054cbfcb74af2b798e3adf90e32e89715c3cb37f19968a7defa972",
+    "path": "rust/docs/protocol.md"
+  },
+  {
+    "sha256": "f1a4e68d5c01a1c306d2933e08e4ba15ef349ac5f1c7022c708cbaa78bdee891",
+    "path": "rust/docs/README.md"
+  },
+  {
+    "sha256": "5c98116a160268d482abf047fcfc4100d50e5220e31b8007f9701938e4b1d628",
+    "path": "rust/docs/release.md"
+  },
+  {
+    "sha256": "0a95f66b0069b2b25d04d43da3a9f784f742887410cf449f63959de6f8864019",
+    "path": "rust/docs/sip003.md"
+  },
+  {
+    "sha256": "767a2f20b502c8ab4257709011dc22c1ee909ca5c6b5aea043a55072294b0e3a",
+    "path": "rust/docs/usage.md"
+  },
+  {
+    "sha256": "cacf078b978a768b9696928cde383db0846ff797a4917acd29b0093a86a876c6",
+    "path": "rust/LICENSE"
+  },
+  {
+    "sha256": "40e1c14af05f19cfccd74db489425335dd3f2876212cd49351aa931cf86611e0",
+    "path": "rust/README.md"
+  },
+  {
+    "sha256": "fc354e4f8b0a1e89d9ef96287c471d678b38a899618976dc10d99498a1076415",
+    "path": "rust/renovate.json"
+  },
+  {
+    "sha256": "a9cfb98de07fcde505ea75cce044a744ba9980f8f808dc3ea9393bff79759258",
+    "path": "rust/scripts/bench/run_c_c_10mb.sh"
+  },
+  {
+    "sha256": "92dcc65080d1962f1679dc4a26395fd9478eb76136d5f4eb23c55ded3663fef6",
+    "path": "rust/scripts/bench/run_dnstt_10mb.sh"
+  },
+  {
+    "sha256": "4ab53b652fc337432b039f88d095ddfde3d9bbeb855e2ba71a2716ebac9a410e",
+    "path": "rust/scripts/bench/run_rust_rust_10mb.sh"
+  },
+  {
+    "sha256": "7ba2def53c465568244c0ac53add624bfb9164a7f32bc8afa3d9a67371042d43",
+    "path": "rust/scripts/bench/run_rust_rust_mem.sh"
+  },
+  {
+    "sha256": "cdc7d850353fc738dd86b7f1de970d5536a75bbe7ad65903cfd1a486836e38cb",
+    "path": "rust/scripts/bench/tcp_bench.py"
+  },
+  {
+    "sha256": "928898d34d27830aff37a255026d2605f09ef8a52b9b95020366d43370932e1c",
+    "path": "rust/scripts/build_picoquic_windows.ps1"
+  },
+  {
+    "sha256": "c98c4971e362f4efa948e628db2a83ebdb543c2d6d60c3e90345970816e7ce8b",
+    "path": "rust/scripts/build_picoquic.sh"
+  },
+  {
+    "sha256": "861e848700365a069d6892e6a0b9d1d0c9fad5038577bc9e1228004b15908a00",
+    "path": "rust/scripts/cmake/picotls-windows-compat.cmake"
+  },
+  {
+    "sha256": "d236d527e83af95d2b8c45c39cdf7ee3925c37a7e122e09ce3dcc5f82506966c",
+    "path": "rust/scripts/dev/repro_high_cpu.sh"
+  },
+  {
+    "sha256": "95f7c1fabbaef3330d64d377ce1289d8573e69afd32dddc5a2300ac30f305ab2",
+    "path": "rust/scripts/gen_vectors.sh"
+  },
+  {
+    "sha256": "b8ce1380c1cd08dab8ba2383c01d0daf2efbe78c6239ceaa43e9b9ec76efd702",
+    "path": "rust/scripts/interop/run_local.sh"
+  },
+  {
+    "sha256": "1d07e0a12fa500b5324521d8c33ff5e4770561937c6c7668f35eb2a02ede89c7",
+    "path": "rust/scripts/interop/run_rust_client.sh"
+  },
+  {
+    "sha256": "e4a47a88472f012aa7a7cf9557d558cf1c797088c63e8d7e73df03ddf52315f5",
+    "path": "rust/scripts/interop/run_rust_rust.sh"
+  },
+  {
+    "sha256": "babbe0cdb4055680c0c0dd4e1f3eec5412bb69b1499371bf5db6421fc2118954",
+    "path": "rust/scripts/interop/run_rust_server.sh"
+  },
+  {
+    "sha256": "cd709a3efb2040f7a513b5517d59fd3d3dff060e4e798650631ff3666e75cad0",
+    "path": "rust/scripts/interop/tcp_echo.py"
+  },
+  {
+    "sha256": "0e911f17a866c828bf53ab6a0c597dff748221f558a27fce6fd1354a4a4fdf4a",
+    "path": "rust/scripts/interop/test_udp_capture_proxy.py"
+  },
+  {
+    "sha256": "3064ea62987fbff97853a235f69be27ebea1360952ddc983dafc9c1134fc6b9d",
+    "path": "rust/scripts/interop/udp_capture_proxy.py"
+  },
+  {
+    "sha256": "51d74c91bdd073b323ee06efadbb53388c7cbc22544249f79944de46bf9cb695",
+    "path": "rust/scripts/README.md"
+  },
+  {
+    "sha256": "6612ed4660f2b725423e33fc46f13de254f66b3f8bae98658d345f5dba9e5acd",
+    "path": "rust/scripts/verify_ipv4_listener.sh"
+  },
+  {
+    "sha256": "1ba20f01356a0577fa031029f7a053a80a0055ba04223683f5206ffd36efbfac",
+    "path": "rust/scripts/verify_windows_artifact_deps.ps1"
+  },
+  {
+    "sha256": "979347ecbb3f943dc717f7540a5b0fa93f12cd4cd5646228f343d7c2dadefab3",
+    "path": "rust/SECURITY.md"
+  },
+  {
+    "sha256": "f3f6b5823393f4d3334aa152170b2c2e2ceb844325f90057feb023b1fac25de7",
+    "path": "rust/SUPPORT.md"
+  }
+]

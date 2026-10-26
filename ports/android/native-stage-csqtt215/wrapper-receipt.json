@@ -1,0 +1,127 @@
+{
+  "hostEvidenceSha256": "b879754a3ffab24f988d51262a4e66b905f25b0d039cfd12f6eb1788d7732343",
+  "turnFeatureInputs": [
+    {
+      "sha256": "77931af9c9dc2af5d729caf7576009d8a553dfa497178c4f5de955bc30f0638a",
+      "file": "csqtt_bridge.go"
+    },
+    {
+      "sha256": "9de9367e83774707e0dd5edbdf176ceda6001ac2d8451ebb3a8709e9e736310f",
+      "file": "internal/csqtt/config.go"
+    }
+  ],
+  "p3PerformanceAuthority": "human-20261023-finish-current-fixes-then-p3-p4",
+  "affectedCases": [
+    "TestExtendedHashesKeepCompletePool",
+    "TestCSQTTExtendedHashPoolSurvivesConfigAndLink"
+  ],
+  "newAffectedExecutionCount": 2,
+  "nativeExecuted": false,
+  "captchaWaiterCapability": "csqtt-id48-v1",
+  "apkBuilt": false,
+  "processGroupContract": 1,
+  "source": "D:/MCRF/Builds/Android/p3-turn-source-97dd9fe01a434837b698c0b997d95b19/module",
+  "wdttDualFamilyContract": 0,
+  "accountBridgeInputs": [
+    {
+      "sha256": "77931af9c9dc2af5d729caf7576009d8a553dfa497178c4f5de955bc30f0638a",
+      "file": "csqtt_bridge.go"
+    },
+    {
+      "sha256": "850f0873a82d9f48fff862cc7dc2fc86da4a484c6a0754196e02cdbb7179aa1e",
+      "file": "bridge_config.go"
+    }
+  ],
+  "stage": "D:/MCRF/Builds/Android/p3-turn-native-1a893a3b01e541f8af67778debec9863",
+  "hostTests": "PASS 4 new affected cases; unchanged feature evidence retained separately",
+  "sourceManifestSha256": "6d2700e295f49ccbbdd7337b4d9a60b86026cdf63d7cefb87598e45152c5a542",
+  "kind": "csqtt",
+  "legacyTransportStage": "D:\\MCRF\\Builds\\Android\\csqtt-legacy-captcha-17ae4ba77ff34825ace1aec3762a5ed2",
+  "sourceStable": true,
+  "packageVersionName": "0.1.0-performance.9",
+  "turnHashPoolContract": 1,
+  "accountAdapterSha256": "27ca4d970f34cedd8f44e6cf0a8dbbcc51010ee24a33f238a2850688371dbd00",
+  "processGroupInputs": [
+    {
+      "sha256": "5f6ce1f3c34f866b1daed55b54b6e54474a712cede627138d772ab6f8a1dd01a",
+      "file": "mcrf_process_group.go"
+    },
+    {
+      "sha256": "ad5ae78732a13114485c3c1a0a0dfa857cf35b211f91498987f1faf7a59f36eb",
+      "file": "mcrf_process_group_linux.go"
+    },
+    {
+      "sha256": "fb22e2f94321f8d928b8c6105d69085fdb4cbb28c22bc2efc4ef39234c2425f3",
+      "file": "mcrf_process_group_other.go"
+    },
+    {
+      "sha256": "49b922a5800f892627f78033899904bf55f5feffe8f3af305a0e75a411bb06fa",
+      "file": "mcrf_child_input.go"
+    },
+    {
+      "sha256": "77931af9c9dc2af5d729caf7576009d8a553dfa497178c4f5de955bc30f0638a",
+      "file": "csqtt_bridge.go"
+    }
+  ],
+  "artifacts": [
+    {
+      "elfChecked": true,
+      "file": "D:/MCRF/Builds/Android/p3-turn-native-1a893a3b01e541f8af67778debec9863/arm64-v8a/libqwdtt.so",
+      "sha256": "8abcbc7d57c565b351adaf09b7cdf39b68aec090583e1b521d782eea830512ba",
+      "bytes": 18288400,
+      "abi": "arm64-v8a",
+      "nativeExecuted": false
+    },
+    {
+      "sha256": "2d3b5fe950007426d2dcbd52c04d8ba6dec3a22abfdfc48c29d48dee278107a8",
+      "alignment": 16384,
+      "file": "D:/MCRF/Builds/Android/p3-turn-native-1a893a3b01e541f8af67778debec9863/arm64-v8a/libcsqtt_transport.so",
+      "nativeExecuted": false,
+      "abi": "arm64-v8a",
+      "elfChecked": true,
+      "bytes": 8724440,
+      "retainedBinary": true
+    },
+    {
+      "elfChecked": true,
+      "file": "D:/MCRF/Builds/Android/p3-turn-native-1a893a3b01e541f8af67778debec9863/armeabi-v7a/libqwdtt.so",
+      "sha256": "0fb86988ec1b2a5b8ac566e97ca066976f314646235283ae24517ff8563384e4",
+      "bytes": 17476500,
+      "abi": "armeabi-v7a",
+      "nativeExecuted": false
+    },
+    {
+      "sha256": "23fdcdc2503627e2bb8da15822126da0305d53b3372646f906fc0d46b71a697c",
+      "alignment": 16384,
+      "file": "D:/MCRF/Builds/Android/p3-turn-native-1a893a3b01e541f8af67778debec9863/armeabi-v7a/libcsqtt_transport.so",
+      "nativeExecuted": false,
+      "abi": "armeabi-v7a",
+      "elfChecked": true,
+      "bytes": 6308880,
+      "retainedBinary": true
+    },
+    {
+      "elfChecked": true,
+      "file": "D:/MCRF/Builds/Android/p3-turn-native-1a893a3b01e541f8af67778debec9863/x86_64/libqwdtt.so",
+      "sha256": "99d5c8a2d6faabd164234e97f9577a56b0b30a303cb17a83a0cf8a34c07df518",
+      "bytes": 19446856,
+      "abi": "x86_64",
+      "nativeExecuted": false
+    },
+    {
+      "sha256": "4ff243e4744ad978cb58cefdadf2b01105afe6c9c44b4caaf3c6a18177fc16a0",
+      "alignment": 16384,
+      "file": "D:/MCRF/Builds/Android/p3-turn-native-1a893a3b01e541f8af67778debec9863/x86_64/libcsqtt_transport.so",
+      "nativeExecuted": false,
+      "abi": "x86_64",
+      "elfChecked": true,
+      "bytes": 10311200,
+      "retainedBinary": true
+    }
+  ],
+  "packageVersionCode": 9,
+  "baselineReceiptSha256": "cd049a00326189e713c203ec64cfe1f06f8025bc8e66751bdaa17fc0f24647a3",
+  "affectedLogSha256": "46b95c0003f6256504d360bc30525728cd5dda61a797c6f95b88718598db4f2e",
+  "accountOptionsContract": 1,
+  "state": "COMPILED_NOT_EXECUTED"
+}

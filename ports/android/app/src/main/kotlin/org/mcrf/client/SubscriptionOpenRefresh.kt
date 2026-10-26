@@ -8,7 +8,7 @@ import android.os.PersistableBundle
 
 /** One overdue app-open request, never replacing/postponing the periodic job. */
 internal object SubscriptionOpenRefresh {
-    const val JOB=2402
+    const val JOB=BackgroundJobIds.SUBSCRIPTIONS_ON_OPEN
     private const val CLOCK="SubscriptionRefreshClock"
     internal fun due(minutes:Int,last:Long,now:Long)=minutes>0&&(last<=0||now<last||now-last>=minutes*60_000L)
     fun idle(context:Context)=!McrfVpnService.cleanupPending()&&!McrfVpnService.ownsCurrentTun()&&!McrfVpnService.wifiPaused()&&

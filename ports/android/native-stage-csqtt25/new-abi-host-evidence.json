@@ -1,0 +1,25 @@
+{
+  "skipped": 0,
+  "toolchainSha256": "21761eceb9302062c9623fb699f332c8c7fe000f15f70efe8da01a2cfbbc16b9",
+  "state": "PASS_P3_CS25_ABI_HOST",
+  "sourceManifestSha256": "e93d7ed59927adb1389eab1a586cc4048e6777b4a182dc8fa8f20d294f478299",
+  "retainedTestsReplayed": false,
+  "logSha256": "08b1c9efa6cfbe9c3bb3ece44bbcad68334f3ddbb10cdfd6fd0d2e48d3758061",
+  "failures": 0,
+  "inputReceiptSha256": "dac788a78ec01d8472958f76c73f6edfaf37481392fded6ac30fe5fc5f5c9505",
+  "nativeExecuted": false,
+  "cases": [
+    "Test25AdditionalAbiActualArtifacts/arm64-v8a",
+    "Test25AdditionalAbiActualArtifacts/armeabi-v7a",
+    "Test25AdditionalAbiActualArtifacts/x86_64",
+    "Test25AdditionalAbiActualArtifacts",
+    "Test25AdditionalAbiDescriptorsAreExactAndDistinct",
+    "Test25AdditionalAbiAndroidMustMatchWrapperArchitecture",
+    "Test25AdditionalAbiHeaderInspectionRejectsMalformedOrOtherGenerations",
+    "Test25AdditionalAbiRejectsCorrectHeaderWithWrongContent",
+    "TestMcrfRawMTUOnActualBulkUpload",
+    "TestMcrfRawMTUCeilingPreservesSmallerServerValue",
+    "TestMcrfIPRelayBuffersOnOwnedSocket",
+    "TestMcrfSOCKSAdmissionQueuesAndResumes"
+  ]
+}

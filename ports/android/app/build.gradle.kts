@@ -1,6 +1,42 @@
 import java.security.MessageDigest
 
 plugins { id("com.android.application") }
+providers.gradleProperty("openflux016PublicReceipt").orNull?.let {path->
+    require(providers.gradleProperty("openflux016Receipt").isPresent)
+    val proof=groovy.json.JsonSlurper().parse(file(path)) as Map<*,*>
+    require(proof["authority"]=="human-20261026-publish-0.7.1"&&proof["state"]=="SOURCE_READY")
+    require(proof["versionCode"].toString()=="10061"&&proof["versionName"]=="0.7.1")
+}
+providers.gradleProperty("openflux016Receipt").orNull?.let {path->
+    require(!providers.gradleProperty("release07Receipt").isPresent&&!providers.gradleProperty("p3p4CandidateReceipt").isPresent)
+    val proof=groovy.json.JsonSlurper().parse(file(path)) as Map<*,*>
+    require(proof["authority"]=="human-20261026-support-openflux016"&&proof["state"]=="SOURCE_READY"&&proof["publish"]==false)
+    require(proof["versionCode"].toString()=="10060"&&proof["versionName"]=="0.7.1-candidate.1")
+}
+providers.gradleProperty("release07Receipt").orNull?.let {path->
+    require(!providers.gradleProperty("p3p4CandidateReceipt").isPresent)
+    val proof=groovy.json.JsonSlurper().parse(file(path)) as Map<*,*>
+    require(proof["authority"]=="human-20261026-finish-openflux-phone-publish07"&&proof["state"]=="SOURCE_READY")
+    require(proof["versionCode"].toString()=="10059"&&proof["versionName"]=="0.7")
+}
+providers.gradleProperty("p3p4CandidateReceipt").orNull?.let {path->
+    require(!providers.gradleProperty("nextIndependentReceipt").isPresent)
+    val input=file(path)
+    val sha=MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+    require(sha==providers.gradleProperty("p3p4CandidateSha256").orNull)
+    val proof=groovy.json.JsonSlurper().parse(input) as Map<*,*>
+    require(proof["authority"]=="human-20261023-finish-current-fixes-then-p3-p4"&&proof["publish"]==false)
+    require(listOf("sourceReady","allowCommonVerification","allowApkBuild").all {proof[it]==true})
+}
+providers.gradleProperty("nextIndependentReceipt").orNull?.let {path->
+    val input=file(path)
+    val sha=MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+    require(sha==providers.gradleProperty("nextIndependentSha256").orNull)
+    val proof=groovy.json.JsonSlurper().parse(input) as Map<*,*>
+    require(proof["state"]=="INDEPENDENT_SOURCE_READY"&&proof["verificationScope"]=="independent-six-only"&&proof["publish"]==false)
+    require(proof["candidateVersionCode"].toString()=="10048"&&proof["candidateVersionName"]=="0.6.2-candidate.1")
+    require(listOf("sourceReady","readyForBuild","allowCommonVerification","allowApkBuild").all {proof[it]==true})
+}
 providers.gradleProperty("p2UiCorrectionReceipt").orNull?.let {path->
     require(providers.gradleProperty("p2ExpansionSourceReadyReceipt").isPresent)
     val input=file(path)
@@ -165,12 +201,22 @@ android {
         minSdk = 29
         targetSdk = 34
         versionCode = when {
+            providers.gradleProperty("openflux016PublicReceipt").isPresent -> 10061
+            providers.gradleProperty("openflux016Receipt").isPresent -> 10060
+            providers.gradleProperty("release07Receipt").isPresent -> 10059
+            providers.gradleProperty("p3p4CandidateReceipt").isPresent -> 10058
+            providers.gradleProperty("nextIndependentReceipt").isPresent -> 10048
             providers.gradleProperty("p2UiCorrectionReceipt").isPresent -> 10027
         providers.gradleProperty("p2ExpansionSourceReadyReceipt").isPresent -> 10043
             providers.gradleProperty("p2SourceReadyReceipt").isPresent -> 10025
             else -> 10047
         }
         versionName = when {
+            providers.gradleProperty("openflux016PublicReceipt").isPresent -> "0.7.1"
+            providers.gradleProperty("openflux016Receipt").isPresent -> "0.7.1-candidate.1"
+            providers.gradleProperty("release07Receipt").isPresent -> "0.7"
+            providers.gradleProperty("p3p4CandidateReceipt").isPresent -> "0.7-candidate.10"
+            providers.gradleProperty("nextIndependentReceipt").isPresent -> "0.6.2-candidate.1"
             providers.gradleProperty("p2UiCorrectionReceipt").isPresent -> "0.6-p2-candidate.3"
         providers.gradleProperty("p2ExpansionSourceReadyReceipt").isPresent -> "0.6"
             providers.gradleProperty("p2SourceReadyReceipt").isPresent -> "0.6-p2-candidate.1"

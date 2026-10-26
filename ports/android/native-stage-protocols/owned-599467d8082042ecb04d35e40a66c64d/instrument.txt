@@ -1,0 +1,5 @@
+INSTRUMENTATION_RESULT: binarySha256=b15edbb7daf0a0e5a4033f5ecc48cc2a9366a77d82c93766cc30c04584dcf901
+INSTRUMENTATION_RESULT: exit=0
+INSTRUMENTATION_RESULT: log=/data/user/0/org.mcrf.protocolfixtures/files/protocols-owned-599467d8082042ecb04d35e40a66c64d.log
+INSTRUMENTATION_RESULT: networkDiagnostic=uid=10141 process_rc=0 process_errno=0;socket_rc=0 socket_errno=0;
+INSTRUMENTATION_CODE: -1

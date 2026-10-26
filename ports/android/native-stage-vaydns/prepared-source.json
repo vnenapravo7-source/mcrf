@@ -1,0 +1,253 @@
+{
+  "manifestSha256": "dce0f913d9936bdbb308da50fc896df1c5779abdcd9ef8a9c0c848008bbeffbb",
+  "executed": false,
+  "compiled": false,
+  "manifest": {
+    "upstream": [
+      {
+        "path": ".github/workflows/ci.yml",
+        "sha256": "5b73da38499efdececc617326437b321b3cf60f085f5b76ca03956c35041f68b"
+      },
+      {
+        "path": ".github/workflows/release-please.yml",
+        "sha256": "d8214462d8a114d4cf232e44f42bfc75976c6481d7acf6a706bf28035b953beb"
+      },
+      {
+        "path": ".gitignore",
+        "sha256": "ea244becad7cfba050cb4d162f7532d52f99990a0176dcc9ebc93ab267ca17db"
+      },
+      {
+        "path": ".release-please-manifest.json",
+        "sha256": "2f3056f934780356fde85243b9f7e9d5089f1232a1cfad5c76c6466f2c0231b4"
+      },
+      {
+        "path": "CHANGELOG",
+        "sha256": "e03708e61656516774593b9319b8af6671597e7c2abe90e47c3ffa40d021ecbf"
+      },
+      {
+        "path": "CHANGELOG.md",
+        "sha256": "77e85792c135fa2f212ba564609f71ea0dc2f2a4570ec385d088b6a1be4e2f01"
+      },
+      {
+        "path": "COPYING",
+        "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+      },
+      {
+        "path": "Dockerfile",
+        "sha256": "fbb8ddc0e62c5077b48052a91961b170f5749607980b8de158fa4d8f42991fba"
+      },
+      {
+        "path": "README.md",
+        "sha256": "42ac3280742290378847d68ccf31590dca377fd00bb68f6a706233cde0d4f22e"
+      },
+      {
+        "path": "TODO",
+        "sha256": "e2700c19ed41335a61370be0b98971fadcd495112218f79f0f7a762dc49637c5"
+      },
+      {
+        "path": "client/client.go",
+        "sha256": "bdda31ec04c7f874ead5f318297f504c62467666dcac801235f86c3e21f7362a"
+      },
+      {
+        "path": "client/client_test.go",
+        "sha256": "db4ec43f6ae2144ece3133e0b06984a64c0ecdff0499d63dba27c699ab2dce44"
+      },
+      {
+        "path": "client/dns.go",
+        "sha256": "652320e7260ca714aaae2297d49e8c9e51843792b716105889eb89bcbd831ccd"
+      },
+      {
+        "path": "client/dns_test.go",
+        "sha256": "f9f89f7ec1ade19ffd693b349ed3fef5258282c6d7c244b6cfa7209e54415617"
+      },
+      {
+        "path": "client/http.go",
+        "sha256": "bd725338141280d48dac847f4f554710422945d95b2da0a15756206deec1a306"
+      },
+      {
+        "path": "client/http_test.go",
+        "sha256": "62dcf4718a1791b15696fe7125665ebc5baa61f020f9d59a5ad8ac6333fb3d65"
+      },
+      {
+        "path": "client/tls.go",
+        "sha256": "758ae3ac0da38f5d3d1c086f18c44dc0372dea343d4e740b84db531041d6c4ec"
+      },
+      {
+        "path": "client/udp.go",
+        "sha256": "1f0e74faf2a14adcc1103a750f7299f0b97e6912a66fbd5c3972429e6522ebe9"
+      },
+      {
+        "path": "client/utls.go",
+        "sha256": "4df79efee7bde7f7d19cd66ead801b470f4e2c3c05e2b4598bd0f73cd618159f"
+      },
+      {
+        "path": "client/weightedlist.go",
+        "sha256": "6c04de14113c59c55bbfa6043aad39eb262b4c7759692f805729a7f1b8a4b775"
+      },
+      {
+        "path": "client/weightedlist_test.go",
+        "sha256": "eb3ede4e7c63a8bb8601b4ba13950d1431e97ec37c895c63002cd824662dc3a9"
+      },
+      {
+        "path": "dns/dns.go",
+        "sha256": "1fbc607cf746e1279a4e58e54b7922126928ecca3c11164d0a27984e2adfcb78"
+      },
+      {
+        "path": "dns/dns_test.go",
+        "sha256": "3ba6f7c29ccc008262312f922eef797fbd155b1c804cacb20bd5efaba3e5d6ec"
+      },
+      {
+        "path": "dns/fuzz.go",
+        "sha256": "3f61748c29cb178e4407b3b7fd7d53844510b71255b068758f2f2672e6453163"
+      },
+      {
+        "path": "docs/client-library.md",
+        "sha256": "9af816ec61533ccc3d0326ed36b461c711547055b8089e19f42ea4655e272dcf"
+      },
+      {
+        "path": "e2e/Corefile",
+        "sha256": "6aaae31b54c7fdb4c9526dbc73808926cebd1ad476651c9a0b039cd96ba8a850"
+      },
+      {
+        "path": "e2e/recovery/docker-compose.yml",
+        "sha256": "5630ebfdad4b18e0b1c836fd11a060540c745e923cfe7956a0100ca9d909f369"
+      },
+      {
+        "path": "e2e/recovery/run.sh",
+        "sha256": "7984955b2e7a9e17aee85f1b705342c375ee49a2fc5444a7fba254f1c57ecd2c"
+      },
+      {
+        "path": "e2e/run-test.sh",
+        "sha256": "b212b71731c2521aa965b3002c0c77c2ffa0aeef5c2af9a2d32989fd6e4a78fb"
+      },
+      {
+        "path": "e2e/socks-download/docker-compose.yml",
+        "sha256": "f30f85bcca3ce2c708cb3ee9db98a23de8c4a01ebe0a9afa1e579951ce86ed35"
+      },
+      {
+        "path": "e2e/socks-download/run.sh",
+        "sha256": "9cee473e085318bad7e1c408f4e70a8b1599ed55d2459cd35b036ade33cf8fa4"
+      },
+      {
+        "path": "e2e/transport-recovery/docker-compose.yml",
+        "sha256": "82f732380ba40d06b5620f66af80f265b9f2e5930ca1afc5ff4a5458ce368aaf"
+      },
+      {
+        "path": "e2e/transport-recovery/run.sh",
+        "sha256": "671a0523be04084bf8a6b3731fa23cea900e9431cc976630b99985030e1772f8"
+      },
+      {
+        "path": "e2e/tunnel/docker-compose.yml",
+        "sha256": "1de2137ba5de1f753ebdf8682c6e68615f9b96a42ba6e9801372c00d0a0a3c85"
+      },
+      {
+        "path": "e2e/tunnel/run.sh",
+        "sha256": "784cb19d03f23031b9ba9f4ce572668bf432a46d1af98abd7297647077f153a9"
+      },
+      {
+        "path": "go.mod",
+        "sha256": "e920f7e71af3d0227c99a3c0eada9a3b517bf69961197cef6d0a22aeb986c4d8"
+      },
+      {
+        "path": "go.sum",
+        "sha256": "09cf1068ca63d1b69967eeda4d615d01f7380a09f1942310ad93139878f215a4"
+      },
+      {
+        "path": "man/vaydns-client.1",
+        "sha256": "d5a493487cda2cbad64d79e5f012c763e470fcc4cef07d44e34c559a1fcddfa7"
+      },
+      {
+        "path": "man/vaydns-server.1",
+        "sha256": "e68eb52fc2e88168abee49fdba02a877ab81e8746b064d6c6a684f13e22e8d0e"
+      },
+      {
+        "path": "noise/noise.go",
+        "sha256": "30e1cec30e7f0c5371967f8543e3a67d98ddf930fe498eb98d5691e57566e2c3"
+      },
+      {
+        "path": "noise/noise_test.go",
+        "sha256": "3a9499d6a33cc1642faa584664247c016ea57549bc23de456a1993ee6ddff023"
+      },
+      {
+        "path": "release-please-config.json",
+        "sha256": "592c246544f8b38d00da716c4e52d18c713b22504878bbf94630e5e5c805631a"
+      },
+      {
+        "path": "turbotunnel/clientid.go",
+        "sha256": "fb8fdfca935f9c99729da7d44b505e1c19d923dabfa4a4e6d2bc47a92ac29bca"
+      },
+      {
+        "path": "turbotunnel/consts.go",
+        "sha256": "35e7083ce362948a95fe23c8fe37f8d7b562ab023030dbedb5ed9192b1fdb547"
+      },
+      {
+        "path": "turbotunnel/queuepacketconn.go",
+        "sha256": "50ab39f7159fbe6dc5efbae29393105db9729e96c00961ead755fb068a3318c4"
+      },
+      {
+        "path": "turbotunnel/remotemap.go",
+        "sha256": "0cc74657f751ce0d219cd827c223aeb980a08f3d144862c15e1c91700365214a"
+      },
+      {
+        "path": "turbotunnel/wireconfig.go",
+        "sha256": "07ae0fd1a304b57331405ddd58282d8617b3123e50885fe01e74080bf8b19d9b"
+      },
+      {
+        "path": "vaydns-client/main.go",
+        "sha256": "482834cd34e96b86df5e55956c5e7429bf58325dac16b5e84f4110e452cdbe35"
+      },
+      {
+        "path": "vaydns-server/main.go",
+        "sha256": "78e354fb83d9b6895c5b4accf63a0e595904d19828bc26ce12d8ed2b24c886d2"
+      }
+    ],
+    "overlay": [
+      {
+        "path": "cmd/mcrf-vaydns/main.go",
+        "sha256": "9738996356030ccb2481ed22416f892a09da21a839d2086735ec11356b3c07df"
+      },
+      {
+        "path": "cmd/mcrf-vaydns/main_test.go",
+        "sha256": "a5106d13c2e66c3bab9f3c24744c6e5e0664837275b3f65845b1524931dfc4ad"
+      },
+      {
+        "path": "client/mcrf_serve.go",
+        "sha256": "9dd5102eb3791b11602f280cd51125d62ca627c9cb3f9b3b738c0a862b8daa49"
+      },
+      {
+        "path": "client/mcrf_serve_test.go",
+        "sha256": "02b86e05cccb24efcde48d2f23675b725d3e2cf016577279a0b10f09113e9760"
+      },
+      {
+        "path": "client/mcrf_socks.go",
+        "sha256": "94e9e1e8a79afa8e5e2859b9a583aeed62e0598e2239bb9565f6002fd42ae7aa"
+      },
+      {
+        "path": "client/mcrf_socks_test.go",
+        "sha256": "22521ea562a6cc90e77fec1201c168f6973af86b96914a45e9dec60d9b9c8e26"
+      },
+      {
+        "path": "mcrf-integration/owned_peer_test.go",
+        "sha256": "0101d47f73d17addb0c5cbd0b8ee2db62445237269baeb10fc0b94c4bdf7c203"
+      }
+    ]
+  },
+  "state": "SOURCE_PREPARED_NOT_COMPILED",
+  "upstream": {
+    "repository": "net2share/vaydns",
+    "commit": "a0ff70110d5e96686ab8f4c8e1c44cd09be07a75",
+    "module": "github.com/net2share/vaydns",
+    "version": "v0.2.8",
+    "sum": "h1:wGMykaehSLm6F4xxXoE7v3DAkJNGt6WZ5ZTd59dPuHI=",
+    "zipSha256": "8edb14b7c062ecc566a11bf54540cc36eec2248bbfce0cf5decc380431faddfb",
+    "goModSum": "h1:+8kEfQsZJn7/4aIppVekrSuqhrKjGBIgnacTJkdAlS8=",
+    "license": "CC0-1.0",
+    "kcpReplacement": {
+      "module": "github.com/net2share/kcp-go/v5",
+      "version": "v5.0.0-20260325165956-416ba9d3856d",
+      "sum": "h1:ZE3gfAv8WTzcmsZBfy6A0AwZLr80XobJHhZbKMSgxSI="
+    }
+  },
+  "androidIntegrated": false,
+  "module": "D:/MCRF/Builds/Android/p3-vaydns-source-73c214abc62d45aba7b7aabffa974c1d/module"
+}

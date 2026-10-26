@@ -6,6 +6,17 @@ import java.io.InputStream
 
 object ImportIO {
     @JvmStatic @Throws(IOException::class)
+    fun readText(input: InputStream): String {
+        val bytes = read(input)
+        try {
+            return Charsets.UTF_8.newDecoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+                .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+                .decode(java.nio.ByteBuffer.wrap(bytes)).toString()
+        } catch (error: java.nio.charset.CharacterCodingException) {
+            throw IllegalArgumentException("Файл импорта содержит некорректный UTF-8. Данные не добавлены.", error)
+        } finally { bytes.fill(0) }
+    }
+    @JvmStatic @Throws(IOException::class)
     fun read(input: InputStream): ByteArray {
         val output = ByteArrayOutputStream()
         val buffer = ByteArray(8192)

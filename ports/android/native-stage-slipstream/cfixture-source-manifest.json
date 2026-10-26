@@ -1,0 +1,1662 @@
+[
+  {
+    "sha256": "ef980b99456af9022b4a72b441300ec4b51df97923f5877e6cfdda45a27f8814",
+    "path": "fixture_loopback_bind.c"
+  },
+  {
+    "sha256": "6155043aeddeadeeb041ba922db4b84501cda7f379f466f35b508c2e42b539ad",
+    "path": "source/.dockerignore"
+  },
+  {
+    "sha256": "ecf2fa991177cac32736422b2e362e56a82cbd1533e442abb92b5c0868945c9c",
+    "path": "source/.github/workflows/release.yaml"
+  },
+  {
+    "sha256": "1385e7bfe2bc19c6069d0ba8ccf3eec752d7c96a5229231dbee787af4dc8bc59",
+    "path": "source/.gitignore"
+  },
+  {
+    "sha256": "ed710b7326fdff8e250bd884242b9b2daa96983a8fb88d55a77337f6e2049cf8",
+    "path": "source/.gitmodules"
+  },
+  {
+    "sha256": "d2b961090168476960b2ab70595a2fe182bb9fd01e0d7a8e080cf6aa13c61a35",
+    "path": "source/certs/cert.pem"
+  },
+  {
+    "sha256": "51b21dad0c9e0ec43ae192337c291982b6b9a50ec559200ab07266cdbe515449",
+    "path": "source/certs/key.pem"
+  },
+  {
+    "sha256": "930a7f34dedaa18e0226851667bfbfbcd0d5a66370bee2beb96c6949cb808b68",
+    "path": "source/Dockerfile"
+  },
+  {
+    "sha256": "2b98051fc567eecadf973b29b572821d4ee08815d5d894c3079262cc910d6f63",
+    "path": "source/docs/_config.yml"
+  },
+  {
+    "sha256": "1873472fda1b0b7ff1a0f625de0e843cc8b104e04b5c0b0e38ea4d2df8c77158",
+    "path": "source/docs/.gitignore"
+  },
+  {
+    "sha256": "c8431970915a863467cedb30f69705897b66a20d520e37e1d9bd526a42d94518",
+    "path": "source/docs/404.html"
+  },
+  {
+    "sha256": "12bc23b999ce51d83c09059897bff942bd23ca9a07ab44b53432171c27e6b1e6",
+    "path": "source/docs/assets/bytefield.png"
+  },
+  {
+    "sha256": "c0fdbf9a95be5f4d0c58882d9022a2abf62daea9b76e857063c38f39c18974e2",
+    "path": "source/docs/assets/file_transfer_times_dark.png"
+  },
+  {
+    "sha256": "b457cd94b85e8eaddc8d0a9fb6c5d33332df9d7f967d2441dc287832580bf78d",
+    "path": "source/docs/assets/file_transfer_times_light.png"
+  },
+  {
+    "sha256": "3e0e26acc3562e3ff685030b7aa5d688414184c4809d347853461459333ef6d7",
+    "path": "source/docs/assets/network.png"
+  },
+  {
+    "sha256": "6716748af12a108eb30b9caedbc6443ac76eda785a830e31bccaa3b276b3e34a",
+    "path": "source/docs/assets/protocol_stack.png"
+  },
+  {
+    "sha256": "cc85b6d192df59551caded627eae8dbe918fd26b6e92ec5ace9992b417bbdd5a",
+    "path": "source/docs/assets/socket_loop.png"
+  },
+  {
+    "sha256": "4115535b4b72b0e48d1511dae0e948963dea13b34d217cbec07097a41010a7da",
+    "path": "source/docs/benchmark.md"
+  },
+  {
+    "sha256": "a1bd53de60ccddda056058e3ef842c8375c61312d15512ccf26e1ae3f50a9a9b",
+    "path": "source/docs/Gemfile"
+  },
+  {
+    "sha256": "8d4b07892e56c961d8e3a2bfb8ab26e3d89cfa3fee18de1c3899aca03852f11d",
+    "path": "source/docs/Gemfile.lock"
+  },
+  {
+    "sha256": "e2f47cc06df33511119bd4f627437d6bf737147cb96a9e1e9476b02662da2b1e",
+    "path": "source/docs/index.md"
+  },
+  {
+    "sha256": "3c9f6b8877421f107913c0473f6392b706a774fd1369140a03796cf111e08404",
+    "path": "source/docs/installation/build.md"
+  },
+  {
+    "sha256": "b6fa850679e69da5656240d9a56da22f9963ce144cadeb9edce7e682e0738652",
+    "path": "source/docs/installation/docker.md"
+  },
+  {
+    "sha256": "7b4cf584651e8b90a86d6b3c67828fdcee6c325659ab69b3dd59cc4f6e772b80",
+    "path": "source/docs/installation/gh.md"
+  },
+  {
+    "sha256": "8cf4a28f3d297164d5f18dd00f4935b0e2baaf6fe6e580f0933df25d37a9d5a4",
+    "path": "source/docs/installation/index.md"
+  },
+  {
+    "sha256": "959fba6b9925e2872ace9c30e8e4b7d0d033aa9f344dc822e16ad94ba1c95f17",
+    "path": "source/docs/protocol.md"
+  },
+  {
+    "sha256": "60bfcc1b97cca2b4abe758bc5c8f0abe53c1b4ec0ff721101af51be84eb37911",
+    "path": "source/docs/usage.md"
+  },
+  {
+    "sha256": "5ebfcab0d862215b8bd2dfa0ff05e9d649e3e694d4e6fc010481243cfb9115c3",
+    "path": "source/extern/lua-resty-base-encoding/.gitignore"
+  },
+  {
+    "sha256": "ccd5da6dbd5e3777829e49ac04597c30b91dc15c68eca79fe3ecf46af16cba73",
+    "path": "source/extern/lua-resty-base-encoding/.luacheckrc"
+  },
+  {
+    "sha256": "cd0ce040dd4ebdb15698e01bd831b29d57ff44d5433ef3d99d9bb14412700407",
+    "path": "source/extern/lua-resty-base-encoding/.travis.yml"
+  },
+  {
+    "sha256": "99ec7efc21a1d0d75703dcb1c9474e7fc58f77f6c931df390a996c08c0e27dac",
+    "path": "source/extern/lua-resty-base-encoding/arraytoc.c"
+  },
+  {
+    "sha256": "29fd021d1311f2bb8422f07982eb68a8c0fdbbb3e2cb4a850b14e6d4f8399490",
+    "path": "source/extern/lua-resty-base-encoding/arraytoc.h"
+  },
+  {
+    "sha256": "5017243bd555fb882d17117669fe1e418dc3be76dcfb6d725d1fda680a739f35",
+    "path": "source/extern/lua-resty-base-encoding/b32_data.h"
+  },
+  {
+    "sha256": "c2c872d08051932a3f689de134569c0cc0e2e6ff98c937098be9272fb961ce3d",
+    "path": "source/extern/lua-resty-base-encoding/base32.c"
+  },
+  {
+    "sha256": "d441c736df36c2863e89a0f238b9cd11f6b11b124161927937cc8c59b3781754",
+    "path": "source/extern/lua-resty-base-encoding/benchmark/benchmark.lua"
+  },
+  {
+    "sha256": "96ca336f7a30282523475a835f45751f4c6db721491c0c980340106c476c5146",
+    "path": "source/extern/lua-resty-base-encoding/benchmark/readme.md"
+  },
+  {
+    "sha256": "e25e2d1460e75079559d37323a70cac14930cbdea5ff5899cba8cf205ae17719",
+    "path": "source/extern/lua-resty-base-encoding/lib/resty/base_encoding.lua"
+  },
+  {
+    "sha256": "1a9ef33768b9bccb7c7a841cd05a6dab01e03bf49c9de77fdd793be81cbaf088",
+    "path": "source/extern/lua-resty-base-encoding/LICENSE"
+  },
+  {
+    "sha256": "4442af1319e461fafbbcc9c9b1319c918c947dc499c234aa224657a1dd833517",
+    "path": "source/extern/lua-resty-base-encoding/Makefile"
+  },
+  {
+    "sha256": "401059a3736214f2f265f3e3a1e13f3e1879ab349f40fd1578ed6a5ca8cf8cd4",
+    "path": "source/extern/lua-resty-base-encoding/modp_b16_data.h"
+  },
+  {
+    "sha256": "a361ba437f3a11eca7a6a052c92cf054b5a34b1dd16e07f32487a596e535cd4a",
+    "path": "source/extern/lua-resty-base-encoding/modp_b16.c"
+  },
+  {
+    "sha256": "1b23c02b56f045064b3f608bd1c5a85715dc06d2d37fbbb1b24491917759d155",
+    "path": "source/extern/lua-resty-base-encoding/modp_b2_data.h"
+  },
+  {
+    "sha256": "0d38174952cb84646ca6411c78f4740d454edff4cc2f136281d9a251cae4e5f2",
+    "path": "source/extern/lua-resty-base-encoding/modp_b2.c"
+  },
+  {
+    "sha256": "a9adf76ed997d488f8ee44817b55e76bcdeb3639c234027c347a757944f2e0df",
+    "path": "source/extern/lua-resty-base-encoding/modp_b64_data.h"
+  },
+  {
+    "sha256": "4315310dda5ec61aecec838f75d19c1c4eb9497eab24a46dbe66055b6b21f353",
+    "path": "source/extern/lua-resty-base-encoding/modp_b64.c"
+  },
+  {
+    "sha256": "0243550d16436c5c0a0ede60ef151bf45f3b0c82e1fb31fecd338763122664b9",
+    "path": "source/extern/lua-resty-base-encoding/modp_b64w_data.h"
+  },
+  {
+    "sha256": "6434a830465b55b8b7b3f2a122b1d7d7a28637b65f8eaf0d39df3fbee331e22f",
+    "path": "source/extern/lua-resty-base-encoding/modp_b64w.c"
+  },
+  {
+    "sha256": "12bc6838b2298f674d28a456f212a1a0ae750d58e60fb9a72a10de62211a140d",
+    "path": "source/extern/lua-resty-base-encoding/modp_b85_data.h"
+  },
+  {
+    "sha256": "70bb2095b6bf9fed96db0a6710910d2caa2b080579076234abbdc190907b2e42",
+    "path": "source/extern/lua-resty-base-encoding/modp_b85_gen.c"
+  },
+  {
+    "sha256": "c9641aa871eb7b4d88164364d7378046c8facbefa302552ce35ec985a4239c4e",
+    "path": "source/extern/lua-resty-base-encoding/modp_b85.c"
+  },
+  {
+    "sha256": "6ecff5455815c6024f5049a5d3bdb3895a194fb5fda726eaa17c6c49c50cdbdf",
+    "path": "source/extern/lua-resty-base-encoding/modp_stdint.h"
+  },
+  {
+    "sha256": "71d57212cc5c5c443c8d4f14037362dd20851b7c5d847af79b9ed310d9be70a9",
+    "path": "source/extern/lua-resty-base-encoding/README.md"
+  },
+  {
+    "sha256": "26a96480c1455c35faf202a9f27d5e167bc4374dc439e75de934d50ca0984f23",
+    "path": "source/extern/lua-resty-base-encoding/t/base16.t"
+  },
+  {
+    "sha256": "a335fb254524ccee1ca6ce4210b3a7530669d5113146a3e456242948c8d52d5d",
+    "path": "source/extern/lua-resty-base-encoding/t/base2.t"
+  },
+  {
+    "sha256": "b0bcd216bdc6bc31c2ebba348745f377a339b1a0ef91fc973e52d84b351a2fc6",
+    "path": "source/extern/lua-resty-base-encoding/t/base32.t"
+  },
+  {
+    "sha256": "266d1dde07bb35de22ad895f6906ce6fcf2be2cb587ddfdfe7c801cc37a8de92",
+    "path": "source/extern/lua-resty-base-encoding/t/base64.t"
+  },
+  {
+    "sha256": "7409c674f4b144a0e6fc486943e3dcee6e7bcc59a2f5918a33a5f298a0a96b90",
+    "path": "source/extern/lua-resty-base-encoding/t/base85.t"
+  },
+  {
+    "sha256": "4e956cf0ecd1ae91a7200f955099ecf997079828b107933f1355857c4dc4dea5",
+    "path": "source/extern/lua-resty-base-encoding/valgrind.suppress"
+  },
+  {
+    "sha256": "79f548cea2a9064cea914e7d854c9b47d34fb043dedeaae3b3b50d8157ff47cd",
+    "path": "source/extern/quick_arg_parser/LICENSE"
+  },
+  {
+    "sha256": "344b9e619c40b7df96fb84b3ea321d42d378738af9949b24175d4f48a333e6ad",
+    "path": "source/extern/quick_arg_parser/quick_arg_parser_test_manual.cpp"
+  },
+  {
+    "sha256": "6380a68712c5c534bbea51319d8019b8853b10e97ad3e20a1335aebbcd139cf1",
+    "path": "source/extern/quick_arg_parser/quick_arg_parser_test.cpp"
+  },
+  {
+    "sha256": "e939ca456beb04cbbadc60798ee8ee4c4d8d3b7f17bd8337f53d7a898ec6771d",
+    "path": "source/extern/quick_arg_parser/quick_arg_parser.hpp"
+  },
+  {
+    "sha256": "0493bd3a0e8512112c037b8b69985630f3e8644e67f34f6d8f5be9080e52bb30",
+    "path": "source/extern/quick_arg_parser/README.md"
+  },
+  {
+    "sha256": "6449c988a085464cf3d873ea181f13b402f24d2ae1b63f3dc1d4baf6f2c06169",
+    "path": "source/extern/SPCDNS/.gitignore"
+  },
+  {
+    "sha256": "169e5427d5791cad76dd90a2c9e6ff74409d96e59d9c215ce274bfab841274d4",
+    "path": "source/extern/SPCDNS/Changes"
+  },
+  {
+    "sha256": "ea7d049c7705dc13afc202dd18e1827f3484f8212fd3fa7b82fc4a0c363432c9",
+    "path": "source/extern/SPCDNS/LICENSE"
+  },
+  {
+    "sha256": "3be2c8e06b2ae5fa11aa8996e7dfb7f23e61c634b6a1774f22ae1d14c2a80120",
+    "path": "source/extern/SPCDNS/lua/dns.lua"
+  },
+  {
+    "sha256": "9ea0819b5b15e72998c0a07220695fb5200fbd4786fa2d85e949652884401f2d",
+    "path": "source/extern/SPCDNS/lua/mx.lua"
+  },
+  {
+    "sha256": "3914f23736553608f9a2525b1ca696d0d35b7ed3053b3ee71099f281ec90051c",
+    "path": "source/extern/SPCDNS/lua/test.lua"
+  },
+  {
+    "sha256": "902c4db9d615bb4d565c7a900a1a8da9101da37b4bb8685ad5de1cb4e94d706e",
+    "path": "source/extern/SPCDNS/Makefile"
+  },
+  {
+    "sha256": "9345c12e7adc6a49a57a43e8fbdd490a1ce34a6fa0c538c8cfb3a84c5952401c",
+    "path": "source/extern/SPCDNS/notes"
+  },
+  {
+    "sha256": "598cf17347e623c2187cadcc6043fc50db75483140bd6c84d4c94bf55d918e5f",
+    "path": "source/extern/SPCDNS/org.conman.dns-2.1.3-1.rockspec"
+  },
+  {
+    "sha256": "290371a94208351dc170e34a1ccb4e18e165c75cd92c45bc0c2434b7f011bd8d",
+    "path": "source/extern/SPCDNS/README"
+  },
+  {
+    "sha256": "d3eb4f3212c679be794686f0489505b012c58abb54ebbabd1603f9f6976fb376",
+    "path": "source/extern/SPCDNS/src/codec.c"
+  },
+  {
+    "sha256": "086c75a3dd353459eee68f2a2b97a2f9bd9f2202cec841bdcf9c98018993fa0c",
+    "path": "source/extern/SPCDNS/src/dns.h"
+  },
+  {
+    "sha256": "0befb2cfa9ddc637d06e36a81d242a539dc90833427f81ba00a7556d9d35fc60",
+    "path": "source/extern/SPCDNS/src/dotest.c"
+  },
+  {
+    "sha256": "cc50341e730fb341397b4c14fd28198977c0295d5bb9a021dba3690c98c4cb41",
+    "path": "source/extern/SPCDNS/src/luadns.c"
+  },
+  {
+    "sha256": "f38c2ed741b073b1bf7895ade199aef77a6e76eace527854da812e0316913dec",
+    "path": "source/extern/SPCDNS/src/mappings.c"
+  },
+  {
+    "sha256": "5de4b409fa4ba47a9d2567b17e5d370555dc470df60425dfa18e1cb8ff7a1e87",
+    "path": "source/extern/SPCDNS/src/mappings.h"
+  },
+  {
+    "sha256": "d7796b34a21f28b06e46d3181677716f2616c40b3133691243f767a816f77aa6",
+    "path": "source/extern/SPCDNS/src/netsimple.c"
+  },
+  {
+    "sha256": "238a2e0748277e8b88bf687fe715b281ab7a97c16cdfe95d1465c67f287544e7",
+    "path": "source/extern/SPCDNS/src/netsimple.h"
+  },
+  {
+    "sha256": "96a793e4e4575bb722796c578423e9e5232ecea65008a226ea5ab261979d18f8",
+    "path": "source/extern/SPCDNS/src/output.c"
+  },
+  {
+    "sha256": "2e98c8450b917a21fb365ca0a9d7f289cf13c5a33328e576852eee595a52a17b",
+    "path": "source/extern/SPCDNS/src/output.h"
+  },
+  {
+    "sha256": "bc56fc1bf271bfcaab430b6913a7128980865004b9533ff23b61104bea72dab8",
+    "path": "source/include/lua-resty-base-encoding-base32.h"
+  },
+  {
+    "sha256": "2c0ad0f96f7daa8c98cf36303e5c0ef67f6d2254e677e221d0da4c86c500ceb3",
+    "path": "source/include/slipstream_inline_dots.h"
+  },
+  {
+    "sha256": "a9681b3b68fe7a583d8939db5fb16dcce0b400a4bbad6d92f1ca3f1ceb14da2a",
+    "path": "source/include/slipstream_server_cc.h"
+  },
+  {
+    "sha256": "5bfa7c29b680ef4e503c1ebdc852a589783522a77369599ed48785872d3ad539",
+    "path": "source/include/slipstream_slot.h"
+  },
+  {
+    "sha256": "e5e5d659bef05e22676010ff50f9de74487299007f3859769ae69b71da4520aa",
+    "path": "source/include/slipstream_sockloop.h"
+  },
+  {
+    "sha256": "718a2f5e53bd44bc4a153ab0ceb1abc76be452867eb61b1afaeb0c3d29b4477a",
+    "path": "source/include/slipstream_utils.h"
+  },
+  {
+    "sha256": "90fc388d9abd9796bdaa9e720bd1c617d268065c3f09cd26733337f3b856d667",
+    "path": "source/include/slipstream.h"
+  },
+  {
+    "sha256": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6",
+    "path": "source/LICENSE"
+  },
+  {
+    "sha256": "7286353e35827b0a0d7bcae387b263d4b0546e438b61435662db1d3d0b2c5159",
+    "path": "source/meson_options.txt"
+  },
+  {
+    "sha256": "0abb771bca2909f935115d0f153bf223e0b44673c53372db7024a0e35edf8422",
+    "path": "source/meson.build"
+  },
+  {
+    "sha256": "ad2a027a594f8fdde5ecaf8a66c1fd830dbc48ad7024700641c18232a5fdac9b",
+    "path": "source/meson.options"
+  },
+  {
+    "sha256": "d5fa4528b5ef9c7f78b2029f143e91d1ce0cf98c4105ca4da5478bc07cc30536",
+    "path": "source/README.md"
+  },
+  {
+    "sha256": "12f28071533652e922fda04ea5d3be3c2d62fa14a11076525e2c16638fd88607",
+    "path": "source/src/slipstream_client_cli.cpp"
+  },
+  {
+    "sha256": "247868e766313fa15a551abe1d2f41997e007fd964476dd35bfc49638a92968d",
+    "path": "source/src/slipstream_client.c"
+  },
+  {
+    "sha256": "5fb352975a8160b03f6c52cdeadd4340cd8fe759e9902769e34645304ce52d97",
+    "path": "source/src/slipstream_inline_dots.c"
+  },
+  {
+    "sha256": "585863c7c52967c92981540d4bbbc84d7c12f7cec38ce7326063654443e0de23",
+    "path": "source/src/slipstream_server_cc.c"
+  },
+  {
+    "sha256": "97a9efd182c91ef4dd59a7fa3d75c1baa1843ed68ad0f9781a2f0d35c5ee0cf2",
+    "path": "source/src/slipstream_server_cli.cpp"
+  },
+  {
+    "sha256": "68421c7d9f464350ae256e45dd60cf1530df52221de9764bdedc415643b463d5",
+    "path": "source/src/slipstream_server.c"
+  },
+  {
+    "sha256": "fe7cf13c27fb975a3a903adbccf386f854543a31362cf5eb6611c2745dd19242",
+    "path": "source/src/slipstream_sockloop.c"
+  },
+  {
+    "sha256": "00918bb03b1aea0a0d2665ca362e86033172db2402dde6db413aeb5bd6a8f9fa",
+    "path": "source/src/slipstream_utils.c"
+  },
+  {
+    "sha256": "8b2d7dc6828f618bf6ffb10772eff73e4e982bd7ba3a7c981a7c24549f42ca40",
+    "path": "source/subprojects/picoquic/.github/codeql/codeql-config.yml"
+  },
+  {
+    "sha256": "ec35e9f70af49a7a31ffcaf7ae8277ea76ade80e2af1266a7e7576f5593bfc6e",
+    "path": "source/subprojects/picoquic/.github/workflows/ci-asan-ubsan.yml"
+  },
+  {
+    "sha256": "8f9e13145b9cf0937804dc6958d0f4bea7274e36f4fec1c29aa4833fbfac7abd",
+    "path": "source/subprojects/picoquic/.github/workflows/ci-tests-clang.yml"
+  },
+  {
+    "sha256": "42bb98e120a224b53d95ccb99cfd44671dbcffe54c1ad00e3158592846dda107",
+    "path": "source/subprojects/picoquic/.github/workflows/ci-tests-mac-os.yml"
+  },
+  {
+    "sha256": "4e8a29e8704856bd85a8ed973921cdd796e97e533b48272350bda4dcfc57956d",
+    "path": "source/subprojects/picoquic/.github/workflows/ci-tests-no-fusion.yml"
+  },
+  {
+    "sha256": "448ff598a4998c61ab87da5f7bf203160ef26e3a193a1633b0d479868ba5bf73",
+    "path": "source/subprojects/picoquic/.github/workflows/ci-tests-no-openssl.yml"
+  },
+  {
+    "sha256": "c84e86bee9bed3549e30c3da6efe2fa5dbb97c67aab2aea3cbdce1d4db40cb3a",
+    "path": "source/subprojects/picoquic/.github/workflows/ci-tests.yml"
+  },
+  {
+    "sha256": "249154d865e6279a798a4cfda22daa0f50cd6f7da5f70b56def97291c3f0b041",
+    "path": "source/subprojects/picoquic/.github/workflows/codeql-analysis.yml"
+  },
+  {
+    "sha256": "b7e59d344912a5c6f45476bd7f43d70d422adfc048fc4fea37ce48ee61490a8e",
+    "path": "source/subprojects/picoquic/.github/workflows/mbedtls.yml"
+  },
+  {
+    "sha256": "f34429f4358addb7c7fe5ad8095191fb23a1e152ac946007655452139d6f88da",
+    "path": "source/subprojects/picoquic/.gitignore"
+  },
+  {
+    "sha256": "b8d5c5141da1d7b548b0c63cbc972d8be76a6e905ce7a31ab6a1c4a1712719fc",
+    "path": "source/subprojects/picoquic/.travis.yml"
+  },
+  {
+    "sha256": "49a80be2566b91f75285b940bda10641d0f7c528c593e77617426cc3c1a87590",
+    "path": "source/subprojects/picoquic/appveyor.yml"
+  },
+  {
+    "sha256": "32e88bcdbffc9e874acb00fd1297d7a3bde77b400c45ac184428a6f0688e2e6c",
+    "path": "source/subprojects/picoquic/baton_app/baton_app.c"
+  },
+  {
+    "sha256": "49e691a1d44effdda8fc21cd901189a9f5c973012822a3b0cdca835489e43e59",
+    "path": "source/subprojects/picoquic/baton_app/baton_app.vcxproj"
+  },
+  {
+    "sha256": "cc391c844bcdc06aeaffcbd744e2c656ebb03d0309f5bb5dd1df249a5c50d3c2",
+    "path": "source/subprojects/picoquic/baton_app/baton_app.vcxproj.filters"
+  },
+  {
+    "sha256": "91d6c9e343e9799ec643e7078179ff0a83f81bf0082aacacc9e23774e5fe6b5c",
+    "path": "source/subprojects/picoquic/certs/badcert.pem"
+  },
+  {
+    "sha256": "d2b961090168476960b2ab70595a2fe182bb9fd01e0d7a8e080cf6aa13c61a35",
+    "path": "source/subprojects/picoquic/certs/cert.pem"
+  },
+  {
+    "sha256": "a1ec00bf118bb71ec7b98f9635435c77546d94f47a7383bc0d5a5a3002d620e4",
+    "path": "source/subprojects/picoquic/certs/ecdsa/cert.pem"
+  },
+  {
+    "sha256": "e6b0a8ad1b9dc2e720268089aea04a83833272035da643123a559093a69fa5bf",
+    "path": "source/subprojects/picoquic/certs/ecdsa/key.pem"
+  },
+  {
+    "sha256": "1df3edc333a509434695c467a10e0ce317cf3a8ac8a93a232930607dff33e8b2",
+    "path": "source/subprojects/picoquic/certs/ecdsa/pub.pem"
+  },
+  {
+    "sha256": "97d7d1971bbdf336f5444a30b9f85ae1349f137a3d92039a1acbdcfc9aead4b6",
+    "path": "source/subprojects/picoquic/certs/ed25519/cert.pem"
+  },
+  {
+    "sha256": "94de6b6fc855bcacb771bcd72dd6fcd62a8826b820d75a40dfe1e0da8dc6e9f8",
+    "path": "source/subprojects/picoquic/certs/ed25519/key.pem"
+  },
+  {
+    "sha256": "c5d95547117c95ecf1742967d1c3335f1329d986ff3179974680167b7364cd5b",
+    "path": "source/subprojects/picoquic/certs/ed25519/pub.pem"
+  },
+  {
+    "sha256": "3f99ee249d6df51922fbcac9f801c931069670d66ef320e070bb1ed4548631f5",
+    "path": "source/subprojects/picoquic/certs/esni-rr.bin"
+  },
+  {
+    "sha256": "1250e23c99e1d598dceb5d7df0ec0657b567a784dd2f82d9a732af6771f6ff00",
+    "path": "source/subprojects/picoquic/certs/esni-secp256r1.key"
+  },
+  {
+    "sha256": "51b21dad0c9e0ec43ae192337c291982b6b9a50ec559200ab07266cdbe515449",
+    "path": "source/subprojects/picoquic/certs/key.pem"
+  },
+  {
+    "sha256": "c97a4913ff4d48e9211442c55defa07cad87bcb9d4634500e8697cfc17421734",
+    "path": "source/subprojects/picoquic/certs/rsa-pkcs8/key.pem"
+  },
+  {
+    "sha256": "c97a4913ff4d48e9211442c55defa07cad87bcb9d4634500e8697cfc17421734",
+    "path": "source/subprojects/picoquic/certs/rsa-pkcs8/keypair.pem"
+  },
+  {
+    "sha256": "2e1ab61d20014ec91c3f7393e47eadc15b23b1010dc90eedde0ced3213f4b2f7",
+    "path": "source/subprojects/picoquic/certs/rsa/cert.pem"
+  },
+  {
+    "sha256": "d68bc98cb1524cf060cdc01082528a926ba692a85602071b6ace26cbce3a96fa",
+    "path": "source/subprojects/picoquic/certs/rsa/key.pem"
+  },
+  {
+    "sha256": "937711de8d85c6bc8b6dff512e98b2dcd2115863f5baf735d8857f94eff87001",
+    "path": "source/subprojects/picoquic/certs/rsa/pub.pem"
+  },
+  {
+    "sha256": "a1ec00bf118bb71ec7b98f9635435c77546d94f47a7383bc0d5a5a3002d620e4",
+    "path": "source/subprojects/picoquic/certs/secp256r1-pkcs8/cert.pem"
+  },
+  {
+    "sha256": "e6b0a8ad1b9dc2e720268089aea04a83833272035da643123a559093a69fa5bf",
+    "path": "source/subprojects/picoquic/certs/secp256r1-pkcs8/key.pem"
+  },
+  {
+    "sha256": "1df3edc333a509434695c467a10e0ce317cf3a8ac8a93a232930607dff33e8b2",
+    "path": "source/subprojects/picoquic/certs/secp256r1-pkcs8/pub.pem"
+  },
+  {
+    "sha256": "a1ec00bf118bb71ec7b98f9635435c77546d94f47a7383bc0d5a5a3002d620e4",
+    "path": "source/subprojects/picoquic/certs/secp256r1/cert.pem"
+  },
+  {
+    "sha256": "8e634e6e12277b6e535586b1e52cdabc9e27207a7f421a721da8b880a285bb00",
+    "path": "source/subprojects/picoquic/certs/secp256r1/key.pem"
+  },
+  {
+    "sha256": "1df3edc333a509434695c467a10e0ce317cf3a8ac8a93a232930607dff33e8b2",
+    "path": "source/subprojects/picoquic/certs/secp256r1/pub.pem"
+  },
+  {
+    "sha256": "ce80b003049d40f7b4a5785514a818915c737b5fb56fb2ce9ada6c762b10b3f1",
+    "path": "source/subprojects/picoquic/certs/secp384r1/cert.pem"
+  },
+  {
+    "sha256": "63c1d6ada75bdef1da3991683946fe296cc485f453bae49935742bbff9cb957d",
+    "path": "source/subprojects/picoquic/certs/secp384r1/key.pem"
+  },
+  {
+    "sha256": "9feb9c4d02aef2ffaad63933a373dfd386819dd9dd809048764f7c9afe8242cf",
+    "path": "source/subprojects/picoquic/certs/secp384r1/pub.pem"
+  },
+  {
+    "sha256": "432eb3dec1fb1293b0f8463008561975b003317710255087e353df1fef796bae",
+    "path": "source/subprojects/picoquic/certs/secp521r1/cert.pem"
+  },
+  {
+    "sha256": "e478d2f8c5da010dff871a0511eb71eb848c8c9cb36c6f1b7b11635c5a5ddade",
+    "path": "source/subprojects/picoquic/certs/secp521r1/key.pem"
+  },
+  {
+    "sha256": "8c24f9a8e3b6d040e4b9cfb477dce91010e96b0e9407d90a55707b5922045dc6",
+    "path": "source/subprojects/picoquic/certs/secp521r1/pub.pem"
+  },
+  {
+    "sha256": "0fb39362c564b1b5fad187479544964b0a0b4b6bc7da83ca7edc68b5e39731c5",
+    "path": "source/subprojects/picoquic/certs/test-ca.crt"
+  },
+  {
+    "sha256": "45b3219f7ac5f94f23abbcee2ccd370563d72dbbdd4f3dd42ef0200eecc8b161",
+    "path": "source/subprojects/picoquic/certs/tests/cert.pem"
+  },
+  {
+    "sha256": "4583e72edf0cefee780c41951b1aaff193e98e91561d21cc8509850bc5b92d60",
+    "path": "source/subprojects/picoquic/certs/tests/chain.pem"
+  },
+  {
+    "sha256": "8af6fa71263342c6ba790aa024c37f1cbcda78ca10f4da830dc4593c2c624230",
+    "path": "source/subprojects/picoquic/certs/tests/fullchain.pem"
+  },
+  {
+    "sha256": "668d8a0c9e18fc668b1b50bd2e2b53c2960fb386d1b8006a21d0c4414d8dc19f",
+    "path": "source/subprojects/picoquic/ci/build_cppcheck.sh"
+  },
+  {
+    "sha256": "6870cd178199134c2a4c75c523a478787036ac3501cc08de074b22d11b56a005",
+    "path": "source/subprojects/picoquic/ci/build_picotls.ps1"
+  },
+  {
+    "sha256": "e8fa5adcebb08d0561bacc6d6e5b5c936265b79f7ab962dfab5a92bc5e5baf26",
+    "path": "source/subprojects/picoquic/ci/build_picotls.sh"
+  },
+  {
+    "sha256": "59ae215787f0a819d1c8f0e16d1092e6b8e43bbf9811635c4ca0e9e3a2a9f30c",
+    "path": "source/subprojects/picoquic/ci/picotls-win32.patch"
+  },
+  {
+    "sha256": "7b40441e75bb93f8711aad204e355daf0a499c7c31d52886dc7c0735b20522fc",
+    "path": "source/subprojects/picoquic/cmake/FindMbedTLS.cmake"
+  },
+  {
+    "sha256": "4c8c6a625fe0ef101c45b5c031405d8042cd73b7552551286ede041db392f8b4",
+    "path": "source/subprojects/picoquic/cmake/FindPTLS.cmake"
+  },
+  {
+    "sha256": "15f49ae61e700f6335c085211bb3191ef1e7f85c091de1b4f6d4743db297b941",
+    "path": "source/subprojects/picoquic/CMakeLists.txt"
+  },
+  {
+    "sha256": "f5d5638b6a88e4535e46b7fabfdbf20401bdae25f50c09a3ac28775e7554daf6",
+    "path": "source/subprojects/picoquic/CMakeSettings.json"
+  },
+  {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "source/subprojects/picoquic/config.c"
+  },
+  {
+    "sha256": "5e768130cf15a853937fb451479cdb4010820e9402734420230d89f9a9580730",
+    "path": "source/subprojects/picoquic/doc/architecture.md"
+  },
+  {
+    "sha256": "ec64114e8ae388f02c7b35e9d9412a49361bdc95a137334de9f4174a3c079086",
+    "path": "source/subprojects/picoquic/doc/architecture.png"
+  },
+  {
+    "sha256": "5f6aeb105fdd1108ea1d41d95234695cc2a235b1311cc963b47c54fce715e247",
+    "path": "source/subprojects/picoquic/doc/building_picoquic.md"
+  },
+  {
+    "sha256": "87579997e46a1419e0ec42f7badfb1a43c8d0bd873fb07f986595a16bf1a7063",
+    "path": "source/subprojects/picoquic/doc/managing-memory-copies.md"
+  },
+  {
+    "sha256": "0154cb33d534dbdac1d28a792edd59b679e89dc6c3e3390c092ca19394d18da2",
+    "path": "source/subprojects/picoquic/doc/memory.md"
+  },
+  {
+    "sha256": "546f66da024bc5090c237dfb36e8195da05f685fca72f4e5c0d7a0cceae9b3f4",
+    "path": "source/subprojects/picoquic/doc/p2p.md"
+  },
+  {
+    "sha256": "290c7b797d5aeb599c31c13f0aa1faa540db07ddea2c659359c4e79a0a1824de",
+    "path": "source/subprojects/picoquic/doc/pico_webtransport.md"
+  },
+  {
+    "sha256": "64dc03edcc6e25be106ff966f076b0a0e0c9decb6785de313e088f839772586d",
+    "path": "source/subprojects/picoquic/doc/QLOG.md"
+  },
+  {
+    "sha256": "4208251f4f930d579c5c03165eaaa5155c69aca10d9f6a4c78298f25b69338ec",
+    "path": "source/subprojects/picoquic/doc/quicperf.md"
+  },
+  {
+    "sha256": "2323c0d69c96ef42297fc1516eaffee0bf1b271dffc7bda44e074630cff46679",
+    "path": "source/subprojects/picoquic/doc/sample.md"
+  },
+  {
+    "sha256": "92eb24e2b222d871fd69494a2cbe4faa3c4b7ccbc3c48cb53af166451f6095f8",
+    "path": "source/subprojects/picoquic/doc/send_receive_data.md"
+  },
+  {
+    "sha256": "3191199d5d86cba0fc72683282647c275ff8fded0cdc9199eef8db4cd2022bbf",
+    "path": "source/subprojects/picoquic/doc/usage.md"
+  },
+  {
+    "sha256": "ceac8a79391f15423690b33d52a45fd374bddac72e8f487206e7bf8ceb9698e9",
+    "path": "source/subprojects/picoquic/doc/without_openssl.md"
+  },
+  {
+    "sha256": "add1f182139a0c1a0cf03e1642369973794d8a157e3f9403c454440eaff5e712",
+    "path": "source/subprojects/picoquic/Dockerfile"
+  },
+  {
+    "sha256": "6f0d856656cb98b0bf345e4f83001cd95bdebf9f5418fd9b4eb066f9b22c3f07",
+    "path": "source/subprojects/picoquic/implementation-notes.txt"
+  },
+  {
+    "sha256": "eb5c6aa04f0278bbe214a0b08b3a3fad778b0df78ddd423aa13dd27bebc3d0f2",
+    "path": "source/subprojects/picoquic/LICENSE"
+  },
+  {
+    "sha256": "530c4dd41fda254b051f12f493d59c4cc49cda133dccebb83688b7320003c848",
+    "path": "source/subprojects/picoquic/loglib/auto_memlog.h"
+  },
+  {
+    "sha256": "16d67c971a53ae1c77b9420cca35bab5c04e091350b891a43ee182ee4273fbcc",
+    "path": "source/subprojects/picoquic/loglib/autoqlog.c"
+  },
+  {
+    "sha256": "46d2bd270ef1c2bfad720530ab31502c70aafd0e14c87d459766eeb32ec5400b",
+    "path": "source/subprojects/picoquic/loglib/autoqlog.h"
+  },
+  {
+    "sha256": "070838f48d92d58505025d4b3c3e2330da5a0f4a31362895a28fdfe3aba0367c",
+    "path": "source/subprojects/picoquic/loglib/cidset.c"
+  },
+  {
+    "sha256": "3dd041a8ad99147b0b71d98c3eed452e4f34075d2ef6aa581a9a24f8093fdc24",
+    "path": "source/subprojects/picoquic/loglib/cidset.h"
+  },
+  {
+    "sha256": "6c9dae0700ac7351a427cafe67b963e4a4db43d63b9f7a1474707c80b86d30bb",
+    "path": "source/subprojects/picoquic/loglib/csv.c"
+  },
+  {
+    "sha256": "0b33d59821122f8e0402cbe76febd4ba804304efccda96aea6690058d09e9f4e",
+    "path": "source/subprojects/picoquic/loglib/csv.h"
+  },
+  {
+    "sha256": "a7b9824caeff63ec3a977b8b462b1b9f334389a6ee9ef0084b8e5549cf7e730f",
+    "path": "source/subprojects/picoquic/loglib/logconvert.c"
+  },
+  {
+    "sha256": "a554273587b7a381ba9f1cfae64741d872caf0a0dc50d203661f061598ef54f1",
+    "path": "source/subprojects/picoquic/loglib/logconvert.h"
+  },
+  {
+    "sha256": "afca67aec055e3ab49ca20699cbef3764dd125298ded22750588d84f5ca4869e",
+    "path": "source/subprojects/picoquic/loglib/loglib.vcxproj"
+  },
+  {
+    "sha256": "ad63d23d8adfdddd6726dbdb45374a2d1d6b425b66e6b4f3c76d71f4a7cf89c4",
+    "path": "source/subprojects/picoquic/loglib/loglib.vcxproj.filters"
+  },
+  {
+    "sha256": "8937c835b27fb50a08386dbbf62eb3879314b9ed9c793ce3acf8423d91a8ad4b",
+    "path": "source/subprojects/picoquic/loglib/logreader.c"
+  },
+  {
+    "sha256": "86a5de1e20b51eb5e72f41506332f6c2512b1a14fc577509d54dfb1e76a85068",
+    "path": "source/subprojects/picoquic/loglib/logreader.h"
+  },
+  {
+    "sha256": "c5f63b56e5d00246e1e8c570c2d3723ac492fc0ca9f6501bfad7c5197ed70a63",
+    "path": "source/subprojects/picoquic/loglib/memory_log.c"
+  },
+  {
+    "sha256": "9b41d7384e4e70c45cd1e0bc6d38878a80d3c89535a180999a3f18e2ff7eb9a9",
+    "path": "source/subprojects/picoquic/loglib/qlog.c"
+  },
+  {
+    "sha256": "ea7315c81a59a95bc08acdb021be64114b583e53f39ca33b260ba2aef4b70cd3",
+    "path": "source/subprojects/picoquic/loglib/qlog.h"
+  },
+  {
+    "sha256": "f30e335563abf506868fb303053273af7f21a6bf4d9d5eb0909ca5c3e8abc183",
+    "path": "source/subprojects/picoquic/loglib/svg.c"
+  },
+  {
+    "sha256": "fee85fba6cd97c29d9fa04a6f1597f836e5fea6ad2a3df45769458bfd9fe34e6",
+    "path": "source/subprojects/picoquic/loglib/svg.h"
+  },
+  {
+    "sha256": "cc94829dadfe28ed3cf6104f0b1a7b8e4fb29d23850082e74f6f9bb91761c674",
+    "path": "source/subprojects/picoquic/loglib/template.svg"
+  },
+  {
+    "sha256": "95090a414ca266487cfc148fc0089babe19fcd766249e1e0873fe16499510c9f",
+    "path": "source/subprojects/picoquic/PerfAndStressTest/PerfAndStressTest.cpp"
+  },
+  {
+    "sha256": "cc6db6a2f4fa6896ddf108f1b8eb6f9e99340c391de277cd3f415ce95538cbd7",
+    "path": "source/subprojects/picoquic/PerfAndStressTest/PerfAndStressTest.vcxproj"
+  },
+  {
+    "sha256": "e2d614fbdf25f6e80314c523e0838cf0e2f581c355fc238cf0d7ce8088fe5b5d",
+    "path": "source/subprojects/picoquic/PerfAndStressTest/PerfAndStressTest.vcxproj.filters"
+  },
+  {
+    "sha256": "1f9b12c50ebfd24d1757d89f3fe294b20c7e93e60ef0019aa1ff705547ea7e8c",
+    "path": "source/subprojects/picoquic/picohttp_t/picohttp_t.c"
+  },
+  {
+    "sha256": "ffe1b5f52430762bf0a9f01705f55bb1bf189df8a7c25e3c6fb880b7231d2b28",
+    "path": "source/subprojects/picoquic/picohttp_t/picohttp_t.vcxproj"
+  },
+  {
+    "sha256": "a703848a2cf03b79859c2ed416067f91240b3a4b55a756ed8ab3f97018ef8d0d",
+    "path": "source/subprojects/picoquic/picohttp_t/picohttp_t.vcxproj.filters"
+  },
+  {
+    "sha256": "aa7aa4d0242f41f6c33d145a0684819d07abfec7387d3dc6e0fae97d9f6f0f1c",
+    "path": "source/subprojects/picoquic/picohttp/democlient.c"
+  },
+  {
+    "sha256": "6ea280cd719f113c399daf69f657963960d1f4a7ef5b41b7a0cf0de1ae033eef",
+    "path": "source/subprojects/picoquic/picohttp/democlient.h"
+  },
+  {
+    "sha256": "c053ecc07826f3d44d6bff5a3f4949576ef2f40b48c86d561fac978284ff3b8d",
+    "path": "source/subprojects/picoquic/picohttp/demoserver.c"
+  },
+  {
+    "sha256": "68b5c36107089976b5b752084b8a951004f0ea21e9f34281445a5f668df0179e",
+    "path": "source/subprojects/picoquic/picohttp/demoserver.h"
+  },
+  {
+    "sha256": "dd7c245abb802c62b4893965e43b10401ca9f48b27bef99e92ef86ab0acebcf2",
+    "path": "source/subprojects/picoquic/picohttp/h3zero_client.c"
+  },
+  {
+    "sha256": "136879c7e1b773af7f6c95a2e683891f07c9adfbeb43d038de408fa9001e77e2",
+    "path": "source/subprojects/picoquic/picohttp/h3zero_common.c"
+  },
+  {
+    "sha256": "7887385a2423192ecc995a142b01c26b3e4f51b7a0569b7b0371d2e49a78780c",
+    "path": "source/subprojects/picoquic/picohttp/h3zero_common.h"
+  },
+  {
+    "sha256": "b36dbcf21b1d32f0a7260a2beede8f069cfd788f55aeca55654b6e8531f86a80",
+    "path": "source/subprojects/picoquic/picohttp/h3zero_server.c"
+  },
+  {
+    "sha256": "4f48923aef4e0ded9749f1fddf1b70d2520728fdcf21233c76103dee512dd21a",
+    "path": "source/subprojects/picoquic/picohttp/h3zero_uri.c"
+  },
+  {
+    "sha256": "bd9a46a2c0c80deaf67a3cd3bcd410110d879921e8c6184c1c69a2adcb495491",
+    "path": "source/subprojects/picoquic/picohttp/h3zero_uri.h"
+  },
+  {
+    "sha256": "03686f8d0765aef2ee7541dc5ef891ecb367b6c211a762a62e997ba5e5e687b9",
+    "path": "source/subprojects/picoquic/picohttp/h3zero.c"
+  },
+  {
+    "sha256": "a5f623811bc81becfdffe39a3889aaf2e055454bd968ad86c35c0f1fc9a62530",
+    "path": "source/subprojects/picoquic/picohttp/h3zero.h"
+  },
+  {
+    "sha256": "bb49633afa3794e823000a3628278c50c6c99fa40ad7b92717833f50ae699573",
+    "path": "source/subprojects/picoquic/picohttp/pico_webtransport.h"
+  },
+  {
+    "sha256": "9f605dcb8604c19432480ace67661efab95d030589d1ac05579ae3fea8d5809b",
+    "path": "source/subprojects/picoquic/picohttp/picohttp.vcxproj"
+  },
+  {
+    "sha256": "9a6b9974c68a1c32200898112b5390443dd6969608860cfa77f8673e4c5e1632",
+    "path": "source/subprojects/picoquic/picohttp/picohttp.vcxproj.filters"
+  },
+  {
+    "sha256": "27730c14882f58983d9a8d5216b15067134c12a3575ece0f2b5efc71f5eec01e",
+    "path": "source/subprojects/picoquic/picohttp/quicperf.c"
+  },
+  {
+    "sha256": "4f725b8a0e3a98f23a675be44357d36e3c34cf27242928339dbfda323a343787",
+    "path": "source/subprojects/picoquic/picohttp/quicperf.h"
+  },
+  {
+    "sha256": "7a84c3b3a5214d750719055a4d900341b1eacc875fda12bca6d26763d3d1ba7b",
+    "path": "source/subprojects/picoquic/picohttp/webtransport.c"
+  },
+  {
+    "sha256": "7829720ef5b3ff32a7ee94a0d6dfa24ecf6c8cae993e9b49f99183bf1022f794",
+    "path": "source/subprojects/picoquic/picohttp/wt_baton.c"
+  },
+  {
+    "sha256": "a0754b6baddf8dab6ac3e930322629636ded22d5f0218a6545f3ca5bd20a9247",
+    "path": "source/subprojects/picoquic/picohttp/wt_baton.h"
+  },
+  {
+    "sha256": "108ccb4864e2488e62dce3eb5e68ac67544bba7ceca13e64536ba7aa1d589ee3",
+    "path": "source/subprojects/picoquic/picolog/picolog.c"
+  },
+  {
+    "sha256": "80e36b175254d7853497bde47a02ebccef8bf984a3020fe34e99faadd1a0b2a5",
+    "path": "source/subprojects/picoquic/picolog/picolog.filters"
+  },
+  {
+    "sha256": "109bfa68625a71a6a311251e8f9516f38d5e5d227a25c9d4ce6b17ea25a552e0",
+    "path": "source/subprojects/picoquic/picolog/picolog.vcxproj"
+  },
+  {
+    "sha256": "564bc12d55ba2c3a2e2973fcea5a120f6991650326816bcc275cbda31d39176e",
+    "path": "source/subprojects/picoquic/picolog/picolog.vcxproj.filters"
+  },
+  {
+    "sha256": "cfe701f7228007e63b92e210e50fa483cc608277cd2615049a2c74ba35f371b0",
+    "path": "source/subprojects/picoquic/picoquic_c2csv_t/picoquic_c2csv_t.c"
+  },
+  {
+    "sha256": "dd20f3c55a1e3301b5cf120ba8d8fea6074b9a11f85196a841e4f0281ac58fbf",
+    "path": "source/subprojects/picoquic/picoquic_c2csv_t/picoquic_c2csv_t.vcxproj"
+  },
+  {
+    "sha256": "89de8fd8120933b8675f2195f8c2345c68606589e5ad25b09b1d1facd7877733",
+    "path": "source/subprojects/picoquic/picoquic_c2csv_t/picoquic_c2csv_t.vcxproj.filters"
+  },
+  {
+    "sha256": "f0eea8529aa17732510c779b131975e07469d70e00a5af0d46592f8b8708b73b",
+    "path": "source/subprojects/picoquic/picoquic_mbedtls/ptls_mbedtls_sign.c"
+  },
+  {
+    "sha256": "0254092ef9846de4402cb5bf6d5d02071dc01bd0c174e0296ee00ec3fd237456",
+    "path": "source/subprojects/picoquic/picoquic_mbedtls/ptls_mbedtls.c"
+  },
+  {
+    "sha256": "1f4e17b6daa8a6a59e151c88e9afaaf2249d02708a4b395ea7efae37b2c8142c",
+    "path": "source/subprojects/picoquic/picoquic_mbedtls/ptls_mbedtls.h"
+  },
+  {
+    "sha256": "6f064f6d665db0d0436b743087072b22f7996b85c6c20e0a1a804212afae1e94",
+    "path": "source/subprojects/picoquic/picoquic_t/picoquic_t.c"
+  },
+  {
+    "sha256": "047e39ef58afd25160a550ddaaa5633f2f59a26df40f20dd3ca64276eac479e0",
+    "path": "source/subprojects/picoquic/picoquic_t/picoquic_t.vcxproj"
+  },
+  {
+    "sha256": "ece66566b01cd105c31a2cc836c2a43bd188b8eddc90e13a6efe109c7ccccd3b",
+    "path": "source/subprojects/picoquic/picoquic_t/picoquic_t.vcxproj.filters"
+  },
+  {
+    "sha256": "b32dd7e6c86f4495698231fd746b7fd9f7a2dd9f7e4cf6eec341c34432f8513b",
+    "path": "source/subprojects/picoquic/picoquic-config.cmake.in"
+  },
+  {
+    "sha256": "a91a1109a7e559aaec7b07ad8479ebe6a03065ac7af8ff1c7403a4f66ab55e9f",
+    "path": "source/subprojects/picoquic/picoquic.sln"
+  },
+  {
+    "sha256": "c0b39e2bde105c2c93096b5d68fe4984baf944b6d64ad6b9bcd62d6847dff65f",
+    "path": "source/subprojects/picoquic/picoquic/bbr.c"
+  },
+  {
+    "sha256": "f82b333db1b40ef4472ace114e2e19af63af87d603333657f9150d379c162c5f",
+    "path": "source/subprojects/picoquic/picoquic/bbr1.c"
+  },
+  {
+    "sha256": "2aa59c78520101edf992619164a836492c483d70ccc32feeceda85b8e9060272",
+    "path": "source/subprojects/picoquic/picoquic/bytestream.c"
+  },
+  {
+    "sha256": "607df153d3e2ad6a00ef05fe3ccfb5fce8db78fd0d4b6dc2f686165b9163ab37",
+    "path": "source/subprojects/picoquic/picoquic/bytestream.h"
+  },
+  {
+    "sha256": "6d9af076f056f900d91dc9a59a0bc26521e2c7fa24fa119f1b2d80e0c2255e82",
+    "path": "source/subprojects/picoquic/picoquic/cc_common.c"
+  },
+  {
+    "sha256": "41ceadede88fd18655ac780ae4b9f336db84dec3e684fabe918460ec39207998",
+    "path": "source/subprojects/picoquic/picoquic/cc_common.h"
+  },
+  {
+    "sha256": "e235831740b7511c54538c71f3e41802b529e5b86f43d939d37df22377ac1a62",
+    "path": "source/subprojects/picoquic/picoquic/cidset.h"
+  },
+  {
+    "sha256": "4bd293484b97af304734b5f9ab15692c4c730ec76556da29251d393b2d43ea33",
+    "path": "source/subprojects/picoquic/picoquic/config.c"
+  },
+  {
+    "sha256": "a4f429bb9d58fc64f2f9133d375832ffb65e80cc298ef1159eade2240dc432ee",
+    "path": "source/subprojects/picoquic/picoquic/cubic.c"
+  },
+  {
+    "sha256": "a8e6e3e2b8bcdbac470972622a13e5e0dde57459056294062cdfadf1e722b6c1",
+    "path": "source/subprojects/picoquic/picoquic/fastcc.c"
+  },
+  {
+    "sha256": "6ee994b7c4dcc46c2dc2a4ca2b7bd6a6d03dc335ba6c360aafd62e361a27f907",
+    "path": "source/subprojects/picoquic/picoquic/frames.c"
+  },
+  {
+    "sha256": "c99b7db5a64881d7e97a80ceb1a3fbc89ffbce3b8f216cb8da40cff9982690a1",
+    "path": "source/subprojects/picoquic/picoquic/intformat.c"
+  },
+  {
+    "sha256": "017c5e38d64dbaa43ead07d8be3bed025464ed678189dc92c251a8da4ef60867",
+    "path": "source/subprojects/picoquic/picoquic/logger.c"
+  },
+  {
+    "sha256": "e108624b9079131c2d6cbde2f6b292bf178d164a623dc55676a0ff7a516b8d4c",
+    "path": "source/subprojects/picoquic/picoquic/logwriter.c"
+  },
+  {
+    "sha256": "f3c2afc37edd2cb58188b8a57445bb53fafad7c7f5a0bf8006e30a20cd9ef367",
+    "path": "source/subprojects/picoquic/picoquic/loss_recovery.c"
+  },
+  {
+    "sha256": "64ff32ed88fd9dd39f1c81c380f8bfa6acb71537fffc4dfad3d3619e9e86ee09",
+    "path": "source/subprojects/picoquic/picoquic/mbedtls_sign.inc"
+  },
+  {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "source/subprojects/picoquic/picoquic/memory_log.c"
+  },
+  {
+    "sha256": "ec8a9d4e2be29b736fef1a2000e3861e5444fc10b7db13a59378c7cd306bc48c",
+    "path": "source/subprojects/picoquic/picoquic/newreno.c"
+  },
+  {
+    "sha256": "23b9495a16d61b0acf9ebae51f6ca35a73c79a2794280bd491360557403bde29",
+    "path": "source/subprojects/picoquic/picoquic/pacing.c"
+  },
+  {
+    "sha256": "7657d56f526041b4381b6ef7b5f9235bbed93b7aff230cbf60572e26cf447f05",
+    "path": "source/subprojects/picoquic/picoquic/packet.c"
+  },
+  {
+    "sha256": "bd1aa0f9799a80b8fa495de3bf6117d5fdc26fd23ab5fa98381fb7f2b22ee478",
+    "path": "source/subprojects/picoquic/picoquic/performance_log.c"
+  },
+  {
+    "sha256": "060f0652f8b96c7abec30704c0cd2cd59e52398cfc78845dc0f85fb3a289a104",
+    "path": "source/subprojects/picoquic/picoquic/performance_log.h"
+  },
+  {
+    "sha256": "fd813315a2408f3c4f7ce3380e87a81404947de48d46db45b50eb4c7b4fc6468",
+    "path": "source/subprojects/picoquic/picoquic/picohash.c"
+  },
+  {
+    "sha256": "8f16380f035876190b7085b0a4ee28ca48f6d921ff7680571b2df958e5f6a3b8",
+    "path": "source/subprojects/picoquic/picoquic/picohash.h"
+  },
+  {
+    "sha256": "a8783365babb4d34cb833576dd12623feef012619b3b25aeb5c3b44a994f793c",
+    "path": "source/subprojects/picoquic/picoquic/picoquic_binlog.h"
+  },
+  {
+    "sha256": "08c7d7bb142a603e840a599d3ea2906ff72795c85609de05e0865c508da030ba",
+    "path": "source/subprojects/picoquic/picoquic/picoquic_config.h"
+  },
+  {
+    "sha256": "4b78ca14f65cb73d18c6dd12067b9d3e11da5c4148c570f200b9b3af21cfb536",
+    "path": "source/subprojects/picoquic/picoquic/picoquic_crypto_provider_api.h"
+  },
+  {
+    "sha256": "7ddfaa70228f60cb907df8b4d5c9637af58643e7b867ed35fff08bcfcda75377",
+    "path": "source/subprojects/picoquic/picoquic/picoquic_internal.h"
+  },
+  {
+    "sha256": "440da05156210547dcd3a78999f3abdffc15a69f43a0bc0801496d56f0406ea5",
+    "path": "source/subprojects/picoquic/picoquic/picoquic_lb.c"
+  },
+  {
+    "sha256": "27146485152cf55869e48a6d8906f4144b63337a8d1f6db4c9c01666e7ceff6d",
+    "path": "source/subprojects/picoquic/picoquic/picoquic_lb.h"
+  },
+  {
+    "sha256": "38f96ab537b8c48d9edd0b4d27594c3a07fb909adbfae29d8470b372ebccba0a",
+    "path": "source/subprojects/picoquic/picoquic/picoquic_logger.h"
+  },
+  {
+    "sha256": "7cb273af4c1ca232b567efdfdeb24dc6e46bab449438d74a925975cca3190fea",
+    "path": "source/subprojects/picoquic/picoquic/picoquic_mbedtls.c"
+  },
+  {
+    "sha256": "6af766ec0682db0af016cc545997fb46e38b176f34eee4744b0ecf5bdf780e95",
+    "path": "source/subprojects/picoquic/picoquic/picoquic_packet_loop.h"
+  },
+  {
+    "sha256": "19036ea239e795edb89d71ada391b2978a5e6ee0616573a5b1578cd459999987",
+    "path": "source/subprojects/picoquic/picoquic/picoquic_ptls_fusion.c"
+  },
+  {
+    "sha256": "712177770f6e8aca4a7e4377ec7ef9005127775cd63d1c54f1a4ea60ca2e55c8",
+    "path": "source/subprojects/picoquic/picoquic/picoquic_ptls_minicrypto.c"
+  },
+  {
+    "sha256": "8c8600054257ce33b97d0ed843317b7d36ac8dd7408c2d8571c0d49fd480cf57",
+    "path": "source/subprojects/picoquic/picoquic/picoquic_ptls_openssl.c"
+  },
+  {
+    "sha256": "0a09f597956d2047e42c7183dc0c349d2cb448c74a14071c9b2001c5fd3715dc",
+    "path": "source/subprojects/picoquic/picoquic/picoquic_set_binlog.h"
+  },
+  {
+    "sha256": "44e4780fc2cc01225d1f348c39cb79c8fc6e7b707ee1aa0c95fbda63352b064e",
+    "path": "source/subprojects/picoquic/picoquic/picoquic_set_textlog.h"
+  },
+  {
+    "sha256": "cf755049fffb7aadf06eaf6cf479763b7c72ea804ca44bf6eeb662a39154f6f4",
+    "path": "source/subprojects/picoquic/picoquic/picoquic_unified_log.h"
+  },
+  {
+    "sha256": "6a9978a541fe64b5f9b827264d69b58b4f37b158a831b06a9aa8ad4473afb549",
+    "path": "source/subprojects/picoquic/picoquic/picoquic_utils.h"
+  },
+  {
+    "sha256": "ef73998da6545c95947a31d1761515f858edfc2ccf0df8a31396f769e026fa00",
+    "path": "source/subprojects/picoquic/picoquic/picoquic.h"
+  },
+  {
+    "sha256": "c4e100860258dc284d0f977c625842b7ac37158e10a5c6bd0924c8681cbab97d",
+    "path": "source/subprojects/picoquic/picoquic/picoquic.vcxproj"
+  },
+  {
+    "sha256": "d0000b771a2be3af6e980459a636d78835671980774018eb3eb33f81d118bec8",
+    "path": "source/subprojects/picoquic/picoquic/picoquic.vcxproj.filters"
+  },
+  {
+    "sha256": "f2b0f97d5ac5aed209d44531c4469983c9ee7a2257667a402812c4b04cb20d46",
+    "path": "source/subprojects/picoquic/picoquic/picosocks.c"
+  },
+  {
+    "sha256": "fd167c48c0ea1dc1a1bd976588c6e7f0434b151a1412dbad1a380f6f1064bae1",
+    "path": "source/subprojects/picoquic/picoquic/picosocks.h"
+  },
+  {
+    "sha256": "b08642f6418161ad48d8dc57a84127b4e2a5d2119fb30450d8d0d8959f7acd65",
+    "path": "source/subprojects/picoquic/picoquic/picosplay.c"
+  },
+  {
+    "sha256": "096c54c79659512f146cdc377b244a3b8857ffeae387b6ab3612a6d119010b57",
+    "path": "source/subprojects/picoquic/picoquic/picosplay.h"
+  },
+  {
+    "sha256": "f03ffb42c9f33156db1d3040eaa08d8454d6a99b5715f25601b564a5d6309224",
+    "path": "source/subprojects/picoquic/picoquic/port_blocking.c"
+  },
+  {
+    "sha256": "78862d62e753d290cfc4feb1e1bfc5ba396962e03b668d54e9c9e93b92c8d6aa",
+    "path": "source/subprojects/picoquic/picoquic/prague.c"
+  },
+  {
+    "sha256": "b3e55df665fa39ec993c3a7a51282b74b72d161a5702e75fd905907fbb62cd11",
+    "path": "source/subprojects/picoquic/picoquic/quicctx.c"
+  },
+  {
+    "sha256": "ead39d166f2b54e3fa364e3cf91c12b16a9b689bb8f0dbbc50a9164f9b2cec01",
+    "path": "source/subprojects/picoquic/picoquic/ReadMe.txt"
+  },
+  {
+    "sha256": "0da9f29eca2ef88190975843561a21acb0f64175bec274e2e6f5a2fe017fa420",
+    "path": "source/subprojects/picoquic/picoquic/sacks.c"
+  },
+  {
+    "sha256": "8a5822b89b742576af8848b9edfe6422bc603286602036e00182b80f6c510c42",
+    "path": "source/subprojects/picoquic/picoquic/sender.c"
+  },
+  {
+    "sha256": "619fdbc2c90846b1c6e68d4675a0b707e6e706cdbf42e41a4cd0ef279b02d2ab",
+    "path": "source/subprojects/picoquic/picoquic/sim_link.c"
+  },
+  {
+    "sha256": "682570dc02a18309eff76b74b6d3c4b556f2de9edf8fb18be5f63c26129a3526",
+    "path": "source/subprojects/picoquic/picoquic/sockloop.c"
+  },
+  {
+    "sha256": "596f415b144a1dbeeb763b85a83c0eac5670000ecf10d08a65ad2817b82b2e04",
+    "path": "source/subprojects/picoquic/picoquic/spinbit.c"
+  },
+  {
+    "sha256": "c33c52b5d76daf2e3a07a889295f65ad928c5ae5156164afff6e3a699d9c817e",
+    "path": "source/subprojects/picoquic/picoquic/ticket_store.c"
+  },
+  {
+    "sha256": "4b6c77e5d39b60fdd562868266e7005edc0054bb308543b208df6e9274a39dac",
+    "path": "source/subprojects/picoquic/picoquic/timing.c"
+  },
+  {
+    "sha256": "abc96f1154cb55d56341b899baecbddf94f771faa4de3e2219404a8709d0830b",
+    "path": "source/subprojects/picoquic/picoquic/tls_api.c"
+  },
+  {
+    "sha256": "b4cad6b39dcfc2f71c8024e09ed467c299de1df0cca5da22abd3f4742586fad7",
+    "path": "source/subprojects/picoquic/picoquic/tls_api.h"
+  },
+  {
+    "sha256": "2abf27c76c619cc8b26a2b9431ff60f400ac11c1e69717bc21a3f258e983c4e9",
+    "path": "source/subprojects/picoquic/picoquic/token_store.c"
+  },
+  {
+    "sha256": "f3af854c874348219536e00c8ca46bc5988ccbdc55e987c171b3565d68749b54",
+    "path": "source/subprojects/picoquic/picoquic/transport.c"
+  },
+  {
+    "sha256": "091c6a9fc8e9eae4db5a6657ff063c2eadb8d250ecb801066126a8da1614135e",
+    "path": "source/subprojects/picoquic/picoquic/unified_log.c"
+  },
+  {
+    "sha256": "6c2949424b89b2e79b5d8b54bfd6a6229f43d95d36d63217d4099770b04c1380",
+    "path": "source/subprojects/picoquic/picoquic/util.c"
+  },
+  {
+    "sha256": "a77bbecdc125b48185f2bfc56867cf62349d3715cc3c97e42846b16eadc05bea",
+    "path": "source/subprojects/picoquic/picoquic/wincompat.h"
+  },
+  {
+    "sha256": "22832e56eb7d79f132b4d1cecc7e2ef19a7ebb0515c68ab7bc6d2a0a35d401b3",
+    "path": "source/subprojects/picoquic/picoquic/winsockloop.c"
+  },
+  {
+    "sha256": "eddde8a7dab13c2fbf73c9f7e6e89b3790e0a613cb78f9c88cc95fbc0450fc8e",
+    "path": "source/subprojects/picoquic/picoquicfirst/getopt.c"
+  },
+  {
+    "sha256": "9251cc03dd10e4f9bb745c9796f999a6d7f6d04608bd0d2018fb998cfb4739c1",
+    "path": "source/subprojects/picoquic/picoquicfirst/getopt.h"
+  },
+  {
+    "sha256": "aa390971a66b534f32533c2287378a27d6de2b03c5f8935b0f63e6c7b728b814",
+    "path": "source/subprojects/picoquic/picoquicfirst/picoquicdemo.c"
+  },
+  {
+    "sha256": "8b7483a347f6cbbeb1f790fa062f112794b4bf952ce3a1cbd7c56c9a33ee353c",
+    "path": "source/subprojects/picoquic/picoquicfirst/picoquicfirst.vcxproj"
+  },
+  {
+    "sha256": "8214e23750267f4ea5a117d1052a1e4ea1525dd0a68f230bda90d9f4e5b0e697",
+    "path": "source/subprojects/picoquic/picoquicfirst/picoquicfirst.vcxproj.filters"
+  },
+  {
+    "sha256": "ea19a1d0102c001516fef0273b62517427c67a78d5b3895163b8b144eef61205",
+    "path": "source/subprojects/picoquic/picoquictest/ack_frequency_test.c"
+  },
+  {
+    "sha256": "adfc2918926051fa6b784b61c56dafab1f54ca130b8587d9654c3ba3b4fb687c",
+    "path": "source/subprojects/picoquic/picoquictest/ack_of_ack_test.c"
+  },
+  {
+    "sha256": "b942e1d514749aefce2c30315fd15583c9c7f73dc37920e5cc7aebdf00f117eb",
+    "path": "source/subprojects/picoquic/picoquictest/app_limited.c"
+  },
+  {
+    "sha256": "83e55d972c60b9d29d68c405c8adcb5568bc0f0c96ccd5cdaa91741a9e47cfee",
+    "path": "source/subprojects/picoquic/picoquictest/app_msg_overflow_ref.qlog"
+  },
+  {
+    "sha256": "78f375fb8ba213f3091a4d15b02d464c060836a016414b786229d0e2cee915b3",
+    "path": "source/subprojects/picoquic/picoquictest/binlog_ref.log"
+  },
+  {
+    "sha256": "0e15f6786f378c5409e74e71869ac146e8e098926b9065b995420d2136423480",
+    "path": "source/subprojects/picoquic/picoquictest/binlog_ref.qlog"
+  },
+  {
+    "sha256": "47f4904d0c62087229512f6f1a1ec76c32e1abd9d7378ea50918451e302065e2",
+    "path": "source/subprojects/picoquic/picoquictest/bytestream_test.c"
+  },
+  {
+    "sha256": "aee7c627725755c9d37fa19319950927d58c0bc4a90b4f9048cff19d667e3422",
+    "path": "source/subprojects/picoquic/picoquictest/cert_verify_test.c"
+  },
+  {
+    "sha256": "3bf80077af64126838572e4acb9900b7268d3274080f7b835325af8dec530292",
+    "path": "source/subprojects/picoquic/picoquictest/cleartext_aead_test.c"
+  },
+  {
+    "sha256": "851902effe33f00f62359b9738fe1612e271e8b411e3b59a4741b2698022761c",
+    "path": "source/subprojects/picoquic/picoquictest/cnx_creation_test.c"
+  },
+  {
+    "sha256": "984dfdea2668f450b3ab4e07bf3bd561ab1622ad40c8d185ae56e31e6d89004d",
+    "path": "source/subprojects/picoquic/picoquictest/cnxstress.c"
+  },
+  {
+    "sha256": "23583123247b22362c0206023e35666a27c075421c5ad5f2f49e709dd08860db",
+    "path": "source/subprojects/picoquic/picoquictest/code_version_test.c"
+  },
+  {
+    "sha256": "73e7fe5087c0460f287c1ad4a3f30e9f722b8b9b92d7bb0cd9fc5e156e63337e",
+    "path": "source/subprojects/picoquic/picoquictest/config_test.c"
+  },
+  {
+    "sha256": "081d531817434dc2d8db4bcb9848bf2b3b88946dd0fa7b0ef825bda18baa1b6c",
+    "path": "source/subprojects/picoquic/picoquictest/config_usage_ref.txt"
+  },
+  {
+    "sha256": "93436391fabaf432356b04752e50bf3e2683e107b424b59e488567844f610244",
+    "path": "source/subprojects/picoquic/picoquictest/congestion_test.c"
+  },
+  {
+    "sha256": "72295133a665a60132e815428a35470d91335aa0535314f6b676672b4589284f",
+    "path": "source/subprojects/picoquic/picoquictest/cplusplus.cpp"
+  },
+  {
+    "sha256": "8c83a114ae090880ff7acf63fb135af7313d95aff3894411058ce3905fe23c7c",
+    "path": "source/subprojects/picoquic/picoquictest/cpu_limited.c"
+  },
+  {
+    "sha256": "eba11ca5ffe7dd18ae3cb0f963d8f6ddf6cdd310221156ff54e0d814cf4081d0",
+    "path": "source/subprojects/picoquic/picoquictest/datagram_tests.c"
+  },
+  {
+    "sha256": "f440141cb60fc9d73ab4ed571e428b375321c7aac01b68bc528a3fef803865a4",
+    "path": "source/subprojects/picoquic/picoquictest/delay_tolerant_test.c"
+  },
+  {
+    "sha256": "744d8c58c8595bec87d2b22a5ba6180b15db2dae53eeb3e955637bc64f55143e",
+    "path": "source/subprojects/picoquic/picoquictest/edge_cases.c"
+  },
+  {
+    "sha256": "1525089c82d1536d6c6a92c5ca6b981c9a96d07b95d5a85b6ad13886a0d5bcfc",
+    "path": "source/subprojects/picoquic/picoquictest/file_test_ref.txt"
+  },
+  {
+    "sha256": "9348373aaa2338cfd4e7d8e248c7db422c857c71bf73e14f1fcef4294c1259a8",
+    "path": "source/subprojects/picoquic/picoquictest/getter_test.c"
+  },
+  {
+    "sha256": "d13e3dc2391f5a4e45bfdfc313d4b015749ed1e6c9c59fe73a051e7d1d46a47b",
+    "path": "source/subprojects/picoquic/picoquictest/h3zero_stream_test.c"
+  },
+  {
+    "sha256": "649178ddb4bb6c68ddd096343f8cfa1e8d902882267ddac8cd26d8ab2247e0e0",
+    "path": "source/subprojects/picoquic/picoquictest/h3zero_uri_test.c"
+  },
+  {
+    "sha256": "f576feaf3f8c0b033d9f9e5b5f4e5134f8d13b91f9e55fb1671e8f214d1ff285",
+    "path": "source/subprojects/picoquic/picoquictest/h3zerotest.c"
+  },
+  {
+    "sha256": "3780f4d66a9b92384b072901b25433398542f131f1529f56651eac442fc52c89",
+    "path": "source/subprojects/picoquic/picoquictest/hashtest.c"
+  },
+  {
+    "sha256": "235096179267fdb0b121557bf91c2912f5844370ce7ae9fa6c62ba41e3f1d67d",
+    "path": "source/subprojects/picoquic/picoquictest/high_latency_test.c"
+  },
+  {
+    "sha256": "a9821ae254bb0723e44bab7d66e40e8217de17722f19e09c53ca3391971e4e12",
+    "path": "source/subprojects/picoquic/picoquictest/intformattest.c"
+  },
+  {
+    "sha256": "71d978f1de4c351ec60e0474485ae764569ec76447289ec7c90551bd4fa0f677",
+    "path": "source/subprojects/picoquic/picoquictest/l4s_test.c"
+  },
+  {
+    "sha256": "22cc18439af6484f63be4e25695e9e80e50c20daf9797f94755a924d76f60768",
+    "path": "source/subprojects/picoquic/picoquictest/log_test_ref.txt"
+  },
+  {
+    "sha256": "c5dff504398bee8409d5137bbd06e3310db85f65725353fa3270d22568949581",
+    "path": "source/subprojects/picoquic/picoquictest/log_tp_test_ref.txt"
+  },
+  {
+    "sha256": "ddca33b8271a3ad79f9905b0c0435de67173c12f4d077bfb304acbc9cd60f9cc",
+    "path": "source/subprojects/picoquic/picoquictest/mbedtls_test.c"
+  },
+  {
+    "sha256": "cd4c5fde8889415884a54286601ba5a88cc32e06cfa5be526f18540909676559",
+    "path": "source/subprojects/picoquic/picoquictest/mediatest.c"
+  },
+  {
+    "sha256": "3e75aea83e6f9193a1b9545e6d00313cb9845221ca4669104cd015749c5c8da6",
+    "path": "source/subprojects/picoquic/picoquictest/minicrypto_test.c"
+  },
+  {
+    "sha256": "e6a59dd38997eed61f50797444dab815139ef5e14c2b0ff9e8916a650f86fbb8",
+    "path": "source/subprojects/picoquic/picoquictest/multipath_qlog_ref.txt"
+  },
+  {
+    "sha256": "4f3874f0c359aad092326503db86ed7ad788b0744a48f0df60285ed89472dcee",
+    "path": "source/subprojects/picoquic/picoquictest/multipath_test.c"
+  },
+  {
+    "sha256": "447fa4500cbcddd5d2c5b5b3c49d32d81f474101160079a766ee5447802a0b5a",
+    "path": "source/subprojects/picoquic/picoquictest/netperf_test.c"
+  },
+  {
+    "sha256": "b531217355f8dc90aca3860156d826e6845bf7b6f15aa1f8770ce383825caa79",
+    "path": "source/subprojects/picoquic/picoquictest/openssl_test.c"
+  },
+  {
+    "sha256": "f5e113fb147424b1cd7d6334dfeca9cac0597d56788984ede1bd70a54cab3341",
+    "path": "source/subprojects/picoquic/picoquictest/p2p_test.c"
+  },
+  {
+    "sha256": "ef727b4d8038267e0cef17880bcc2cb4c3e1c20ea070a537ef223a14c1347877",
+    "path": "source/subprojects/picoquic/picoquictest/pacing_rate_ref.txt"
+  },
+  {
+    "sha256": "5d75d6f9c2fe09cc27efdff185478070edbab8c6d96dfffb4efa1724225f6099",
+    "path": "source/subprojects/picoquic/picoquictest/pacing_test.c"
+  },
+  {
+    "sha256": "36bd1f6d38edf64535be1ceae8ab5e4fbf5a8a7a4507265526a68bde409d234c",
+    "path": "source/subprojects/picoquic/picoquictest/packet_trace_ref.txt"
+  },
+  {
+    "sha256": "07cce9b047bdaf20e28807077a37e5d4b6364203419bcaf7b383a2920ba89621",
+    "path": "source/subprojects/picoquic/picoquictest/parseheadertest.c"
+  },
+  {
+    "sha256": "fbb2e710b4845470df1d2fb42cb6a92a3510a27d882e64d8e8139ad59aef513c",
+    "path": "source/subprojects/picoquic/picoquictest/path_callback_ref.txt"
+  },
+  {
+    "sha256": "1db81f54fbb0980a489c97f3a86b0bc06bba61a86aa9ea590c24de0882973276",
+    "path": "source/subprojects/picoquic/picoquictest/path_quality_ref.txt"
+  },
+  {
+    "sha256": "5d958149f7c9423696aec97484c4aa6ee11f3d5fa4ea86f6bd2db2d7a2d2c81b",
+    "path": "source/subprojects/picoquic/picoquictest/path_quality_server_ref.txt"
+  },
+  {
+    "sha256": "2158cdb396a396b77312248d88ac440f190ef79a97b2e0761588e6a8490a316b",
+    "path": "source/subprojects/picoquic/picoquictest/perf_trace_client_ref.txt"
+  },
+  {
+    "sha256": "d0285dc2a18b19b6b4a661a8da597b9f8b24676c0ee938da405a1cf2ef0f4bea",
+    "path": "source/subprojects/picoquic/picoquictest/perf_trace_server_ref.txt"
+  },
+  {
+    "sha256": "e2ea58649684c30adc29760f1d687d2b42efddebab0f3276d85fb3fdb8c92ea1",
+    "path": "source/subprojects/picoquic/picoquictest/picoquic_lb_test.c"
+  },
+  {
+    "sha256": "004c347a6f5ce9b5e435b3d41791d516398cd9850e765c97dc923c413f9ef8fd",
+    "path": "source/subprojects/picoquic/picoquictest/picoquictest_internal.h"
+  },
+  {
+    "sha256": "3cdfb29869621591ba30388411ffa17c46c88c06af5a66a4c692e6a60ca19f60",
+    "path": "source/subprojects/picoquic/picoquictest/picoquictest.h"
+  },
+  {
+    "sha256": "002033b021b31784e32cee643d50fd041ad5d404abfb5b990d8432ef90ffd5a5",
+    "path": "source/subprojects/picoquic/picoquictest/picoquictest.vcxproj"
+  },
+  {
+    "sha256": "3f625e84e8f449792289a1c7acab66c3da734b97d2a18cda1272e4c25d6dab79",
+    "path": "source/subprojects/picoquic/picoquictest/picoquictest.vcxproj.filters"
+  },
+  {
+    "sha256": "1f5f44d768d18a67f3b79bf2e452741b9984e56b0eeba099b658dc7fb391fd27",
+    "path": "source/subprojects/picoquic/picoquictest/pn2pn64test.c"
+  },
+  {
+    "sha256": "f9a6179aff01481a3b4bd42aa5ad793efc5b4257fb034aea3b32d1afff794eff",
+    "path": "source/subprojects/picoquic/picoquictest/qinqtest.c"
+  },
+  {
+    "sha256": "dbcee1171d2ce01561dca7f9d1ecd968d35ad45f6dd874ff3df61b11645b423b",
+    "path": "source/subprojects/picoquic/picoquictest/qlog_trace_ecn_ref.txt"
+  },
+  {
+    "sha256": "33838cdf932d2f381d61bb43d57f9753763bb7ccde0a2e371d867f5c4372319b",
+    "path": "source/subprojects/picoquic/picoquictest/qlog_trace_ref.txt"
+  },
+  {
+    "sha256": "ec1c1699835005707348a296b480f106e8c568a80368f18c710677d4c5cff48c",
+    "path": "source/subprojects/picoquic/picoquictest/quality_update_ref.txt"
+  },
+  {
+    "sha256": "2de2fac6447648399b411cb98538e72c69cecad94bbed0474c97a2dd7809054a",
+    "path": "source/subprojects/picoquic/picoquictest/quic_tester.c"
+  },
+  {
+    "sha256": "9c9b31bff346a5f6ccc260f5d6cd6f5bd5df633705ac7ad468fc4e65b37bad87",
+    "path": "source/subprojects/picoquic/picoquictest/quicperf_test.c"
+  },
+  {
+    "sha256": "28e556dafaceb9929a5c20985973fb44a6e4bc2495774a27893967ad49df891b",
+    "path": "source/subprojects/picoquic/picoquictest/ReadMe.txt"
+  },
+  {
+    "sha256": "f6b064d2274bf10c5cf0a14ac79f4f93da3b074f3fb91b79dda407e329a6f9a8",
+    "path": "source/subprojects/picoquic/picoquictest/sacktest.c"
+  },
+  {
+    "sha256": "d96d5f05f24a2f6e961c53ef24190d4d90ab081948d53ccb9c68fd246361c35e",
+    "path": "source/subprojects/picoquic/picoquictest/satellite_test.c"
+  },
+  {
+    "sha256": "d9bcef80eb2dfe0d3bb79744a3e401b27810d8879f7e8590a01bec95cb2488fd",
+    "path": "source/subprojects/picoquic/picoquictest/skip_frame_test.c"
+  },
+  {
+    "sha256": "5681b23664247f683e06681b6b75288f0af8a9135a77119b87c9d51d70717332",
+    "path": "source/subprojects/picoquic/picoquictest/socket_test.c"
+  },
+  {
+    "sha256": "6f7fb1f946ce90dff96511382172ebd0e071e67d49e591a9286f6ac59c0bac9d",
+    "path": "source/subprojects/picoquic/picoquictest/sockloop_test.c"
+  },
+  {
+    "sha256": "bc53396ca048eae5286c3f5a0e69d6729bcc6cb47e06f1d47473cfb3dea34326",
+    "path": "source/subprojects/picoquic/picoquictest/spinbit_test.c"
+  },
+  {
+    "sha256": "9c447a905d64b07fd5c2b1e4fe508120fc3eeacc356923ee972330b5810f1820",
+    "path": "source/subprojects/picoquic/picoquictest/splay_test.c"
+  },
+  {
+    "sha256": "dc359e0dc8f37fe6c5d41a5329001da0d37f08a04a51a1fbeac07b81cd4dbe66",
+    "path": "source/subprojects/picoquic/picoquictest/stream0_frame_test.c"
+  },
+  {
+    "sha256": "d6bd059d38f8803603c31b34d55603a72b4e59e0257b56bc0eaf864191fff590",
+    "path": "source/subprojects/picoquic/picoquictest/stresstest.c"
+  },
+  {
+    "sha256": "7e22d81e2cc43b505d421ff325ecfb9fe84d5e67d896788647dca78fed9cafcd",
+    "path": "source/subprojects/picoquic/picoquictest/ticket_store_test.c"
+  },
+  {
+    "sha256": "c1961b0f705db5ba39e8d1b115ddd8a28fb0ba8e27cc9f9dc6481d16a9763c0b",
+    "path": "source/subprojects/picoquic/picoquictest/tls_api_test.c"
+  },
+  {
+    "sha256": "f469e37a96192949db44a2b0bcabee3db2975b53ff64164849153053217cb709",
+    "path": "source/subprojects/picoquic/picoquictest/transport_param_test.c"
+  },
+  {
+    "sha256": "32a3641dce1d67957f45a04b3f2a61a76a2db606baacb4e3912dbee83afc7c55",
+    "path": "source/subprojects/picoquic/picoquictest/util_test.c"
+  },
+  {
+    "sha256": "6307da8301612cefd3662b257857ea92edf96a5a96f9633d360f694b83222518",
+    "path": "source/subprojects/picoquic/picoquictest/warptest.c"
+  },
+  {
+    "sha256": "690a6d4a4b54d65eb47d01f916bf90117c1da7ac491f9290cebdb37c17eda588",
+    "path": "source/subprojects/picoquic/picoquictest/webtransport_test.c"
+  },
+  {
+    "sha256": "4a0ebc85fbf7568db4ab50aa24207861177d9e9ed9c7ecfb3a75a5990c800501",
+    "path": "source/subprojects/picoquic/picoquictest/wifitest.c"
+  },
+  {
+    "sha256": "6b39bfbb840866844c66b405ea3a222e4195e9b83315b3269e53439d220b2f9f",
+    "path": "source/subprojects/picoquic/quicwind/quicwind_proc.c"
+  },
+  {
+    "sha256": "79f97164bcfdf0bfa58bb89d2c53fa789161ed42c6610d31e22c05194d54cefc",
+    "path": "source/subprojects/picoquic/quicwind/quicwind.aps"
+  },
+  {
+    "sha256": "7a14cf8fa5e91f5995bb7dd3fd99f553307a96ec0368f24a87e6c679206caa8d",
+    "path": "source/subprojects/picoquic/quicwind/quicwind.cpp"
+  },
+  {
+    "sha256": "d52ebdacedeb22ed41d2629e26648569844ec0731131435f7a630a477711cf5d",
+    "path": "source/subprojects/picoquic/quicwind/quicwind.h"
+  },
+  {
+    "sha256": "fdc1aa703c5110e0c3f362678d2dafef7413f77e4f25d2e00e128d36b0982ce3",
+    "path": "source/subprojects/picoquic/quicwind/quicwind.ico"
+  },
+  {
+    "sha256": "6773043206132bce0d0dbd7fccfb8a677070d3314592fb298ffcdf70d835f698",
+    "path": "source/subprojects/picoquic/quicwind/quicwind.rc"
+  },
+  {
+    "sha256": "c29ee957988e9aca046cf569961c85ace3d83cb175ee4d234c503f626d695deb",
+    "path": "source/subprojects/picoquic/quicwind/quicwind.vcxproj"
+  },
+  {
+    "sha256": "9c213a21e2499450a892d05704c604eda28314cccdd1613ea95d9f208de24053",
+    "path": "source/subprojects/picoquic/quicwind/quicwind.vcxproj.filters"
+  },
+  {
+    "sha256": "efe4ea8cc4cb3fcefa3db13ed600a6592a6caaaa446685d1ce7b07b25123feb0",
+    "path": "source/subprojects/picoquic/quicwind/Resource.h"
+  },
+  {
+    "sha256": "fdc1aa703c5110e0c3f362678d2dafef7413f77e4f25d2e00e128d36b0982ce3",
+    "path": "source/subprojects/picoquic/quicwind/small.ico"
+  },
+  {
+    "sha256": "a2761fdbd4c8925741ddea678ee8398de930207e447666bc6a76d5f72684c04f",
+    "path": "source/subprojects/picoquic/quicwind/targetver.h"
+  },
+  {
+    "sha256": "4bf21d5fe5a5124e661fa47941d22276615861c8f028c3d7091e0b9dab4698f0",
+    "path": "source/subprojects/picoquic/README.md"
+  },
+  {
+    "sha256": "8f2a11ee35ea4643ca120fe8f3f796d5cea74a135cc2b522c5c88e12b9d72507",
+    "path": "source/subprojects/picoquic/sample/picoquic_sample.h"
+  },
+  {
+    "sha256": "536a96644ce7c1f81b278c63ce3eed64f72ae7f48fb18d506dfe33bfbf44c2f2",
+    "path": "source/subprojects/picoquic/sample/README.md"
+  },
+  {
+    "sha256": "ea90cc2b87ead99102df9f084eaf58879b79d9da9aef89de4accd5b116af9342",
+    "path": "source/subprojects/picoquic/sample/sample_background.c"
+  },
+  {
+    "sha256": "c63459c22840e72a8ebc509b4cc62ef530f7ea22bc068282f26c203995a39706",
+    "path": "source/subprojects/picoquic/sample/sample_client.c"
+  },
+  {
+    "sha256": "dcb81e8a1a24dd2b2e9c852661dcdb835021ae68167f85f0dfecb3572cb0f066",
+    "path": "source/subprojects/picoquic/sample/sample_server.c"
+  },
+  {
+    "sha256": "8feb0fbde483533e49052651c719aa73c5fbf45be5d7f5808986a9664e19a348",
+    "path": "source/subprojects/picoquic/sample/sample.c"
+  },
+  {
+    "sha256": "d5e346dc2b7ee1b98bdf8cacfb1b3a7b81b503a0c2af516688a1d3b26fbfeccf",
+    "path": "source/subprojects/picoquic/sample/sample.vcxproj"
+  },
+  {
+    "sha256": "51f599b58b88ff3c922ab02a702515f6645aba34ade90f1a6d340c451098f5f5",
+    "path": "source/subprojects/picoquic/sample/sample.vcxproj.filters"
+  },
+  {
+    "sha256": "3b0aa3b760ba2af1f8a90959a93ced7eea94a62fd79993d23e8e444da4e6162a",
+    "path": "source/subprojects/picoquic/scripts/coverage.sh"
+  },
+  {
+    "sha256": "5a5276968a194075e24dc5d48262605a0c53e198df98d01e3f5beaaaf73cf613",
+    "path": "source/subprojects/picoquic/scripts/getlog.pl"
+  },
+  {
+    "sha256": "b4bff2c21c899457f228b0b466f156469ce177d385cd9b0a0a25c0bf9ddc241c",
+    "path": "source/subprojects/picoquic/SECURITY.md"
+  },
+  {
+    "sha256": "105dcbf9fe2a9ac7fce7580efb8aadef2b5c5c1818a5f895905b3d3eff8e4ac5",
+    "path": "source/subprojects/picoquic/thread_tester/thread_test.c"
+  },
+  {
+    "sha256": "4771e1dfe0d8121eaffbf33fb5f829fb72267e0f048c56f634b1ca39c8e2f2bd",
+    "path": "source/subprojects/picoquic/thread_tester/thread_tester.vcxproj"
+  },
+  {
+    "sha256": "46ecec61a46978bff004ef3a13096b244516d2c99c7646ed1ff6d4f88d676152",
+    "path": "source/subprojects/picoquic/thread_tester/thread_tester.vcxproj.filters"
+  },
+  {
+    "sha256": "a2761fdbd4c8925741ddea678ee8398de930207e447666bc6a76d5f72684c04f",
+    "path": "source/subprojects/picoquic/UnitTest1/targetver.h"
+  },
+  {
+    "sha256": "af3a44db56ccbc74c13810a1c0e6284b5d4449663fe42d623d6a0b98932fda79",
+    "path": "source/subprojects/picoquic/UnitTest1/unittest1.cpp"
+  },
+  {
+    "sha256": "a1f269c9cde15a917015d3b1fb77534978adc69623da5fc6948521c8c6ff004e",
+    "path": "source/subprojects/picoquic/UnitTest1/UnitTest1.vcxproj"
+  },
+  {
+    "sha256": "6c8f30017a3e67303265ce08ec47f4036fc5bb98f658af8dda3aa24c584ee6e8",
+    "path": "source/subprojects/picoquic/UnitTest1/UnitTest1.vcxproj.filters"
+  },
+  {
+    "sha256": "15cc10527dc2224569ee9a455b7f36b71993de535795c1b5e953b5726eca5496",
+    "path": "source/subprojects/picoquic/UpgradeLog.htm"
+  },
+  {
+    "sha256": "b12f1766fdca23717cc6f5526a0f36ef8656c581bcd53773eea9df752554c09d",
+    "path": "source/subprojects/picoquic/valgrind_out.txt"
+  }
+]

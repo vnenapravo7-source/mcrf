@@ -1,0 +1,117 @@
+{
+  "schema": 1,
+  "updated": "2026-10-23",
+  "nextReleaseBatch": "next-release-2026-10-23.json",
+  "p3p4Batch": "p3-p4-2026-10-23.json",
+  "p2Release06": {
+    "state": "PUBLISHED_NORMAL_RELEASE_VERIFIED",
+    "versionCode": 10043,
+    "tag": "android-v0.6",
+    "releaseId": 421206092,
+    "sourceCommit": "9a9bc523d681403150802fefa60900171279c312",
+    "receipt": "D:/MCRF/Builds/Android/release06-publication-20261023/release-publication-receipt.json",
+    "catalogueReceipt": "D:/MCRF/Builds/Android/release06-publication-20261023/catalogue-publication-receipt.json",
+    "cleanupReceipt": "D:/MCRF/Builds/Android/release06-publication-20261023/preview-engine-cleanup-receipt.json",
+    "phoneReceipt": "outputs/android-release06-phone-final.json",
+    "windowsLatestPreserved": "v1.1",
+    "p3Csqtt25Architectures": "armeabi-v7a and x86_64 deferred by direct human; keep actual arm64 module"
+  },
+  "readFirst": "../../../HANDOFF.md",
+  "documentation": {
+    "latestReadmeCommit": "d51d884b61308f0386e862f6929f786ec64e85e9",
+    "latestReadmeScope": "Four human-supplied GIFs adjacent in README/guide; credential editor excluded; arm64 module sizes/lightweightSteer; one36row roadmap with newP0#47 and P4#48MasterDnsVPN, genericFinalrow removed. Human7fdb prose preserved. Seven docs/media files only; no release/app/P2 publication.",
+    "suppliedVideoReceipt": "D:/MCRF/Builds/Android/human-videos-20261020/publication.json",
+    "commit": "98003e64bf79f570925accffc86c7b41404807d0",
+    "scope": "31 docs/media files; four real GIFs,22 screenshots; plain priority-grouped roadmap and engine attribution. No code/P2 build/install/release assets.",
+    "phoneMediaReceipt": "D:/MCRF/Builds/Android/real-gallery-08bf329721364695b5237b714761aef0/receipt.json",
+    "phoneMediaState": "Finished unchanged: protected encrypted files and ALL preferences equal; no VPN started/installed, MCRF home restored, job null.",
+    "releaseNotesReceipt": "D:/MCRF/Builds/Android/release-notes-49aee27f02a449468a6076afc1de2ce8/receipt.json",
+    "futureVersion": "Next0.6,then0.7/0.8; microfix0.6.1; versionCode rises. Current10021 unchanged. Before first0.6 preserve old3-part update parsing plus migrate exact module channel."
+  },
+  "authority": "21Oct latest human: continue NEW expanded P2 tasks51-56, all source changes in ONE package before common build/affected checks, never repeat unchanged accepted checks. New source ledger p2-expansion-2026-10-21.json; all readiness FALSE. Prior P2 items2/6/7/11/20 accepted in common0dce remain CLOSED; consumed old phone/provider/account grants do not reopen. No publication. Solo/externalnative; automation PAUSED.",
+  "constraints": "DME forbidden; OpenFlux engine excluded; external native only; no consent bypass/user VPN stop/profile reset; ordinary Samsung wake/unlock ONLY under latest explicit human authorization; no agents/new chats.",
+  "release": {
+    "versionCode": 10021,
+    "tag": "android-v0.1.0-preview.20261020.1",
+    "bytes": 9737764,
+    "sha256": "80049322b7b450107fd42a771d6766bf104dbe6faebc5c269ca22ae544fc2074",
+    "receipt": "D:/MCRF/Builds/Android/preview21-6f19501d734e48e19f543bda2b5f1265/publication-receipt.json",
+    "releaseId": 418377553,
+    "oldReleasePreserved": 417520114,
+    "oldReleasesPreserved": [
+      417520114,
+      416790557
+    ],
+    "sourceCommit": "66a9ff8e62c7abbae2aaabcd4b36d6fae47b2b23",
+    "previewEngineTag": "android-v0.1.0-preview.20261020.1",
+    "scope": "Immutable accepted P1 plus release21 version and exact-preview Steer6/WG3 offers; unfinished P2 excluded. Real own-server GIF and README/roadmap/source1425 files published. New21 not installed on phone.",
+    "baseNative": 0,
+    "engineTag": "engines-2026-10-13-1",
+    "republish": false
+  },
+  "jobs": {
+    "build": null,
+    "device": null,
+    "emulator": null,
+    "hostTest": null
+  },
+  "activeBatch": "p2-expansion-2026-10-21.json",
+  "sourceNext": "NEW tasks51-56 expanded P2 SOURCE FIRST, all readiness FALSE; see p2-expansion-2026-10-21.json/work_state mcrf-rule-pools-bs-interval. Old P2 accepted below remains closed. Do not invoke old producers/grants or repeat unchanged suites. No tests/build/phone/publication in new package yet.",
+  "p2CurrentAcceptance": "p2-runtime-acceptance-2026-10-21.json",
+  "p2InstalledCommon": "D:/MCRF/Projects/MCRF/work/android-integration-0dcead46dd0e473fa46510ffe38f6dea",
+  "p049Current": "DEFERRED by latest human: TESTS ONLY AFTER P2 DONE. Common14758/48e4e4d64edf43adb525a1bb1490f310 retired at closed source gate after active package compiler finished BUILD SUCCESSFUL. Signing/inventory checks NOT run; raw failed receipt retained. Complete native/owned fixture builds retained, all jobs NULL. No expanded install/phone actions; installed10024/Steer11/Xray5/TLS6 remains and savedSteer failure unaccepted. Resume P2 SOURCE ONLY, no compiler/parser/tests/build/device until WHOLE P2 source ready. Automation PAUSED.",
+  "preservedP2Batch": "p2-progress-2026-10-20.json: all readiness/build/runtime gates FALSE, unfinished changes retained",
+  "connectionTiming": "connection-timing-2026-10-20.json: supplied clips13s/16s, duplicated preparation, no connection behavior changes",
+  "waiterClockSourceOnly": "csqtt-waiter-clock-2026-10-17.json:Rust9/QWDTT11/WDTT3 host PASS; modules undelivered.",
+  "autoPoolSourceOnly": "auto-selection-admission-2026-10-17.json:10 affected JVM PASS; undelivered.",
+  "probeReplySourceOnly": "probe-reply-lifecycle-2026-10-17.json:6 JVM PASS; undelivered.",
+  "engineOfferSourceOnly": "engine-offer-revalidation-2026-10-17.json:6 JVM PASS; undelivered.",
+  "subscriptionSourceOnly": "subscription-job-lifecycle-2026-10-17.json:5 lifecycle+6 HTTP JVM PASS, separate scopes; undelivered.",
+  "swgOutputSourceOnly": "swg-management-output-2026-10-17.json:6 JVM PASS; undelivered.",
+  "domainGatePrepared": "P0:69344 four corrected DNS/TUN modes66 PASS +63 minimalism combinations; overlay closed. p0-progress-2026-10-17.json.",
+  "explicitDnsSourceOnly": {
+    "details": "dns-explicit-list-2026-10-17.json",
+    "tests": 23,
+    "delivered": false
+  },
+  "phoneGuard": "Final P1 supported owned acceptance11b3e3b2 PASS31gates; current common17fb/8ae installeda542ef10.20protectedfiles/15modules exact, both temporary helpers removed, idle/no testVPN and MCRF restored. No historical preference rollback. Grant completed/device gates closed; no further phone action/publication without applicable fresh authority. Secrets neverpersist.",
+  "dnsSourceOnly": "dns-route-projection-2026-10-17.json:71JVM; explicit-list23 separately. No phone delivery.",
+  "newMainApkException": "USED fresh human item40 grant:10010 f67f9ce0/9618788B installed+scopedchecked. Separate fresh one-shot CS temporarymanual grant USED/restored. No reuse/publication/module replacement. P1 excluded.",
+  "phone": {
+    "installedSnapshot": "android-integration-8ae976348b7848b2afa72a66f2d642bd",
+    "lease": "device-lease.json",
+    "lastInstall": "work/ports-test-2026-10-14/p1-install-a542ef10d7ab417987d8d6feba214866/receipt.json",
+    "lastHttps": "work/ports-test-2026-10-14/csqtt-installed-https-113bb21edde9460dbb4c4c6c6707bd66/r10-unforced-https.json",
+    "scope": "Supported P1 Steer rules/managed DNS/auth loopback proxy/original sharedUID/IPv6 and WG/AWG3/3.1 atomicIP/BLOCK/managed DNS, actual owned Samsung and independent peer joins incl TLS positive/trust/hostname refusals/permitted-after/STOP.20protectedfiles/15modules exact, helpers removed. Not universal/Vivo/provider/LAN/wholeproject acceptance; no publication."
+  },
+  "directCidrTun": {
+    "details": "direct-system-tun-fixture-2026-10-17.json",
+    "passed": 54,
+    "positive": "work/ports-test-2026-10-14/direct-system-tun-c8e358ee0c5048dbb036cc109848db0d/receipt.json",
+    "negative": "work/ports-test-2026-10-14/direct-system-tun-040ddeb17a334f2a87d572e9c6675faa/receipt.json",
+    "limits": "Owned Android34/x86_64 IPv4 CIDR only, not domain DNS/IPv6/Internet/Vivo/provider CAPTCHA."
+  },
+  "sourceOnly": {
+    "logs": {
+      "snapshot": "2e768634ae6241e5b5caad22b80f6ba0",
+      "tests": 24,
+      "details": "logs-stop-inventory-2026-10-17.json"
+    },
+    "manualCaptchaBackpressure": {
+      "snapshot": "dcaf493b6b5e4e858b621928ac189491",
+      "tests": 22,
+      "details": "captcha-manual-backpressure-2026-10-17.json"
+    },
+    "ipc": {
+      "wired": false,
+      "hostPipeTests": 11,
+      "sharedBridgeHostTests": 30,
+      "details": "carrier-ipc-writer-2026-10-16.json"
+    }
+  },
+  "privacySourceOnly": "encrypted-ui-secret-2026-10-17.json: grouped class compile PASS; runtime/UI pending.",
+  "remaining": "remaining-pool-2026-10-15.json plus original32/screens23/additions in coverage.json. No whole-project completion percentage.",
+  "contextCleanup": "PASS480 protected files; work/ports-test-2026-10-14/project-cleanup-69d7c831d0b84161a0d29023aed43dfe/receipt.json",
+  "next": "P2 CLOSED21Oct: common0dce installed;329JVM PASS(previous328 retained,ONLY1new regression) and81runtime PASS(previous67 retained+final14NORMAL-service checks). Actual WiFi recovery/oldPIDdeath, marked failover/no unmarked fallback, AUTO_OFF freeze, allfailed capture/noDirect, fresh recovery/STOP complete. Missing post-network health rearm fixed. All20protectedpaths SAME, temporarygeneration/helpers removed, consent/WiFi/power/recents restored, VPNoff/jobsNULL. Full accepted ledger p2-runtime-acceptance-2026-10-21.json; P2 grants consumed/gates closed. No remaining P2 work or release; automationPAUSED. P049/later priorities remain separate, not auto-started.",
+  "s3Provider": "work/p0-vps-3ed776a3e07f434485dd35803197a6cf/phone-s3-72075570/receipt.json: externalmoduleinstalled; actualVPSegress/TLS0; boundedunitstopped; settingsrestored."
+}

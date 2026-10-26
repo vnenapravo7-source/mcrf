@@ -2,6 +2,11 @@ package org.mcrf.client
 
 /** User explanations only. Never changes the adapter's admission decision or echoes configuration values. */
 object SteerCompatibilityHints {
+    private fun detail(code:String,field:String):String {
+        val reason=code.takeIf {it.matches(Regex("[A-Z][A-Z0-9_]{0,63}"))}?:"UNSUPPORTED"
+        val path=field.takeIf {it.length<=96&&it.matches(Regex("(snapshot|routing|tun|coreTuning|localProxyAuth)(?:\\.[A-Za-z][A-Za-z0-9_]{0,40}|\\[[0-9]{1,4}\\])*"))}
+        return if(path==null)reason else "$reason · $path"
+    }
     fun describe(code:String,field:String):String = when(code) {
         "TUN_MTU","TUN_ADDRESS" -> "Для Steer нужны MTU 1500 и адрес TUN 10.89.0.2/32. Измени их в расширенных настройках VPN."
         "TUN_UNSUPPORTED" -> when(field.substringAfterLast('.')) {
@@ -33,6 +38,6 @@ object SteerCompatibilityHints {
         "ADDITIONAL_FEATURE" -> "Автовыбор серверов или включённые по умолчанию дополнительные TLS/Xray-функции пока несовместимы со Steer."
         "RULE_LIMIT","APP_LIMIT","SNAPSHOT_SIZE","SNAPSHOT_DEPTH","SNAPSHOT_COMPLEXITY" -> "Для Steer слишком большой или вложенный набор настроек и правил. Сократи его либо выбери sing-box."
         "SNAPSHOT_JSON","SNAPSHOT_GUARD_CONTRACT" -> "Не удалось безопасно прочитать снимок настроек Steer. Исходные настройки сохранены; подключение с упрощёнными правилами не запускается."
-        else -> "Некоторые сохранённые параметры не поддерживаются этой версией Steer. Проверь настройки или выбери sing-box."
+        else -> "Некоторые сохранённые параметры не поддерживаются этой версией Steer. Проверь настройки или выбери sing-box.\nПричина: ${detail(code,field)}."
     }
 }

@@ -11,6 +11,18 @@ import org.mcrf.client.MainActivity.Operation
 
 class RoutingPage @JvmOverloads constructor(private val activity: MainActivity, private val store: RoutingStore, private val features:Set<UsageFeatures.Feature> = UsageFeaturesUi.selected(activity), private val openWarp: (() -> Unit)? = null) {
     private val counts=mutableMapOf<String,Int>()
+    private fun save(state:JSONObject) {
+        store.save(state)
+        requestActiveReload()
+    }
+    private fun requestActiveReload() {
+        // Persist first, then rebuild the active session with the new rule state.
+        // Never START a disconnected tunnel as a side effect of editing routes.
+        activity.runOnUiThread {
+            if(!activity.isFinishing&&!activity.isDestroyed&&activity.active())activity.startService(
+                android.content.Intent(activity,McrfVpnService::class.java).setAction(McrfVpnService.RELOAD_ROUTES))
+        }
+    }
     fun build(page:LinearLayout) {
         val revision=store.presentationRevision()
         activity.routingScreenCache.get(store,revision,Loft.dark)?.let {cached->
@@ -53,13 +65,14 @@ class RoutingPage @JvmOverloads constructor(private val activity: MainActivity, 
     }
     private fun render(page: LinearLayout,state:JSONObject,revision:String) = with(activity) {
         try {
+            page.addView(RoutingConnectionBindingUi.row(this,store,state,::save),space(0,12))
             page.addView(RoutingGroupsUi.row(this,state),space(0,12))
             page.addView(text("Правила выполняются сверху вниз · применяется активная группа",12,Loft.MUTED),space(0,16))
             val defaults = card(); val target = CarrierOption(this,TARGET_LABELS.map {CarrierOption.Value(it,"")},TARGETS.indexOf(state.getString("defaultTarget")),{})
             target.describe("Остальной трафик","Выход для соединений, не совпавших ни с одним правилом активной группы. Изменения применяются при следующем подключении.")
             defaults.addView(target)
             target.onSelectionChanged = { index -> val chosen = TARGETS[index]
-                try { if (chosen != state.getString("defaultTarget")) run(Operation { val candidate = store.snapshot(); candidate.put("defaultTarget", chosen); store.save(candidate);state.put("defaultTarget",chosen); "Маршрут остального трафика сохранён" }, false) }
+                try { if (chosen != state.getString("defaultTarget")) run(Operation { val candidate = store.snapshot(); candidate.put("defaultTarget", chosen); save(candidate);state.put("defaultTarget",chosen); "Маршрут остального трафика сохранён" }, false) }
                 catch (_: Exception) { }
             }
             page.addView(defaults, space(0, 16))
@@ -76,6 +89,7 @@ class RoutingPage @JvmOverloads constructor(private val activity: MainActivity, 
                     val generation=store.snapshotWithGeneration().second
                     RoutingAppPoliciesUi.confirm(this@with){run(Operation {
                             store.editInGeneration(generation,RoutingAppPolicies::clearGlobal)
+                            requestActiveReload()
                             "Глобальные политики приложений убраны"
                         })}
                 }},space(0,8))
@@ -106,12 +120,12 @@ class RoutingPage @JvmOverloads constructor(private val activity: MainActivity, 
             else "${TARGET_LABELS[target]} · ${MODE_LABELS[mode]}${if (rule.optBoolean("invert", false)) " · кроме указанных" else ""}", 12, Loft.MUTED), space(8, 6))
         val records = counts[id] ?: 0
         val dns = rule.optJSONObject("dns")
-        if(RouteServerPlan.ids(rule).isNotEmpty())card.addView(text(if(rule.has(RouteServerPlan.POOL))"Группа серверов · самый быстрый доступный"else"Сервер выбран отдельно для этого правила",12,Loft.MUTED),space(0,6))
+        if(!RoutingConnectionBinding.enabled(store.snapshot())&&RouteServerPlan.ids(rule).isNotEmpty())card.addView(text(if(rule.has(RouteServerPlan.POOL))"Группа серверов · самый быстрый доступный"else"Сервер выбран отдельно для этого правила",12,Loft.MUTED),space(0,6))
         card.addView(text("Записей: $records · DNS: ${if (dns == null) "из настроек" else dns.getString("provider")+" / "+dns.getString("protocol")}", 12, Loft.MUTED), space(0, 12))
         var suppress = false
         enabled.setOnCheckedChangeListener { _, value ->
             if (!suppress) { if (working()) { suppress = true; enabled.isChecked = !value; suppress = false }
-                else { enabled.isEnabled = false; run(Operation { val candidate = store.snapshot(); find(candidate, id).put("enabled", value); store.save(candidate); rule.put("enabled", value); if (value) "Список включён" else "Список выключен" }, false, Runnable { enabled.isEnabled = true }) } }
+                else { enabled.isEnabled = false; run(Operation { val candidate = store.snapshot(); find(candidate, id).put("enabled", value); save(candidate); rule.put("enabled", value); if (value) "Список включён" else "Список выключен" }, false, Runnable { enabled.isEnabled = true }) } }
         }
         val actions = LinearLayout(this).apply {gravity=Gravity.CENTER_VERTICAL}
         actions.addView(iconButton("edit","Изменить маршрут ${rule.optString("name")}").apply {setOnClickListener {edit(rule)}},LinearLayout.LayoutParams(dp(48),dp(48)))
@@ -123,7 +137,7 @@ class RoutingPage @JvmOverloads constructor(private val activity: MainActivity, 
                 "up" -> { button.isEnabled = index > 0; button.setOnClickListener { move(id, -1) } }
                 "down" -> { button.isEnabled = index+1 < count; button.setOnClickListener { move(id, 1) } }
                 else -> button.setOnClickListener { ThemedDialogBuilder(this).setTitle("Удалить список?").setMessage(rule.optString("name")).setNegativeButton("Отмена", null)
-                    .setPositiveButton("Удалить") { _, _ -> run(Operation { val candidate = store.snapshot(); val rules = candidate.getJSONArray("rules"); val remaining = JSONArray(); repeat(rules.length()) { if (rules.getJSONObject(it).getString("id") != id) remaining.put(rules.getJSONObject(it)) }; candidate.put("rules", remaining); store.save(candidate); "Список удалён" }) }.show() }
+                    .setPositiveButton("Удалить") { _, _ -> run(Operation { val candidate = store.snapshot(); val rules = candidate.getJSONArray("rules"); val remaining = JSONArray(); repeat(rules.length()) { if (rules.getJSONObject(it).getString("id") != id) remaining.put(rules.getJSONObject(it)) }; candidate.put("rules", remaining); save(candidate); "Список удалён" }) }.show() }
             }
         }
         card.addView(actions); page.addView(card, space(0, 12))
@@ -132,12 +146,13 @@ class RoutingPage @JvmOverloads constructor(private val activity: MainActivity, 
         val state = store.snapshot(); val rules = state.getJSONArray("rules")
         val index = (0 until rules.length()).firstOrNull { rules.getJSONObject(it).getString("id") == id } ?: return@Operation "Порядок не изменён"
         if (index + direction !in 0 until rules.length()) return@Operation "Порядок не изменён"
-        val other = rules.getJSONObject(index + direction); rules.put(index + direction, rules.getJSONObject(index)); rules.put(index, other); store.save(state); "Порядок сохранён"
+        val other = rules.getJSONObject(index + direction); rules.put(index + direction, rules.getJSONObject(index)); rules.put(index, other); save(state); "Порядок сохранён"
     })
     fun edit(original: JSONObject?): AlertDialog? = edit(original,null)
     private fun edit(original:JSONObject?,prepared:RouteEditorDraft?):AlertDialog?=with(activity) {
         if (working()) return null
         val editingGroup=RoutingGroups.active(store.snapshot())
+        val bound=RoutingConnectionBinding.enabled(store.snapshot())
         if(prepared==null&&original?.has("nativeMatch")!=true&&(original?.optString("text")?.length?:0)>RouteEditorDraft.INLINE_LIMIT) {
             val waiting=ThemedDialogBuilder(this).setTitle("Открываем список")
                 .setView(text("Подготавливаем большое правило…",14,Loft.MUTED).apply {setPadding(dp(24),dp(16),dp(24),dp(16))})
@@ -157,25 +172,25 @@ class RoutingPage @JvmOverloads constructor(private val activity: MainActivity, 
         }
         if(original?.has("nativeMatch")==true){
             val target=CarrierOption(this,TARGET_LABELS.map {CarrierOption.Value(it,"")},TARGETS.indexOf(original.optString("target","proxy")),{}).apply {describe("Куда направлять","Меняет только выход. Точное импортированное условие сохраняется без изменений.")}
-            val server=RouteServerPicker(this,original).also {it.view.visibility=if(original.optString("target","proxy")=="proxy")View.VISIBLE else View.GONE}
+            val server=RouteServerPicker(this,original).also {it.view.visibility=if(!bound&&original.optString("target","proxy")=="proxy")View.VISIBLE else View.GONE}
             val body=EditorLayout.body(this).apply {
                 addView(text("Точное условие сохранено без изменений. Здесь меняется только выход этого правила.",12,Loft.MUTED),space(0,12))
                 addView(target)
-                addView(text("Сервер выхода VPN / прокси",12,Loft.MUTED),space(12,8))
+                if(!bound)addView(text("Сервер выхода VPN / прокси",12,Loft.MUTED),space(12,8))
                 addView(server.view,space(0,12))
             }
-            target.onSelectionChanged={index->server.view.visibility=if(TARGETS[index]=="proxy")View.VISIBLE else View.GONE}
+            target.onSelectionChanged={index->server.view.visibility=if(!bound&&TARGETS[index]=="proxy")View.VISIBLE else View.GONE}
             val dialog=ThemedDialogBuilder(this).setTitle(original.getString("name")).setView(body)
                 .setNegativeButton("Отмена",null).setPositiveButton("Сохранить",null).create()
             dialog.setOnShowListener {dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val output=TARGETS[target.selectedItemPosition]
-                val chosen=JSONObject(original.toString()).put("target",output);server.write(chosen)
-                run(Operation {
-                    val state=store.snapshot();require(RoutingGroups.active(state)==editingGroup){"Группа правил изменилась. Откройте редактор заново."};val rule=find(state,original.getString("id"))
+                val chosen=JSONObject(original.toString()).put("target",output);if(!bound)server.write(chosen)else if(output!="proxy"){chosen.remove(RouteServerPlan.KEY);chosen.remove(RouteServerPlan.POOL)}
+                runAfterSuccess(Operation {
+                    val state=store.snapshot();require(RoutingGroups.active(state)==editingGroup&&RoutingConnectionBinding.enabled(state)==bound){"Группа или режим привязки изменились. Откройте редактор заново."};val rule=find(state,original.getString("id"))
                     rule.put("target",output)
                     if(chosen.has(RouteServerPlan.KEY))rule.put(RouteServerPlan.KEY,chosen.getString(RouteServerPlan.KEY))else rule.remove(RouteServerPlan.KEY)
                     if(chosen.has(RouteServerPlan.POOL))rule.put(RouteServerPlan.POOL,JSONArray(chosen.getJSONArray(RouteServerPlan.POOL).toString()))else rule.remove(RouteServerPlan.POOL)
-                    store.save(state);"Выход правила сохранён"
+                    save(state);"Выход правила сохранён"
                 },true,Runnable {dialog.dismiss()})
             }}
             dialog.show();return dialog
@@ -190,7 +205,7 @@ class RoutingPage @JvmOverloads constructor(private val activity: MainActivity, 
             var expanded=false
             val text = editor("example.com\nDOMAIN,exact.example\n10.0.0.0/8").apply { minLines = 4; maxLines = 10;if(expanded)setText(draft.addresses)else visibility=View.GONE }
             val target = CarrierOption(this,TARGET_LABELS.map {CarrierOption.Value(it,"")},TARGETS.indexOf(initial.optString("target","proxy")),{}).apply {describe("Куда направлять","VPN / прокси — через выбранный выход. Напрямую — без VPN. Блокировать — запретить совпавшие соединения.")}
-            val server=RouteServerPicker(this,initial).also {it.view.visibility=if(initial.optString("target","proxy")=="proxy")View.VISIBLE else View.GONE}
+            val server=RouteServerPicker(this,initial).also {it.view.visibility=if(!bound&&initial.optString("target","proxy")=="proxy")View.VISIBLE else View.GONE}
             val serverBlock=LinearLayout(this).apply {
                 orientation=LinearLayout.VERTICAL;visibility=server.view.visibility;setPadding(0,dp(8),0,dp(8))
                 addView(this@with.text("Сервер выхода VPN / прокси",12,Loft.MUTED),space(12,8))
@@ -217,7 +232,7 @@ class RoutingPage @JvmOverloads constructor(private val activity: MainActivity, 
                 if(!expanded){text.setText(draft.addresses);text.visibility=View.VISIBLE;expanded=true;visibility=View.GONE}
             }},space(0,12))
             target.onSelectionChanged={index->
-                serverBlock.visibility=if(TARGETS[index]=="proxy")View.VISIBLE else View.GONE;server.view.visibility=View.VISIBLE
+                serverBlock.visibility=if(!bound&&TARGETS[index]=="proxy")View.VISIBLE else View.GONE;server.view.visibility=View.VISIBLE
                 target.post {target.requestRectangleOnScreen(android.graphics.Rect(0,0,target.width,target.height),true)}
             }
             val apps = button("Приложения · ${selectedApps.size}", false).apply {tag="route-apps"}
@@ -254,15 +269,15 @@ class RoutingPage @JvmOverloads constructor(private val activity: MainActivity, 
                     val content = draft.content(if(expanded)text.text.toString()else null,selectedApps)
                     val candidate = JSONObject(initial.toString()).put("name", name.text.toString().trim()).put("text", content)
                         .put("target", TARGETS[target.selectedItemPosition]).put("mode", availableModes[mode.selectedItemPosition]).put("invert", invert.isChecked)
-                    server.write(candidate)
+                    if(!bound)server.write(candidate)else if(candidate.getString("target")!="proxy"){candidate.remove(RouteServerPlan.KEY);candidate.remove(RouteServerPlan.POOL)}
                     if(presetIds.isNotEmpty())candidate.put("presetIds",JSONArray(presetIds))else candidate.remove("presetIds")
                     if (customDns.isChecked && candidate.getString("target") != "block") candidate.put("dns", dns.value()) else candidate.remove("dns")
-                    run(Operation {
+                    runAfterSuccess(Operation {
                         val validation = RouteRules.defaults(); validation.getJSONArray("rules").put(candidate); RoutingStore.validate(validation)
-                        val settings = store.snapshot();require(RoutingGroups.active(settings)==editingGroup){"Группа правил изменилась. Откройте редактор заново."}; val rules = settings.getJSONArray("rules")
+                        val settings = store.snapshot();require(RoutingGroups.active(settings)==editingGroup&&RoutingConnectionBinding.enabled(settings)==bound){"Группа или режим привязки изменились. Откройте редактор заново."}; val rules = settings.getJSONArray("rules")
                         val index = (0 until rules.length()).firstOrNull { rules.getJSONObject(it).getString("id") == candidate.getString("id") }
                         if (index == null) RouteRules.insert(settings,candidate) else rules.put(index, candidate)
-                        store.save(settings); "Список сохранён" },true,Runnable {dialog.dismiss()})
+                        save(settings); "Список сохранён" },true,Runnable {dialog.dismiss()})
                 } catch (error: Exception) { alert("Список маршрута", if (error is IllegalArgumentException) error.message.orEmpty() else "Проверь имя и записи списка.") }
             } }; dialog.show(); dialog
         } catch (_: Exception) { alert("Маршрутизация", "Не удалось открыть список."); null }
@@ -274,7 +289,7 @@ class RoutingPage @JvmOverloads constructor(private val activity: MainActivity, 
         },Consumer { chosen -> activity.run(Operation {
             val state = store.snapshot(); state.put(field, JSONArray(chosen)); val opposite = if (field == "vpnApps") "excludedApps" else "vpnApps"
             val old = state.optJSONArray(opposite); val remaining = JSONArray(); if (old != null) repeat(old.length()) { if (old.getString(it) !in chosen) remaining.put(old.getString(it)) }
-            state.put(opposite, remaining); store.save(state); "Политика приложений сохранена"
+            state.put(opposite, remaining); save(state); "Политика приложений сохранена"
         }) })
     private fun find(state: JSONObject, id: String): JSONObject { val rules = state.getJSONArray("rules"); return (0 until rules.length()).map { rules.getJSONObject(it) }.firstOrNull { it.getString("id") == id } ?: throw IllegalArgumentException("Список уже удалён.") }
     companion object {

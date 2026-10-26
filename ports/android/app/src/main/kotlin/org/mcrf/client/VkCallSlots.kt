@@ -74,7 +74,7 @@ internal class VkCallSlots(private val activity:MainActivity,initial:List<String
             val field=edit(index).apply {hint="VK-звонок ${index+1}";setText(value)};fields.add(field)
             row.addView(field,LayoutParams(0,-2,1f))
             row.addView(activity.iconButton("copy","Скопировать звонок ${index+1}").apply {setOnClickListener {
-                activity.getSystemService(ClipboardManager::class.java).setPrimaryClip(android.content.ClipData.newPlainText("VK-звонок",field.text.toString()))
+                activity.getSystemService(ClipboardManager::class.java).setPrimaryClip(AndroidDeployClipboard.sensitive(field.text.toString(),"VK-звонок"))
                 activity.toast("Звонок скопирован")
             }},LayoutParams(activity.dp(48),activity.dp(48)).apply {marginStart=activity.dp(8)})
             row.addView(activity.iconButton("trash","Удалить звонок ${index+1}").apply {setOnClickListener {val next=fields.map {it.text.toString()}.toMutableList();next.removeAt(index);show(next);changed()}},LayoutParams(activity.dp(48),activity.dp(48)).apply {marginStart=activity.dp(8)})

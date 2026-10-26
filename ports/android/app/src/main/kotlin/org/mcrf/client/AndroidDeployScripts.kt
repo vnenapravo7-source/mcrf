@@ -344,6 +344,10 @@ def provision_swg(api, options, host, links, username, password, sleep=time.slee
         if kind not in ("qwdtt", "wdtt", "csqtt", "csqtt25") or kind in seen or profile.get("enabled") is not True:
             raise ProvisionError("Повторяющийся или неизвестный протокол SWG.")
         seen.add(kind)
+        if kind == "qwdtt":
+            if 56003 in ports:
+                raise ProvisionError("Порт 56003 зарезервирован для QWDTT RAW.")
+            ports.add(56003)
         calls = profile.get("vk_calls")
         if not valid_swg_calls(calls):
             raise ProvisionError("У каждого протокола должны быть свои звонки VK.")
@@ -434,10 +438,18 @@ def provision_swg_single(api, options, host, links, username, password, sleep=ti
     group = "csqtt" if kind in ("csqtt", "csqtt25") else "wdtt"
     listen_port = checked_port(options["relay_port"])
     wg_port = checked_port(options["wg_port"]) if group == "wdtt" else None
+    if kind == "qwdtt":
+        if 56003 in (listen_port, wg_port):
+            raise ProvisionError("Порт 56003 нужен для QWDTT RAW; выберите другие порты TURN и WireGuard.")
+        existing = list(state.get("snapshots", {}).get(node, {}).get("wdtt", []))
+        configured = nodes[0].get("wdtt_cfg", {})
+        existing.extend(configured.values() if isinstance(configured, dict) else configured)
+        if any(row.get("raw_port") or row.get("raw") for row in existing if isinstance(row, dict)):
+            raise ProvisionError("На этом узле уже есть QWDTT RAW. Новый RAW-деплой не должен отключать существующий; выберите другой адрес или сервер.")
     if wg_port is not None and listen_port == wg_port:
         raise ProvisionError("Порты TURN и WireGuard должны различаться.")
     body = {"node": node, "iface": iface, "fork": "wdttplus" if kind == "wdtt" else "csqtt" if modern else kind,
-            "listen": "0.0.0.0:" + str(listen_port), "stopped": False, "title": "MCRF · " + kind.upper(), "raw": False}
+            "listen": "0.0.0.0:" + str(listen_port), "stopped": False, "title": "MCRF · " + kind.upper(), "raw": kind == "qwdtt"}
     if group == "wdtt":
         body.update({"wg_addr": subnet, "wg_port": wg_port})
     else:
@@ -460,7 +472,7 @@ def provision_swg_single(api, options, host, links, username, password, sleep=ti
         state = envelope(api.request("GET", "/api/state"), True)
         records = state.get("snapshots", {}).get(node, {}).get(group, [])
         record = next((r for r in records if r.get("iface") == iface), None)
-        if record and record.get("active") == "active" and secret in record.get("passwords", {}) and (not modern or record.get("line") == "2.5"):
+        if record and record.get("active") == "active" and secret in record.get("passwords", {}) and (not modern or record.get("line") == "2.5") and (kind != "qwdtt" or str(record.get("raw_port")) == "56003"):
             break
         sleep(2)
     else:
@@ -474,7 +486,7 @@ def provision_swg_single(api, options, host, links, username, password, sleep=ti
         payload += "&hashes=" + "+".join(urllib.parse.quote(value, safe="") for value in call_hashes)
         link = encode_modern(payload)
     elif kind == "qwdtt":
-        query = {"name": "MCRF · QWDTT", "peer": authority(host) + ":" + str(listen_port), "hashes": vk_hash, "pass": secret}
+        query = {"name": "MCRF · QWDTT", "peer": authority(host) + ":" + str(listen_port), "hashes": vk_hash, "pass": secret, "mode": "raw", "raw_port": 56003}
         link = "qwdtt://config?" + urllib.parse.urlencode(query, quote_via=urllib.parse.quote)
     else:
         query = {"v": 2 if kind == "csqtt" else 1, "name": "MCRF · " + kind.upper(), "host": host,

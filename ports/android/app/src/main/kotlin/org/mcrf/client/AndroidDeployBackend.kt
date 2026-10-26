@@ -61,7 +61,11 @@ class AndroidDeployBackend(private val store: AndroidDeployStore,private val vk:
             try { install(AndroidDeployRecipe.all.first { it.id==recipeId },target,trust,saved) }
             catch(e: Exception) { publish(state.copy(error=if(cancelled.get()) "Операция остановлена. Выполненные изменения VPS могут сохраниться" else safe(e.message ?: "Ошибка SSH/установки",target),phase="Остановлено")) }
             finally { ssh?.disconnect();ssh=null;hostTrust=null;operationThread=null;publish(state.copy(running=false,trustRequestId="",trustEndpoint="",trustFingerprint=""));operationLease=null;RemoteServerOperationGate.release(target.operationId);busy.set(false) }
-        }}catch(error:Exception){operationLease=null;RemoteServerOperationGate.release(target.operationId);busy.set(false);throw error}
+        }}catch(error:Exception){
+            operationLease=null;RemoteServerOperationGate.release(target.operationId);busy.set(false)
+            publish(state.copy(running=false,phase="Не запущено",error="Не удалось запустить операцию. Откройте раздел повторно.",trustRequestId="",trustEndpoint="",trustFingerprint=""))
+            throw error
+        }
         return true
     }
     private fun safe(text: String,t: AndroidDeployTarget): String {

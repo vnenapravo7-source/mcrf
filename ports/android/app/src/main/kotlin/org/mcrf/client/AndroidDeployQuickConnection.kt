@@ -8,7 +8,7 @@ internal object AndroidDeployQuickConnection {
     data class Choice(val id:String,val label:String)
     fun choices(recipe:String):List<Choice> = when(recipe){
         "3xui"->listOf(Choice("tcp","VLESS · TCP + REALITY"),Choice("grpc","VLESS · gRPC + REALITY"))
-        "swg"->listOf(Choice("qwdtt","QWDTT"),Choice("wdtt","WDTT"),Choice("csqtt","CSQTT v2.1.9 · SWG"),Choice("csqtt25","CSQTT v2.5 · SWG"))
+        "swg"->listOf(Choice("qwdtt","QWDTT · RAW"),Choice("wdtt","WDTT"),Choice("csqtt","CSQTT v2.1.9 · SWG"),Choice("csqtt25","CSQTT v2.5 · SWG"))
         "openflux"->listOf("direct","yandex","vyandex","boards","telemost","mailru","cupsonline").map {Choice(it,"OpenFlux · $it")}
         else->emptyList()
     }

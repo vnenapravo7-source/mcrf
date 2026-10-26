@@ -1,0 +1,147 @@
+{
+  "tools": {
+    "cargo-ndk.exe": "98aceb032057ae083eaf4e8a1ea4b6aea0f71e89cad94b35b432b9ccad01d930",
+    "rustc.exe": "9933f6035589064c39e524082d8d664764e3a64fbbd55b16f4ecc24ab5d53235",
+    "armeabi-v7a-clang-wrapper": "8fca40585307ceb4b8bd75217879898d504940cd0b03c24cafb4144dd87f611d",
+    "arm64-v8a-clang-wrapper": "3814a6e323f6a2ba9d3145e360fd693bc969a6e3b0e1b92ff417b61b2744cc1b",
+    "clang.exe": "dcddc0336730b1053998e305cc41b93614c62209acb96b4875d44fc3a2b2d522",
+    "dlltool.exe": "c7fffd1b4a43a495a1f39a63800d3a8ffa271224a64467181a5b611ee13583c9",
+    "x86_64-clang-wrapper": "8b1b5c95ed646ba0a2e6f4a8c9358ee5c1c4b9307b655a3ab5d46d55a7c93ccf",
+    "go.exe": "21761eceb9302062c9623fb699f332c8c7fe000f15f70efe8da01a2cfbbc16b9",
+    "cargo.exe": "f6575d41d6d94c5917f4ee3a16a559a58e34cb196bb8d4917176ec5687ca8ef5"
+  },
+  "privateUds": true,
+  "slipstreamContract": 1,
+  "repository": "Mygod/slipstream-rust",
+  "artifacts": [
+    {
+      "nativeExecuted": false,
+      "bytes": 3998896,
+      "abi": "arm64-v8a",
+      "elfChecked": true,
+      "sha256": "d5ed07cc295f9d06d96026b3b01d0b7fda7019690d925b90febe1f2c78dd3613",
+      "file": "arm64-v8a/libslipstream.so"
+    },
+    {
+      "nativeExecuted": false,
+      "bytes": 7688200,
+      "abi": "arm64-v8a",
+      "elfChecked": true,
+      "sha256": "9a00b6b3da84ca2c6b56b3a022212c2a60a7e08b0b263e419ca202e81a15a9b1",
+      "file": "arm64-v8a/libslipstream_core.so"
+    },
+    {
+      "nativeExecuted": false,
+      "bytes": 4120316,
+      "abi": "armeabi-v7a",
+      "elfChecked": true,
+      "sha256": "a340f55228064f1c57a55bd7c82f703a680119ffdafd0b647fddb9b7ce6e37bd",
+      "file": "armeabi-v7a/libslipstream.so"
+    },
+    {
+      "nativeExecuted": false,
+      "bytes": 5301360,
+      "abi": "armeabi-v7a",
+      "elfChecked": true,
+      "sha256": "48e513844f67586ac3641fa8934418b894f0a52dcbdeabff9de7e3f5a979bb95",
+      "file": "armeabi-v7a/libslipstream_core.so"
+    },
+    {
+      "nativeExecuted": false,
+      "bytes": 4301032,
+      "abi": "x86_64",
+      "elfChecked": true,
+      "sha256": "39bbd69c1acc33364f0f09a1d670d60b502d0a3f16a9e5f0bc069bdb15a302bc",
+      "file": "x86_64/libslipstream.so"
+    },
+    {
+      "nativeExecuted": false,
+      "bytes": 8269896,
+      "abi": "x86_64",
+      "elfChecked": true,
+      "sha256": "bd505c4345638f20bef31adebd71b86fd4a798d4bba1faffe07c6ac90bea4fb3",
+      "file": "x86_64/libslipstream_core.so"
+    }
+  ],
+  "sourceManifestSha256": "784663e3c08660cd8a2280f95be6d3e6f11ad3ba50161ad35e3070030247cdf4",
+  "producerComplete": true,
+  "kind": "slipstream",
+  "picoquicCommit": "d4a865c54929cfeb2a61902a0340b8758ad5492e",
+  "builtRustIdsSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "rustMetadataSha256": "4654df981539e7babefde2904fbb108233069506e58015d4c1243d12a51cf231",
+  "sourceStable": true,
+  "commit": "7de506b222c83ae97a19a618e33fe26899af1bd5",
+  "mandatoryLeafPin": true,
+  "apkBuilt": false,
+  "packageVersionCode": 1,
+  "nativeExecuted": false,
+  "fixtureArtifacts": [
+    {
+      "sha256": "fc46a179b361dac6a4030b300f1b97264da9c37ba9c72b1673519dfd58f16d05",
+      "elfChecked": true,
+      "bytes": 11070896,
+      "file": "fixtures/libslipstream_fixture.so"
+    },
+    {
+      "sha256": "52c79dc97c5e92bcf475100fca6d3a8e8e13b5b6ef2f1126e343db7a830fd2fa",
+      "elfChecked": true,
+      "bytes": 8293344,
+      "file": "fixtures/libslipstream_testserver.so"
+    },
+    {
+      "bytes": 10371288,
+      "elfChecked": true,
+      "sha256": "a6ba98fb0cebaf226de031b9e23e6c1e5f739689a85af1de45b03726f36d773e",
+      "file": "fixtures/libslipstream_cserver.so"
+    },
+    {
+      "elfChecked": true,
+      "bytes": 11073304,
+      "sha256": "c076b2b13d1db925ebb1b7a37199d63833f663ec3a0436ca974bf5be4d82361f",
+      "sourceManifestSha256": "26106a6265958bc31a137421cb30931dd10ea26d384f9cb2e47c8f89089a3a31",
+      "file": "fixtures/libslipstream_fixture_android.so"
+    }
+  ],
+  "state": "COMPILED_OWNED_FIXTURE_VERIFIED",
+  "dependencyReceiptSha256": "51210341a9ec66dcb5d26e09fecc440740abf76649df94b016f3dd8d5c361b02",
+  "packageVersionName": "slipstream-0.1.1-mcrf.1",
+  "dependencyInputReceiptSha256": "d8658b46b95451ee2eb59041e1d09dba9784401f33e51ceb162b589fac9f65db",
+  "originalCFixture": {
+    "loopbackOnly": true,
+    "sourceManifestSha256": "dfad1449fc02cc5135fa6ead716a2509ca6e1d3b54405a9d878b387b339d7f9b",
+    "executed": false,
+    "sourceReceiptSha256": "27f23c95ef899d1b92d3226d1ab520436f8056b052b6cb76bf7160b1d8ed4bee",
+    "picoquic": "2ee2ecd189354791e15cc1ff9db86e4e4b8eba10",
+    "commit": "397850b16e70a52513269134b2c7b9aa13a56745"
+  },
+  "retainedEvidence": {
+    "sourceReceiptSha256": "66bf2a81bf510be185851c635e77477d354fc11e8567e3f54fa4873f6c41010e",
+    "cases": [
+      "TestMcrfSlipstreamStrictConfigAndMandatoryLeaf",
+      "TestMcrfSlipstreamRejectDuplicateAndTrailingConfig",
+      "TestMcrfSlipstreamEndpointAndKeepAliveBounds",
+      "TestMcrfSlipstreamUnauthenticatedClientCannotOpenRemoteStream",
+      "TestMcrfSlipstreamPrivateRelayPreservesHalfClose",
+      "TestMcrfSlipstreamCancellationClosesPendingRemoteAuth",
+      "TestMcrfSlipstreamWrongLeafStopsBeforeRemoteSOCKS"
+    ],
+    "scope": "Go tests/bridge/C unchanged; leaf rejection occurs before corrected EdDSA signature function",
+    "source": "D:/MCRF/Builds/Android/p3-slipstream-native-09b18d3e5ba74813b6d503611175dd32",
+    "testsExecuted": false
+  },
+  "noticeManifestSha256": "bdbd309f922e4b5b8c36f36973a68ffef3b50882e39763f553f529d3a32f7c47",
+  "androidFixture": {
+    "elfChecked": true,
+    "bytes": 11073304,
+    "sha256": "c076b2b13d1db925ebb1b7a37199d63833f663ec3a0436ca974bf5be4d82361f",
+    "sourceManifestSha256": "26106a6265958bc31a137421cb30931dd10ea26d384f9cb2e47c8f89089a3a31",
+    "file": "fixtures/libslipstream_fixture_android.so"
+  },
+  "fixtureEvidenceSha256": "4537e3d4a8bae8dd6574b422145f70ab38e5f1f71c459571a234d474500ae4de",
+  "fixtureExecuted": true,
+  "executedAbis": [
+    "x86_64"
+  ],
+  "recoveredRustIdsSha256": "b748521aac3360be7699e6a37db8af9f41bd99e3c112f28b153725c156bb7750",
+  "legalInventoryRecoverySha256": "efca6355b74b3fb010b1f7193051fa749fc7540618b920046796910430924e70"
+}

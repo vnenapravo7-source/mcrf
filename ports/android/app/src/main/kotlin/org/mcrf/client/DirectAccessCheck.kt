@@ -41,7 +41,8 @@ object DirectAccessCheck {
                 }
         }
     }
-    fun check(context:Context,includeYoutube:Boolean=false,cancelled:()->Boolean={false}):Result {
+    fun check(context:Context,includeYoutube:Boolean=false,cancelled:()->Boolean={false},sites:List<String> = BsDetectionSites.load {key,fallback->context.getSharedPreferences("MainActivity",Context.MODE_PRIVATE).getString(key,fallback)?:fallback}):Result {
+        require(sites.size==3)
         fun stopped()=Thread.currentThread().isInterrupted||cancelled()
         if(stopped())return Result(Outcome.CANCELLED,Outcome.CANCELLED,if(includeYoutube)Outcome.CANCELLED else null)
         val network=try{physical(context)}catch(_:SecurityException){return Result(Outcome.RESTRICTED,Outcome.RESTRICTED)}
@@ -68,7 +69,7 @@ object DirectAccessCheck {
             val manager=context.getSystemService(ConnectivityManager::class.java)
             manager.allNetworks.firstOrNull {manager.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN)==true}
         }else null
-        val hosts=listOf("google.com","gitlab.com")+if(includeYoutube)listOf("youtube.com")else emptyList()
+        val hosts=sites.take(if(includeYoutube)3 else 2).map(BsDetectionSites::normalize)
         val values=ConnectTiming.measure(context,"direct_check") {
             AccessProbeBatch(checks,BUDGET_MS).run(hosts.size,::stopped,{
                 batchStopped.set(true);openedConnections.forEach {runCatching {it.disconnect()}}

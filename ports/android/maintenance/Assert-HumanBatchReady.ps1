@@ -1,6 +1,29 @@
 param([ValidateSet('build','test','native-build','native-package')][string]$Operation='build')
 $ErrorActionPreference='Stop'
 $taskCurrent=Get-Content -LiteralPath (Join-Path $PSScriptRoot '../coordination/current.json') -Raw|ConvertFrom-Json
+if($taskCurrent.p3p4Batch){
+    if($taskCurrent.p3p4Batch -cne 'p3-p4-2026-10-23.json'){throw 'Unexpected P3/P4 batch'}
+    $taskNext=Get-Content -LiteralPath (Join-Path $PSScriptRoot '../coordination/p3-p4-2026-10-23.json') -Raw|ConvertFrom-Json
+    if($taskNext.authority -cne 'human-20261023-finish-current-fixes-then-p3-p4'){throw 'Exact P3/P4 source authority required'}
+    if($taskNext.sourceReady -ne $true -or $taskNext.allowCommonVerification -ne $true -or $taskNext.commonRecipe -cne 'maintenance/Build-P3P4Common.ps1'){throw 'P3/P4 source package is incomplete; do not reuse previous candidate authority'}
+    if($Operation -eq 'build' -and $taskNext.allowApkBuild -ne $true){throw 'P3/P4 main APK gate closed'}
+    if($Operation -in @('native-build','native-package') -and $taskNext.allowNativeCandidateBuild -ne $true){throw 'P3/P4 native gate closed'}
+    return
+}
+if($taskCurrent.nextReleaseBatch){
+    if($taskCurrent.nextReleaseBatch -cne 'next-release-2026-10-23.json'){throw 'Unexpected next-release source package'}
+    $taskNext=Get-Content -LiteralPath (Join-Path $PSScriptRoot '../coordination/next-release-2026-10-23.json') -Raw|ConvertFrom-Json
+    if($taskNext.authority -cne 'human-20261023-next-release-fixes-then-p3-p4'){throw 'Current human source-package authority required'}
+    if($taskNext.verificationScope -cne 'independent-six-only' -or $taskNext.scopeAuthority -cne 'human-20261023-continue-other-fixes-while-vk-blocked' -or
+        $taskNext.commonRecipe -cne 'maintenance/Build-NextReleaseIndependent.ps1' -or $taskNext.publish -ne $false){throw 'Only the independent verification candidate is authorized'}
+    if((@($taskNext.deferredLiveTasks|Sort-Object) -join ',') -cne 'bs-upload-throughput,wdtt-empty-route-group'){throw 'Live blocked tasks must remain explicitly deferred'}
+    foreach($taskFlag in @('sourceReady','readyForBuild','allowCommonVerification')){
+        if($taskNext.$taskFlag -isnot [bool] -or !$taskNext.$taskFlag){throw "Finish the complete next-release source package before $Operation; accepted P2 receipts do not authorize new partial builds or repeated checks."}
+    }
+    if($Operation -eq 'build' -and $taskNext.allowApkBuild -ne $true){throw 'Next-release APK gate closed'}
+    if($Operation -in @('native-build','native-package') -and $taskNext.allowNativeCandidateBuild -ne $true){throw 'Next-release native gate closed'}
+    return
+}
 if($taskCurrent.activeBatch -ceq 'p2-expansion-2026-10-21.json'){
     $taskExpanded=Get-Content -LiteralPath (Join-Path $PSScriptRoot '../coordination/p2-expansion-2026-10-21.json') -Raw|ConvertFrom-Json
     if($taskExpanded.priority -ne 2 -or $taskExpanded.verificationAuthority -cne 'human-20261021-expanded-p2-whole-source-before-common-verification'){

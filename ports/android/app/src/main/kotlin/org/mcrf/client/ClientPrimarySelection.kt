@@ -78,7 +78,7 @@ object ClientPrimarySelection {
         .put("mode",if(vpn)"vpn"else"proxy").put("metered",metered).put("config",JSONObject(config.toString())).toString()
     fun steerSnapshot(context:Context,routing:JSONObject,vpn:Boolean,accepted:Boolean?=null):SteerMcrfSnapshotAdapter.Result {
         RouteServerPlan.requireSingleServerCore(routing)
-        val captured=JSONObject(routing.toString())
+        val captured=RoutingGroups.runtime(routing)
         val prefs=context.getSharedPreferences("MainActivity",Context.MODE_PRIVATE)
         val additional=JSONArray()
         val contract=steerContract(context)

@@ -1,0 +1,43 @@
+{
+  "state": "COMPILED_NOT_EXECUTED",
+  "commit": "acbf1c61f90786f41b975d2e2f616afbce292b29",
+  "artifacts": [
+    {
+      "elfChecked": true,
+      "sha256": "2b18e1eeb1e54d0e96a98758468afded070b98aa43cad3c4e43890ea427e9339",
+      "abi": "arm64-v8a",
+      "file": "arm64-v8a/libmasterdnsvpn.so",
+      "bytes": 4814992,
+      "nativeExecuted": false
+    },
+    {
+      "elfChecked": true,
+      "sha256": "d3a4c612214c61674fe39a18c68ba4804849793b35b9d4ddca6f38ff712039ee",
+      "abi": "armeabi-v7a",
+      "file": "armeabi-v7a/libmasterdnsvpn.so",
+      "bytes": 4639340,
+      "nativeExecuted": false
+    },
+    {
+      "elfChecked": true,
+      "sha256": "6e28413d78b01ca44dccc2fd1f94fb313d3952df1dcbe250736dc33b11bfec13",
+      "abi": "x86_64",
+      "file": "x86_64/libmasterdnsvpn.so",
+      "bytes": 5143048,
+      "nativeExecuted": false
+    }
+  ],
+  "toolchainSha256": "21761eceb9302062c9623fb699f332c8c7fe000f15f70efe8da01a2cfbbc16b9",
+  "kind": "masterdnsvpn",
+  "sourceManifestSha256": "e9774676b5fcb7f43f302ce96f887b828e8500e46d9a18430cf11a8814d00ab6",
+  "masterdnsvpnContract": 1,
+  "packageVersionCode": 1,
+  "repository": "masterking32/MasterDnsVPN",
+  "sourceStable": true,
+  "nativeExecuted": false,
+  "apkBuilt": false,
+  "packageVersionName": "masterdnsvpn-acbf1c6-mcrf.1",
+  "source": "D:/MCRF/Builds/Android/p4-masterdnsvpn-source-9b4133e70bfb4857999d16d257c199b7/module",
+  "hostEvidenceSha256": "e4b56cf9c10d8f22f0a401b99910bd269e998942331c40443dc7013d234c9a7d",
+  "producerComplete": true
+}

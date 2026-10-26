@@ -56,7 +56,7 @@ internal class NativeRoutePreparation private constructor(
     override fun toString()="NativeRoutePreparation(redacted)"
     companion object {
         fun capture(context:Context,main:ServerImport.Server,routing:JSONObject,servers:List<ServerImport.Server>):NativeRoutePreparation {
-            val state=JSONObject(routing.toString())
+            val state=if(routing.has(RoutingConnectionBinding.RUNTIME))JSONObject(routing.toString())else RoutingConnectionBinding.prepare(context,routing,servers,main.carrier!=null)
             require(RouteServerPlan.activeIds(state).isNotEmpty()){"NATIVE_ROUTE_EXPLICIT_SERVERS_REQUIRED"}
             val core=CoreTuningStore(context).load();SteerRouteTuning.requireSupported(core)
             if(EnginePackages.missing(context,setOf("sing-box")).isNotEmpty())throw ClientOptionalCoreRequired("sing-box")
@@ -65,6 +65,7 @@ internal class NativeRoutePreparation private constructor(
             DnsConfig.applyGenerated(source,state.getJSONObject("globalDns"))
             val additional=RouteServerPlan(state,servers)
             val plan=NativeRouteDispatchPlan.forSteer(main,additional,OptionalCoreStore(context).load(),core)
+            plan.bindings.mapNotNull {it.assistedEntry()}.forEach {CompactProtocolSession.preflight(context,it,state)}
             // RouteServerPlan already owns defensive per-rule copies. Rebuild
             // the minimal independent catalogue so a later UI edit cannot alter
             // this captured preparation through a mutable JSONObject reference.

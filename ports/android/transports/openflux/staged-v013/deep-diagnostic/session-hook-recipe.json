@@ -1,0 +1,381 @@
+{
+  "state": "SOURCE_RECIPE_PREPARED_NOT_APPLIED_OR_PRODUCER_BOUND",
+  "upstreamCommit": "4f9c786cdd1d9fcd0c133e2e0fec0c5a12522610",
+  "scope": "All37 event kinds SOURCE-PREPARED, including fresh0.13 typed Mailru ACK/readiness correction. UNAPPLIED and not all owner propagation/producer integration complete. Never apply to pristine or without exact hashes/counts. Future disposable build only after whole batch. No execution authorization.",
+  "owner": "McrfNewDiagnosticSession captures one Run before publication; newLink propagates exact pointer; Receive captures it for old callbacks. Normal NewSession has nil owner. No global Current lookup. BaseTransport binds a nonnil owner once before Start, rejecting rebinding; wrappers without that optional interface remain unobserved (group propagation still OPEN). Nil-safe link accessors preserve unobserved synthetic Session unit paths.",
+  "files": [
+    {
+      "path": "transport/session.go",
+      "sha256": "a92202676ac1959aeb506f1a1a1d5d4471a1b281cb3858f713f6c8502cb183ae",
+      "normalizeCRLF": true,
+      "replacements": [
+        {
+          "old": "import (",
+          "new": "import (\n\t\"github.com/p1neappleXpress/OpenFlux/mcrfdiag\"",
+          "expectedMatches": 1
+        },
+        {
+          "old": "type Session struct {",
+          "new": "type Session struct {\n\tmcrfDiagnostic *mcrfdiag.Run // Captured before publication; never rebound.",
+          "expectedMatches": 1
+        },
+        {
+          "old": "classic, codec := s.classic, s.classicCodec",
+          "new": "classic, codec := s.classic, s.classicCodec\n\tdiagnostic := s.mcrfDiagnostic",
+          "expectedMatches": 1
+        },
+        {
+          "old": "enc.SetAlternateContexts(alternates)",
+          "new": "enc.SetAlternateContexts(alternates)\n\tenc.mcrfSessionDiagnostic.Store(diagnostic)\n\td.mcrfDiagnostic = diagnostic\n\tif target, ok := raw.(interface { McrfBindDiagnostic(*mcrfdiag.Run) bool }); ok && diagnostic != nil && !target.McrfBindDiagnostic(diagnostic) { return nil, errors.New(\"diagnostic owner mismatch\") }",
+          "expectedMatches": 1
+        },
+        {
+          "old": "if classic != ClassicOff {",
+          "new": "link.batched.mcrfSessionDiagnostic.Store(diagnostic)\n\tif classic != ClassicOff {",
+          "expectedMatches": 1
+        },
+        {
+          "old": "s.cntDecodeErr.Add(1)",
+          "new": "s.cntDecodeErr.Add(1)\n\t\tmcrfSessionDiagnostic(link).Mark(mcrfdiag.SessEnvelopeInvalid)",
+          "expectedMatches": 1
+        },
+        {
+          "old": "if env.Role == s.roleLocked() {",
+          "new": "if env.Role == s.roleLocked() {\n\t\tmcrfSessionDiagnostic(link).Mark(mcrfdiag.SessRoleInvalid)",
+          "expectedMatches": 1
+        },
+        {
+          "old": "s.cntHelloReject.Add(1)",
+          "new": "s.cntHelloReject.Add(1)\n\t\tmcrfSessionDiagnostic(link).Mark(mcrfdiag.SessHelloRejected)",
+          "expectedMatches": 5
+        },
+        {
+          "old": "s.cntHelloAccept.Add(1)",
+          "new": "s.cntHelloAccept.Add(1)\n\t\tmcrfSessionDiagnostic(link).Mark(mcrfdiag.SessHelloAccepted)",
+          "expectedMatches": 1
+        },
+        {
+          "old": "link.classicEnc = enc.SharingKeys(link.classicCodec)",
+          "new": "link.classicEnc = enc.SharingKeys(link.classicCodec)\n\t\tlink.classicEnc.mcrfClassicDiagnostic.Store(diagnostic)\n\t\tlink.classicCodec.mcrfDiagnostic.Store(diagnostic)",
+          "expectedMatches": 1
+        },
+        {
+          "old": "s.cntClassicDrop.Add(1)",
+          "new": "s.cntClassicDrop.Add(1)\n\t\tmcrfClassicDiagnostic(link).Mark(mcrfdiag.ClassicRejected)",
+          "expectedMatches": 2
+        },
+        {
+          "old": "n := s.cntClassicRecv.Add(1)",
+          "new": "n := s.cntClassicRecv.Add(1)\n\tmcrfClassicDiagnostic(link).Mark(mcrfdiag.ClassicAccepted)",
+          "expectedMatches": 1
+        }
+      ]
+    },
+    {
+      "path": "transport/encrypted.go",
+      "sha256": "0824fa1f2cff4daf2e5a137c7d9a89d5a5c059da689c35a0cbce1e18693b0de5",
+      "normalizeCRLF": true,
+      "replacements": [
+        {
+          "old": "import (",
+          "new": "import (\n\t\"github.com/p1neappleXpress/OpenFlux/mcrfdiag\"",
+          "expectedMatches": 1
+        },
+        {
+          "old": "type EncryptedTransport struct {",
+          "new": "type EncryptedTransport struct {\n\tmcrfSessionDiagnostic atomic.Pointer[mcrfdiag.Run]\n\tmcrfClassicDiagnostic atomic.Pointer[mcrfdiag.Run]",
+          "expectedMatches": 1
+        },
+        {
+          "old": "func (e *EncryptedTransport) Receive(callback func([]byte)) {\n\tr := e.ring",
+          "new": "func (e *EncryptedTransport) Receive(callback func([]byte)) {\n\tdiagnostic := e.mcrfSessionDiagnostic.Load() // Retain this exact subscription owner.\n\tclassicDiagnostic := e.mcrfClassicDiagnostic.Load()\n\tr := e.ring",
+          "expectedMatches": 1
+        },
+        {
+          "old": "e.recvBadLen.Add(1)",
+          "new": "e.recvBadLen.Add(1)\n\t\t\tdiagnostic.Mark(mcrfdiag.SessHeaderInvalid)\n\t\t\tclassicDiagnostic.Mark(mcrfdiag.ClassicHeaderInvalid)",
+          "expectedMatches": 1
+        },
+        {
+          "old": "e.recvFail.Add(1)",
+          "new": "e.recvFail.Add(1)\n\t\t\tdiagnostic.Mark(mcrfdiag.SessDecryptFailed)\n\t\t\tclassicDiagnostic.Mark(mcrfdiag.ClassicDecryptFailed)",
+          "expectedMatches": 1
+        },
+        {
+          "old": "e.recvReplay.Add(1)",
+          "new": "e.recvReplay.Add(1)\n\t\t\tdiagnostic.Mark(mcrfdiag.SessReplayRejected)\n\t\t\tclassicDiagnostic.Mark(mcrfdiag.ClassicReplayRejected)",
+          "expectedMatches": 1
+        },
+        {
+          "old": "e.recvOK.Add(1)",
+          "new": "e.recvOK.Add(1)\n\t\t\tdiagnostic.Mark(mcrfdiag.SessDecryptOK)\n\t\t\tclassicDiagnostic.Mark(mcrfdiag.ClassicDecryptOK)",
+          "expectedMatches": 1
+        },
+        {
+          "old": "e.recvBadHdr.Add(1)\n\t\t\tutils.Debugf(\"[CRYPTO] Recv DROP: bad magic",
+          "new": "e.recvBadHdr.Add(1)\n\t\t\tdiagnostic.Mark(mcrfdiag.SessHeaderInvalid)\n\t\t\tclassicDiagnostic.Mark(mcrfdiag.ClassicHeaderInvalid)\n\t\t\tutils.Debugf(\"[CRYPTO] Recv DROP: bad magic",
+          "expectedMatches": 1
+        },
+        {
+          "old": "e.recvBadHdr.Add(1)\n\t\t\tutils.Debugf(\"[CRYPTO] Recv DROP: bad version",
+          "new": "e.recvBadHdr.Add(1)\n\t\t\tdiagnostic.Mark(mcrfdiag.SessHeaderInvalid)\n\t\t\tclassicDiagnostic.Mark(mcrfdiag.ClassicHeaderInvalid)\n\t\t\tutils.Debugf(\"[CRYPTO] Recv DROP: bad version",
+          "expectedMatches": 1
+        },
+        {
+          "old": "e.recvBadHdr.Add(1)\n\t\t\tutils.Debugf(\"[CRYPTO] Recv DROP: wrong direction",
+          "new": "e.recvBadHdr.Add(1)\n\t\t\tdiagnostic.Mark(mcrfdiag.SessDirectionInvalid)\n\t\t\tclassicDiagnostic.Mark(mcrfdiag.ClassicDirectionInvalid)\n\t\t\tutils.Debugf(\"[CRYPTO] Recv DROP: wrong direction",
+          "expectedMatches": 1
+        }
+      ]
+    },
+    {
+      "path": "transport/batched.go",
+      "sha256": "c316a9e845192073bcc6d73e6c8fe0c2c9a3835841ca491b2005b22f22994f3d",
+      "normalizeCRLF": true,
+      "replacements": [
+        {
+          "old": "import (",
+          "new": "import (\n\t\"github.com/p1neappleXpress/OpenFlux/mcrfdiag\"",
+          "expectedMatches": 1
+        },
+        {
+          "old": "type BatchedTransport struct {",
+          "new": "type BatchedTransport struct {\n\tmcrfSessionDiagnostic atomic.Pointer[mcrfdiag.Run]",
+          "expectedMatches": 1
+        },
+        {
+          "old": "b.Transport.Receive(func(data []byte) {",
+          "new": "diagnostic := b.mcrfSessionDiagnostic.Load() // Retain this exact subscription owner.\n\tb.Transport.Receive(func(data []byte) {",
+          "expectedMatches": 1
+        },
+        {
+          "old": "utils.Debugf(\"[BATCH] decode error",
+          "new": "diagnostic.Mark(mcrfdiag.SessBatchInvalid)\n\t\t\tutils.Debugf(\"[BATCH] decode error",
+          "expectedMatches": 1
+        },
+        {
+          "old": "utils.Debugf(\"[BATCH] Recv: no callback",
+          "new": "diagnostic.Mark(mcrfdiag.SessCallbackMissing)\n\t\t\tutils.Debugf(\"[BATCH] Recv: no callback",
+          "expectedMatches": 1
+        }
+      ]
+    },
+    {
+      "path": "transport/transport.go",
+      "sha256": "316d0291474a0442637237d83571477c51413c9b2454103e203a36e9f0142595",
+      "normalizeCRLF": true,
+      "replacements": [
+        {
+          "old": "import (",
+          "new": "import (\n\t\"github.com/p1neappleXpress/OpenFlux/mcrfdiag\"",
+          "expectedMatches": 1
+        },
+        {
+          "old": "type BaseTransport struct {",
+          "new": "type BaseTransport struct {\n\tmcrfDiagnostic atomic.Pointer[mcrfdiag.Run]",
+          "expectedMatches": 1
+        },
+        {
+          "old": "func (b *BaseTransport) CallReceive(data []byte) {",
+          "new": "func (b *BaseTransport) CallReceive(data []byte) {\n\tdiagnostic := b.mcrfDiagnostic.Load()",
+          "expectedMatches": 1
+        },
+        {
+          "old": "if cb != nil {\n\t\tcb(data)\n\t}",
+          "new": "if cb != nil {\n\t\tcb(data)\n\t} else { diagnostic.Mark(mcrfdiag.RawCallbackMissing) }",
+          "expectedMatches": 1
+        }
+      ]
+    },
+    {
+      "path": "transport/framedemux.go",
+      "sha256": "41f51e0fc6f4929a73d4e1eb804b05c8518b8061801d1005fc9b84b12268b965",
+      "normalizeCRLF": true,
+      "replacements": [
+        {
+          "old": "import (",
+          "new": "import (\n\t\"github.com/p1neappleXpress/OpenFlux/mcrfdiag\"",
+          "expectedMatches": 1
+        },
+        {
+          "old": "type frameDemux struct {",
+          "new": "type frameDemux struct {\n\tmcrfDiagnostic *mcrfdiag.Run // Immutable after newLink publication.",
+          "expectedMatches": 1
+        },
+        {
+          "old": "if len(p) == 0 {",
+          "new": "if len(p) == 0 {\n\t\td.mcrfDiagnostic.Mark(mcrfdiag.DemuxEmpty)",
+          "expectedMatches": 1
+        },
+        {
+          "old": "if p[0] == encryptedMagic[0] {",
+          "new": "if p[0] == encryptedMagic[0] {\n\t\td.mcrfDiagnostic.Mark(mcrfdiag.DemuxSession)",
+          "expectedMatches": 1
+        },
+        {
+          "old": "sessionCb(p)\n\t\t}",
+          "new": "sessionCb(p)\n\t\t} else { d.mcrfDiagnostic.Mark(mcrfdiag.LayerCallbackMissing) }",
+          "expectedMatches": 1
+        },
+        {
+          "old": "if classicCb != nil {",
+          "new": "d.mcrfDiagnostic.Mark(mcrfdiag.DemuxClassic)\n\tif classicCb != nil {",
+          "expectedMatches": 1
+        },
+        {
+          "old": "if len(p) == 1 && p[0] == 0x00 {",
+          "new": "d.mcrfDiagnostic.Mark(mcrfdiag.LayerCallbackMissing)\n\tif len(p) == 1 && p[0] == 0x00 {",
+          "expectedMatches": 1
+        }
+      ]
+    },
+    {
+      "path": "transport/codec.go",
+      "sha256": "898387611dfaf0933cd72c4e0a82f3a7647d16bd57e266a8ef1132b5d97446ca",
+      "normalizeCRLF": true,
+      "replacements": [
+        {
+          "old": "import (",
+          "new": "import (\n\t\"github.com/p1neappleXpress/OpenFlux/mcrfdiag\"",
+          "expectedMatches": 1
+        },
+        {
+          "old": "type CodecTransport struct {",
+          "new": "type CodecTransport struct {\n\tmcrfDiagnostic atomic.Pointer[mcrfdiag.Run]",
+          "expectedMatches": 1
+        },
+        {
+          "old": "func (c *CodecTransport) receive(data []byte) {",
+          "new": "func (c *CodecTransport) receive(data []byte) {\n\tdiagnostic := c.mcrfDiagnostic.Load()",
+          "expectedMatches": 1
+        },
+        {
+          "old": "if len(data) == 0 {",
+          "new": "if len(data) == 0 {\n\t\tdiagnostic.Mark(mcrfdiag.CodecNoPayload)",
+          "expectedMatches": 1
+        },
+        {
+          "old": "utils.Debugf(\"[CODEC] batch frame",
+          "new": "diagnostic.Mark(mcrfdiag.CodecDecodeFailed)\n\t\t\tutils.Debugf(\"[CODEC] batch frame",
+          "expectedMatches": 1
+        },
+        {
+          "old": "utils.Debugf(\"[CODEC] legacy frame",
+          "new": "diagnostic.Mark(mcrfdiag.CodecDecodeFailed)\n\t\t\tutils.Debugf(\"[CODEC] legacy frame",
+          "expectedMatches": 1
+        },
+        {
+          "old": "n := c.unknown.Add(1)",
+          "new": "diagnostic.Mark(mcrfdiag.CodecUnknown)\n\t\tn := c.unknown.Add(1)",
+          "expectedMatches": 1
+        },
+        {
+          "old": "if cb == nil {",
+          "new": "if cb == nil {\n\t\tdiagnostic.Mark(mcrfdiag.LayerCallbackMissing)",
+          "expectedMatches": 1
+        }
+      ]
+    },
+    {
+      "path": "transport/mailru/mailru.go",
+      "sha256": "14eac8ee0200756609b290156f93ee40a161803483d00bed90592e6c3bb9a466",
+      "normalizeCRLF": true,
+      "replacements": [
+        {
+          "old": "import (",
+          "new": "import (\n\t\"github.com/p1neappleXpress/OpenFlux/mcrfdiag\"",
+          "expectedMatches": 1
+        },
+        {
+          "old": "type DocSession struct {",
+          "new": "type DocSession struct {\n\tmcrfDiagnostic *mcrfdiag.Run // Captured once per connection/rotation.",
+          "expectedMatches": 1
+        },
+        {
+          "old": "session := &DocSession{",
+          "new": "session := &DocSession{\n\t\tmcrfDiagnostic: t.McrfDiagnosticOwner(),",
+          "expectedMatches": 1
+        },
+        {
+          "old": "if err := waitMailruSocketIO(session, info.Token); err != nil {\n\t\t_ = conn.Close()\n\t\treturn nil, fmt.Errorf(\"socket.io handshake: %w\", err)\n\t}",
+          "new": "if err := waitMailruSocketIO(session, info.Token); err != nil {\n\t\t_ = conn.Close()\n\t\treturn nil, fmt.Errorf(\"socket.io handshake: %w\", err)\n\t}\n\tsession.mcrfDiagnostic.Mark(mcrfdiag.SocketReady)",
+          "expectedMatches": 1
+        },
+        {
+          "old": "session.safeWrite(websocket.TextMessage, []byte(fmt.Sprintf(\"42%s\", string(messagePart))))",
+          "new": "if err := session.safeWrite(websocket.TextMessage, []byte(fmt.Sprintf(\"42%s\", string(messagePart)))); err != nil { session.mcrfDiagnostic.Mark(mcrfdiag.AuthWriteFailed) } else { session.mcrfDiagnostic.Mark(mcrfdiag.AuthWriteOK) }",
+          "expectedMatches": 1
+        },
+        {
+          "old": "time.AfterFunc(authChangesReadyFallback, session.markReady)",
+          "new": "time.AfterFunc(authChangesReadyFallback, func() { mcrfFreshMailruFallback(session) })",
+          "expectedMatches": 1
+        },
+        {
+          "old": "utils.Debugf(\"[M-DOCS] Read error: %v\", err)",
+          "new": "session.mcrfDiagnostic.Mark(mcrfdiag.ReadClosed)\n\t\t\tutils.Debugf(\"[M-DOCS] Read error: %v\", err)",
+          "expectedMatches": 1
+        },
+        {
+          "old": "utils.Debugf(\"[M-DOCS] Write error: %v\", err)",
+          "new": "session.mcrfDiagnostic.Mark(mcrfdiag.ChatWriteFailed)\n\t\t\tutils.Debugf(\"[M-DOCS] Write error: %v\", err)",
+          "expectedMatches": 1
+        },
+        {
+          "old": "pending = nil",
+          "new": "session.mcrfDiagnostic.Mark(mcrfdiag.ChatWriteOK)\n\t\tpending = nil",
+          "expectedMatches": 1
+        },
+        {
+          "old": "t.RecordReceive(len(pkt))",
+          "new": "session.mcrfDiagnostic.Mark(mcrfdiag.PeerChat)\n\t\t\tt.RecordReceive(len(pkt))",
+          "expectedMatches": 1
+        },
+        {
+          "old": "func (t *MailruDocsTransport) handleMessage(session *DocSession, data []byte) {",
+          "new": "func (t *MailruDocsTransport) handleMessage(session *DocSession, data []byte) {\n\tif mcrfFreshMailruAuthChanges(session, data) { return }",
+          "expectedMatches": 1
+        },
+        {
+          "old": "payload := chatDataTag + base64.StdEncoding.EncodeToString(pending)",
+          "new": "if !mcrfFreshMailruWriteReady(session) { time.Sleep(15 * time.Millisecond); continue }\n\t\tpayload := chatDataTag + base64.StdEncoding.EncodeToString(pending)",
+          "expectedMatches": 1
+        }
+      ]
+    }
+  ],
+  "copies": [
+    {
+      "source": "recorder.go",
+      "destination": "mcrfdiag/recorder.go"
+    },
+    {
+      "source": "recorder_review_test.go",
+      "destination": "mcrfdiag/recorder_review_test.go"
+    },
+    {
+      "source": "session_owner.go",
+      "destination": "transport/mcrf_session_diagnostic.go"
+    },
+    {
+      "source": "session_pipeline_review_test.go",
+      "destination": "transport/mcrf_deep_session_pipeline_review_test.go"
+    },
+    {
+      "source": "raw_owner.go",
+      "destination": "transport/mcrf_raw_diagnostic.go"
+    },
+    {
+      "source": "lower_pipeline_review_test.go",
+      "destination": "transport/mcrf_deep_lower_pipeline_review_test.go"
+    },
+    {
+      "source": "mailru_ack.go",
+      "destination": "transport/mailru/mcrf_fresh_ack.go"
+    },
+    {
+      "source": "mailru_ack_review_test.go",
+      "destination": "transport/mailru/mcrf_fresh_ack_review_test.go"
+    }
+  ]
+}

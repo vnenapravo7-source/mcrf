@@ -76,6 +76,8 @@ internal class AndroidDeployQuickAddUi(private val activity:MainActivity,private
         val dialog=ThemedDialogBuilder(activity).setTitle("Новое подключение")
             .setView(ScrollView(activity).apply {addView(body)})
             .setNegativeButton("Отмена",null).setPositiveButton("Добавить",null).create()
+        // A rejected start must reuse its saved draft rather than create another on retry.
+        val draft=DeploymentDraftRetry()
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 if(backend.state.running||RemoteServerOperationGate.busy()){error.text="Дождитесь завершения операции сервера";return@setOnClickListener}
@@ -90,7 +92,8 @@ internal class AndroidDeployQuickAddUi(private val activity:MainActivity,private
                     AndroidDeployPlan.validate(entry.recipe,target)
                     val values=JSONObject(template.toString()).put("options",options).put("panelUser",target.panelUser).put("panelPassword",target.panelPassword).put("operationId",target.operationId)
                     for(key in listOf("sshAuth","sshPassword","privateKey","keyPassword"))if(credentials.has(key))values.put(key,credentials.get(key))
-                    val id=store.newDeployment(entry.recipe,title,values,entry.key)
+                    val id=draft.save({store.newDeployment(entry.recipe,title,values,entry.key)},
+                        {store.saveDeployment(it,title,values)})
                     backend.addTransport(entry.recipe,target.copy(deploymentId=id,deploymentName=title),entry.result)
                 }.onSuccess {started->if(started)dialog.dismiss()else error.text="Другая операция уже выполняется"}
                     .onFailure {error.text=it.message?:"Не удалось добавить подключение"}

@@ -1,0 +1,175 @@
+name: Nightly
+
+# The CLI's test channel, next to the tagged release (release.yml, v*) and
+# the exit-node release (node-release.yml, node-v*). A nightly is a GitHub
+# *prerelease* tagged nightly-<date>-<commit>, cross-compiled the same way
+# as release.yml. It carries no update mechanism of its own - it exists so
+# the Android/Desktop nightlies (and anyone testing by hand) have a current
+# CLI build to point at or pin a submodule to.
+#
+# It runs
+#   - on a push to the `nightly` branch (that is how a test build is cut),
+#   - every night, when `nightly` has a commit that has no build yet,
+#   - from "Run workflow", on the chosen branch.
+# The newest 7 nightlies are kept; older ones and their tags are deleted.
+on:
+  push:
+    branches: [nightly]
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.plan.outputs.build }}
+      sha: ${{ steps.plan.outputs.sha }}
+    steps:
+      - id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" = schedule ]; then
+            sha=$(git ls-remote "https://github.com/$GITHUB_REPOSITORY" refs/heads/nightly | cut -f1)
+            if [ -z "$sha" ]; then echo "No nightly branch: nothing to build"; echo "build=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+            # A commit is built once: skip when a nightly already carries it.
+            if gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].tag_name' | grep -q -- "-${sha:0:7}$"; then
+              echo "Nightly for ${sha:0:7} already published"; echo "build=false" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          else
+            sha="$GITHUB_SHA"
+          fi
+          echo "build=true" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      value: ${{ steps.version.outputs.value }}
+      tag: ${{ steps.version.outputs.tag }}
+      date: ${{ steps.version.outputs.date }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The upcoming main version (the last v* release, one patch up) with
+          # a nightly suffix: 0.3.0 -> 0.3.1-nightly.20261004.
+          last=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq '[.[] | select(.tag_name | startswith("v"))][0].tag_name' 2>/dev/null || true)
+          last="${last#v}"
+          if ! [[ "$last" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then last="0.0.0"; fi
+          IFS=. read -r major minor patch <<< "$last"
+          date=$(date -u +%Y%m%d)
+          short=$(git rev-parse --short=7 HEAD)
+          echo "value=${major}.${minor}.$((patch + 1))-nightly.${date}" >> "$GITHUB_OUTPUT"
+          echo "tag=nightly-${date}-${short}" >> "$GITHUB_OUTPUT"
+          echo "date=${date}" >> "$GITHUB_OUTPUT"
+          echo "Version ${major}.${minor}.$((patch + 1))-nightly.${date}, commit ${short}"
+
+      - name: Tests
+        run: go build ./... && go vet ./... && go test ./...
+
+      - name: Cross-compile
+        run: |
+          mkdir -p dist
+          build() {
+            goos=$1 goarch=$2 goarm=${3:-} ext=${4:-}
+            name="openflux-$goos-$goarch$ext"
+            echo "building $name"
+            GOOS=$goos GOARCH=$goarch GOARM=$goarm CGO_ENABLED=0 GOFLAGS=-buildvcs=false \
+              go build -trimpath -ldflags "-s -w" -o "dist/$name" .
+          }
+          build linux   amd64
+          build linux   arm64
+          build linux   arm   7
+          build windows 386   "" .exe
+          build windows amd64 "" .exe
+          build windows arm64 "" .exe
+          build darwin  amd64
+          build darwin  arm64
+          cd dist && sha256sum openflux-* > SHA256SUMS.txt && cat SHA256SUMS.txt
+
+      - name: Build script tools (scriptsign / scripttest / scriptbundle)
+        run: |
+          mkdir -p dist-tools
+          for tool in scriptsign scripttest scriptbundle; do
+            for goos in linux windows darwin; do
+              ext=""; [ "$goos" = windows ] && ext=".exe"
+              GOOS=$goos GOARCH=amd64 CGO_ENABLED=0 GOFLAGS=-buildvcs=false \
+                go build -trimpath -ldflags "-s -w" -o "dist-tools/$tool-$goos-amd64$ext" ./transport/script/cmd/$tool
+            done
+          done
+          cd dist-tools && sha256sum * > SHA256SUMS-tools.txt
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: openflux-nightly
+          path: |
+            dist/*
+            dist-tools/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish the nightly prerelease
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: openflux-nightly
+          path: dist-all
+
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ needs.build.outputs.tag }}"
+          notes="Ночная сборка CLI: тестовая, может ломаться. Не основной выпуск (см. \`v*\` releases). Кросс-платформенные бинарники — как в основном релизе, плюс \`scriptsign\`/\`scripttest\`/\`scriptbundle\` для скрипт-транспортов. Контрольные суммы — в SHA256SUMS.txt."
+          pending=$(awk 'index($0, "## [Unreleased]")==1 { f=1; next } index($0, "## [")==1 { f=0 } f' CHANGELOG.md | sed '/./,$!d')
+          [ -n "$pending" ] && notes="$pending"$'\n\n'"$notes"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist-all/dist/* dist-all/dist-tools/* --clobber
+            gh release edit "$tag" --prerelease --notes "$notes"
+          else
+            gh release create "$tag" dist-all/dist/* dist-all/dist-tools/* \
+              --prerelease \
+              --target "${{ needs.plan.outputs.sha }}" \
+              --title "OpenFlux nightly ${{ needs.build.outputs.date }} (${tag##*-})" \
+              --notes "$notes"
+          fi
+
+      - name: Keep the newest 7 nightlies
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --jq '[.[] | select(.tag_name | startswith("nightly-"))] | sort_by(.created_at) | reverse | .[7:] | .[].tag_name' |
+            while read -r old; do
+              echo "removing old nightly $old"
+              gh release delete "$old" --cleanup-tag --yes
+            done

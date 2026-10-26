@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit
 
 object ProbeCoordinator {
     private val cancellation = java.util.concurrent.atomic.AtomicLong()
+    private val explicitCancellation = java.util.concurrent.atomic.AtomicLong()
     private val startLock = Any()
     private val measureLock = Any()
     @Volatile private var runtimeOwner:McrfVpnService?=null
@@ -22,7 +23,7 @@ object ProbeCoordinator {
     private val observers=java.util.concurrent.CopyOnWriteArraySet<() -> Unit>()
     fun observe(observer: () -> Unit) {observers.add(observer)}
     fun unobserve(observer: () -> Unit) {observers.remove(observer)}
-    private fun changed() {observers.forEach {it()}}
+    private fun changed() = presentationChanged()
     internal fun presentationChanged() {observers.forEach {observer->try{observer()}catch(_:Exception){/* Detached presentation observer is not a probe failure. */}}}
     fun cancellationToken() = cancellation.get()
     @Volatile var progress = ""
@@ -36,7 +37,60 @@ object ProbeCoordinator {
     @Volatile var providerStage=""
         private set
     fun cancel(context: Context) = synchronized(startLock) {
-        cancellation.incrementAndGet(); context.stopService(Intent(context, ProbeService::class.java)); Unit
+        explicitCancellation.incrementAndGet();cancellation.incrementAndGet(); context.stopService(Intent(context, ProbeService::class.java)); Unit
+    }
+    /** At most one temporary helper at a time. Its native probe has actually
+     * quiesced before close. Selection later starts and probes a NEW ingress;
+     * these ranking-only bindings never admit that replacement process. */
+    internal fun measureSteerCandidatesRuntime(context:McrfVpnService,entries:List<ServerImport.Server>,state:JSONObject,
+        testUrl:String,cancelled:()->Boolean):SteerProbeDelays = synchronized(measureLock) {
+        val token=context.runtimeSteerProbeToken()?:error("STEER_PROBE_RUNTIME_OWNER")
+        measureSteerCandidates(context,entries,state,{cancelled()||context.runtimeSteerProbeToken()!=token}) {nodes,retired->
+            measureSteerRuntime(context,nodes,testUrl,retired) as SteerProbeDelays
+        }
+    }
+    private fun measureSteerCandidates(context:Context,entries:List<ServerImport.Server>,state:JSONObject,
+        cancelled:()->Boolean,measureNative:(List<ServerImport.Server>,()->Boolean)->SteerProbeDelays):SteerProbeDelays {
+        require(entries.isNotEmpty()&&entries.size<=256&&entries.map {it.id}.toSet().size==entries.size&&entries.all {SteerAutomaticPool.compatible(it)})
+        val cancelToken=explicitCancellation.get()
+        val network=DirectAccessCheck.physical(context)?.networkHandle?:error("STEER_PROBE_PHYSICAL_NETWORK")
+        val installed=EngineUpdatePrimary.installation(context,"steer")
+        val sha=ClientPrimaryWorkerWire.hashFile(File(installed.sourceDir))
+        fun retired()=cancelled()||explicitCancellation.get()!=cancelToken||DirectAccessCheck.physical(context)?.networkHandle!=network
+        fun checkOwner(){check(!retired()) {"STEER_ASSISTED_PROBE_RETIRED"}}
+        val values=LinkedHashMap<String,Long>();val times=LinkedHashMap<String,Long>()
+        val bindings=LinkedHashMap<String,AssistedSteerProbeBinding>()
+        fun append(result:SteerProbeDelays){
+            checkOwner();require(result.moduleSha==sha&&result.networkHandle==network){"STEER_ASSISTED_PROBE_ORIGIN"}
+            require(values.keys.intersect(result.keys).isEmpty())
+            values.putAll(result);times.putAll(result.completedAt)
+        }
+        val lease=EngineUpdateGate.acquireUsage(context)?:error("Заверши установку движка перед замером.")
+        try {
+            checkOwner()
+            val native=entries.filterNot(CompactProtocolPolicy::eligible)
+            if(native.isNotEmpty())append(measureNative(native,::retired))
+            for(entry in entries.filter(CompactProtocolPolicy::eligible)) {
+                checkOwner()
+                try {
+                    val helper=CompactProtocolSession.start(context,entry,state,network,java.util.function.BooleanSupplier(::retired))
+                    try {
+                        val result=measureNative(listOf(helper.effective),::retired)
+                        helper.requireAlive(DirectAccessCheck.physical(context)?.networkHandle)
+                        helper.requireHealthy(result.getValue(entry.id)>=0)
+                        append(result);bindings[entry.id]=helper.binding
+                    }finally{OptionalCoreRetirement.drain(helper)}
+                }catch(error:Exception){
+                    checkOwner()
+                    if(!PrimaryFallbackPolicy.canRetryFailure(error))throw error
+                    values[entry.id]=-1;times[entry.id]=SystemClock.elapsedRealtime()
+                    ClientEvents.record(context,"Замер Steer","${entry.name}: ${error.message.orEmpty()}")
+                }
+            }
+            checkOwner()
+            require(ClientPrimaryWorkerWire.hashFile(File(EngineUpdatePrimary.installation(context,"steer").sourceDir))==sha){"STEER_ASSISTED_MODULE_CHANGED"}
+            return SteerProbeDelays(values,times,sha,network,bindings).also {SteerProbeCache.publish(installed.sourceDir,sha,network,entries,it)}
+        }finally{OptionalCoreRetirement.drain(lease)}
     }
     /** Wait for the other process's actual child/core cleanup before an ordinary TUN can capture its UID. */
     fun awaitQuiescent(context: Context) {
@@ -52,24 +106,41 @@ object ProbeCoordinator {
         check(closed.await(20,TimeUnit.SECONDS)) { "Замер ещё останавливается. Повторите подключение после его завершения." }
     }
     /** Caller uses the client worker; the probe core itself lives in a separate Android process. */
-    @JvmOverloads fun measure(context: Context, entries: List<ServerImport.Server>, testUrl: String = "https://www.gstatic.com/generate_204", expectedCancellation: Long = cancellationToken(), providerDiagnostic:Boolean=false,providerVersion:Int=1): Map<String, Long> =
-        measureInternal(context,entries,testUrl,expectedCancellation,providerDiagnostic,providerVersion,null)
+    @JvmOverloads fun measure(context: Context, entries: List<ServerImport.Server>, testUrl: String = "https://www.gstatic.com/generate_204", expectedCancellation: Long = cancellationToken(), providerDiagnostic:Boolean=false,providerVersion:Int=1): Map<String, Long> = synchronized(measureLock) {
+        if(!providerDiagnostic&&ClientPrimarySelection.selected(context)=="steer"&&entries.any(CompactProtocolPolicy::eligible)){
+            check(cancellation.get()==expectedCancellation){"Замер отменён. Предыдущие результаты сохранены."}
+            require(providerVersion==1)
+            val routing=RoutingStore(context);routing.load()
+            measureSteerCandidates(context,entries,routing.snapshot(),{ClientPrimarySelection.selected(context)!="steer"}) {nodes,retired->
+                check(!retired()) {"STEER_ASSISTED_PROBE_RETIRED"}
+                try {measureInternal(context,nodes,testUrl,cancellationToken(),false,1,null) as SteerProbeDelays}
+                finally {awaitProbeRetirement(context)}
+            }
+        }else measureInternal(context,entries,testUrl,expectedCancellation,providerDiagnostic,providerVersion,null)
+    }
+    private fun awaitProbeRetirement(context:Context){
+        var interrupted=Thread.interrupted()
+        try {
+            while(true){
+                try{awaitQuiescent(context);return}
+                catch(error:Exception){if(error is InterruptedException||Thread.interrupted())interrupted=true}
+                try{Thread.sleep(250)}catch(_:InterruptedException){interrupted=true}
+            }
+        }finally{if(interrupted)Thread.currentThread().interrupt()}
+    }
     /** The service's explicit runtime scope can measure while retaining its
      * own TUN. UI callers still cannot probe during a startup/cleanup. */
     internal fun measureSteerRuntime(context:McrfVpnService,entries:List<ServerImport.Server>,testUrl:String,cancelled:()->Boolean):Map<String,Long> = synchronized(measureLock) {
-        check(runtimeOwner==null&&ClientPrimarySelection.selected(context)=="steer") {"STEER_PROBE_RUNTIME_OWNER"}
+        val ownerToken=context.runtimeSteerProbeToken()
+        check(runtimeOwner==null&&ownerToken!=null) {"STEER_PROBE_RUNTIME_OWNER"}
         runtimeOwner=context;runtimeProbeSubmitted=false
-        try {measureInternal(context,entries,testUrl,cancellationToken(),false,1,cancelled)}
+        try {measureInternal(context,entries,testUrl,cancellationToken(),false,1) {
+            cancelled()||context.runtimeSteerProbeToken()!=ownerToken
+        }}
         finally {
-            var interrupted=Thread.interrupted()
             try {
-                if(runtimeProbeSubmitted)while(true) {
-                    try {awaitQuiescent(context);break}
-                    catch(error:Exception){if(error is InterruptedException||Thread.interrupted())interrupted=true}
-                    try{Thread.sleep(250)}catch(_:InterruptedException){interrupted=true}
-                }
-                runtimeOwner=null;runtimeProbeSubmitted=false
-            }finally{if(interrupted)Thread.currentThread().interrupt()}
+                if(runtimeProbeSubmitted)awaitProbeRetirement(context)
+            }finally{runtimeOwner=null;runtimeProbeSubmitted=false}
         }
     }
     internal fun cancelRuntime(context:McrfVpnService) {if(runtimeOwner===context)cancel(context)}
@@ -88,7 +159,8 @@ object ProbeCoordinator {
         require(providerDiagnostic||providerVersion==1)
         if(providerDiagnostic){ClientOpenFluxProviderGate.requireApproved(entries);ClientOpenFluxProviderGate.verify(context,providerVersion)}
         require(entries.size <= 256) { "За один замер допускается до 256 серверов." }
-        val steer= !providerDiagnostic&&ClientPrimarySelection.selected(context)=="steer"
+        val steer=ProbeBackendScope.usesSteer(ClientPrimarySelection.selected(context),
+            runtimeCancelled!=null&&runtimeOwner===context,providerDiagnostic)
         val steerModule=if(steer)EngineUpdatePrimary.installation(context,"steer")else null
         val steerSha=steerModule?.let {ClientPrimaryWorkerWire.hashFile(File(it.sourceDir))}
         val steerNetwork=if(steer)DirectAccessCheck.physical(context)?.networkHandle

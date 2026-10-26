@@ -135,7 +135,7 @@ class ServersPage(private val activity: MainActivity) {
             val dialog = ThemedDialogBuilder(this@with).setTitle("Ссылка подписки").setView(form).setNegativeButton("Отмена", null).setPositiveButton("Сохранить", null).create()
             dialog.setOnShowListener { dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val address = input.text.toString()
-                run(Operation { val fetched = SubscriptionUpdates.fetch(this@with, address); val changes=catalogue.editFetched(id, address, fetched); reconcileSelection(false); changes.summary() }, true, Runnable { dialog.dismiss() })
+                runAfterSuccess(Operation { val fetched = SubscriptionUpdates.fetch(this@with, address); val changes=catalogue.editFetched(id, address, fetched); reconcileSelection(false); changes.summary() }, true, Runnable { dialog.dismiss() })
             } }; dialog.show()
         }
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(12), dp(8), dp(4), dp(8)); minimumHeight = dp(72) }

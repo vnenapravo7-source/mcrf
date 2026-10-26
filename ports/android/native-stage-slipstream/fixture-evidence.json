@@ -1,0 +1,117 @@
+{
+  "cleanupPending": false,
+  "attempts": [
+    {
+      "requested": [
+        "TestMcrfSlipstreamStrictConfigAndMandatoryLeaf",
+        "TestMcrfSlipstreamRejectDuplicateAndTrailingConfig",
+        "TestMcrfSlipstreamEndpointAndKeepAliveBounds",
+        "TestMcrfSlipstreamUnauthenticatedClientCannotOpenRemoteStream",
+        "TestMcrfSlipstreamPrivateRelayPreservesHalfClose",
+        "TestMcrfSlipstreamCancellationClosesPendingRemoteAuth",
+        "TestMcrfSlipstreamOwnedWireData",
+        "TestMcrfSlipstreamWrongLeafStopsBeforeRemoteSOCKS",
+        "TestMcrfSlipstreamParentDeathStopsCore",
+        "TestMcrfSlipstreamStdinEOFStopsCore",
+        "TestMcrfSlipstreamOriginalCServerInterop"
+      ],
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256": "1b9273de28bb092f24c41d4aa9d42c8003b5d953f4094e4c580aae5112fc72d8",
+      "log": "attempt-df56f69fa2d848169914bfb06b6cbb7d/raw.log",
+      "exit": 1
+    },
+    {
+      "sha256": "99448fc9ae282410ed3a16379ae14b6918f1197234f15fad5a66e6166cba54bf",
+      "apkSha256": "6ecf2c6b8336245e7218067ed7127ac6706cea7a20f1ec2172a3e4240a4f5ae8",
+      "requested": [
+        "TestMcrfSlipstreamUnauthenticatedClientCannotOpenRemoteStream",
+        "TestMcrfSlipstreamPrivateRelayPreservesHalfClose",
+        "TestMcrfSlipstreamCancellationClosesPendingRemoteAuth",
+        "TestMcrfSlipstreamOwnedWireData",
+        "TestMcrfSlipstreamWrongLeafStopsBeforeRemoteSOCKS",
+        "TestMcrfSlipstreamParentDeathStopsCore",
+        "TestMcrfSlipstreamStdinEOFStopsCore",
+        "TestMcrfSlipstreamOriginalCServerInterop"
+      ],
+      "log": "attempt-703acc60a03c4bdca060b96fcb925eab/raw.log",
+      "instrumentSha256": "cfbff93cde149867fee65c3680e730a46f5de0c9bbb9589e3023d28e1c567c48",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 1
+    },
+    {
+      "requested": [
+        "TestMcrfSlipstreamOwnedWireData",
+        "TestMcrfSlipstreamParentDeathStopsCore",
+        "TestMcrfSlipstreamStdinEOFStopsCore",
+        "TestMcrfSlipstreamOriginalCServerInterop"
+      ],
+      "exit": 1,
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "instrumentSha256": "2427e1059ebde2c1d145ec581179d8524978e06ad97575b1dcec6f31b5478875",
+      "log": "attempt-ea816bf1d5804d76ad6b9bd6d631ba64/raw.log",
+      "sha256": "336b4cd62664433ed40639021ea1cbb96020c68e6b61359bb837b6abe95e3978",
+      "apkSha256": "3282051521d205abd3e23650cbc3e278b6675fcfcd3c284820fb2bb969dbf887"
+    },
+    {
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "instrumentSha256": "7739a85a6b3e2124db6fb4a7578c38f341f22f586b9cfb9e7fe2815db020285c",
+      "log": "attempt-da396661c3de4f12953e10c6b26811cd/raw.log",
+      "exit": 1,
+      "sha256": "b7dfaf9338c005fb1685ab7a445918bbe49547d675e4745603e5317b1787c6ce",
+      "apkSha256": "e75f7523cc170cdfa5a78c85fea51b68779b5c19b6d00aa9a8e7c705472a3acd",
+      "requested": [
+        "TestMcrfSlipstreamOwnedWireData",
+        "TestMcrfSlipstreamParentDeathStopsCore",
+        "TestMcrfSlipstreamStdinEOFStopsCore",
+        "TestMcrfSlipstreamOriginalCServerInterop"
+      ]
+    },
+    {
+      "apkSha256": "296b4fd78b3ae46828ce0b13261fffaa52651606e2474bd8e660a21577328460",
+      "exit": 0,
+      "sha256": "be3fd59e64b3c85f1f7fbe1ac7121526c626f0c92fd55d4f934037f5afc9430f",
+      "requested": [
+        "TestMcrfSlipstreamParentDeathStopsCore",
+        "TestMcrfSlipstreamStdinEOFStopsCore",
+        "TestMcrfSlipstreamOriginalCServerInterop"
+      ],
+      "log": "attempt-f3e640926b6e4b73a342891333cabd0c/raw.log",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "instrumentSha256": "7d3ddb91747e17faa7e2d175f12f63ec7cef06f182b853604b40da29ed8b99e7"
+    }
+  ],
+  "retainedTestsReplayed": false,
+  "phoneAccepted": false,
+  "remote": "/data/local/tmp/ms12a6f3865e95",
+  "serial": "emulator-5580",
+  "userSettingsChanged": false,
+  "failures": 0,
+  "skipped": 0,
+  "cases": [
+    "TestMcrfSlipstreamStrictConfigAndMandatoryLeaf",
+    "TestMcrfSlipstreamRejectDuplicateAndTrailingConfig",
+    "TestMcrfSlipstreamEndpointAndKeepAliveBounds",
+    "TestMcrfSlipstreamUnauthenticatedClientCannotOpenRemoteStream",
+    "TestMcrfSlipstreamPrivateRelayPreservesHalfClose",
+    "TestMcrfSlipstreamCancellationClosesPendingRemoteAuth",
+    "TestMcrfSlipstreamWrongLeafStopsBeforeRemoteSOCKS",
+    "TestMcrfSlipstreamOwnedWireData",
+    "TestMcrfSlipstreamParentDeathStopsCore",
+    "TestMcrfSlipstreamStdinEOFStopsCore",
+    "TestMcrfSlipstreamOriginalCServerInterop"
+  ],
+  "abi": "x86_64",
+  "originalPicoquicCommit": "2ee2ecd189354791e15cc1ff9db86e4e4b8eba10",
+  "sourceManifestSha256": "784663e3c08660cd8a2280f95be6d3e6f11ad3ba50161ad35e3070030247cdf4",
+  "inputs": [],
+  "originalCCommit": "397850b16e70a52513269134b2c7b9aa13a56745",
+  "logSha256": "b12fee525aa43fe9175bfb4b37826b94f2f6ce1b0217f9f1c71bac45ca85d251",
+  "state": "PASS_P3_SLIPSTREAM_OWNED_FIXTURE",
+  "originalCServerInterop": true,
+  "aggregate": {
+    "source": "immutable Go raw PASS lines only",
+    "priorEvidenceSha256": "ea7dd03326de6c631a6fc8a477c147774c8cf0fd9e9363f726def2e555080fd1",
+    "cases": 11,
+    "testsExecuted": false
+  }
+}

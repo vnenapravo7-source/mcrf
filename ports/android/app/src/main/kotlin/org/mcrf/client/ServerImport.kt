@@ -10,6 +10,7 @@ import java.util.*
 /** The same import contract and link corpus as the portable client. */
 object ServerImport {
     const val MAX_BYTES = 4 * 1024 * 1024
+    private const val MAX_ENTRIES = 1000
     class Server @JvmOverloads constructor(
         @JvmField val original: String, @JvmField val name: String, @JvmField val protocol: String,
         @JvmField val host: String, @JvmField val port: Int, @JvmField val outbound: JSONObject?,
@@ -17,7 +18,7 @@ object ServerImport {
         @JvmField val profileDns: List<String> = emptyList()
     ) {
         @JvmField val id = MessageDigest.getInstance("SHA-256").digest(original.toByteArray(Charsets.UTF_8)).joinToString("") { String.format(Locale.ROOT, "%02x", it.toInt() and 255) }
-        fun needsEngine() = protocol in setOf("openflux", "csqtt", "wdtt", "qwdtt", "olcrtc", "dnstt",S3BypassProfile.KIND)
+        fun needsEngine() = protocol in setOf("openflux", "csqtt", "wdtt", "qwdtt", "olcrtc", "dnstt",VayDnsProfile.KIND,SlipstreamProfile.KIND,SstpProfile.KIND,MasterDnsProfile.KIND,S3BypassProfile.KIND)
         fun label(): String { val transport = outbound?.optJSONObject("transport")?.optString("type", "").orEmpty()
             return (if(protocol==S3BypassProfile.KIND)"S3 Bypass"else protocol.uppercase(Locale.ROOT)) + if(carrier?.let(Csqtt25Profile::isProfile)==true) " · 2.5" else if (transport.isEmpty()) "" else " · ${transport.uppercase(Locale.ROOT)}" }
     }
@@ -45,7 +46,7 @@ object ServerImport {
         try {
             if (text.startsWith('[') && !text.startsWith("[Interface]", true)) {
                 val list = org.json.JSONTokener(text).let { token -> (token.nextValue() as JSONArray).also { require(token.nextClean() == '\u0000') } }
-                require(list.length() in 1..1000)
+                require(list.length() in 1..MAX_ENTRIES)
                 return readCollection(list, depth)
             }
             if (text.startsWith('{')) {
@@ -53,11 +54,11 @@ object ServerImport {
                 if(S3BypassProfile.isProfile(config))return listOf(S3BypassProfile.fromJson(text,config))
                 val profiles = config.optJSONArray("profiles") ?: config.optJSONArray("servers")
                 if (profiles != null && !config.has("outbounds")) {
-                    require(profiles.length() in 1..1000)
+                    require(profiles.length() in 1..MAX_ENTRIES)
                     return readCollection(profiles, depth)
                 }
                 if (!config.has("type") && config.has("peer") && (config.has("hashes") || config.has("vkHashes"))) config.put("type", "qwdtt")
-                if (config.optString("type") in setOf("olcrtc", "dnstt", "openflux") + SwgProfile.TYPES) return listOf(CarrierProfile.fromJson(text, config))
+                if (config.optString("type") in setOf("olcrtc", "dnstt", VayDnsProfile.KIND, SlipstreamProfile.KIND, SstpProfile.KIND, MasterDnsProfile.KIND, "openflux") + SwgProfile.TYPES) return listOf(CarrierProfile.fromJson(text, config))
                 CompatibilityImportFormats.node(text, config)?.let { return listOf(it) }
                 CompatibilityImportFormats.rejectForeign(config)
                 ProfileConfig.build(text, true, 10808); val route = config.optJSONObject("route")
@@ -74,13 +75,17 @@ object ServerImport {
                 }
                 try { val entry = link(line); if (ids.add(entry.id)) entries.add(entry) }
                 catch (_: Exception) { throw IllegalArgumentException("Некорректное подключение в строке ${i+1}. Проверь формат ссылки и обязательные поля.") }
+                // Match the existing JSON collection bound before retaining a
+                // potentially huge plaintext subscription. Hashes inside a
+                // single server are not counted here; duplicate IDs stay one entry.
+                require(entries.size<=MAX_ENTRIES) { "В импорте больше 1000 подключений." }
             }
         }
         require(entries.isNotEmpty()) { "В импорте нет подключений." }; return entries
     }
     private fun readCollection(values: JSONArray, depth: Int): List<Server> {
         val entries = mutableListOf<Server>()
-        repeat(values.length()) { i -> entries.addAll(readDocument(values.get(i).toString(), depth + 1)); require(entries.size <= 1000) { "В импорте больше 1000 подключений." } }
+        repeat(values.length()) { i -> entries.addAll(readDocument(values.get(i).toString(), depth + 1)); require(entries.size <= MAX_ENTRIES) { "В импорте больше 1000 подключений." } }
         return entries.distinctBy { it.id }
     }
     @JvmStatic fun build(entries: List<Server>, selectedId: String, automatic: Boolean, interval: Int, tolerance: Int, dns: String): JSONObject {
@@ -127,7 +132,7 @@ object ServerImport {
         if (original.startsWith("v2raytun://", true)) return link(CompatibilityImportLinks.unwrap(original))
         require(original.toByteArray(Charsets.UTF_8).size <= 65536)
         var link = original; val scheme = link.substringBefore("://").lowercase(Locale.ROOT)
-        when (scheme) { "olcrtc" -> return CarrierProfile.olc(link); "dnstt" -> return CarrierProfile.dnstt(link); "openflux" -> return OpenFluxProfile.link(link); "vmess" -> return vmess(link) }
+        when (scheme) { "sstp"->return SstpProfile.link(link); "olcrtc" -> return CarrierProfile.olc(link); "dnstt" -> return CarrierProfile.dnstt(link); "openflux" -> return OpenFluxProfile.link(link); "vmess" -> return vmess(link) }
         if (scheme in SwgProfile.TYPES) return SwgProfile.link(link)
         if (scheme == "ss" && !link.substringBefore('#').contains('@')) {
             val parts = link.substring(5).split('#', limit = 2); link = "ss://${decode64(parts[0])}" + if (parts.size == 2) "#${parts[1]}" else ""

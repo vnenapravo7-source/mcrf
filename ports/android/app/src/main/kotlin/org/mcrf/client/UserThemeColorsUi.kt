@@ -25,7 +25,7 @@ object UserThemeColorsUi {
                 if(!working()){
                     val selected=PatternWallpaper.choices.keys.elementAt(wallpaper.selectedItemPosition)
                     if(selected==WallpaperCombinations.canonical(prefs.getString(PatternWallpaper.KEY,"none").orEmpty())){toast("Нет изменений");return@setOnClickListener}
-                    this@with.run({check(prefs.edit().putString(PatternWallpaper.KEY,selected).commit()){"Не удалось сохранить узор."};""},false,Runnable {applyUserThemeColors()})
+                    this@with.runAfterSuccess({check(prefs.edit().putString(PatternWallpaper.KEY,selected).commit()){"Не удалось сохранить узор."};""},false,Runnable {applyUserThemeColors()})
                 }
             }},space(0,16))
             divider(this,0,12)
@@ -75,7 +75,7 @@ object UserThemeColorsUi {
                 UserThemeColors.keys.forEachIndexed {index,key->edit.putString(key,UserThemeColors.hex(colors[index]))}
                 edit.putString(PatternWallpaper.KEY,PatternWallpaper.choices.keys.elementAt(wallpaper.selectedItemPosition))
                 val chosenIcon=pendingIcon
-                this@with.run({
+                this@with.runAfterSuccess({
                     val previousIcon=if(chosenIcon!=null)LauncherIcons.current(this@with)else null
                     chosenIcon?.let {LauncherIcons.select(this@with,it.id)}
                     if(!edit.commit()){
@@ -91,7 +91,7 @@ object UserThemeColorsUi {
             divider(this,0,12)
             addView(button("Стандартные цвета",false).apply {tag="theme-colors-reset";setOnClickListener {
                 if(UserThemeColors.keys.none {prefs.contains(it)}){toast("Уже используются стандартные цвета");return@setOnClickListener}
-                if(!working())this@with.run({
+                if(!working())this@with.runAfterSuccess({
                     val edit=prefs.edit();UserThemeColors.keys.forEach(edit::remove)
                     check(edit.commit()){"Не удалось восстановить цвета."};""
                 },false,Runnable {applyUserThemeColors()})

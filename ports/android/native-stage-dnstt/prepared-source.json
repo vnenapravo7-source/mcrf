@@ -1,0 +1,16 @@
+{
+  "compiled": false,
+  "executed": false,
+  "upstream": {
+    "module": "www.bamsoftware.com/git/dnstt.git",
+    "version": "v1.20260501.0",
+    "sum": "h1:8i4tQWwBCrhsn6+c8fpjSIyaa+u0MOvdOa1FIxNOz6M=",
+    "zipSha256": "e19ef0719ec5de95b5fc38f6ea36646a46e815e22c78b56f25a8dbb399866ee5",
+    "commit": "0c5c52a57d899c05428c116898941761a2ed83c2"
+  },
+  "state": "SOURCE_PREPARED_NOT_COMPILED",
+  "module": "D:/MCRF/Builds/Android/p3-dnstt-source-d42b041ed82c4f999c6e6a83c80eb7b6/module",
+  "manifestSha256": "3c32c230926160b5f4894004eff9fd0205e26051196f5b745f87048b4e62a913",
+  "androidIntegrated": false,
+  "commit": "0c5c52a57d899c05428c116898941761a2ed83c2"
+}

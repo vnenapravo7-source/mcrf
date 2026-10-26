@@ -154,7 +154,7 @@ open class ClientPrimaryWorkerService : Service() {
                 } catch (error: Throwable) {
                     debugFailure(command.orEmpty(),error)
                     fail(receiver, if (error is org.mcrf.engine.protocol.v1.PacketBackend.InvalidTun) "PACKET_NATIVE_TUN_REJECTED"
-                        else if (command in setOf("INIT", "INIT_PACKET")) "PRIMARY_CORE_LOAD_FAILED" else "PRIMARY_WORKER_COMMAND_FAILED")
+                        else ClientPrimaryPreparationFailure.wireCode(error,if (command in setOf("INIT", "INIT_PACKET")) "PRIMARY_CORE_LOAD_FAILED" else "PRIMARY_WORKER_COMMAND_FAILED"))
                     if (command in setOf("INIT", "START", "INIT_PACKET", "START_PACKET", "PROBE_STEER", "OPEN_ROUTE", "OPEN_PACKET_ROUTE", "ATTACH_ROUTE_PIPE")) stopWorker()
                 } finally {
                     // A rejected or malformed START must close its received duplicate too.
@@ -323,10 +323,11 @@ open class ClientPrimaryWorkerService : Service() {
         val checked = try { validated(payload.getString("profile"), payload.getString("settings"), mode) }
             catch (_: Throwable) { Engine.Validation(false, "PRIMARY_CORE_CONFIG_REJECTED", "config") to null }
         val result = checked.first
+        val rejection=PrimaryValidationDiagnostic.reject(result.code,result.field)
         respond(receiver, Bundle().apply {
             putBoolean("supported", result.supported)
-            putString("code", if (result.supported) "" else "PRIMARY_CORE_CONFIG_REJECTED")
-            putString("field", if (result.supported) "" else "config")
+            putString("code", if (result.supported) "" else rejection.code)
+            putString("field", if (result.supported) "" else rejection.field)
             putString("mode", mode.name)
             putString("acquisition", ClientPrimaryWorkerWire.acquisition(requireNotNull(core), mode).name)
             // Hash only, never config or arbitrary native diagnostics.
@@ -391,7 +392,7 @@ open class ClientPrimaryWorkerService : Service() {
             })
         } catch (error: Throwable) {
             debugFailure("RUN",error)
-            fail(receiver, "PRIMARY_CORE_RUN_FAILED")
+            fail(receiver, ClientPrimaryPreparationFailure.wireCode(error,"PRIMARY_CORE_RUN_FAILED"))
         } finally {
             running = false; stopping.set(true)
             if (!runningSent.get()) fail(receiver, "PRIMARY_CORE_EXITED_BEFORE_RUNNING")

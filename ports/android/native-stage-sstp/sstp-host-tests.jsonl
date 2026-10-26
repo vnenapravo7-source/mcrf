@@ -1,0 +1,378 @@
+{"Time":"2026-10-24T11:29:02.4555636+03:00","Action":"start","Package":"swiftsstp"}
+{"Time":"2026-10-24T11:29:02.4555636+03:00","Action":"start","Package":"swiftsstp/internal/cryptoutil"}
+{"Time":"2026-10-24T11:29:02.4555636+03:00","Action":"start","Package":"swiftsstp/internal/debuglog"}
+{"Time":"2026-10-24T11:29:02.4555636+03:00","Action":"output","Package":"swiftsstp/internal/debuglog","Output":"?   \tswiftsstp/internal/debuglog\t[no test files]\n"}
+{"Time":"2026-10-24T11:29:02.4555636+03:00","Action":"start","Package":"swiftsstp/internal/mschap"}
+{"Time":"2026-10-24T11:29:02.4555636+03:00","Action":"skip","Package":"swiftsstp/internal/debuglog","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.4555636+03:00","Action":"start","Package":"swiftsstp/internal/ppp"}
+{"Time":"2026-10-24T11:29:02.4555636+03:00","Action":"start","Package":"swiftsstp/internal/sstp"}
+{"Time":"2026-10-24T11:29:02.4555636+03:00","Action":"output","Package":"swiftsstp/internal/sstp","Output":"?   \tswiftsstp/internal/sstp\t[no test files]\n"}
+{"Time":"2026-10-24T11:29:02.4555636+03:00","Action":"skip","Package":"swiftsstp/internal/sstp","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.4560756+03:00","Action":"start","Package":"swiftsstp/internal/sstp/wire"}
+{"Time":"2026-10-24T11:29:02.4560756+03:00","Action":"start","Package":"swiftsstp/internal/vlog"}
+{"Time":"2026-10-24T11:29:02.4560756+03:00","Action":"start","Package":"swiftsstp/tunnel"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"run","Package":"swiftsstp/internal/mschap","Test":"TestNTPasswordHash"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"output","Package":"swiftsstp/internal/mschap","Test":"TestNTPasswordHash","Output":"=== RUN   TestNTPasswordHash\n"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"output","Package":"swiftsstp/internal/mschap","Test":"TestNTPasswordHash","Output":"--- PASS: TestNTPasswordHash (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"pass","Package":"swiftsstp/internal/mschap","Test":"TestNTPasswordHash","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"run","Package":"swiftsstp/internal/mschap","Test":"TestChallengeHash"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"output","Package":"swiftsstp/internal/mschap","Test":"TestChallengeHash","Output":"=== RUN   TestChallengeHash\n"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"output","Package":"swiftsstp/internal/mschap","Test":"TestChallengeHash","Output":"--- PASS: TestChallengeHash (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"pass","Package":"swiftsstp/internal/mschap","Test":"TestChallengeHash","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"run","Package":"swiftsstp/internal/mschap","Test":"TestGenerateNTResponse"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"output","Package":"swiftsstp/internal/mschap","Test":"TestGenerateNTResponse","Output":"=== RUN   TestGenerateNTResponse\n"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"output","Package":"swiftsstp/internal/mschap","Test":"TestGenerateNTResponse","Output":"--- PASS: TestGenerateNTResponse (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"pass","Package":"swiftsstp/internal/mschap","Test":"TestGenerateNTResponse","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"run","Package":"swiftsstp/internal/mschap","Test":"TestAuthenticatorResponse"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"output","Package":"swiftsstp/internal/mschap","Test":"TestAuthenticatorResponse","Output":"=== RUN   TestAuthenticatorResponse\n"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"output","Package":"swiftsstp/internal/mschap","Test":"TestAuthenticatorResponse","Output":"--- PASS: TestAuthenticatorResponse (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"pass","Package":"swiftsstp/internal/mschap","Test":"TestAuthenticatorResponse","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"run","Package":"swiftsstp/internal/mschap","Test":"TestMasterKey"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"output","Package":"swiftsstp/internal/mschap","Test":"TestMasterKey","Output":"=== RUN   TestMasterKey\n"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"output","Package":"swiftsstp/internal/mschap","Test":"TestMasterKey","Output":"--- PASS: TestMasterKey (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"pass","Package":"swiftsstp/internal/mschap","Test":"TestMasterKey","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"run","Package":"swiftsstp/internal/mschap","Test":"TestClientHLAKLength"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"output","Package":"swiftsstp/internal/mschap","Test":"TestClientHLAKLength","Output":"=== RUN   TestClientHLAKLength\n"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"output","Package":"swiftsstp/internal/mschap","Test":"TestClientHLAKLength","Output":"--- PASS: TestClientHLAKLength (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"pass","Package":"swiftsstp/internal/mschap","Test":"TestClientHLAKLength","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7586718+03:00","Action":"output","Package":"swiftsstp/internal/mschap","Output":"PASS\n"}
+{"Time":"2026-10-24T11:29:02.7618462+03:00","Action":"output","Package":"swiftsstp/internal/mschap","Output":"ok  \tswiftsstp/internal/mschap\t0.306s\n"}
+{"Time":"2026-10-24T11:29:02.7618462+03:00","Action":"pass","Package":"swiftsstp/internal/mschap","Elapsed":0.306}
+{"Time":"2026-10-24T11:29:02.778096+03:00","Action":"run","Package":"swiftsstp/internal/vlog","Test":"TestASuppressedLineAllocatesNothing"}
+{"Time":"2026-10-24T11:29:02.778096+03:00","Action":"output","Package":"swiftsstp/internal/vlog","Test":"TestASuppressedLineAllocatesNothing","Output":"=== RUN   TestASuppressedLineAllocatesNothing\n"}
+{"Time":"2026-10-24T11:29:02.7786152+03:00","Action":"output","Package":"swiftsstp/internal/vlog","Test":"TestASuppressedLineAllocatesNothing","Output":"--- PASS: TestASuppressedLineAllocatesNothing (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7786152+03:00","Action":"pass","Package":"swiftsstp/internal/vlog","Test":"TestASuppressedLineAllocatesNothing","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7786152+03:00","Action":"run","Package":"swiftsstp/internal/vlog","Test":"TestANilLoggerIsUsable"}
+{"Time":"2026-10-24T11:29:02.7786152+03:00","Action":"output","Package":"swiftsstp/internal/vlog","Test":"TestANilLoggerIsUsable","Output":"=== RUN   TestANilLoggerIsUsable\n"}
+{"Time":"2026-10-24T11:29:02.7786152+03:00","Action":"output","Package":"swiftsstp/internal/vlog","Test":"TestANilLoggerIsUsable","Output":"--- PASS: TestANilLoggerIsUsable (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7786152+03:00","Action":"pass","Package":"swiftsstp/internal/vlog","Test":"TestANilLoggerIsUsable","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7786152+03:00","Action":"run","Package":"swiftsstp/internal/vlog","Test":"TestTheTextHandlerWritesTheCustomaryLine"}
+{"Time":"2026-10-24T11:29:02.7786152+03:00","Action":"output","Package":"swiftsstp/internal/vlog","Test":"TestTheTextHandlerWritesTheCustomaryLine","Output":"=== RUN   TestTheTextHandlerWritesTheCustomaryLine\n"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"run","Package":"swiftsstp/internal/cryptoutil","Test":"TestChaCha20Poly1305RFC8439"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestChaCha20Poly1305RFC8439","Output":"=== RUN   TestChaCha20Poly1305RFC8439\n"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestChaCha20Poly1305RFC8439","Output":"--- PASS: TestChaCha20Poly1305RFC8439 (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Test":"TestChaCha20Poly1305RFC8439","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"run","Package":"swiftsstp/internal/cryptoutil","Test":"TestBLAKE2sRFC7693"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestBLAKE2sRFC7693","Output":"=== RUN   TestBLAKE2sRFC7693\n"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestBLAKE2sRFC7693","Output":"--- PASS: TestBLAKE2sRFC7693 (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Test":"TestBLAKE2sRFC7693","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"run","Package":"swiftsstp/internal/cryptoutil","Test":"TestBLAKE2sMACIsKeyed"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestBLAKE2sMACIsKeyed","Output":"=== RUN   TestBLAKE2sMACIsKeyed\n"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestBLAKE2sMACIsKeyed","Output":"--- PASS: TestBLAKE2sMACIsKeyed (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Test":"TestBLAKE2sMACIsKeyed","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"run","Package":"swiftsstp/internal/cryptoutil","Test":"TestXChaCha20Poly1305NonceSize"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestXChaCha20Poly1305NonceSize","Output":"=== RUN   TestXChaCha20Poly1305NonceSize\n"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestXChaCha20Poly1305NonceSize","Output":"--- PASS: TestXChaCha20Poly1305NonceSize (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Test":"TestXChaCha20Poly1305NonceSize","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"run","Package":"swiftsstp/internal/cryptoutil","Test":"TestBLAKE2s128MACWidth"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestBLAKE2s128MACWidth","Output":"=== RUN   TestBLAKE2s128MACWidth\n"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestBLAKE2s128MACWidth","Output":"--- PASS: TestBLAKE2s128MACWidth (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Test":"TestBLAKE2s128MACWidth","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"run","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement","Output":"=== RUN   TestDHAgreement\n"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"run","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/Curve25519"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/Curve25519","Output":"=== RUN   TestDHAgreement/Curve25519\n"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/Curve25519","Output":"--- PASS: TestDHAgreement/Curve25519 (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/Curve25519","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"run","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/ECP-256"}
+{"Time":"2026-10-24T11:29:02.7885189+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/ECP-256","Output":"=== RUN   TestDHAgreement/ECP-256\n"}
+{"Time":"2026-10-24T11:29:02.7890416+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/ECP-256","Output":"--- PASS: TestDHAgreement/ECP-256 (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7890416+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/ECP-256","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7890416+03:00","Action":"run","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/ECP-384"}
+{"Time":"2026-10-24T11:29:02.7890416+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/ECP-384","Output":"=== RUN   TestDHAgreement/ECP-384\n"}
+{"Time":"2026-10-24T11:29:02.7906081+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/ECP-384","Output":"--- PASS: TestDHAgreement/ECP-384 (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7906081+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/ECP-384","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7906081+03:00","Action":"run","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/ECP-521"}
+{"Time":"2026-10-24T11:29:02.7906081+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/ECP-521","Output":"=== RUN   TestDHAgreement/ECP-521\n"}
+{"Time":"2026-10-24T11:29:02.7952828+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/ECP-521","Output":"--- PASS: TestDHAgreement/ECP-521 (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7952828+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/ECP-521","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7952828+03:00","Action":"run","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/MODP-2048"}
+{"Time":"2026-10-24T11:29:02.7952828+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/MODP-2048","Output":"=== RUN   TestDHAgreement/MODP-2048\n"}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"output","Package":"swiftsstp/internal/vlog","Test":"TestTheTextHandlerWritesTheCustomaryLine","Output":"--- PASS: TestTheTextHandlerWritesTheCustomaryLine (0.02s)\n"}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"pass","Package":"swiftsstp/internal/vlog","Test":"TestTheTextHandlerWritesTheCustomaryLine","Elapsed":0.02}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"run","Package":"swiftsstp/internal/vlog","Test":"TestPlainDropsTheTimestamp"}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"output","Package":"swiftsstp/internal/vlog","Test":"TestPlainDropsTheTimestamp","Output":"=== RUN   TestPlainDropsTheTimestamp\n"}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"output","Package":"swiftsstp/internal/vlog","Test":"TestPlainDropsTheTimestamp","Output":"--- PASS: TestPlainDropsTheTimestamp (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"pass","Package":"swiftsstp/internal/vlog","Test":"TestPlainDropsTheTimestamp","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"run","Package":"swiftsstp/internal/vlog","Test":"TestTheLevelDecidesWhatIsWritten"}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"output","Package":"swiftsstp/internal/vlog","Test":"TestTheLevelDecidesWhatIsWritten","Output":"=== RUN   TestTheLevelDecidesWhatIsWritten\n"}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"output","Package":"swiftsstp/internal/vlog","Test":"TestTheLevelDecidesWhatIsWritten","Output":"--- PASS: TestTheLevelDecidesWhatIsWritten (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"pass","Package":"swiftsstp/internal/vlog","Test":"TestTheLevelDecidesWhatIsWritten","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"run","Package":"swiftsstp/internal/vlog","Test":"TestAttributesAreNotDroppedSilently"}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"output","Package":"swiftsstp/internal/vlog","Test":"TestAttributesAreNotDroppedSilently","Output":"=== RUN   TestAttributesAreNotDroppedSilently\n"}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"output","Package":"swiftsstp/internal/vlog","Test":"TestAttributesAreNotDroppedSilently","Output":"--- PASS: TestAttributesAreNotDroppedSilently (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"pass","Package":"swiftsstp/internal/vlog","Test":"TestAttributesAreNotDroppedSilently","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"run","Package":"swiftsstp/internal/vlog","Test":"TestAPrefixSurvivesEveryLevel"}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"output","Package":"swiftsstp/internal/vlog","Test":"TestAPrefixSurvivesEveryLevel","Output":"=== RUN   TestAPrefixSurvivesEveryLevel\n"}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"output","Package":"swiftsstp/internal/vlog","Test":"TestAPrefixSurvivesEveryLevel","Output":"--- PASS: TestAPrefixSurvivesEveryLevel (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"pass","Package":"swiftsstp/internal/vlog","Test":"TestAPrefixSurvivesEveryLevel","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.7973718+03:00","Action":"output","Package":"swiftsstp/internal/vlog","Output":"PASS\n"}
+{"Time":"2026-10-24T11:29:02.8005145+03:00","Action":"output","Package":"swiftsstp/internal/vlog","Output":"ok  \tswiftsstp/internal/vlog\t0.344s\n"}
+{"Time":"2026-10-24T11:29:02.8005145+03:00","Action":"pass","Package":"swiftsstp/internal/vlog","Elapsed":0.344}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/MODP-2048","Output":"--- PASS: TestDHAgreement/MODP-2048 (0.01s)\n"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement/MODP-2048","Elapsed":0.01}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement","Output":"--- PASS: TestDHAgreement (0.01s)\n"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Test":"TestDHAgreement","Elapsed":0.01}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"run","Package":"swiftsstp/internal/cryptoutil","Test":"TestECDHPointPrefix"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestECDHPointPrefix","Output":"=== RUN   TestECDHPointPrefix\n"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestECDHPointPrefix","Output":"--- PASS: TestECDHPointPrefix (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Test":"TestECDHPointPrefix","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"run","Package":"swiftsstp/internal/cryptoutil","Test":"TestPRFPlus"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestPRFPlus","Output":"=== RUN   TestPRFPlus\n"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestPRFPlus","Output":"--- PASS: TestPRFPlus (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Test":"TestPRFPlus","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"run","Package":"swiftsstp/internal/cryptoutil","Test":"TestGCMRoundTrip"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestGCMRoundTrip","Output":"=== RUN   TestGCMRoundTrip\n"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestGCMRoundTrip","Output":"--- PASS: TestGCMRoundTrip (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Test":"TestGCMRoundTrip","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"run","Package":"swiftsstp/internal/cryptoutil","Test":"TestCBCETMRoundTrip"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestCBCETMRoundTrip","Output":"=== RUN   TestCBCETMRoundTrip\n"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestCBCETMRoundTrip","Output":"--- PASS: TestCBCETMRoundTrip (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Test":"TestCBCETMRoundTrip","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"run","Package":"swiftsstp/internal/cryptoutil","Test":"TestAESKeyLenRejectsBadLengths"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestAESKeyLenRejectsBadLengths","Output":"=== RUN   TestAESKeyLenRejectsBadLengths\n"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Test":"TestAESKeyLenRejectsBadLengths","Output":"--- PASS: TestAESKeyLenRejectsBadLengths (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Test":"TestAESKeyLenRejectsBadLengths","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.8031507+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Output":"PASS\n"}
+{"Time":"2026-10-24T11:29:02.8066504+03:00","Action":"output","Package":"swiftsstp/internal/cryptoutil","Output":"ok  \tswiftsstp/internal/cryptoutil\t0.351s\n"}
+{"Time":"2026-10-24T11:29:02.8066504+03:00","Action":"pass","Package":"swiftsstp/internal/cryptoutil","Elapsed":0.351}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"run","Package":"swiftsstp/internal/sstp/wire","Test":"TestFramingAllocations"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestFramingAllocations","Output":"=== RUN   TestFramingAllocations\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestFramingAllocations","Output":"--- PASS: TestFramingAllocations (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"pass","Package":"swiftsstp/internal/sstp/wire","Test":"TestFramingAllocations","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"run","Package":"swiftsstp/internal/sstp/wire","Test":"TestDataPacketRoundTrip"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestDataPacketRoundTrip","Output":"=== RUN   TestDataPacketRoundTrip\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestDataPacketRoundTrip","Output":"--- PASS: TestDataPacketRoundTrip (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"pass","Package":"swiftsstp/internal/sstp/wire","Test":"TestDataPacketRoundTrip","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"run","Package":"swiftsstp/internal/sstp/wire","Test":"TestControlPacketRoundTrip"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestControlPacketRoundTrip","Output":"=== RUN   TestControlPacketRoundTrip\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestControlPacketRoundTrip","Output":"--- PASS: TestControlPacketRoundTrip (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"pass","Package":"swiftsstp/internal/sstp/wire","Test":"TestControlPacketRoundTrip","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"run","Package":"swiftsstp/internal/sstp/wire","Test":"TestMultipleAttributes"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestMultipleAttributes","Output":"=== RUN   TestMultipleAttributes\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestMultipleAttributes","Output":"--- PASS: TestMultipleAttributes (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"pass","Package":"swiftsstp/internal/sstp/wire","Test":"TestMultipleAttributes","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"run","Package":"swiftsstp/internal/sstp/wire","Test":"TestCryptoBindingAttribute"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestCryptoBindingAttribute","Output":"=== RUN   TestCryptoBindingAttribute\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestCryptoBindingAttribute","Output":"--- PASS: TestCryptoBindingAttribute (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"pass","Package":"swiftsstp/internal/sstp/wire","Test":"TestCryptoBindingAttribute","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"run","Package":"swiftsstp/internal/sstp/wire","Test":"TestAttributeMethod"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestAttributeMethod","Output":"=== RUN   TestAttributeMethod\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestAttributeMethod","Output":"--- PASS: TestAttributeMethod (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"pass","Package":"swiftsstp/internal/sstp/wire","Test":"TestAttributeMethod","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"run","Package":"swiftsstp/internal/sstp/wire","Test":"TestMalformedPackets"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestMalformedPackets","Output":"=== RUN   TestMalformedPackets\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"run","Package":"swiftsstp/internal/sstp/wire","Test":"TestMalformedPackets/short_header"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestMalformedPackets/short_header","Output":"=== RUN   TestMalformedPackets/short_header\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestMalformedPackets/short_header","Output":"--- PASS: TestMalformedPackets/short_header (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"pass","Package":"swiftsstp/internal/sstp/wire","Test":"TestMalformedPackets/short_header","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"run","Package":"swiftsstp/internal/sstp/wire","Test":"TestMalformedPackets/bad_version"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestMalformedPackets/bad_version","Output":"=== RUN   TestMalformedPackets/bad_version\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestMalformedPackets/bad_version","Output":"--- PASS: TestMalformedPackets/bad_version (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"pass","Package":"swiftsstp/internal/sstp/wire","Test":"TestMalformedPackets/bad_version","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"run","Package":"swiftsstp/internal/sstp/wire","Test":"TestMalformedPackets/length_below_header"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestMalformedPackets/length_below_header","Output":"=== RUN   TestMalformedPackets/length_below_header\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestMalformedPackets/length_below_header","Output":"--- PASS: TestMalformedPackets/length_below_header (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"pass","Package":"swiftsstp/internal/sstp/wire","Test":"TestMalformedPackets/length_below_header","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"TestMalformedPackets","Output":"--- PASS: TestMalformedPackets (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"pass","Package":"swiftsstp/internal/sstp/wire","Test":"TestMalformedPackets","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"run","Package":"swiftsstp/internal/sstp/wire","Test":"FuzzParseControl"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"FuzzParseControl","Output":"=== RUN   FuzzParseControl\n"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"run","Package":"swiftsstp/internal/sstp/wire","Test":"FuzzParseControl/seed#0"}
+{"Time":"2026-10-24T11:29:02.838215+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"FuzzParseControl/seed#0","Output":"=== RUN   FuzzParseControl/seed#0\n"}
+{"Time":"2026-10-24T11:29:02.8387362+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"FuzzParseControl/seed#0","Output":"--- PASS: FuzzParseControl/seed#0 (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.8387362+03:00","Action":"pass","Package":"swiftsstp/internal/sstp/wire","Test":"FuzzParseControl/seed#0","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.8387362+03:00","Action":"run","Package":"swiftsstp/internal/sstp/wire","Test":"FuzzParseControl/seed#1"}
+{"Time":"2026-10-24T11:29:02.8387362+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"FuzzParseControl/seed#1","Output":"=== RUN   FuzzParseControl/seed#1\n"}
+{"Time":"2026-10-24T11:29:02.8387362+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"FuzzParseControl/seed#1","Output":"--- PASS: FuzzParseControl/seed#1 (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.8387362+03:00","Action":"pass","Package":"swiftsstp/internal/sstp/wire","Test":"FuzzParseControl/seed#1","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.8387362+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Test":"FuzzParseControl","Output":"--- PASS: FuzzParseControl (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.8387362+03:00","Action":"pass","Package":"swiftsstp/internal/sstp/wire","Test":"FuzzParseControl","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.8387362+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Output":"PASS\n"}
+{"Time":"2026-10-24T11:29:02.8418953+03:00","Action":"output","Package":"swiftsstp/internal/sstp/wire","Output":"ok  \tswiftsstp/internal/sstp/wire\t0.386s\n"}
+{"Time":"2026-10-24T11:29:02.8418953+03:00","Action":"pass","Package":"swiftsstp/internal/sstp/wire","Elapsed":0.386}
+{"Time":"2026-10-24T11:29:02.8653413+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPCodec"}
+{"Time":"2026-10-24T11:29:02.8653413+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPCodec","Output":"=== RUN   TestIPv6CPCodec\n"}
+{"Time":"2026-10-24T11:29:02.8653413+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPCodec","Output":"--- PASS: TestIPv6CPCodec (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.8653413+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPCodec","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.8653413+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestRandomIID"}
+{"Time":"2026-10-24T11:29:02.8653413+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestRandomIID","Output":"=== RUN   TestRandomIID\n"}
+{"Time":"2026-10-24T11:29:02.8653413+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestRandomIID","Output":"--- PASS: TestRandomIID (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.8653413+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestRandomIID","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.8653413+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPNegotiation"}
+{"Time":"2026-10-24T11:29:02.8653413+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPNegotiation","Output":"=== RUN   TestIPv6CPNegotiation\n"}
+{"Time":"2026-10-24T11:29:02.8653413+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPNegotiation","Output":"--- PASS: TestIPv6CPNegotiation (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.8653413+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPNegotiation","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.8653413+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPRejectDegradesToIPv4"}
+{"Time":"2026-10-24T11:29:02.8653413+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPRejectDegradesToIPv4","Output":"=== RUN   TestIPv6CPRejectDegradesToIPv4\n"}
+{"Time":"2026-10-24T11:29:02.8653413+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPRejectDegradesToIPv4","Output":"--- PASS: TestIPv6CPRejectDegradesToIPv4 (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.8653413+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPRejectDegradesToIPv4","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.8658559+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPNaksAllZeroPeerSuggestion"}
+{"Time":"2026-10-24T11:29:02.8658559+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPNaksAllZeroPeerSuggestion","Output":"=== RUN   TestIPv6CPNaksAllZeroPeerSuggestion\n"}
+{"Time":"2026-10-24T11:29:02.8658559+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPNaksAllZeroPeerSuggestion","Output":"--- PASS: TestIPv6CPNaksAllZeroPeerSuggestion (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.8658559+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPNaksAllZeroPeerSuggestion","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.8658559+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPSilentServerDegrades"}
+{"Time":"2026-10-24T11:29:02.8658559+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPSilentServerDegrades","Output":"=== RUN   TestIPv6CPSilentServerDegrades\n"}
+{"Time":"2026-10-24T11:29:02.9269215+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPSilentServerDegrades","Output":"--- PASS: TestIPv6CPSilentServerDegrades (0.06s)\n"}
+{"Time":"2026-10-24T11:29:02.9269215+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPSilentServerDegrades","Elapsed":0.06}
+{"Time":"2026-10-24T11:29:02.9269215+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPStrictRejectFailsLink"}
+{"Time":"2026-10-24T11:29:02.9269215+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPStrictRejectFailsLink","Output":"=== RUN   TestIPv6CPStrictRejectFailsLink\n"}
+{"Time":"2026-10-24T11:29:02.9269215+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPStrictRejectFailsLink","Output":"--- PASS: TestIPv6CPStrictRejectFailsLink (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.9269215+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPStrictRejectFailsLink","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.9269215+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPStrictSilentServerFailsLink"}
+{"Time":"2026-10-24T11:29:02.9269215+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPStrictSilentServerFailsLink","Output":"=== RUN   TestIPv6CPStrictSilentServerFailsLink\n"}
+{"Time":"2026-10-24T11:29:02.9537245+03:00","Action":"run","Package":"swiftsstp","Test":"TestMcrfSstpStrictConfigAndSecureDefaults"}
+{"Time":"2026-10-24T11:29:02.9537245+03:00","Action":"output","Package":"swiftsstp","Test":"TestMcrfSstpStrictConfigAndSecureDefaults","Output":"=== RUN   TestMcrfSstpStrictConfigAndSecureDefaults\n"}
+{"Time":"2026-10-24T11:29:02.9537245+03:00","Action":"output","Package":"swiftsstp","Test":"TestMcrfSstpStrictConfigAndSecureDefaults","Output":"--- PASS: TestMcrfSstpStrictConfigAndSecureDefaults (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.9537245+03:00","Action":"pass","Package":"swiftsstp","Test":"TestMcrfSstpStrictConfigAndSecureDefaults","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.9537245+03:00","Action":"run","Package":"swiftsstp","Test":"TestMcrfSstpRejectAmbiguousConfigAndEndpoint"}
+{"Time":"2026-10-24T11:29:02.9537245+03:00","Action":"output","Package":"swiftsstp","Test":"TestMcrfSstpRejectAmbiguousConfigAndEndpoint","Output":"=== RUN   TestMcrfSstpRejectAmbiguousConfigAndEndpoint\n"}
+{"Time":"2026-10-24T11:29:02.954238+03:00","Action":"output","Package":"swiftsstp","Test":"TestMcrfSstpRejectAmbiguousConfigAndEndpoint","Output":"--- PASS: TestMcrfSstpRejectAmbiguousConfigAndEndpoint (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.954238+03:00","Action":"pass","Package":"swiftsstp","Test":"TestMcrfSstpRejectAmbiguousConfigAndEndpoint","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.954238+03:00","Action":"run","Package":"swiftsstp","Test":"TestMcrfSstpTypedCertificateFailureIsPreserved"}
+{"Time":"2026-10-24T11:29:02.954238+03:00","Action":"output","Package":"swiftsstp","Test":"TestMcrfSstpTypedCertificateFailureIsPreserved","Output":"=== RUN   TestMcrfSstpTypedCertificateFailureIsPreserved\n"}
+{"Time":"2026-10-24T11:29:02.954238+03:00","Action":"output","Package":"swiftsstp","Test":"TestMcrfSstpTypedCertificateFailureIsPreserved","Output":"--- PASS: TestMcrfSstpTypedCertificateFailureIsPreserved (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.954238+03:00","Action":"pass","Package":"swiftsstp","Test":"TestMcrfSstpTypedCertificateFailureIsPreserved","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.954238+03:00","Action":"output","Package":"swiftsstp","Output":"PASS\n"}
+{"Time":"2026-10-24T11:29:02.9568072+03:00","Action":"output","Package":"swiftsstp","Output":"ok  \tswiftsstp\t0.501s\n"}
+{"Time":"2026-10-24T11:29:02.9568072+03:00","Action":"pass","Package":"swiftsstp","Elapsed":0.501}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPStrictSilentServerFailsLink","Output":"--- PASS: TestIPv6CPStrictSilentServerFailsLink (0.06s)\n"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestIPv6CPStrictSilentServerFailsLink","Elapsed":0.06}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestIPv6DisabledIgnoresIPv6CPFrames"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPv6DisabledIgnoresIPv6CPFrames","Output":"=== RUN   TestIPv6DisabledIgnoresIPv6CPFrames\n"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPv6DisabledIgnoresIPv6CPFrames","Output":"--- PASS: TestIPv6DisabledIgnoresIPv6CPFrames (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestIPv6DisabledIgnoresIPv6CPFrames","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestNoAuthHandshake"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestNoAuthHandshake","Output":"=== RUN   TestNoAuthHandshake\n"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestNoAuthHandshake","Output":"--- PASS: TestNoAuthHandshake (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestNoAuthHandshake","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestDefaultServerStillRequiresAuth"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestDefaultServerStillRequiresAuth","Output":"=== RUN   TestDefaultServerStillRequiresAuth\n"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestDefaultServerStillRequiresAuth","Output":"--- PASS: TestDefaultServerStillRequiresAuth (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestDefaultServerStillRequiresAuth","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestServerClientHandshake"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestServerClientHandshake","Output":"=== RUN   TestServerClientHandshake\n"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestServerClientHandshake","Output":"--- PASS: TestServerClientHandshake (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestServerClientHandshake","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestServerRejectsWrongPassword"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestServerRejectsWrongPassword","Output":"=== RUN   TestServerRejectsWrongPassword\n"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestServerRejectsWrongPassword","Output":"--- PASS: TestServerRejectsWrongPassword (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestServerRejectsWrongPassword","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestAnEchoRequestIsAnsweredByTheServer"}
+{"Time":"2026-10-24T11:29:02.9880026+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestAnEchoRequestIsAnsweredByTheServer","Output":"=== RUN   TestAnEchoRequestIsAnsweredByTheServer\n"}
+{"Time":"2026-10-24T11:29:02.9905735+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestAnEchoRequestIsAnsweredByTheServer","Output":"--- PASS: TestAnEchoRequestIsAnsweredByTheServer (0.00s)\n"}
+{"Time":"2026-10-24T11:29:02.9905735+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestAnEchoRequestIsAnsweredByTheServer","Elapsed":0}
+{"Time":"2026-10-24T11:29:02.9905735+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestAnEchoNobodyAnswersDoesNotHangForever"}
+{"Time":"2026-10-24T11:29:02.9905735+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestAnEchoNobodyAnswersDoesNotHangForever","Output":"=== RUN   TestAnEchoNobodyAnswersDoesNotHangForever\n"}
+{"Time":"2026-10-24T11:29:03.0028299+03:00","Action":"run","Package":"swiftsstp/tunnel","Test":"TestDialConnIsUsedAndWrappedInTLS"}
+{"Time":"2026-10-24T11:29:03.0028299+03:00","Action":"output","Package":"swiftsstp/tunnel","Test":"TestDialConnIsUsedAndWrappedInTLS","Output":"=== RUN   TestDialConnIsUsedAndWrappedInTLS\n"}
+{"Time":"2026-10-24T11:29:03.0049262+03:00","Action":"output","Package":"swiftsstp/tunnel","Test":"TestDialConnIsUsedAndWrappedInTLS","Output":"--- PASS: TestDialConnIsUsedAndWrappedInTLS (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.0054411+03:00","Action":"pass","Package":"swiftsstp/tunnel","Test":"TestDialConnIsUsedAndWrappedInTLS","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.0054411+03:00","Action":"run","Package":"swiftsstp/tunnel","Test":"TestMcrfSstpCloseUnblocksStalledDisconnect"}
+{"Time":"2026-10-24T11:29:03.0054411+03:00","Action":"output","Package":"swiftsstp/tunnel","Test":"TestMcrfSstpCloseUnblocksStalledDisconnect","Output":"=== RUN   TestMcrfSstpCloseUnblocksStalledDisconnect\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestAnEchoNobodyAnswersDoesNotHangForever","Output":"--- PASS: TestAnEchoNobodyAnswersDoesNotHangForever (0.10s)\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestAnEchoNobodyAnswersDoesNotHangForever","Elapsed":0.1}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestAnEchoOnAClosedLinkSaysSoImmediately"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestAnEchoOnAClosedLinkSaysSoImmediately","Output":"=== RUN   TestAnEchoOnAClosedLinkSaysSoImmediately\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestAnEchoOnAClosedLinkSaysSoImmediately","Output":"--- PASS: TestAnEchoOnAClosedLinkSaysSoImmediately (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestAnEchoOnAClosedLinkSaysSoImmediately","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestFullNegotiation"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestFullNegotiation","Output":"=== RUN   TestFullNegotiation\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestFullNegotiation","Output":"--- PASS: TestFullNegotiation (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestFullNegotiation","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestAuthFailure"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestAuthFailure","Output":"=== RUN   TestAuthFailure\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestAuthFailure","Output":"--- PASS: TestAuthFailure (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestAuthFailure","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestLCPAuthNakToMSCHAPv2"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestLCPAuthNakToMSCHAPv2","Output":"=== RUN   TestLCPAuthNakToMSCHAPv2\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestLCPAuthNakToMSCHAPv2","Output":"--- PASS: TestLCPAuthNakToMSCHAPv2 (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestLCPAuthNakToMSCHAPv2","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestLCPRejectDropsMagic"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestLCPRejectDropsMagic","Output":"=== RUN   TestLCPRejectDropsMagic\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestLCPRejectDropsMagic","Output":"--- PASS: TestLCPRejectDropsMagic (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestLCPRejectDropsMagic","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestIPFrameHelpers"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPFrameHelpers","Output":"=== RUN   TestIPFrameHelpers\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIPFrameHelpers","Output":"--- PASS: TestIPFrameHelpers (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestIPFrameHelpers","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestEncapsulateIPPaddedRoundTrip"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestEncapsulateIPPaddedRoundTrip","Output":"=== RUN   TestEncapsulateIPPaddedRoundTrip\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestEncapsulateIPPaddedRoundTrip","Output":"--- PASS: TestEncapsulateIPPaddedRoundTrip (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestEncapsulateIPPaddedRoundTrip","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestEncapsulateIPPaddedIsAFloor"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestEncapsulateIPPaddedIsAFloor","Output":"=== RUN   TestEncapsulateIPPaddedIsAFloor\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestEncapsulateIPPaddedIsAFloor","Output":"--- PASS: TestEncapsulateIPPaddedIsAFloor (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestEncapsulateIPPaddedIsAFloor","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed","Output":"=== RUN   TestIsIPRejectsMalformed\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed/declared_length_overruns_the_frame"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed/declared_length_overruns_the_frame","Output":"=== RUN   TestIsIPRejectsMalformed/declared_length_overruns_the_frame\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed/declared_length_overruns_the_frame","Output":"--- PASS: TestIsIPRejectsMalformed/declared_length_overruns_the_frame (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed/declared_length_overruns_the_frame","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed/zero_total_length"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed/zero_total_length","Output":"=== RUN   TestIsIPRejectsMalformed/zero_total_length\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed/zero_total_length","Output":"--- PASS: TestIsIPRejectsMalformed/zero_total_length (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed/zero_total_length","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed/not_an_IP_packet_at_all"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed/not_an_IP_packet_at_all","Output":"=== RUN   TestIsIPRejectsMalformed/not_an_IP_packet_at_all\n"}
+{"Time":"2026-10-24T11:29:03.0906742+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed/not_an_IP_packet_at_all","Output":"--- PASS: TestIsIPRejectsMalformed/not_an_IP_packet_at_all (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed/not_an_IP_packet_at_all","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed/empty"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed/empty","Output":"=== RUN   TestIsIPRejectsMalformed/empty\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed/empty","Output":"--- PASS: TestIsIPRejectsMalformed/empty (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed/empty","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed","Output":"--- PASS: TestIsIPRejectsMalformed (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"TestIsIPRejectsMalformed","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCP"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCP","Output":"=== RUN   FuzzParseCP\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCP/seed#0"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCP/seed#0","Output":"=== RUN   FuzzParseCP/seed#0\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCP/seed#0","Output":"--- PASS: FuzzParseCP/seed#0 (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCP/seed#0","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCP/seed#1"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCP/seed#1","Output":"=== RUN   FuzzParseCP/seed#1\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCP/seed#1","Output":"--- PASS: FuzzParseCP/seed#1 (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCP/seed#1","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCP","Output":"--- PASS: FuzzParseCP (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCP","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"FuzzParseOptions"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseOptions","Output":"=== RUN   FuzzParseOptions\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"FuzzParseOptions/seed#0"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseOptions/seed#0","Output":"=== RUN   FuzzParseOptions/seed#0\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseOptions/seed#0","Output":"--- PASS: FuzzParseOptions/seed#0 (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"FuzzParseOptions/seed#0","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"FuzzParseOptions/seed#1"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseOptions/seed#1","Output":"=== RUN   FuzzParseOptions/seed#1\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseOptions/seed#1","Output":"--- PASS: FuzzParseOptions/seed#1 (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"FuzzParseOptions/seed#1","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseOptions","Output":"--- PASS: FuzzParseOptions (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"FuzzParseOptions","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCHAP"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCHAP","Output":"=== RUN   FuzzParseCHAP\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCHAP/seed#0"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCHAP/seed#0","Output":"=== RUN   FuzzParseCHAP/seed#0\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCHAP/seed#0","Output":"--- PASS: FuzzParseCHAP/seed#0 (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCHAP/seed#0","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"run","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCHAP/seed#1"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCHAP/seed#1","Output":"=== RUN   FuzzParseCHAP/seed#1\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCHAP/seed#1","Output":"--- PASS: FuzzParseCHAP/seed#1 (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCHAP/seed#1","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCHAP","Output":"--- PASS: FuzzParseCHAP (0.00s)\n"}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Test":"FuzzParseCHAP","Elapsed":0}
+{"Time":"2026-10-24T11:29:03.091176+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Output":"PASS\n"}
+{"Time":"2026-10-24T11:29:03.0942294+03:00","Action":"output","Package":"swiftsstp/internal/ppp","Output":"ok  \tswiftsstp/internal/ppp\t0.639s\n"}
+{"Time":"2026-10-24T11:29:03.0942294+03:00","Action":"pass","Package":"swiftsstp/internal/ppp","Elapsed":0.639}
+{"Time":"2026-10-24T11:29:04.0057722+03:00","Action":"output","Package":"swiftsstp/tunnel","Test":"TestMcrfSstpCloseUnblocksStalledDisconnect","Output":"--- PASS: TestMcrfSstpCloseUnblocksStalledDisconnect (1.00s)\n"}
+{"Time":"2026-10-24T11:29:04.0057722+03:00","Action":"pass","Package":"swiftsstp/tunnel","Test":"TestMcrfSstpCloseUnblocksStalledDisconnect","Elapsed":1}
+{"Time":"2026-10-24T11:29:04.0057722+03:00","Action":"run","Package":"swiftsstp/tunnel","Test":"TestMcrfSstpCancelDuringPostTLSHTTPHandshake"}
+{"Time":"2026-10-24T11:29:04.0057722+03:00","Action":"output","Package":"swiftsstp/tunnel","Test":"TestMcrfSstpCancelDuringPostTLSHTTPHandshake","Output":"=== RUN   TestMcrfSstpCancelDuringPostTLSHTTPHandshake\n"}
+{"Time":"2026-10-24T11:29:04.0073708+03:00","Action":"output","Package":"swiftsstp/tunnel","Test":"TestMcrfSstpCancelDuringPostTLSHTTPHandshake","Output":"--- PASS: TestMcrfSstpCancelDuringPostTLSHTTPHandshake (0.00s)\n"}
+{"Time":"2026-10-24T11:29:04.0073708+03:00","Action":"pass","Package":"swiftsstp/tunnel","Test":"TestMcrfSstpCancelDuringPostTLSHTTPHandshake","Elapsed":0}
+{"Time":"2026-10-24T11:29:04.0073708+03:00","Action":"run","Package":"swiftsstp/tunnel","Test":"TestMcrfSstpOwnedTLSMSCHAPIPData"}
+{"Time":"2026-10-24T11:29:04.0073708+03:00","Action":"output","Package":"swiftsstp/tunnel","Test":"TestMcrfSstpOwnedTLSMSCHAPIPData","Output":"=== RUN   TestMcrfSstpOwnedTLSMSCHAPIPData\n"}
+{"Time":"2026-10-24T11:29:04.0089119+03:00","Action":"output","Package":"swiftsstp/tunnel","Test":"TestMcrfSstpOwnedTLSMSCHAPIPData","Output":"--- PASS: TestMcrfSstpOwnedTLSMSCHAPIPData (0.00s)\n"}
+{"Time":"2026-10-24T11:29:04.0089119+03:00","Action":"pass","Package":"swiftsstp/tunnel","Test":"TestMcrfSstpOwnedTLSMSCHAPIPData","Elapsed":0}
+{"Time":"2026-10-24T11:29:04.0089119+03:00","Action":"output","Package":"swiftsstp/tunnel","Output":"PASS\n"}
+{"Time":"2026-10-24T11:29:04.0145157+03:00","Action":"output","Package":"swiftsstp/tunnel","Output":"ok  \tswiftsstp/tunnel\t1.558s\n"}
+{"Time":"2026-10-24T11:29:04.0145157+03:00","Action":"pass","Package":"swiftsstp/tunnel","Elapsed":1.558}

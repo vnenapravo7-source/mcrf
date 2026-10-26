@@ -1,0 +1,17 @@
+{
+  "protobuf": {
+    "noticeOnlyReference": "https://github.com/protocolbuffers/protobuf/blob/v32.0/LICENSE",
+    "gitBlob": "19b305b00060a774a9180fb916c14b49edb2008f",
+    "sha256": "6e5e117324afd944dcf67f36cf329843bc1a92229a8cd9bb573d7a83130fea7d",
+    "doesNotAssertLinkedProtobufVersion": true,
+    "sourceHeader": "src/third_party/protobuf/src/google/protobuf/arena.h",
+    "sourceHeaderLicenseReference": "https://developers.google.com/open-source/licenses/bsd"
+  },
+  "cronet": {
+    "wrapperRevision": "0d28acc44093",
+    "repository": "SagerNet/naiveproxy",
+    "commit": "72a06c9fca0e2d228588c7f3074bf7efff3ff686",
+    "chromiumVersion": "150.0.7871.63",
+    "scope": "conservative source notice superset, not a claim of exact GN linked-subset reproduction"
+  }
+}

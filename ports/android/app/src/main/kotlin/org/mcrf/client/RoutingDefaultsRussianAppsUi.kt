@@ -55,19 +55,21 @@ object RoutingDefaultsRussianAppsUi {
                 override fun onTextChanged(s:CharSequence?,start:Int,before:Int,count:Int)=render()
             });render()
             host.removeAllViews();host.addView(form,FrameLayout.LayoutParams(-1,-1))
-            fun commit(allow:Boolean,confirmed:Set<String> = emptySet()){run(MainActivity.Operation {
+            fun commit(allow:Boolean,confirmed:Set<String> = emptySet()){
+                val submittedSelection=selected.toSet()
+                runAfterSuccess(MainActivity.Operation {
                 val stillInstalled=packageManager.getInstalledApplications(0).map {it.packageName}.toSet()
-                require(stillInstalled.containsAll(selected)){"Список установленных приложений изменился. Открой выбор заново."}
+                require(stillInstalled.containsAll(submittedSelection)){"Список установленных приложений изменился. Открой выбор заново."}
                 store.editInGeneration(editing.second){current ->
-                    val desired=(RoutingDefaultsRussianAppsPolicy.selected(current)-shown)+selected
+                    val desired=(RoutingDefaultsRussianAppsPolicy.selected(current)-shown)+submittedSelection
                     val currentConflicts=RoutingDefaultsRussianAppsPolicy.conflicts(current,desired)
                     require(!allow||confirmed.containsAll(currentConflicts)){"Политики изменились. Открой выбор заново и подтверди новые конфликты."}
-                    val next=RoutingDefaultsRussianAppsPolicy.apply(current,shown,selected.toSet(),allow)
+                    val next=RoutingDefaultsRussianAppsPolicy.apply(current,shown,submittedSelection,allow)
                     current.put("rules",next.getJSONArray("rules")).put("vpnApps",next.getJSONArray("vpnApps"))
                     if(next.has("appMode"))current.put("appMode",next.get("appMode"))
                 }
                 "Правило RU-app сохранено; другие правила и исключения сохранены"
-            });dialog.dismiss()}
+            },true,Runnable {dialog.dismiss()})}
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled=true
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val current=store.snapshot();val desired=(RoutingDefaultsRussianAppsPolicy.selected(current)-shown)+selected

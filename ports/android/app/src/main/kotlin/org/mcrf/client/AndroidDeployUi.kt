@@ -53,13 +53,21 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
         if(main!=null)EditorLayout.heading(main,layout,"Аккаунт VK","proxy")else layout.addView(text("Аккаунт VK"))
         val status=text(if(vk.linked()) "Аккаунт привязан" else "Гостевой режим · без аккаунта").apply {setTextColor(Loft.MUTED);textSize=12f};layout.addView(status)
         val actions=LinearLayout(activity).apply {gravity=android.view.Gravity.CENTER_VERTICAL}
-        actions.addView(button("Привязать VK") { activity.startActivity(Intent(activity,VkRelayLoginActivity::class.java)) },LinearLayout.LayoutParams(0,dp(48),1f).apply {marginEnd=dp(8)})
+        lateinit var renderAccountActions:()->Unit
         val unlink={
             ThemedDialogBuilder(activity).setTitle("Отвязать VK?").setMessage("Автоматические новые звонки станут недоступны. Сохранённые ручные хеши останутся. Подключения с автоматическим источником потребуют ручных хешей.")
-                .setNegativeButton("Отмена",null).setPositiveButton("Отвязать") { _,_ -> vk.unlink();status.text="Аккаунт не привязан" }.show()
+                .setNegativeButton("Отмена",null).setPositiveButton("Отвязать") { _,_ -> vk.unlink();renderAccountActions() }.show()
             Unit
         }
-        actions.addView(if(main!=null)main.iconButton("close","Отвязать аккаунт VK").apply {setOnClickListener {unlink()}}else button("Отвязать",unlink),LinearLayout.LayoutParams(dp(if(main!=null)48 else 112),dp(48)))
+        renderAccountActions={
+            actions.removeAllViews()
+            val linked=vk.linked()
+            status.text=if(linked)"Аккаунт привязан"else"Гостевой режим · без аккаунта"
+            actions.addView(button(VkAccountPresentation.action(linked)) {
+                if(vk.linked())unlink()else activity.startActivity(Intent(activity,VkRelayLoginActivity::class.java))
+            }.apply {tag=if(linked)"vk-account-unlink"else"vk-account-link"},LinearLayout.LayoutParams(-1,dp(48)))
+        }
+        renderAccountActions()
         layout.addView(actions,LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(8);bottomMargin=dp(16)})
         if(main!=null)EditorLayout.heading(main,layout,"Звонки и ручные хэши","servers")
         val error=text("")

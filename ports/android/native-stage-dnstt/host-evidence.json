@@ -1,0 +1,19 @@
+{
+  "logSha256": "a925bad70ac844a8ba60326b48a194c61d010841aee4cfbb16c647286bbf486c",
+  "cases": [
+    "TestMcrfDnsttDeadSessionClosesItsListener",
+    "TestMcrfDnsttLocalAuthRejectsUnauthenticatedClient",
+    "TestMcrfDnsttPreservesResolverAndRemoteCredentials",
+    "TestMcrfDnsttRejectsUnsafeEndpoints",
+    "TestMcrfDnsttRemoteAuthPreservesProtocolBoundary",
+    "TestMcrfDnsttSessionWatcherRetiresWithoutClosingLiveListener",
+    "TestMcrfDnsttStrictPrivateConfig"
+  ],
+  "failures": 0,
+  "state": "PASS_P3_DNSTT_HOST",
+  "toolchainSha256": "21761eceb9302062c9623fb699f332c8c7fe000f15f70efe8da01a2cfbbc16b9",
+  "skipped": 0,
+  "retainedTestsReplayed": false,
+  "androidRuntimeAccepted": false,
+  "sourceManifestSha256": "3c32c230926160b5f4894004eff9fd0205e26051196f5b745f87048b4e62a913"
+}

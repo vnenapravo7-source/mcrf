@@ -1,0 +1,69 @@
+{
+  "state": "COMPILED_NOT_EXECUTED",
+  "kind": "wdtt",
+  "source": "D:\\MCRF\\Projects\\MCRF\\work\\ports-test-2026-10-14\\swg-mobile-79ce1a0c19034e34a8b8614c2339ce22",
+  "stage": "D:\\MCRF\\Builds\\Android\\wdtt-captcha-459b1e6447a34f3d9a8081d3d9e3ed5c",
+  "hostTests": "PASS 3 newly executed affected cases; 0 source-exact cases retained; unchanged ownership evidence separate",
+  "currentABI": null,
+  "artifacts": [
+    {
+      "elfChecked": true,
+      "abi": "arm64-v8a",
+      "bytes": 19773232,
+      "sha256": "a0f5fc1868ab147afc8d6a0ad2140296bc2746bf267e3d631a688cc78b162444",
+      "file": "D:\\MCRF\\Builds\\Android\\wdtt-captcha-459b1e6447a34f3d9a8081d3d9e3ed5c\\arm64-v8a\\libwdtt.so"
+    },
+    {
+      "elfChecked": true,
+      "abi": "armeabi-v7a",
+      "bytes": 18902164,
+      "sha256": "c695d325cf3273889c45e0a27c3e6c5bf185ba2a7846190b826d556de3d54128",
+      "file": "D:\\MCRF\\Builds\\Android\\wdtt-captcha-459b1e6447a34f3d9a8081d3d9e3ed5c\\armeabi-v7a\\libwdtt.so"
+    },
+    {
+      "elfChecked": true,
+      "abi": "x86_64",
+      "bytes": 21016392,
+      "sha256": "0b191ef94d9d916762d7ac4fb6a1dd77e1939e71747d99a64a98534f71b36738",
+      "file": "D:\\MCRF\\Builds\\Android\\wdtt-captcha-459b1e6447a34f3d9a8081d3d9e3ed5c\\x86_64\\libwdtt.so"
+    }
+  ],
+  "sourceStable": true,
+  "nativeExecuted": false,
+  "apkBuilt": false,
+  "legacyTransportStage": "",
+  "captchaWaiterCapability": "",
+  "packageVersionCode": 8,
+  "packageVersionName": "0.1.0-turn-pool.8",
+  "processGroupContract": 0,
+  "processGroupInputs": [],
+  "expansionAuthority": "human-20261021-expanded-p2-whole-source-before-common-verification",
+  "expansionReadinessSha256": "b1e81094a0656094d9fa19ddd3a769e3b8883f3d10f640394f720e9c9bbafeee",
+  "providerOptionsContract": 1,
+  "masqueContract": 1,
+  "masqueMainInputSha256": "54e99eaf0b0fdf2783dfaef149eb7e3aa9f5e7dd4f63e7372873a8d825798e42",
+  "providerOptionsInputSha256": "0ecf37e1228a329358dbe65eec895e066c2377e1c96dec1681c0e5a27d0255f2",
+  "turnFeatureInputs": [
+    {
+      "file": "mcrf_wdtt.go",
+      "sha256": "0ecf37e1228a329358dbe65eec895e066c2377e1c96dec1681c0e5a27d0255f2"
+    },
+    {
+      "file": "socks5_server.go",
+      "sha256": "79a0108f5830f8220bc7c413b4eef188b9733eb7fd5e2d9b3d160d395e0eafb8"
+    },
+    {
+      "file": "http_connect_server.go",
+      "sha256": "1a7272b51a35bc6f922a424d9bbccc8a04a2a65cd4da120c4df8f4114f71befa"
+    }
+  ],
+  "turnHashPoolContract": 1,
+  "wdttDualFamilyContract": 1,
+  "affectedCases": [
+    "TestMcrfWdttExtendedHashPool",
+    "TestMcrfWdttIPv6TCPAddressAndFamily",
+    "TestMcrfWdttIPv6UDPReplyAndRequestRoundTrip"
+  ],
+  "newAffectedExecutionCount": 3,
+  "affectedLogSha256": "1d3db507e432288e5aeccbe1128bdc7f468c7cc8f7d6fd985f067f940b2563f5"
+}

@@ -1,0 +1,36 @@
+{
+ "mailru-i200": {
+  "type": "mailru",
+  "account": "Mailru",
+  "env": {
+   "OPENFLUX_MAILRU_MSG_INTERVAL_MS": "200"
+  }
+ },
+ "mailru-i100": {
+  "type": "mailru",
+  "account": "Mailru",
+  "env": {
+   "OPENFLUX_MAILRU_MSG_INTERVAL_MS": "100"
+  }
+ },
+ "mailru-i50": {
+  "type": "mailru",
+  "account": "Mailru",
+  "env": {
+   "OPENFLUX_MAILRU_MSG_INTERVAL_MS": "50"
+  }
+ },
+ "mailru-r120": {
+  "type": "mailru",
+  "account": "Mailru",
+  "env": {
+   "OPENFLUX_MAILRU_ROTATE_MSGS": "120",
+   "OPENFLUX_MAILRU_MSG_INTERVAL_MS": "100"
+  }
+ },
+ "mailru-s4": {
+  "type": "mailru",
+  "account": "Mailru",
+  "env": {}
+ }
+}

@@ -81,14 +81,14 @@ object RoutingDefaultsPresetPicker {
                 if(working())return@setOnClickListener
                 val ids=services.toSet();val chosen=GeoDataPresets.items.filter {"${it.kind}:${it.code}" in geo};val target=destinations[i].first
                 buttons.forEach {it.isEnabled=false}
-                run(MainActivity.Operation {
+                runAfterSuccess(MainActivity.Operation {
                     val country=if(ids.any {id->catalogue.single {it.id==id}.kind=="Исключение РФ"})java.util.zip.GZIPInputStream(assets.open("russia-routes.bin")).use {String(ImportIO.read(it),Charsets.UTF_8)}else null
                     store.editInGeneration(generation){current->
                         RoutingDefaults.addSelected(current,catalogue,ids,country,target)
                         GeoDataPresets.addRules(current,chosen,target)
                     }
                     "Маршруты созданы"
-                },true,Runnable {dialog.dismiss()})
+                },true,Runnable {dialog.dismiss()},Runnable {update()})
             }}
             render();dialog.show();onShown(dialog)
         }}

@@ -1,0 +1,1085 @@
+{
+  "cronetScope": "conservative-source-notice-superset",
+  "linkedModules": {
+    "github.com/mdlayher/netlink": "v1.11.2",
+    "github.com/koron/go-ssdp": "v0.0.4",
+    "github.com/zeebo/blake3": "v0.2.4",
+    "github.com/sagernet/bbolt": "v0.0.0-20260915102804-500ee1e84832",
+    "github.com/sagernet/sing-mux": "v0.3.10-0.20260928104022-13d386f5efbd",
+    "github.com/gobwas/pool": "v0.2.1",
+    "github.com/florianl/go-nfqueue/v2": "v2.1.0",
+    "github.com/sagernet/quic-go": "v0.61.0-sing-box-mod.9",
+    "github.com/sagernet/smux": "v1.5.50-sing-box-mod.1",
+    "github.com/huin/goupnp": "v1.3.0",
+    "github.com/database64128/netx-go": "v0.1.1",
+    "google.golang.org/genproto/googleapis/rpc": "v0.0.0-20251202230838-ff82c1b0f217",
+    "github.com/mholt/acmez/v3": "v3.1.6",
+    "github.com/sagernet/sing": "v0.9.7-0.20260929150544-0ad23b637bd4",
+    "github.com/anytls/sing-anytls": "v0.0.11",
+    "github.com/jackpal/go-nat-pmp": "v1.0.2",
+    "lukechampine.com/blake3": "v1.3.0",
+    "github.com/go-chi/chi/v5": "v5.2.5",
+    "github.com/sagernet/cronet-go/lib/android_arm": "v0.0.0-20260912104006-c10c03c318db",
+    "github.com/caddyserver/zerossl": "v0.1.5",
+    "github.com/sagernet/sing-snell": "v0.0.0-20260904135315-bc5a12ac736f",
+    "github.com/go-chi/render": "v1.0.3",
+    "golang.org/x/text": "v0.40.0",
+    "github.com/libp2p/go-netroute": "v0.2.1",
+    "github.com/klauspost/compress": "v1.19.1",
+    "google.golang.org/grpc": "v1.79.1",
+    "github.com/gobwas/httphead": "v0.1.0",
+    "github.com/caddyserver/certmagic": "v0.25.3-0.20260421143802-60d9d8b415d6",
+    "golang.org/x/sync": "v0.22.0",
+    "github.com/miekg/dns": "v1.1.72",
+    "go.uber.org/multierr": "v1.11.0",
+    "github.com/hashicorp/yamux": "v0.1.2",
+    "github.com/sagernet/cronet-go/all": "v0.0.0-20260912104727-0d28acc44093",
+    "github.com/sagernet/cronet-go/lib/android_arm64": "v0.0.0-20260912104006-c10c03c318db",
+    "github.com/cretz/bine": "v0.2.0",
+    "github.com/klauspost/cpuid/v2": "v2.3.0",
+    "github.com/logrusorgru/aurora": "v2.0.3+incompatible",
+    "github.com/sagernet/cronet-go": "v0.0.0-20260912104727-0d28acc44093",
+    "github.com/sagernet/wireguard-go": "v0.0.8-0.20260929150556-6731c7387c81",
+    "github.com/coder/websocket": "v1.8.14",
+    "github.com/jsimonetti/rtnetlink": "v1.4.1",
+    "golang.org/x/mod": "v0.37.0",
+    "mcrf.local/optionalbridge": "v0.0.0",
+    "github.com/sagernet/sing-shadowsocks": "v0.2.9-0.20260929152116-0a3456819ce7",
+    "github.com/google/gopacket": "v1.1.19",
+    "golang.org/x/crypto": "v0.54.0",
+    "go4.org/netipx": "v0.0.0-20231129151722-fdeea329fbba",
+    "github.com/vishvananda/netns": "v0.0.5",
+    "github.com/sagernet/sing-tun": "v0.9.7-0.20260929152151-0bdadeb4c934",
+    "github.com/sagernet/ws": "v0.0.0-20231204124109-acfe8907c854",
+    "github.com/libp2p/go-nat": "v1.0.1-0.20250821073202-01afc089f138",
+    "github.com/sagernet/sing-quic": "v0.7.2-0.20260929152029-258509488380",
+    "github.com/ajg/form": "v1.5.1",
+    "github.com/gofrs/uuid/v5": "v5.5.1",
+    "github.com/mdlayher/socket": "v0.6.0",
+    "github.com/sagernet/nftables": "v0.3.0-mod.4",
+    "github.com/database64128/tfo-go/v2": "v2.3.2",
+    "github.com/google/btree": "v1.1.3",
+    "github.com/quic-go/qpack": "v0.6.0",
+    "github.com/godbus/dbus/v5": "v5.2.2",
+    "golang.org/x/net": "v0.57.0",
+    "github.com/libdns/libdns": "v1.1.1",
+    "github.com/sagernet/sing-shadowtls": "v0.2.2-0.20260928201441-a9c0127d5c99",
+    "github.com/sagernet/sing-vmess": "v0.2.9-0.20260929152519-9b95ab8c9478",
+    "github.com/fsnotify/fsnotify": "v1.9.0",
+    "github.com/sagernet/cronet-go/lib/android_amd64": "v0.0.0-20260912104006-c10c03c318db",
+    "github.com/sagernet/sing-shadowsocks2": "v0.2.2-0.20260929152114-a69d1086332b",
+    "github.com/sagernet/cors": "v1.2.1",
+    "go.uber.org/zap": "v1.27.1",
+    "github.com/andybalholm/brotli": "v1.1.0",
+    "golang.org/x/sys": "v0.47.0",
+    "google.golang.org/protobuf": "v1.36.11",
+    "github.com/sagernet/fswatch": "v0.1.2",
+    "github.com/metacubex/utls": "v1.8.7",
+    "github.com/sagernet/netlink": "v0.0.0-20260814022025-64455d367bbf",
+    "golang.org/x/exp": "v0.0.0-20260410095643-746e56fc9e2f",
+    "go.uber.org/zap/exp": "v0.3.0"
+  },
+  "missing": [],
+  "complete": true,
+  "cronetProvenanceSha256": "33b3e42bec38cf2fa281708f95c74640c5d9f0531e8eb96dcef1849cdc3e5d3f",
+  "files": [
+    {
+      "bytes": 1586,
+      "file": "cronet/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "2b5d44220cee7d541efdef3126ce838b2e73eaebae2f441af3573cb2c0af4d70"
+    },
+    {
+      "bytes": 1575,
+      "file": "cronet/LSS-LICENSE.txt",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "325b8440550179bd46d3389d9defd6cdab7bb9a3519ef38d2eda008dd02236ab"
+    },
+    {
+      "bytes": 2972,
+      "file": "cronet/Perfetto-LSS-NOTICE.txt",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "ae2d3b97458386f96361055be1897d84d178a62df8a8a46a6afb24d80a3708b5"
+    },
+    {
+      "bytes": 1732,
+      "file": "cronet/Protobuf-BSD.txt",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "6e5e117324afd944dcf67f36cf329843bc1a92229a8cd9bb573d7a83130fea7d"
+    },
+    {
+      "bytes": 20089,
+      "file": "cronet/src/base/allocator/partition_allocator/src/partition_alloc/third_party/apple_apsl/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "b23e682fda7310afe43505ed6041919ccff8f9e0c6799ebd7542cbcef11102e3"
+    },
+    {
+      "bytes": 1548,
+      "file": "cronet/src/base/allocator/partition_allocator/src/partition_alloc/third_party/apple_apsl/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "ee82868a98861e747f798df807e400f02318d019e0afaaf165d465a6526be83b"
+    },
+    {
+      "bytes": 1129,
+      "file": "cronet/src/base/third_party/cityhash_v103/COPYING",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "f73808434bdb64d9d6a059a91514c5347f1002239d12e772a00c72d461ef806e"
+    },
+    {
+      "bytes": 971,
+      "file": "cronet/src/base/third_party/cityhash_v103/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "c37810ed4d957b2a4170232ca189b9d723abc7ee9e9c2caa329e836c27516c6c"
+    },
+    {
+      "bytes": 1129,
+      "file": "cronet/src/base/third_party/cityhash/COPYING",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "f73808434bdb64d9d6a059a91514c5347f1002239d12e772a00c72d461ef806e"
+    },
+    {
+      "bytes": 959,
+      "file": "cronet/src/base/third_party/cityhash/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "745ca65d7762e565ec910d38a88badf817006e790c2cea3b8566b20a86de3fca"
+    },
+    {
+      "bytes": 1527,
+      "file": "cronet/src/base/third_party/double_conversion/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "4af93c12062c58058378de2397dc1c92bbff9ddfb1d583a01c84127557ce97ca"
+    },
+    {
+      "bytes": 500,
+      "file": "cronet/src/base/third_party/double_conversion/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "5b6f2a88485bb23f66708ad038c44ddaacea27a92699ec2cc332aea6f539d7e5"
+    },
+    {
+      "bytes": 3674,
+      "file": "cronet/src/base/third_party/icu/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "5d85142a5609ad177a2d7a2e7cae060b886b8b42f25c5b9803cf0cb5ee04ad2f"
+    },
+    {
+      "bytes": 778,
+      "file": "cronet/src/base/third_party/icu/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "1cd292a23b3e59b9537a60c619b5e1c607340a73325f9bcb5f6ac028eaed3df9"
+    },
+    {
+      "bytes": 16726,
+      "file": "cronet/src/base/third_party/nspr/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04"
+    },
+    {
+      "bytes": 544,
+      "file": "cronet/src/base/third_party/nspr/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "209d41209ae24c8a6c99c315853922df2bafd35fdde101193ddc82ffcd2b7310"
+    },
+    {
+      "bytes": 1527,
+      "file": "cronet/src/base/third_party/superfasthash/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "90b2201c340cee36b40a443f949d9eb416f0a0d204c32d350aff87fedeb67ae8"
+    },
+    {
+      "bytes": 948,
+      "file": "cronet/src/base/third_party/superfasthash/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "483c058040c840bcc8ad350255b654db90bc0c4d2f8005a7c6f0ba86c0d62b13"
+    },
+    {
+      "bytes": 1560,
+      "file": "cronet/src/base/third_party/symbolize/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "538edc6f52c563cf06eca1bac8dd785ff60ef5a371a950265700d5d40386db6e"
+    },
+    {
+      "bytes": 2080,
+      "file": "cronet/src/base/third_party/symbolize/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "fe4fb0b625846d3fd90eff8155a82f1b1e316445bc6bd7e49814724dc6a678d6"
+    },
+    {
+      "bytes": 1094,
+      "file": "cronet/src/base/third_party/xdg_user_dirs/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "18351de3d7e2dc469cc83e77d38a3e25d010251e34eb348bbd1a76275e313997"
+    },
+    {
+      "bytes": 499,
+      "file": "cronet/src/base/third_party/xdg_user_dirs/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "0e12f8eb866392eccc0e2dd86cacb9e6f46c789ca7b38ecab79bc4c6664bf347"
+    },
+    {
+      "bytes": 11357,
+      "file": "cronet/src/build/android/incremental_install/third_party/AndroidHiddenApiBypass/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "bytes": 577,
+      "file": "cronet/src/build/android/incremental_install/third_party/AndroidHiddenApiBypass/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "c749b388ec0d9fb19e6cc8427b2c9a51835b43f405ed21f5e6e988ccdab97018"
+    },
+    {
+      "bytes": 2189,
+      "file": "cronet/src/build/internal/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "f67b4c4b4f467e9c80feca1995e02ea185fd44ba422611f8704e62fed7db1d31"
+    },
+    {
+      "bytes": 6560,
+      "file": "cronet/src/components/cronet/license/constants.py",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "265dabd02de9199fe2431ac4ffa1b2dcce027305f55c8372ff8622255ae8a4c0"
+    },
+    {
+      "bytes": 220,
+      "file": "cronet/src/components/cronet/license/tests/target_a/BUILD.gn",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "b103996bd7b6fffbdbd14b6ba6afa5ec11b23c7a995c073e6b33346d5bed9412"
+    },
+    {
+      "bytes": 0,
+      "file": "cronet/src/components/cronet/license/tests/target_a/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 220,
+      "file": "cronet/src/components/cronet/license/tests/target_b/BUILD.gn",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "b3e0f3fa0dccc39327b38510cefa8077328e3bb457dc24ae706850009bb12923"
+    },
+    {
+      "bytes": 0,
+      "file": "cronet/src/components/cronet/license/tests/target_b/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 162,
+      "file": "cronet/src/components/cronet/license/tests/target_c/BUILD.gn",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "1c2f9ac111e1acf3d4701991753fcf1ae3371cc37a4f09be77b4a8d0ecbd8e35"
+    },
+    {
+      "bytes": 0,
+      "file": "cronet/src/components/cronet/license/tests/target_c/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 1536,
+      "file": "cronet/src/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "368cca1106be99d39ecd32a38d8305585d802a475effb66380b91ffc9bcf709b"
+    },
+    {
+      "bytes": 1699,
+      "file": "cronet/src/net/third_party/mozilla_security_manager/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "bed70fc84f1bea2b4b144564b9a0f9a5a3bc7b0d78f6e62092aeb689cac56bdd"
+    },
+    {
+      "bytes": 603,
+      "file": "cronet/src/net/third_party/mozilla_security_manager/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "8f01b4b89bbac7c0f8e83de0ca690867fa256ff88577195f9afa0188f5f7c552"
+    },
+    {
+      "bytes": 18122,
+      "file": "cronet/src/net/third_party/mozilla_win/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "6d29b685206b28617dd9ac13818ccc943e57df68aeea1db0f4a5539f4507a9aa"
+    },
+    {
+      "bytes": 703,
+      "file": "cronet/src/net/third_party/mozilla_win/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "1ce561b0559c4d60bedc7b237d1869a14af4de5d0d9e4b0558945b838933ad14"
+    },
+    {
+      "bytes": 320,
+      "file": "cronet/src/net/third_party/quiche/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "b4a1ff1c6c531cc2163f68193272ad9b94d6ba26eafb54b3b95d8948cb105f0f"
+    },
+    {
+      "bytes": 1559,
+      "file": "cronet/src/net/third_party/quiche/src/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "845022e0c1db1abb41a6ba4cd3c4b674ec290f3359d9d3c78ae558d4c0ed9308"
+    },
+    {
+      "bytes": 11358,
+      "file": "cronet/src/net/third_party/uri_template/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "bytes": 921,
+      "file": "cronet/src/net/third_party/uri_template/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "30e024609bce7f4087acc20b368b219271c1801d6f871bcfc684aa0772c47bfa"
+    },
+    {
+      "bytes": 11361,
+      "file": "cronet/src/third_party/abseil-cpp/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "c79a7fea0e3cac04cd43f20e7b648e5a0ff8fa5344e644b0ee09ca1162b62747"
+    },
+    {
+      "bytes": 2223,
+      "file": "cronet/src/third_party/abseil-cpp/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "7fabebe1b11ac248b8c1e14d75ccd27d703d617c224cbb46f2a6ab935df6d597"
+    },
+    {
+      "bytes": 20089,
+      "file": "cronet/src/third_party/apple_apsl/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "b23e682fda7310afe43505ed6041919ccff8f9e0c6799ebd7542cbcef11102e3"
+    },
+    {
+      "bytes": 702,
+      "file": "cronet/src/third_party/apple_apsl/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "c45bed1b18f30ff6e2934298fcfd3e4f6c857754652427025926be8d24a4fd46"
+    },
+    {
+      "bytes": 445,
+      "file": "cronet/src/third_party/boringssl/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "067c0426e728c71a990b93bffcd1e45b238e9d8268345a84820ae70906afafa6"
+    },
+    {
+      "bytes": 13115,
+      "file": "cronet/src/third_party/boringssl/src/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "827c8d8fc207c2392794eef9e00fe246f9f61fdcc132556c275be3dd8c3cd97f"
+    },
+    {
+      "bytes": 11358,
+      "file": "cronet/src/third_party/boringssl/src/third_party/benchmark/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "bytes": 638,
+      "file": "cronet/src/third_party/boringssl/src/third_party/fiat/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "9eacbcb81be660840c714a560a9d65ba07913db98dd4baf969f78dd499fdd60f"
+    },
+    {
+      "bytes": 382,
+      "file": "cronet/src/third_party/boringssl/src/third_party/fiat/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "f26cbdbcacc44a02bdcdc8280e3b788eedc2bf35f12aa81e1137191fd8f1e207"
+    },
+    {
+      "bytes": 1084,
+      "file": "cronet/src/third_party/brotli/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "3d180008e36922a4e8daec11c34c7af264fed5962d07924aea928c38e8663c94"
+    },
+    {
+      "bytes": 1156,
+      "file": "cronet/src/third_party/brotli/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "227ddaffa9d6c90b6fb33b7d141726cc655ee1ce82c1a8aa2c09717434850470"
+    },
+    {
+      "bytes": 581,
+      "file": "cronet/src/third_party/cpu_features/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "08010573ca27db7cb74f712f3bef3be27f399f46a3977593beeef18368514ea2"
+    },
+    {
+      "bytes": 12876,
+      "file": "cronet/src/third_party/cpu_features/src/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "af272c1b4dd08dd61d43e001d3134119d03ca7a2b057a64f7355fdf27fbea3dd"
+    },
+    {
+      "bytes": 1458,
+      "file": "cronet/src/third_party/jni_zero/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "57faf03e216d5628169a779df31a842347e55c8e6567e1107b6cb8fb90175b59"
+    },
+    {
+      "bytes": 489,
+      "file": "cronet/src/third_party/jni_zero/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "ce77235b508cceb4b5dfcd1903cf28262f902f5a2312fe8248658aec049873b7"
+    },
+    {
+      "bytes": 301,
+      "file": "cronet/src/third_party/libc++/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "94b83e180a70242bed69838b476eaee19e8c3b589d799a20a016869cc987a93c"
+    },
+    {
+      "bytes": 16703,
+      "file": "cronet/src/third_party/libc++/src/LICENSE.TXT",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b"
+    },
+    {
+      "bytes": 309,
+      "file": "cronet/src/third_party/libc++abi/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "3da2026112dd7b25e6ce597787bbfc2e3ef3dfa003cc006288cc378d2443f3e4"
+    },
+    {
+      "bytes": 16706,
+      "file": "cronet/src/third_party/libc++abi/src/LICENSE.TXT",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "e2b35be49f7284a45b7baca8fc7b3ab7440e7902392b2528a457816b5bb2a15c"
+    },
+    {
+      "bytes": 529,
+      "file": "cronet/src/third_party/libunwind/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "62a25d00b220977dc45cce50af6a074efbd08f1c113a18d38cf919ba0f3ba8be"
+    },
+    {
+      "bytes": 16706,
+      "file": "cronet/src/third_party/libunwind/src/LICENSE.TXT",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "b5efebcaca80879234098e52d1725e6d9eb8fb96a19fce625d39184b705f7b6d"
+    },
+    {
+      "bytes": 338,
+      "file": "cronet/src/third_party/llvm-libc/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "63c1b20708ebe5a7cc6f2cc957e01cba36877429961ea87bf392fb3519ccb20d"
+    },
+    {
+      "bytes": 15140,
+      "file": "cronet/src/third_party/llvm-libc/src/LICENSE.TXT",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "ebcd9bbf783a73d05c53ba4d586b8d5813dcdf3bbec50265860ccc885e606f47"
+    },
+    {
+      "bytes": 1721,
+      "file": "cronet/src/third_party/modp_b64/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "d47e8390fb0d7ad4a18f26aedd6283c7ab6b5b4fabab536ccb4db7f9f6d90c08"
+    },
+    {
+      "bytes": 976,
+      "file": "cronet/src/third_party/modp_b64/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "a728c6fd7330bd52bd392f1a0072de2433627fba0854a076ecb826ad7a77d8ee"
+    },
+    {
+      "bytes": 1554,
+      "file": "cronet/src/third_party/nasm/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "7436a7c46b6e4d969b41e1ce387885ae4ced25710662189ff2983665253729ac"
+    },
+    {
+      "bytes": 2978,
+      "file": "cronet/src/third_party/nasm/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "a5e12d92820f96082cfa934fca007c7f9fe63bcb868a5eee873715b270e25bdd"
+    },
+    {
+      "bytes": 1002,
+      "file": "cronet/src/third_party/nasm/zlib/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243"
+    },
+    {
+      "bytes": 1091,
+      "file": "cronet/src/third_party/protobuf/third_party/utf8_range/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "02de69b64fc36d9e938f418e52723e42f0b2b226d58a9cb3c8dcbdf7059f5074"
+    },
+    {
+      "bytes": 1059,
+      "file": "cronet/src/third_party/simdutf/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "fc8dbc04e03ad4efc08a647ffe7f995b811a95bc04c0e85a56d5277c6593fa5f"
+    },
+    {
+      "bytes": 1120,
+      "file": "cronet/src/third_party/simdutf/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "6473dd8c53339fc113f3c5de62a3a74b3b25fc222e986a1fe43daa49ccb2bb80"
+    },
+    {
+      "bytes": 1599,
+      "file": "cronet/src/third_party/zlib/contrib/minizip/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "1c994e86bedc619e79566df1b09bf1d0888f176608ff67c68803e5e1ad20f17f"
+    },
+    {
+      "bytes": 1002,
+      "file": "cronet/src/third_party/zlib/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2"
+    },
+    {
+      "bytes": 1654,
+      "file": "cronet/src/third_party/zlib/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "18f3b809738eb94ac818546ca8a67563691697aecaa77f052610264dee8ba5b7"
+    },
+    {
+      "bytes": 711,
+      "file": "cronet/src/third_party/zstd/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "068e9124e866edc1f670b5443689686be13b0c21cadc36ddd85240d074ca8e53"
+    },
+    {
+      "bytes": 18091,
+      "file": "cronet/src/third_party/zstd/src/COPYING",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "f9c375a1be4a41f7b70301dd83c91cb89e41567478859b77eef375a52d782505"
+    },
+    {
+      "bytes": 1549,
+      "file": "cronet/src/third_party/zstd/src/LICENSE",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8"
+    },
+    {
+      "bytes": 3200,
+      "file": "cronet/src/url/third_party/mozilla/LICENSE.txt",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "284545e873c704952e5b1b39d457dd83a3b115a51d9f1eb5175137bd69b8fa1b"
+    },
+    {
+      "bytes": 391,
+      "file": "cronet/src/url/third_party/mozilla/README.chromium",
+      "origin": "Pinned Chromium150 source-notice superset",
+      "sha256": "0f6c477c8205103963e989309c0dc6f6b369398d5dfc65b4ad80792443cd715b"
+    },
+    {
+      "bytes": 808,
+      "file": "SDK-LICENSE.txt",
+      "origin": "Leadaxe/sing-box-lx3d3d3db original SDK and GPL3 frontend",
+      "sha256": "bb3805862b583aee73ad6f7805ec634747a37257a637a3069857843f05ea589c"
+    },
+    {
+      "bytes": 35149,
+      "file": "GPL-3.0.txt",
+      "origin": "Full GNU GPL3 licence, not just an SDK notice pointer",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    },
+    {
+      "bytes": 1453,
+      "file": "Go-LICENSE.txt",
+      "origin": "Pinned Go toolchain",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "bytes": 1481,
+      "file": "go/dfe1f0da138ba9b920e85fb3dac9c7565f3141aa01f401c82a4643311ea6c286/LICENSE",
+      "origin": "github.com/ajg/form@v1.5.1",
+      "sha256": "a66b5c17a29c5b28713fc55662593eb22fab1332d0060bdae5ff8c890e821c67"
+    },
+    {
+      "bytes": 1084,
+      "file": "go/fdc0815492b5c6329ab9c592d86c37b69f8b424ae7186eccfe7b846009007def/LICENSE",
+      "origin": "github.com/andybalholm/brotli@v1.1.0",
+      "sha256": "3d180008e36922a4e8daec11c34c7af264fed5962d07924aea928c38e8663c94"
+    },
+    {
+      "bytes": 673,
+      "file": "go/7404c8efa6ee83977f281d33ce5bc1fad1ca1c5e8bf29ed0f87970d53586210c/LICENSE",
+      "origin": "github.com/anytls/sing-anytls@v0.0.11",
+      "sha256": "df8e304aaa400c40a02bb48836a6172ee9ffb3666a5b28088d7201cf1a8b740e"
+    },
+    {
+      "bytes": 11357,
+      "file": "go/140b4956b6d4158a985454453f976c21064f15d50117d054eef7c44be1475a05/LICENSE.txt",
+      "origin": "github.com/caddyserver/certmagic@v0.25.3-0.20260421143802-60d9d8b415d6",
+      "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+    },
+    {
+      "bytes": 1068,
+      "file": "go/0dcd61d47f46bb5fd75505febc26fc2484146b490a5646795046574e6550131e/LICENSE",
+      "origin": "github.com/caddyserver/zerossl@v0.1.5",
+      "sha256": "1ef7b0f3816510e2c4727a6e45b770ddb5ab123d73074e7f0b424767db0f9f7b"
+    },
+    {
+      "bytes": 720,
+      "file": "go/9b9baedc96434b3fcb36d12f4d8bb452597aaf48cbca734021f9abd0f7d65e2b/LICENSE.txt",
+      "origin": "github.com/coder/websocket@v1.8.14",
+      "sha256": "cc0975a5f6305145bdd7b41ce9479632fdac3870e6ac4281f28017f18c767c4e"
+    },
+    {
+      "bytes": 1065,
+      "file": "go/5bf8e6db9df6afa3540ce087e0156661e8835c9285db684de5f4996b32eb04c2/LICENSE",
+      "origin": "github.com/cretz/bine@v0.2.0",
+      "sha256": "9808ceffe450ef163ae04ba0d42149c3742a55ddd8da580c2471f23a7f79a405"
+    },
+    {
+      "bytes": 1453,
+      "file": "go/5e0005475b775425ee78276cd41943509dfdc692967ff5acb20286611d0f6ae0/LICENSE",
+      "origin": "github.com/database64128/netx-go@v0.1.1",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "bytes": 1070,
+      "file": "go/7c4adf32e522791434f4dc973dd609576eb837e56bb80864ed3d63d095d2fdab/LICENSE",
+      "origin": "github.com/database64128/tfo-go/v2@v2.3.2",
+      "sha256": "092daaeb0ef37d1e9870febdaa8e2e19f263128bf4351f811bd5181d0f4a1081"
+    },
+    {
+      "bytes": 1108,
+      "file": "go/43d881354823c046f428379137ef617108cac1600c47c03596033ff43aa59f17/LICENSE",
+      "origin": "github.com/florianl/go-nfqueue/v2@v2.1.0",
+      "sha256": "5425254065e61bfe5f0b686aebe1132b4a1596e0e14ede729cfc52cc3e187af6"
+    },
+    {
+      "bytes": 1531,
+      "file": "go/0709d459a3843310baa7324570004fc1be0c7c0490b4066e4c1874521e32531c/LICENSE",
+      "origin": "github.com/fsnotify/fsnotify@v1.9.0",
+      "sha256": "2dfbe6d2b5eb18b55148f3805d88648a09e0d17e38428123259afb08c8996e37"
+    },
+    {
+      "bytes": 1123,
+      "file": "go/51dfb57cd7d81294babc869cea0987de4572b56f01b2f5325a58075056a23bdb/LICENSE",
+      "origin": "github.com/go-chi/chi/v5@v5.2.5",
+      "sha256": "a2d51b7515acfaff2f7a88688650f2fc4fd99561383e72bba2305e3db59a1647"
+    },
+    {
+      "bytes": 1098,
+      "file": "go/8f89ebdf8e156172809c74602cd703d9fb068aa580a2a1c1e656201119658185/LICENSE",
+      "origin": "github.com/go-chi/render@v1.0.3",
+      "sha256": "98e196bb920eee8b82b0ee2001d609b2cfe57cb83ee1d15f315f327e5599d6df"
+    },
+    {
+      "bytes": 1082,
+      "file": "go/de36b5d5991b9afca7e3b818a196087a200b8a5d6e4fa9c8c464fdb9db67d8d1/LICENSE",
+      "origin": "github.com/gobwas/httphead@v0.1.0",
+      "sha256": "7d168561ad5212bf5b3023d55cba37c9594eb011ba74445d99f82055be662589"
+    },
+    {
+      "bytes": 1106,
+      "file": "go/2614f5d3c0b4f4f6ada919fe0bc2dfa3f9d8a42e03306ccf57748e92c711eb0a/LICENSE",
+      "origin": "github.com/gobwas/pool@v0.2.1",
+      "sha256": "bcc745631c0144db2c601650c55d108172c80d601cf2346c71594a0bc32f6f1c"
+    },
+    {
+      "bytes": 1328,
+      "file": "go/138bdc9503c9acfce702d58e79f2616fc76ef7b9277c6b448e750c15a3fa9b8e/LICENSE",
+      "origin": "github.com/godbus/dbus/v5@v5.2.2",
+      "sha256": "e4646a82a976369d7ae8f6ed5c11d35dc0af18433a8ccc24c85b459ad8b95128"
+    },
+    {
+      "bytes": 1082,
+      "file": "go/be195a8cb87614c9920c96b8a2c3a47e139cbef866ed9b6a940c892da25dcae8/LICENSE",
+      "origin": "github.com/gofrs/uuid/v5@v5.5.1",
+      "sha256": "92a328e1d5f3269b42e2ce32b4494eafdb3132f204a911c5c95cf3d8465490e4"
+    },
+    {
+      "bytes": 11358,
+      "file": "go/0786d29b96d7b3a31e345f70c40d8cbc00407790255b850ab94238d5525fe9d9/LICENSE",
+      "origin": "github.com/google/btree@v1.1.3",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "bytes": 1743,
+      "file": "go/dfea2449e188c8b081c003e6a390f8655d5cff7144820f26e544d670d6587294/AUTHORS",
+      "origin": "github.com/google/gopacket@v1.1.19",
+      "sha256": "c8cd51d98409d0010e52e8281315bb7e88109e8c88c224748fa359e7a07ea48a"
+    },
+    {
+      "bytes": 1555,
+      "file": "go/dfea2449e188c8b081c003e6a390f8655d5cff7144820f26e544d670d6587294/LICENSE",
+      "origin": "github.com/google/gopacket@v1.1.19",
+      "sha256": "8025b28cd71e0a486b173d4a29a05478c003d197a907f99b61a05e181e90b92d"
+    },
+    {
+      "bytes": 15956,
+      "file": "go/1e0096d8acab1cf9f41a61cca1ba6292c08fd2d53507055d2a1ce68fb3e6824d/LICENSE",
+      "origin": "github.com/hashicorp/yamux@v0.1.2",
+      "sha256": "ba36895caa0717b51eacc64ad50ef0b399482e1b82b93cfcdd065307409b3d9d"
+    },
+    {
+      "bytes": 1321,
+      "file": "go/e7578035087a0dc22741968a9711b0ea45d8618c8c96b5ce75c2c648951e99d4/LICENSE",
+      "origin": "github.com/huin/goupnp@v1.3.0",
+      "sha256": "440688406aeb546bad566031c8a01531a01a683166f7010380fcc0f68d830311"
+    },
+    {
+      "bytes": 591,
+      "file": "go/7839a98736a223cbbf72958291a9cc040bb86610d3b0115db4e6d6e1427b7fa9/LICENSE",
+      "origin": "github.com/jackpal/go-nat-pmp@v1.0.2",
+      "sha256": "1596ea320a3d9e5180576b2c6dd28aa34b9edcef27693fcd0474e24bda3fdcab"
+    },
+    {
+      "bytes": 1085,
+      "file": "go/15f3a79cacf408f46255481c5e2ef25b04ff6fcb0bbc8552a72453bb8ef838b1/LICENSE.md",
+      "origin": "github.com/jsimonetti/rtnetlink@v1.4.1",
+      "sha256": "1f61baf667aacf74c2d17abcfc0ba6e9267265460a508629307c08020dcae39c"
+    },
+    {
+      "bytes": 16733,
+      "file": "go/7e7877fae212e622c6d6cf21be9e8df34937ff5564132a295c52a2c59a6f4d7f/LICENSE",
+      "origin": "github.com/klauspost/compress@v1.19.1",
+      "sha256": "0d9e582ee4bff57bf1189c9e514e6da7ce277f9cd3bc2d488b22fbb39a6d87cf"
+    },
+    {
+      "bytes": 1078,
+      "file": "go/1273115e63b2119cb369654d248d8172d630eb72e0b59b9ac08bd579af78036c/LICENSE",
+      "origin": "github.com/klauspost/cpuid/v2@v2.3.0",
+      "sha256": "5d966570d7a442d4e969892860a914e542c97f262c873baee8f0aa48e1f40212"
+    },
+    {
+      "bytes": 1105,
+      "file": "go/4d1c35450b28de7be3673249c8585d98744db898cf6c99e573c149756b2de29d/LICENSE",
+      "origin": "github.com/koron/go-ssdp@v0.0.4",
+      "sha256": "19bf6375dd79e92e109f5f2603f824a14056d051a5f9ef77ea02c573668fd0d1"
+    },
+    {
+      "bytes": 1069,
+      "file": "go/f305b5e006406d5c3f47ef9bfb3932d8fe2b501bb3b5a3a31d6d12149bd06e67/LICENSE",
+      "origin": "github.com/libdns/libdns@v1.1.1",
+      "sha256": "e75b5c81dc881b74f84c306c2d0b7db1affbe78d9c0feb5722eb432fd534bea5"
+    },
+    {
+      "bytes": 10273,
+      "file": "go/e137b0e8ebfb1a6e546d570eda879738ffaea28b0d506d4ff50c9d7b870d5064/LICENSE",
+      "origin": "github.com/libp2p/go-nat@v1.0.1-0.20250821073202-01afc089f138",
+      "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+    },
+    {
+      "bytes": 1607,
+      "file": "go/6ce5c22713eeb5ca1417799236441cb42af499bbb3ee3d678831a8c74444b00e/LICENSE",
+      "origin": "github.com/libp2p/go-netroute@v0.2.1",
+      "sha256": "84a049e0389f2118af2538e74523a7f76967f94bbfc93e43688cd4dfd4b89e95"
+    },
+    {
+      "bytes": 149,
+      "file": "go/6e798325bb1b1ea5d36fc6a9afa00c16fbcb7a082c8265d7828cdf42e53d50ef/AUTHORS.md",
+      "origin": "github.com/logrusorgru/aurora@v2.0.3+incompatible",
+      "sha256": "48a22df9057e6647a537efd88394eec612da2083554855a7187b3f6d387a7c64"
+    },
+    {
+      "bytes": 1211,
+      "file": "go/6e798325bb1b1ea5d36fc6a9afa00c16fbcb7a082c8265d7828cdf42e53d50ef/LICENSE",
+      "origin": "github.com/logrusorgru/aurora@v2.0.3+incompatible",
+      "sha256": "7e12e5df4bae12cb21581ba157ced20e1986a0508dd10d0e8a4ab9a4cf94e85c"
+    },
+    {
+      "bytes": 1075,
+      "file": "go/4994661de099e411dfbe665d1e2ea22696aff5ac6e750751ecf0a77c4f625f7d/LICENSE.md",
+      "origin": "github.com/mdlayher/netlink@v1.11.2",
+      "sha256": "756eb71e459f59a9d187b8f6d09181157f8a5fb2b1d30ca359e1d7f35f91cb9d"
+    },
+    {
+      "bytes": 1070,
+      "file": "go/79b131efaf6cf7d3008223be2554e51efa491cdd2beab8b458476b0082fc7aae/LICENSE.md",
+      "origin": "github.com/mdlayher/socket@v0.6.0",
+      "sha256": "7ac20f598f63dfd35c7c6c3844073af0bebfa436cfe58b91af9ac17cd727ea42"
+    },
+    {
+      "bytes": 1506,
+      "file": "go/3bb7d171d71bac1687e4561dfad19adc083c8a30e3f9c56fefa5ab1326cf2f01/LICENSE",
+      "origin": "github.com/metacubex/utls@v1.8.7",
+      "sha256": "f7e7a89792fca960e3e7275f4ea4edfe6175353a8554a5039bfa1ccc486940df"
+    },
+    {
+      "bytes": 11357,
+      "file": "go/f86e7a6750f8d53ae5c6fe18159b6e5c8c99ad90ba2c91bc6be837cae454efff/LICENSE",
+      "origin": "github.com/mholt/acmez/v3@v3.1.6",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "bytes": 27,
+      "file": "go/c970fe74a6310aeb2b7e74099182de8132fa859be60ef60d0cd8496498a2766d/AUTHORS",
+      "origin": "github.com/miekg/dns@v1.1.72",
+      "sha256": "74a7b790488334d8a15bb0349ef1ceed3d4bb107f1c175460d5049217f0b5b89"
+    },
+    {
+      "bytes": 1568,
+      "file": "go/c970fe74a6310aeb2b7e74099182de8132fa859be60ef60d0cd8496498a2766d/LICENSE",
+      "origin": "github.com/miekg/dns@v1.1.72",
+      "sha256": "f200ff9bad73385db2ed81e23ee2c1fe069eb5776e17fae4ee85ad0a9e1361a5"
+    },
+    {
+      "bytes": 1054,
+      "file": "go/4483d6eeaadbf7467fa072a5ad8fe72eae1e095a6cc621114980ef94b2c86514/LICENSE.md",
+      "origin": "github.com/quic-go/qpack@v0.6.0",
+      "sha256": "1b6a897efd39b20b3cdce8cd306160d115dbded39d855ceeffe21dc11e4d53df"
+    },
+    {
+      "bytes": 1078,
+      "file": "go/a9ee054f5b85e23651bbf554fc3d6d78f59f7653708e4bbb7c4ece4c703586ab/LICENSE",
+      "origin": "github.com/sagernet/bbolt@v0.0.0-20260915102804-500ee1e84832",
+      "sha256": "c15d721c37e277a11584547de6d618541501f7aa10c4e32a945a4f9ff36cb0f6"
+    },
+    {
+      "bytes": 1154,
+      "file": "go/290ef16645bb52ce098945503fc3ebc66e6ed7b68b94207536e88ea9359da381/LICENSE",
+      "origin": "github.com/sagernet/cors@v1.2.1",
+      "sha256": "df53da8b4f70a2d6e360b9c86ba7b9cc284654c126686656cbe9029809fca25f"
+    },
+    {
+      "bytes": 674,
+      "file": "go/8e2e306a719b5e4963ec17dfd6d4e470dd8ac551aab2584b9793646ec09a3ed1/LICENSE",
+      "origin": "github.com/sagernet/cronet-go@v0.0.0-20260912104727-0d28acc44093",
+      "sha256": "2f02b7486bcfa90d115c71a20437f3906b6fd5bef81c5dc0efd341399e89d0fd"
+    },
+    {
+      "bytes": 674,
+      "file": "go/209f32d6d9222a34a00009df546d5d1b3da1287ac3f0a33e235694fb123fe90e/LICENSE",
+      "origin": "github.com/sagernet/cronet-go/all@v0.0.0-20260912104727-0d28acc44093",
+      "sha256": "2f02b7486bcfa90d115c71a20437f3906b6fd5bef81c5dc0efd341399e89d0fd"
+    },
+    {
+      "bytes": 674,
+      "file": "go/6067e974cd94dfb15441b3a04b6e5d49b8c34876e3ad48a92898afc62f45a0fb/LICENSE",
+      "origin": "github.com/sagernet/cronet-go/lib/android_amd64@v0.0.0-20260912104006-c10c03c318db",
+      "sha256": "2f02b7486bcfa90d115c71a20437f3906b6fd5bef81c5dc0efd341399e89d0fd"
+    },
+    {
+      "bytes": 674,
+      "file": "go/8af520061b5df228c69b7b0d291e3852ce3f997709bcf90bb897e3b42f22b314/LICENSE",
+      "origin": "github.com/sagernet/cronet-go/lib/android_arm@v0.0.0-20260912104006-c10c03c318db",
+      "sha256": "2f02b7486bcfa90d115c71a20437f3906b6fd5bef81c5dc0efd341399e89d0fd"
+    },
+    {
+      "bytes": 674,
+      "file": "go/348bf8e6c56194c8286ab51c88849a5f5bf95d18145e9a7e05793c2f4dada966/LICENSE",
+      "origin": "github.com/sagernet/cronet-go/lib/android_arm64@v0.0.0-20260912104006-c10c03c318db",
+      "sha256": "2f02b7486bcfa90d115c71a20437f3906b6fd5bef81c5dc0efd341399e89d0fd"
+    },
+    {
+      "bytes": 674,
+      "file": "go/6f074b29fb2126549fd7fbb5caf2f28cf9f19bd6d3738e7f761e1a61d3ca2b24/LICENSE",
+      "origin": "github.com/sagernet/fswatch@v0.1.2",
+      "sha256": "2f02b7486bcfa90d115c71a20437f3906b6fd5bef81c5dc0efd341399e89d0fd"
+    },
+    {
+      "bytes": 10796,
+      "file": "go/6c6f53c716adced1d7f1cadeb3aae2fd967275e4ac9ff495ee3c21701e4fa8de/LICENSE",
+      "origin": "github.com/sagernet/netlink@v0.0.0-20260814022025-64455d367bbf",
+      "sha256": "04cf148229e562c643203d1ee8c43aae2022e5130e95ceb8ba8357a27c1a9abe"
+    },
+    {
+      "bytes": 11358,
+      "file": "go/f1cf93adb2a6f21eb4b94d254b49e777e3547a57c55406bd0141135b2314376f/LICENSE",
+      "origin": "github.com/sagernet/nftables@v0.3.0-mod.4",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "bytes": 1091,
+      "file": "go/408196b4443ca6f14fde5242e936e91ad1a08fd73cd9ef016cca59af1562cb37/LICENSE",
+      "origin": "github.com/sagernet/quic-go@v0.61.0-sing-box-mod.9",
+      "sha256": "77d0b7b53e8abb84cf4dd3f9945a7fdf27044240d2e8023966a721a9a46fe96e"
+    },
+    {
+      "bytes": 674,
+      "file": "go/12f32b3a3f35f81969e06a73273eb220297ce247e7f55669a016db6a96f78fec/LICENSE",
+      "origin": "github.com/sagernet/sing@v0.9.7-0.20260929150544-0ad23b637bd4",
+      "sha256": "2f02b7486bcfa90d115c71a20437f3906b6fd5bef81c5dc0efd341399e89d0fd"
+    },
+    {
+      "bytes": 674,
+      "file": "go/20fd63d90e8a9253517be9e2dbbdc2884fd28a0bc695a191a03e2c92fe5a3164/LICENSE",
+      "origin": "github.com/sagernet/sing-mux@v0.3.10-0.20260928104022-13d386f5efbd",
+      "sha256": "2f02b7486bcfa90d115c71a20437f3906b6fd5bef81c5dc0efd341399e89d0fd"
+    },
+    {
+      "bytes": 674,
+      "file": "go/1fb11bc7bd3f15bed86e3efe385134f35177db0b14b979886c71bff827cf32e4/LICENSE",
+      "origin": "github.com/sagernet/sing-quic@v0.7.2-0.20260929152029-258509488380",
+      "sha256": "2f02b7486bcfa90d115c71a20437f3906b6fd5bef81c5dc0efd341399e89d0fd"
+    },
+    {
+      "bytes": 674,
+      "file": "go/728b9bf5745cf5bbc4170a08fc7bb4f57a928f0541d3e5f47ea3623f73eaaad5/LICENSE",
+      "origin": "github.com/sagernet/sing-shadowsocks@v0.2.9-0.20260929152116-0a3456819ce7",
+      "sha256": "2f02b7486bcfa90d115c71a20437f3906b6fd5bef81c5dc0efd341399e89d0fd"
+    },
+    {
+      "bytes": 674,
+      "file": "go/5a15488966a4d25d87fb41db6d0c83a44efb7ce62b8305bb51018165421bf9ee/LICENSE",
+      "origin": "github.com/sagernet/sing-shadowsocks2@v0.2.2-0.20260929152114-a69d1086332b",
+      "sha256": "2f02b7486bcfa90d115c71a20437f3906b6fd5bef81c5dc0efd341399e89d0fd"
+    },
+    {
+      "bytes": 674,
+      "file": "go/fcf38b9e277b48b1a75d5bfb0bb41806aed61c14d08b8865b9df75b214231d2d/LICENSE",
+      "origin": "github.com/sagernet/sing-shadowtls@v0.2.2-0.20260928201441-a9c0127d5c99",
+      "sha256": "2f02b7486bcfa90d115c71a20437f3906b6fd5bef81c5dc0efd341399e89d0fd"
+    },
+    {
+      "bytes": 674,
+      "file": "go/eee4720f13177acefcb73769dd67f01ea522e5103f76448a0a41dc501f5699e5/LICENSE",
+      "origin": "github.com/sagernet/sing-snell@v0.0.0-20260904135315-bc5a12ac736f",
+      "sha256": "2f02b7486bcfa90d115c71a20437f3906b6fd5bef81c5dc0efd341399e89d0fd"
+    },
+    {
+      "bytes": 687,
+      "file": "go/349ba5354d75673368127d750d719e7d7218dbd8c0dc519119f0c7d3784906b5/LICENSE",
+      "origin": "github.com/sagernet/sing-tun@v0.9.7-0.20260929152151-0bdadeb4c934",
+      "sha256": "df1455453f3357e4b9699e52a998af4ca2b2421d50e35961f33e97de457c5da4"
+    },
+    {
+      "bytes": 674,
+      "file": "go/cbc46d144f408cab4110cba17c8b3d5161e2790b695e3fe8a0618232df215988/LICENSE",
+      "origin": "github.com/sagernet/sing-vmess@v0.2.9-0.20260929152519-9b95ab8c9478",
+      "sha256": "2f02b7486bcfa90d115c71a20437f3906b6fd5bef81c5dc0efd341399e89d0fd"
+    },
+    {
+      "bytes": 1067,
+      "file": "go/4fcc2ecdcbe02a6eba413b44fe4aa1a13d29bdb09d3cca40853758ed919fc2a9/LICENSE",
+      "origin": "github.com/sagernet/smux@v1.5.50-sing-box-mod.1",
+      "sha256": "4d853d6e64790ccada70727c25334c50529b25ce57048129aaf6f8b0f2208516"
+    },
+    {
+      "bytes": 1040,
+      "file": "go/d6f0bace10f3046bbd264f3090768b270a640edeef27f6daaa43776c029bf5bf/LICENSE",
+      "origin": "github.com/sagernet/wireguard-go@v0.0.8-0.20260929150556-6731c7387c81",
+      "sha256": "c118d742cc937fe458812f8cddf5191303b3eab88ed49c0723f5c9ce8a39ab4d"
+    },
+    {
+      "bytes": 1106,
+      "file": "go/f8b4e78c05d2447cc26caa42f62e34de7815c22a15b88c7827b2b96a6682afd5/LICENSE",
+      "origin": "github.com/sagernet/ws@v0.0.0-20231204124109-acfe8907c854",
+      "sha256": "db823214b3ef18274418accda3812faac38a1545b8bd589aeb613a849b949c7a"
+    },
+    {
+      "bytes": 10796,
+      "file": "go/3229a7b507d860925461315eebf1a99c1aa74f09c07eea4614b6a5774ab7e633/LICENSE",
+      "origin": "github.com/vishvananda/netns@v0.0.5",
+      "sha256": "04cf148229e562c643203d1ee8c43aae2022e5130e95ceb8ba8357a27c1a9abe"
+    },
+    {
+      "bytes": 7189,
+      "file": "go/f12af01e0aa8f3f0f26e2773b59c83e4452979304a20b327c069801cf57b8fb2/LICENSE",
+      "origin": "github.com/zeebo/blake3@v0.2.4",
+      "sha256": "0589f544f68ffc436e6e21efec2cf7cc2dbb2ac09ce6cb8a8cdb75ab74489716"
+    },
+    {
+      "bytes": 1072,
+      "file": "go/abe1b262ebce9e4bedd2f9c4e03b49d065bde3c3c8f62b46b6c73a5765440e7f/LICENSE.txt",
+      "origin": "go.uber.org/multierr@v1.11.0",
+      "sha256": "dcdabe03bef2382a130640d1c3a4cd5ec42aba1035095c38272fde694eb72405"
+    },
+    {
+      "bytes": 1072,
+      "file": "go/11b63de84d911b02ac253f94c5103d8fe2770b2c2dabe1a4fd9c5006de4b3467/LICENSE",
+      "origin": "go.uber.org/zap@v1.27.1",
+      "sha256": "c2b97b3281be272711909076c8402499b4b5a3216196af47a25b1d3674d86152"
+    },
+    {
+      "bytes": 1072,
+      "file": "go/7acea20714c26c53214b8706466988f1da540158ebfd8faf70ba5e0d8dac3569/LICENSE",
+      "origin": "go.uber.org/zap/exp@v0.3.0",
+      "sha256": "c2b97b3281be272711909076c8402499b4b5a3216196af47a25b1d3674d86152"
+    },
+    {
+      "bytes": 120,
+      "file": "go/921ac7c347c920916c39dbb55c55c057f5099b042a7cddc4351f67d1fdf02240/AUTHORS",
+      "origin": "go4.org/netipx@v0.0.0-20231129151722-fdeea329fbba",
+      "sha256": "7868b053d41a7d213354d2c0417ca82c3a045d7cf5f9c2e3bb749b3882c52136"
+    },
+    {
+      "bytes": 1487,
+      "file": "go/921ac7c347c920916c39dbb55c55c057f5099b042a7cddc4351f67d1fdf02240/LICENSE",
+      "origin": "go4.org/netipx@v0.0.0-20231129151722-fdeea329fbba",
+      "sha256": "1bfc4f32f4ec8ca8fce54bd2d97784f003786753a69a78ca74ffae1574037fb9"
+    },
+    {
+      "bytes": 1453,
+      "file": "go/a21cca9b574794548fa86ad80ae493c4663aae674d5de1264497bbc87399b9b0/LICENSE",
+      "origin": "golang.org/x/crypto@v0.54.0",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "bytes": 1453,
+      "file": "go/8fe1ce87eba8489261de08ef423065a9bb4237c9f8c91e851c0e151c6d3a4827/LICENSE",
+      "origin": "golang.org/x/exp@v0.0.0-20260410095643-746e56fc9e2f",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "bytes": 1453,
+      "file": "go/bb502977b9dd9979c688e30120aa1403bcd3342813b1c587952b8af309a39e17/LICENSE",
+      "origin": "golang.org/x/mod@v0.37.0",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "bytes": 1453,
+      "file": "go/46dc23c8857c341eec11981b2f84f08f7c1439810b81d7b67236a2e009d44db5/LICENSE",
+      "origin": "golang.org/x/net@v0.57.0",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "bytes": 1453,
+      "file": "go/a210ede2ffb121862c73212da2adef1e657a62833d2f050e8a43cda253cfbec5/LICENSE",
+      "origin": "golang.org/x/sync@v0.22.0",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "bytes": 1453,
+      "file": "go/d8cdfe35da6397c15dee6837722c2895fe49f7ef0ea52a6539ffb7406d17d6d5/LICENSE",
+      "origin": "golang.org/x/sys@v0.47.0",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "bytes": 1453,
+      "file": "go/48412653c39783c56080902bc7869ac6bd2ec7317b61720bed459c7ad8b772b0/LICENSE",
+      "origin": "golang.org/x/text@v0.40.0",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "bytes": 11358,
+      "file": "go/7bc3d2bfbdebef6274b6603c8071ba758eb9764a0d837a1223f22ba67f66f503/LICENSE",
+      "origin": "google.golang.org/genproto/googleapis/rpc@v0.0.0-20251202230838-ff82c1b0f217",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "bytes": 12,
+      "file": "go/7a0370ea9c48fd57ef8efa0059b99c331309b40077fd5b3e7ffa6feb98f5c653/AUTHORS",
+      "origin": "google.golang.org/grpc@v1.79.1",
+      "sha256": "627c695f80fdac6412d66e6ad4160a4acb41923ca7ee3fd7e112e105f0ff46b9"
+    },
+    {
+      "bytes": 11358,
+      "file": "go/7a0370ea9c48fd57ef8efa0059b99c331309b40077fd5b3e7ffa6feb98f5c653/LICENSE",
+      "origin": "google.golang.org/grpc@v1.79.1",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "bytes": 554,
+      "file": "go/7a0370ea9c48fd57ef8efa0059b99c331309b40077fd5b3e7ffa6feb98f5c653/NOTICE.txt",
+      "origin": "google.golang.org/grpc@v1.79.1",
+      "sha256": "693ff28ec216d5112ac1bbfe64ef539005867d1c7bd427b57d579683293b947f"
+    },
+    {
+      "bytes": 1479,
+      "file": "go/c04662cab481aaa929d0e097945ee36fdac24d8664859d9cf782ac8e5f2363ff/LICENSE",
+      "origin": "google.golang.org/protobuf@v1.36.11",
+      "sha256": "4835612df0098ca95f8e7d9e3bffcb02358d435dbb38057c844c99d7f725eb20"
+    },
+    {
+      "bytes": 1080,
+      "file": "go/924544d0899c8dc5cec4aa5e76e647c3e467b97790e2d617c6a09f0856d57cdf/LICENSE",
+      "origin": "lukechampine.com/blake3@v1.3.0",
+      "sha256": "7a576402565d51f9c0c7ee5a639aa91d49ed1a54c21a8d0b56f0d25e72d8b2f1"
+    },
+    {
+      "bytes": 808,
+      "file": "go/7c7d82ffcf89462af7ec7cfe00bcba2e4ff94ce1442309638642aefb00134db7/LICENSE",
+      "origin": "mcrf.local/optionalbridge@v0.0.0",
+      "sha256": "bb3805862b583aee73ad6f7805ec634747a37257a637a3069857843f05ea589c"
+    }
+  ],
+  "cronetSourceManifestSha256": "c5daf3a2fefec54f1a905b116398dc065e7ffde5daf1acf4a1f93eadb8fb7b73",
+  "cronetCopyrightSourcesSha256": "6adc90b931a235a01730546a12ef88b2a36b8807472f81a6f87ec034a4d1d84d"
+}

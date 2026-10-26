@@ -17,6 +17,20 @@ val historicalReleaseAllowed=providers.gradleProperty("historicalCsqttReleaseRec
     require(proof["managementChecks"].toString()=="5"&&proof["accordionChecks"].toString()=="7")
     true
 }?:false
+// Signed local P3/P4 candidates need release packaging for device acceptance,
+// not the consumed P2 publication grant. This explicitly forbids publication.
+val p3p4HistoricalCandidateAllowed=providers.gradleProperty("p3p4CandidateReceipt").orNull?.let {path->
+    val input=file(path)
+    val sha=MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+    require(sha==providers.gradleProperty("p3p4CandidateSha256").orNull)
+    val proof=groovy.json.JsonSlurper().parse(input) as Map<*,*>
+    require(proof["authority"]=="human-20261023-finish-current-fixes-then-p3-p4"&&proof["publish"]==false)
+    require(listOf("sourceReady","allowCommonVerification","allowApkBuild").all {proof[it]==true})
+    val retainedOnly=(proof["userFixes26"] as? Map<*,*>)?.let {it["authority"] in setOf("human-20261026-four-ui-fixes-csqtt-analysis","human-20261026-bs-sites-vk-layout-polish")&&it["sourceReady"]==true}==true&&
+        gradle.startParameter.taskNames.none {it.startsWith(":engines:")}
+    require(proof["allowNativeCandidateBuild"]==true||retainedOnly)
+    true
+}?:false
 abstract class StageEngineJni:DefaultTask(){
     @get:InputDirectory abstract val inputDirectory:org.gradle.api.file.DirectoryProperty
     @get:OutputDirectory abstract val outputDirectory:org.gradle.api.file.DirectoryProperty
@@ -49,6 +63,7 @@ abstract class StageEngineS3Notices:DefaultTask(){
     @TaskAction fun stage(){project.sync{from(inputDirectory){include("**/*");into("licenses")};into(outputDirectory)}}
 }
 val optionalKinds=setOf("xray","tlscore")
+val protocolKinds=setOf("protocols")
 val primaryKinds=setOf("singbox","steer")
 val telegramGate=providers.gradleProperty("tgwsNativeGate").orNull=="true"
 val telegramNative=file("../app/src/main/jniLibs")
@@ -137,27 +152,57 @@ val primaryDescriptors=if(primaryStage!=null){
 }else emptyMap<Any,Any>()
 val csqtt25Stage=providers.gradleProperty("csqtt25Stage").orNull?.let{file(it)}
 val csqtt25Gate=providers.gradleProperty("csqtt25CandidateGate").orNull=="true"
+val csqtt25NativePins=mapOf(
+    "arm64-v8a" to "9dad51554bafb2e6cf386a48cc278fb08c434a78ece40baff00fb51f203b237c",
+    "armeabi-v7a" to "ef3c6ef1bc4937e416cb53c1ef4e29de388c3bc6dc9f06643f89ec68a2715751",
+    "x86_64" to "d3b1edf30235a879e745be8c60c3b155309f69fd3bf97e2426415c1de67a45ff")
+val csqtt25StagedAbis=csqtt25Stage?.let {root->
+    val receipt=groovy.json.JsonSlurper().parse(root.resolve("receipt.json")) as Map<*,*>
+    (receipt["artifacts"] as List<*>).map {(it as Map<*,*>)["abi"].toString()}.toSet()
+}?:emptySet()
 csqtt25Stage?.let {root->
     require(csqtt25Gate){"CSQTT2.5 requires an explicit frozen native stage"}
     val receipt=groovy.json.JsonSlurper().parse(root.resolve("receipt.json")) as Map<*,*>
     require(receipt["kind"]=="csqtt25"&&receipt["state"]=="COMPILED_NOT_EXECUTED"&&receipt["sourceStable"]==true)
     val artifacts=(receipt["artifacts"] as List<*>).map{it as Map<*,*>}
-    require(artifacts.size==2&&artifacts.all{it["abi"]=="arm64-v8a"})
-    listOf("libcsqtt25.so","libcsqtt25_transport.so").forEach{name->
-        val row=artifacts.single{it["file"].toString().replace('\\','/').substringAfterLast('/')==name}
-        val input=root.resolve("arm64-v8a/$name")
+    require(csqtt25StagedAbis==setOf("arm64-v8a")||csqtt25StagedAbis==csqtt25NativePins.keys)
+    require(artifacts.size==csqtt25StagedAbis.size*2)
+    csqtt25StagedAbis.forEach {abi->listOf("libcsqtt25.so","libcsqtt25_transport.so").forEach{name->
+        val row=artifacts.single{it["abi"]==abi&&it["file"].toString().replace('\\','/').substringAfterLast('/')==name}
+        val input=root.resolve("$abi/$name")
         require(input.isFile&&input.length()==row["bytes"].toString().toLong())
         val hash=MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
         require(hash==row["sha256"]){"CSQTT2.5 stage digest mismatch"}
-        if(name=="libcsqtt25_transport.so")require(hash=="9dad51554bafb2e6cf386a48cc278fb08c434a78ece40baff00fb51f203b237c"){"Wrong swg-panel 2.5.1 generation/ABI"}
-    }
+        if(name=="libcsqtt25_transport.so")require(hash==csqtt25NativePins.getValue(abi)){"Wrong swg-panel 2.5.1 generation/ABI"}
+    }}
     listOf("CSQTT-LICENSE","qwdtt-LICENSE").forEach{require(root.resolve("licenses/$it").isFile)}
+}
+fun requireP3TurnPerformance(root:File,receipt:Map<*,*>,kind:String,gate:Boolean){
+    if(receipt["p3PerformanceAuthority"]!=null){
+        require(gate&&receipt["p3PerformanceAuthority"]=="human-20261023-finish-current-fixes-then-p3-p4")
+        fun p3Digest(input:File):String {
+            require(input.isFile&&!Files.isSymbolicLink(input.toPath()))
+            return MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+        }
+        require(p3Digest(root.resolve("source-manifest.json"))==receipt["sourceManifestSha256"])
+        require(p3Digest(root.resolve("retained-baseline-receipt.json"))==receipt["baselineReceiptSha256"])
+        val prepared=groovy.json.JsonSlurper().parse(root.resolve("prepared-p3-turn-source.json")) as Map<*,*>
+        require(prepared["kind"]==kind&&prepared["state"]=="P3_TURN_SOURCE_PREPARED_NOT_COMPILED"&&prepared["sourceStable"]==true&&prepared["manifestSha256"]==receipt["sourceManifestSha256"]&&prepared["baselineReceiptSha256"]==receipt["baselineReceiptSha256"])
+        val hostFile=root.resolve("turn-performance-host-evidence.json")
+        require(p3Digest(hostFile)==receipt["hostEvidenceSha256"])
+        val host=groovy.json.JsonSlurper().parse(hostFile) as Map<*,*>
+        require(host["state"]=="PASS_P3_TURN_PERFORMANCE_HOST"&&host["kind"]==kind&&host["sourceManifestSha256"]==receipt["sourceManifestSha256"]&&host["failures"]==0&&host["skipped"]==0)
+        val cases=(host["cases"] as List<*>).map {it.toString()}
+        require(cases.containsAll(listOf("TestMcrfRawMTUCeilingPreservesSmallerServerValue","TestMcrfIPRelayBuffersOnOwnedSocket","TestMcrfSOCKSAdmissionQueuesAndResumes",if(kind=="wdtt") "TestMcrfWdtt512ClientsAndOverflowBackpressure" else "TestMcrfRawMTUOnActualBulkUpload")))
+        require(p3Digest(root.resolve("turn-performance-tests.jsonl"))==host["logSha256"])
+    }
 }
 val csqttLegacyStage=providers.gradleProperty("csqttLegacyStage").orNull?.let{file(it)}
 csqttLegacyStage?.let {root->
     require(providers.gradleProperty("csqttLegacyCandidateGate").orNull=="true"){"Legacy native requires explicit frozen pairing gate"}
     val receipt=groovy.json.JsonSlurper().parse(root.resolve("receipt.json")) as Map<*,*>
     require(receipt["kind"]=="csqtt"&&receipt["state"]=="COMPILED_NOT_EXECUTED"&&receipt["sourceStable"]==true&&receipt["captchaWaiterCapability"]=="csqtt-id48-v1")
+    requireP3TurnPerformance(root,receipt,"csqtt",providers.gradleProperty("p3TurnPerformanceGate").orNull=="true")
     val artifacts=(receipt["artifacts"] as List<*>).map{it as Map<*,*>}
     require(artifacts.size==6)
     listOf("arm64-v8a","armeabi-v7a","x86_64").forEach{abi->
@@ -175,6 +220,7 @@ swgStages.forEach{(kind,root)->
     require(providers.gradleProperty("swgNativeCandidateGate").orNull=="true"){"Standalone native requires explicit frozen stage gate"}
     val receipt=groovy.json.JsonSlurper().parse(root.resolve("receipt.json")) as Map<*,*>
     require(receipt["kind"]==kind&&receipt["state"]=="COMPILED_NOT_EXECUTED"&&receipt["sourceStable"]==true)
+    requireP3TurnPerformance(root,receipt,kind,providers.gradleProperty("p3TurnPerformanceGate").orNull=="true")
     val artifacts=(receipt["artifacts"] as List<*>).map{it as Map<*,*>};require(artifacts.size==3)
     listOf("arm64-v8a","armeabi-v7a","x86_64").forEach{abi->
         val row=artifacts.single{it["abi"]==abi&&it["file"].toString().replace('\\','/').substringAfterLast('/')=="lib$kind.so"}
@@ -196,6 +242,7 @@ val historicalDescriptors=historicalStages.mapValues {(kind,root)->
     require(digest(root.resolve("wrapper-receipt.json"))==d["wrapperReceiptSha256"]&&digest(root.resolve("native-receipt.json"))==d["nativeReceiptSha256"])
     val wrapper=groovy.json.JsonSlurper().parse(root.resolve("wrapper-receipt.json")) as Map<*,*>
     require(wrapper["kind"]=="csqtt"&&wrapper["sourceStable"]==true&&wrapper["state"]=="COMPILED_NOT_EXECUTED"&&wrapper["processGroupContract"]==1&&wrapper["turnHashPoolContract"]==1&&wrapper["captchaWaiterCapability"]=="csqtt-id48-v1")
+    requireP3TurnPerformance(root.resolve("wrapper-performance"),wrapper,"csqtt",providers.gradleProperty("p3TurnPerformanceGate").orNull=="true")
     val native=groovy.json.JsonSlurper().parse(root.resolve("native-receipt.json")) as Map<*,*>
     require(native["engine"]==kind&&native["generation"]==generation&&native["revision"]==revision&&native["state"]=="COMPILED_NOT_EXECUTED"&&native["sourceStable"]==true)
     val abis=setOf("arm64-v8a","armeabi-v7a","x86_64")
@@ -211,7 +258,198 @@ val historicalDescriptors=historicalStages.mapValues {(kind,root)->
     require(root.resolve("licenses/CSQTT-LICENSE").isFile&&root.resolve("licenses/qwdtt-LICENSE").isFile)
     d
 }
-val engineKinds=listOf("csqtt","csqtt25","qwdtt","wdtt","openflux","olcrtc","dnstt","warpscout","tgws","s3bypass")+historicalKinds+optionalKinds+primaryKinds
+val engineKinds=listOf("csqtt","csqtt25","qwdtt","wdtt","openflux","olcrtc","dnstt","vaydns","slipstream","sstp","masterdnsvpn","warpscout","tgws","s3bypass")+historicalKinds+optionalKinds+protocolKinds+primaryKinds
+val slipstreamStage=providers.gradleProperty("slipstreamStage").orNull?.let {file(it)}
+val slipstreamDescriptor=slipstreamStage?.let {root->
+    require(providers.gradleProperty("slipstreamNativeGate").orNull=="true"){"Slipstream requires its own frozen external stage"}
+    fun digest(input:File):String {
+        require(input.isFile&&!Files.isSymbolicLink(input.toPath()))
+        return MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+    }
+    val d=groovy.json.JsonSlurper().parse(root.resolve("receipt.json")) as Map<*,*>
+    require(d["kind"]=="slipstream"&&d["repository"]=="Mygod/slipstream-rust"&&d["commit"]=="7de506b222c83ae97a19a618e33fe26899af1bd5"&&d["picoquicCommit"]=="d4a865c54929cfeb2a61902a0340b8758ad5492e")
+    require(d["slipstreamContract"]==1&&d["state"]=="COMPILED_OWNED_FIXTURE_VERIFIED"&&d["sourceStable"]==true&&d["producerComplete"]==true&&d["privateUds"]==true&&d["mandatoryLeafPin"]==true)
+    require(digest(root.resolve("notice-manifest.json"))==d["noticeManifestSha256"])
+    require(digest(root.resolve("built-rust-package-ids.json"))==d["builtRustIdsSha256"]&&digest(root.resolve("rust-metadata.json"))==d["rustMetadataSha256"])
+    require(digest(root.resolve("recovered-built-rust-package-ids.json"))==d["recoveredRustIdsSha256"]&&digest(root.resolve("legal-inventory-recovery.json"))==d["legalInventoryRecoverySha256"])
+    require(digest(root.resolve("c-dependencies.json"))==d["dependencyReceiptSha256"])
+    require(digest(root.resolve("source-manifest.json"))==d["sourceManifestSha256"])
+    require(digest(root.resolve("fixture-evidence.json"))==d["fixtureEvidenceSha256"])
+    val evidence=groovy.json.JsonSlurper().parse(root.resolve("fixture-evidence.json")) as Map<*,*>
+    require(evidence["state"]=="PASS_P3_SLIPSTREAM_OWNED_FIXTURE"&&evidence["sourceManifestSha256"]==d["sourceManifestSha256"]&&evidence["failures"]==0&&evidence["skipped"]==0)
+    require(evidence["originalCServerInterop"]==true&&evidence["originalCCommit"]=="397850b16e70a52513269134b2c7b9aa13a56745")
+    require(digest(root.resolve("slipstream-tests.jsonl"))==evidence["logSha256"])
+    val cases=(evidence["cases"] as List<*>).map {it.toString()}
+    require("TestMcrfSlipstreamOriginalCServerInterop" in cases)
+    val cfixture=d["originalCFixture"] as Map<*,*>
+    require(cfixture["loopbackOnly"]==true&&digest(root.resolve("cfixture-source-manifest.json"))==cfixture["sourceManifestSha256"]&&digest(root.resolve("cfixture-source.json"))==cfixture["sourceReceiptSha256"])
+    require(cases.containsAll(listOf("TestMcrfSlipstreamStrictConfigAndMandatoryLeaf","TestMcrfSlipstreamRejectDuplicateAndTrailingConfig","TestMcrfSlipstreamEndpointAndKeepAliveBounds","TestMcrfSlipstreamUnauthenticatedClientCannotOpenRemoteStream","TestMcrfSlipstreamPrivateRelayPreservesHalfClose","TestMcrfSlipstreamCancellationClosesPendingRemoteAuth","TestMcrfSlipstreamOwnedWireData","TestMcrfSlipstreamWrongLeafStopsBeforeRemoteSOCKS","TestMcrfSlipstreamParentDeathStopsCore","TestMcrfSlipstreamStdinEOFStopsCore")))
+    val artifacts=(d["artifacts"] as List<*>).map {it as Map<*,*>};require(artifacts.size==6)
+    for(abi in listOf("arm64-v8a","armeabi-v7a","x86_64"))for(library in listOf("libslipstream.so","libslipstream_core.so")){
+        val name="$abi/$library";val row=artifacts.single {it["file"]==name};val binary=root.resolve(name)
+        require(row["abi"]==abi&&row["elfChecked"]==true&&binary.length()==row["bytes"].toString().toLong()&&digest(binary)==row["sha256"])
+    }
+    val legal=groovy.json.JsonSlurper().parse(root.resolve("notice-manifest.json")) as Map<*,*>
+    require((legal["missingModules"] as List<*>).isEmpty()&&(legal["linkedModules"] as Number).toInt()>0)
+    val notices=(legal["files"] as List<*>).map {it as Map<*,*>}
+    require(notices.map {it["file"]}.containsAll(listOf("Slipstream-LICENSE","picoquic-LICENSE","picotls-LICENSE","openssl-LICENSE","go/LICENSE")))
+    for(row in notices){val input=root.resolve("licenses/"+row["file"].toString()).canonicalFile
+        require(input.path.startsWith(root.resolve("licenses").canonicalPath+File.separator)&&digest(input)==row["sha256"])
+    }
+    d
+}
+val vayDnsStage=providers.gradleProperty("vayDnsStage").orNull?.let {file(it)}
+val vayDnsDescriptor=vayDnsStage?.let {root->
+    require(providers.gradleProperty("vayDnsNativeGate").orNull=="true"){"VayDNS requires its own frozen external stage"}
+    fun digest(input:File):String {
+        require(input.isFile&&!Files.isSymbolicLink(input.toPath()))
+        return MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+    }
+    val d=groovy.json.JsonSlurper().parse(root.resolve("receipt.json")) as Map<*,*>
+    require(d["kind"]=="vaydns"&&d["repository"]=="net2share/vaydns"&&d["commit"]=="a0ff70110d5e96686ab8f4c8e1c44cd09be07a75"&&d["vaydnsContract"]==1&&d["state"]=="COMPILED_NOT_EXECUTED"&&d["sourceStable"]==true&&d["producerComplete"]==true)
+    require(digest(root.resolve("source-manifest.json"))==d["sourceManifestSha256"])
+    val hostFile=root.resolve("host-evidence.json");require(digest(hostFile)==d["hostEvidenceSha256"])
+    val host=groovy.json.JsonSlurper().parse(hostFile) as Map<*,*>
+    require(host["state"]=="PASS_P3_VAYDNS_HOST"&&host["sourceManifestSha256"]==d["sourceManifestSha256"]&&host["failures"]==0&&host["skipped"]==0)
+    require(digest(root.resolve("vaydns-host-tests.jsonl"))==host["logSha256"])
+    val cases=(host["cases"] as List<*>).map {it.toString()}
+    require(cases.size>=16&&cases.containsAll(listOf("TestMcrfVayCapacityQueuesAndCancels","TestMcrfVayOwnedDNSNoiseSOCKSData","TestMcrfVayLocalRejectionDoesNotOpenDNSStream","TestMcrfVayRemoteRejectionStopsWithoutRetry","TestMcrfVayStdinEOFStopsDuringLostNetwork")))
+    val artifacts=(d["artifacts"] as List<*>).map {it as Map<*,*>};require(artifacts.size==3)
+    for(abi in listOf("arm64-v8a","armeabi-v7a","x86_64")){
+        val row=artifacts.single {it["abi"]==abi};val binary=root.resolve("$abi/libvaydns.so")
+        require(row["file"]=="$abi/libvaydns.so"&&row["elfChecked"]==true&&binary.length()==row["bytes"].toString().toLong()&&digest(binary)==row["sha256"])
+    }
+    val legal=groovy.json.JsonSlurper().parse(root.resolve("notice-manifest.json")) as Map<*,*>
+    require((legal["missingModules"] as List<*>).isEmpty()&&(legal["linkedModules"] as Number).toInt()>0)
+    val notices=(legal["files"] as List<*>).map {it as Map<*,*>}
+    require(notices.map {it["file"]}.containsAll(listOf("VayDNS-COPYING","go/LICENSE")))
+    for(row in notices){val input=root.resolve("licenses/"+row["file"].toString()).canonicalFile
+        require(input.path.startsWith(root.resolve("licenses").canonicalPath+File.separator)&&digest(input)==row["sha256"])
+    }
+    d
+}
+val sstpStage=providers.gradleProperty("sstpStage").orNull?.let {file(it)}
+val sstpDescriptor=sstpStage?.let {root->
+    require(providers.gradleProperty("sstpNativeGate").orNull=="true"){"SSTP requires its own frozen external stage"}
+    fun digest(input:File):String {
+        require(input.isFile&&!Files.isSymbolicLink(input.toPath()))
+        return MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+    }
+    val d=groovy.json.JsonSlurper().parse(root.resolve("receipt.json")) as Map<*,*>
+    require(d["kind"]=="sstp"&&d["repository"]=="ttrroyy/qThroneMobile"&&d["commit"]=="8463d3397b0a8522f92811f5c0698679ab8efc77"&&d["sstpContract"]==1&&d["state"]=="COMPILED_NOT_EXECUTED"&&d["sourceStable"]==true&&d["producerComplete"]==true)
+    require(digest(root.resolve("source-manifest.json"))==d["sourceManifestSha256"])
+    val hostFile=root.resolve("host-evidence.json");require(digest(hostFile)==d["hostEvidenceSha256"])
+    val host=groovy.json.JsonSlurper().parse(hostFile) as Map<*,*>
+    require(host["state"]=="PASS_P4_SSTP_HOST"&&host["sourceManifestSha256"]==d["sourceManifestSha256"]&&host["failures"]==0&&host["skipped"]==0)
+    require(digest(root.resolve("sstp-host-tests.jsonl"))==host["logSha256"])
+    val cases=(host["cases"] as List<*>).map {it.toString()}
+    require(cases.containsAll(listOf("TestMcrfSstpStrictConfigAndSecureDefaults","TestMcrfSstpRejectAmbiguousConfigAndEndpoint","TestMcrfSstpTypedCertificateFailureIsPreserved","TestMcrfSstpCloseUnblocksStalledDisconnect","TestMcrfSstpCancelDuringPostTLSHTTPHandshake")))
+    require("TestMcrfSstpOwnedTLSMSCHAPIPData" in cases)
+    val artifacts=(d["artifacts"] as List<*>).map {it as Map<*,*>};require(artifacts.size==3)
+    for(abi in listOf("arm64-v8a","armeabi-v7a","x86_64")){
+        val row=artifacts.single {it["abi"]==abi};val binary=root.resolve("$abi/libsstp.so")
+        require(row["file"]=="$abi/libsstp.so"&&row["elfChecked"]==true&&binary.length()==row["bytes"].toString().toLong()&&digest(binary)==row["sha256"])
+    }
+    val legal=groovy.json.JsonSlurper().parse(root.resolve("notice-manifest.json")) as Map<*,*>
+    require((legal["missingModules"] as List<*>).isEmpty()&&(legal["linkedModules"] as Number).toInt()>0)
+    val notices=(legal["files"] as List<*>).map {it as Map<*,*>}
+    require(notices.map {it["file"]}.containsAll(listOf("SSTP-LICENSE","go/LICENSE")))
+    for(row in notices){val input=root.resolve("licenses/"+row["file"].toString()).canonicalFile
+        require(input.path.startsWith(root.resolve("licenses").canonicalPath+File.separator)&&digest(input)==row["sha256"])
+    }
+    d
+}
+// Updated DNSTT is external and source-bound; absent stage retains the existing module.
+val dnsttStage=providers.gradleProperty("dnsttStage").orNull?.let {file(it)}
+val dnsttDescriptor=dnsttStage?.let {root->
+    require(providers.gradleProperty("dnsttNativeGate").orNull=="true"){"DNSTT requires its own frozen external stage"}
+    fun digest(input:File):String {
+        require(input.isFile&&!Files.isSymbolicLink(input.toPath()))
+        return MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+    }
+    val d=groovy.json.JsonSlurper().parse(root.resolve("receipt.json")) as Map<*,*>
+    require(d["kind"]=="dnstt"&&d["repository"]=="www.bamsoftware.com/git/dnstt.git"&&d["commit"]=="0c5c52a57d899c05428c116898941761a2ed83c2"&&d["dnsttContract"]==1&&d["state"]=="COMPILED_NOT_EXECUTED"&&d["sourceStable"]==true&&d["producerComplete"]==true)
+    require(digest(root.resolve("source-manifest.json"))==d["sourceManifestSha256"])
+    val hostFile=root.resolve("host-evidence.json");require(digest(hostFile)==d["hostEvidenceSha256"])
+    val host=groovy.json.JsonSlurper().parse(hostFile) as Map<*,*>
+    require(host["state"]=="PASS_P3_DNSTT_HOST"&&host["sourceManifestSha256"]==d["sourceManifestSha256"]&&host["failures"]==0&&host["skipped"]==0)
+    require(digest(root.resolve("dnstt-host-tests.jsonl"))==host["logSha256"])
+    val cases=(host["cases"] as List<*>).map {it.toString()}
+    require(cases.containsAll(listOf("TestMcrfDnsttStrictPrivateConfig","TestMcrfDnsttRejectsUnsafeEndpoints","TestMcrfDnsttPreservesResolverAndRemoteCredentials","TestMcrfDnsttLocalAuthRejectsUnauthenticatedClient","TestMcrfDnsttRemoteAuthPreservesProtocolBoundary","TestMcrfDnsttDeadSessionClosesItsListener","TestMcrfDnsttSessionWatcherRetiresWithoutClosingLiveListener")))
+    val artifacts=(d["artifacts"] as List<*>).map {it as Map<*,*>};require(artifacts.size==3)
+    for(abi in listOf("arm64-v8a","armeabi-v7a","x86_64")){
+        val row=artifacts.single {it["abi"]==abi};val binary=root.resolve("$abi/libdnstt.so")
+        require(row["file"]=="$abi/libdnstt.so"&&row["elfChecked"]==true&&binary.length()==row["bytes"].toString().toLong()&&digest(binary)==row["sha256"])
+    }
+    val legal=groovy.json.JsonSlurper().parse(root.resolve("notice-manifest.json")) as Map<*,*>
+    require((legal["missingModules"] as List<*>).isEmpty()&&(legal["linkedModules"] as Number).toInt()>0)
+    val notices=(legal["files"] as List<*>).map {it as Map<*,*>}
+    require(notices.map {it["file"]}.containsAll(listOf("DNSTT-LICENSE","go/LICENSE")))
+    for(row in notices){val input=root.resolve("licenses/"+row["file"].toString()).canonicalFile
+        require(input.path.startsWith(root.resolve("licenses").canonicalPath+File.separator)&&digest(input)==row["sha256"])
+    }
+    d
+}
+val olcrtcStage=providers.gradleProperty("olcrtcStage").orNull?.let {file(it)}
+val olcrtcDescriptor=olcrtcStage?.let {root->
+    require(providers.gradleProperty("olcrtcNativeGate").orNull=="true"){"OLCRTC requires its own frozen external stage"}
+    fun digest(input:File):String {
+        require(input.isFile&&!Files.isSymbolicLink(input.toPath()))
+        return MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+    }
+    val d=groovy.json.JsonSlurper().parse(root.resolve("receipt.json")) as Map<*,*>
+    require(d["kind"]=="olcrtc"&&d["repository"]=="openlibrecommunity/olcrtc"&&d["commit"]=="f3ad8fb7c0d0fa981423f83269526fa94077c23d"&&d["olcrtcContract"]==1&&d["state"]=="COMPILED_NOT_EXECUTED"&&d["sourceStable"]==true&&d["producerComplete"]==true)
+    require(digest(root.resolve("source-manifest.json"))==d["sourceManifestSha256"])
+    val hostFile=root.resolve("host-evidence.json");require(digest(hostFile)==d["hostEvidenceSha256"])
+    val host=groovy.json.JsonSlurper().parse(hostFile) as Map<*,*>
+    require(host["state"]=="PASS_P3_OLCRTC_HOST"&&host["sourceManifestSha256"]==d["sourceManifestSha256"]&&host["failures"]==0&&host["skipped"]==0)
+    require(digest(root.resolve("olcrtc-host-tests.jsonl"))==host["logSha256"])
+    val cases=(host["cases"] as List<*>).map {it.toString()}
+    require(cases.containsAll(listOf("TestMcrfOlcStrictPrivateSchema","TestMcrfOlcTransportOptionsPreserveOriginalMapping","TestMcrfOlcStopCancelsTheOwnedListener","TestMcrfOlcEOFIsCancellationWithoutReady","TestMcrfOlcStartupFailureIsNotSwallowed","TestShutdownClosesLinkAndConn","TestShutdownWaitsForTrackedGoroutines")))
+    val artifacts=(d["artifacts"] as List<*>).map {it as Map<*,*>};require(artifacts.size==3)
+    for(abi in listOf("arm64-v8a","armeabi-v7a","x86_64")){
+        val row=artifacts.single {it["abi"]==abi};val binary=root.resolve("$abi/libolcrtc.so")
+        require(row["file"]=="$abi/libolcrtc.so"&&row["elfChecked"]==true&&binary.length()==row["bytes"].toString().toLong()&&digest(binary)==row["sha256"])
+    }
+    val legal=groovy.json.JsonSlurper().parse(root.resolve("notice-manifest.json")) as Map<*,*>
+    require((legal["missingModules"] as List<*>).isEmpty()&&(legal["linkedModules"] as Number).toInt()>0)
+    val notices=(legal["files"] as List<*>).map {it as Map<*,*>}
+    require(notices.map {it["file"]}.containsAll(listOf("OLCRTC-LICENSE","OLCRTC-ADAPTER-LICENSE","go/LICENSE")))
+    for(row in notices){val input=root.resolve("licenses/"+row["file"].toString()).canonicalFile
+        require(input.path.startsWith(root.resolve("licenses").canonicalPath+File.separator)&&digest(input)==row["sha256"])
+    }
+    d
+}
+val masterDnsStage=providers.gradleProperty("masterdnsvpnStage").orNull?.let {file(it)}
+val masterDnsDescriptor=masterDnsStage?.let {root->
+    require(providers.gradleProperty("masterdnsvpnNativeGate").orNull=="true"){"MASTERDNS requires its own frozen external stage"}
+    fun digest(input:File):String {
+        require(input.isFile&&!Files.isSymbolicLink(input.toPath()))
+        return MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+    }
+    val d=groovy.json.JsonSlurper().parse(root.resolve("receipt.json")) as Map<*,*>
+    require(d["kind"]=="masterdnsvpn"&&d["repository"]=="masterking32/MasterDnsVPN"&&d["commit"]=="acbf1c61f90786f41b975d2e2f616afbce292b29"&&d["masterdnsvpnContract"]==1&&d["state"]=="COMPILED_NOT_EXECUTED"&&d["sourceStable"]==true&&d["producerComplete"]==true)
+    require(digest(root.resolve("source-manifest.json"))==d["sourceManifestSha256"])
+    val hostFile=root.resolve("host-evidence.json");require(digest(hostFile)==d["hostEvidenceSha256"])
+    val host=groovy.json.JsonSlurper().parse(hostFile) as Map<*,*>
+    require(host["state"]=="PASS_P4_MASTERDNS_HOST"&&host["sourceManifestSha256"]==d["sourceManifestSha256"]&&host["failures"]==0&&host["skipped"]==0)
+    require(digest(root.resolve("masterdnsvpn-host-tests.jsonl"))==host["logSha256"])
+    val cases=(host["cases"] as List<*>).map {it.toString()}
+    require(cases.containsAll(listOf("TestMcrfMasterStrictConfigDoesNotExposeCliPaths","TestMcrfMasterPrivateConfigForcesAuthAndNoPersistence","TestMcrfMasterRejectsAmbiguousOrUnspecifiedEncryption","TestMcrfMasterAdapterUsesTheOwnerContext","TestMcrfMasterServerCannotRaiseTheAndroidWorkerLimit","TestMcrfMasterConnectionReleasesItsSlotOnlyOnce","TestMcrfMasterOwnerCancellationClosesIdleHandshake","TestMcrfMasterOwnedEncryptedDNSAndSOCKSData","TestMcrfMasterLocalRejectionDoesNotOpenRemoteSOCKS","TestMcrfMaster512ClientsQueueInsteadOfReset")))
+    val artifacts=(d["artifacts"] as List<*>).map {it as Map<*,*>};require(artifacts.size==3)
+    for(abi in listOf("arm64-v8a","armeabi-v7a","x86_64")){
+        val row=artifacts.single {it["abi"]==abi};val binary=root.resolve("$abi/libmasterdnsvpn.so")
+        require(row["file"]=="$abi/libmasterdnsvpn.so"&&row["elfChecked"]==true&&binary.length()==row["bytes"].toString().toLong()&&digest(binary)==row["sha256"])
+    }
+    val legal=groovy.json.JsonSlurper().parse(root.resolve("notice-manifest.json")) as Map<*,*>
+    require((legal["missingModules"] as List<*>).isEmpty()&&(legal["linkedModules"] as Number).toInt()>0)
+    val notices=(legal["files"] as List<*>).map {it as Map<*,*>}
+    require(notices.map {it["file"]}.containsAll(listOf("MASTERDNS-LICENSE","go/LICENSE")))
+    for(row in notices){val input=root.resolve("licenses/"+row["file"].toString()).canonicalFile
+        require(input.path.startsWith(root.resolve("licenses").canonicalPath+File.separator)&&digest(input)==row["sha256"])
+    }
+    d
+}
 val s3BypassStage=providers.gradleProperty("s3BypassStage").orNull?.let {file(it)}
 s3BypassStage?.let {root->
     require(providers.gradleProperty("s3BypassCandidateGate").orNull=="true"){"S3 requires a frozen external stage"}
@@ -239,6 +477,44 @@ s3BypassStage?.let {root->
 fun moduleKind(flavor:String) = when(flavor){"tlscore"->"tls-core";"singbox"->"sing-box";else->flavor}
 fun moduleLibrary(flavor:String) = if (flavor == "tlscore") "libtls_core.so" else "lib$flavor.so"
 val optionalStage=providers.gradleProperty("optionalCoreStage").orNull?.let {file(it)}
+val protocolsStage=providers.gradleProperty("protocolsNativeStage").orNull?.let {file(it)}
+if(protocolsStage!=null){
+    val root=requireNotNull(protocolsStage)
+    require(providers.gradleProperty("protocolsNativeGate").orNull=="true"){"Protocol module needs the common native gate"}
+    val receipt=groovy.json.JsonSlurper().parse(root.resolve("receipt.json")) as Map<*,*>
+    require(receipt["state"]=="COMPILED_OWNED_FIXTURE_VERIFIED"&&receipt["producerComplete"]==true&&receipt["sourceStable"]==true&&
+        receipt["kind"]=="protocols"&&receipt["repository"]=="Leadaxe/sing-box-lx"&&receipt["commit"]=="3d3d3db3a2ccef3b1a8eb71b831ed2461c54b94d"&&receipt["contract"].toString()=="1")
+    val required=setOf("TestMcrfProtocolsStrictConfig","TestMcrfProtocolsSshHostTrust","TestMcrfProtocolsDnsNotSilentlyDropped","TestMcrfProtocolsAddressFraming",
+        "TestMcrfProtocolsAnonymousAndBadPasswordRejected","TestMcrfProtocolsOwnerEofAndStop","TestMcrfProtocolsDiagnosticPrivacy",
+        "TestMcrfProtocolsTuicOriginalWire","TestMcrfProtocolsAnyTlsOriginalWire","TestMcrfProtocolsNaiveCronetOriginalWire","TestMcrfProtocolsSshOriginalWire",
+        "TestMcrfProtocolsUdpSourcePortPin","TestMcrfProtocolsDescriptor","TestMcrfProtocolsPhysicalNetworkBinding","TestMcrfProtocolsSystemDnsLifecycle")
+    val checked=(receipt["cases"] as List<*>).map {it.toString()}.toSet()
+    require(checked.containsAll(required)&&receipt["failures"].toString()=="0"&&receipt["skipped"].toString()=="0")
+    fun bound(name:String,field:String){
+        val input=root.resolve(name);require(input.isFile)
+        val digest=MessageDigest.getInstance("SHA-256");input.inputStream().use {stream->val buffer=ByteArray(65536);while(true){val n=stream.read(buffer);if(n<0)break;digest.update(buffer,0,n)}}
+        require(receipt[field]==digest.digest().joinToString(""){"%02x".format(it.toInt()and 255)}){"Protocol evidence changed: $name"}
+    }
+    bound("source-manifest.json","sourceManifestSha256");bound("notice-manifest.json","noticeManifestSha256");bound("owned-tests.jsonl","ownedLogSha256")
+    val notices=groovy.json.JsonSlurper().parse(root.resolve("notice-manifest.json")) as Map<*,*>
+    require(notices["complete"]==true&&(notices["missing"] as List<*>).isEmpty())
+    val legalRoot=root.resolve("licenses").canonicalFile
+    val legalFiles=(notices["files"] as List<*>).map{it as Map<*,*>};require(legalFiles.isNotEmpty())
+    require(legalFiles.map{it["file"].toString()}.distinct().size==legalFiles.size&&legalRoot.walkTopDown().count{it.isFile}==legalFiles.size)
+    legalFiles.forEach {row->
+        val name=row["file"].toString();require(!File(name).isAbsolute&&name.split('/','\\').none{it==".."})
+        val input=legalRoot.resolve(name);require(input.isFile&&input.absoluteFile.normalize()==input.canonicalFile&&!Files.isSymbolicLink(input.toPath())&&input.length()==row["bytes"].toString().toLong())
+        val digest=MessageDigest.getInstance("SHA-256");input.inputStream().use{stream->val b=ByteArray(65536);while(true){val n=stream.read(b);if(n<0)break;digest.update(b,0,n)}}
+        require(row["sha256"]==digest.digest().joinToString(""){"%02x".format(it.toInt()and 255)}){"Protocol packaged notice bytes changed"}
+    }
+    val artifacts=(receipt["artifacts"] as List<*>).map {it as Map<*,*>}
+    listOf("arm64-v8a","armeabi-v7a","x86_64").forEach {abi->
+        val row=artifacts.single {it["abi"]==abi&&it["file"]=="$abi/libprotocols.so"}
+        val binary=root.resolve("$abi/libprotocols.so");require(binary.length()==row["bytes"].toString().toLong()&&row["elfChecked"]==true)
+        val digest=MessageDigest.getInstance("SHA-256");binary.inputStream().use {stream->val buffer=ByteArray(65536);while(true){val n=stream.read(buffer);if(n<0)break;digest.update(buffer,0,n)}}
+        require(row["sha256"]==digest.digest().joinToString(""){"%02x".format(it.toInt()and 255)})
+    }
+}
 val warpScannerStage=providers.gradleProperty("warpScannerStage").orNull?.let {file(it)}
 warpScannerStage?.let {root ->
     require(providers.gradleProperty("warpScannerCandidateGate").orNull=="true") {"Warp candidate requires an explicit frozen gate"}
@@ -280,6 +556,34 @@ if(optionalStage!=null){
 val openfluxLock=groovy.json.JsonSlurper().parse(file("../transports/transport-lock.json")) as Map<*,*>
 val openfluxSource=openfluxLock["openflux"] as Map<*,*>
 val openfluxCandidate=providers.gradleProperty("openfluxCandidate").orNull?.let {file(it)}
+val openfluxFreshProduction=providers.gradleProperty("openfluxFreshProduction").orNull?.let {file(it)}
+val openfluxTeamStage=providers.gradleProperty("openfluxTeam016Stage").orNull?.let {file(it)}
+if(openfluxTeamStage!=null){
+    require(openfluxCandidate==null&&openfluxFreshProduction==null)
+    val proof=groovy.json.JsonSlurper().parse(openfluxTeamStage.resolve("receipt.json")) as Map<*,*>
+    require(proof["state"]=="BUILT_HOST_VERIFIED_NOT_PHONE_ACCEPTED"&&proof["sourceStable"]==true&&proof["published"]==false)
+    require(proof["repository"]=="OpenFluxTeam/OpenFlux"&&proof["version"]=="v0.16.0"&&proof["commit"]=="5a46f2f1f178637538542a36c7f086f26df86bcd")
+    fun sha(input:File)=MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+    val inputs=proof["inputs"] as Map<*,*>
+    require(inputs.keys==setOf("main.go","main_test.go","mcrf_proxy.go","team016/build.ps1","team016/mailru_ready.go","team016/mailru_ready_test.go","team016/bridge_test.go","team016/testserver.go","team016/session_timeout.go","team016/session_timeout_test.go","team016/session_mobile.go"))
+    inputs.forEach{(name,hash)->require(sha(file("../transports/openflux/$name"))==hash){"OpenFlux016 source differs: $name"}}
+    val outputs=(proof["files"] as List<*>).map{it as Map<*,*>}
+    require(outputs.map{it["abi"]}.toSet()==setOf("arm64-v8a","armeabi-v7a","x86_64")&&outputs.size==3)
+    outputs.forEach{row->val binary=openfluxTeamStage.resolve("${row["abi"]}/libopenflux.so");require(sha(binary)==row["sha256"]&&binary.length()==row["bytes"].toString().toLong())}
+    val tests=(proof["tests"] as List<*>).map{it as Map<*,*>}
+    require(tests.map{it["file"]}.toSet()==setOf("core.jsonl","registry.jsonl","mailru.jsonl","share.jsonl","bridge.jsonl","cli.jsonl")&&tests.size==6)
+    tests.forEach{row->val log=openfluxTeamStage.resolve(row["file"].toString());require(sha(log)==row["sha256"]);val events=log.readLines().filter{it.startsWith("{")}.map{groovy.json.JsonSlurper().parseText(it) as Map<*,*>};require(events.none{it["Action"]=="fail"}&&events.any{it["Action"]=="pass"&&it["Test"]!=null})}
+}
+if(openfluxFreshProduction!=null){
+    require(openfluxCandidate==null){"Production OpenFlux cannot mix candidate identity"}
+    val acceptance=file(providers.gradleProperty("openfluxFreshAcceptance").get())
+    val proof=groovy.json.JsonSlurper().parse(acceptance) as Map<*,*>
+    require(proof["authority"]=="human-20261026-finish-openflux-phone-publish07"&&proof["state"]=="PHONE_RUNTIME_ACCEPTED")
+    require(proof["commit"]=="4f9c786cdd1d9fcd0c133e2e0fec0c5a12522610"&&proof["userDataPreserved"]==true)
+    val native=MessageDigest.getInstance("SHA-256").digest(openfluxFreshProduction.resolve("arm64-v8a/libopenflux.so").readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+    require(proof["arm64Sha256"]==native)
+    require(listOf("encryptedHttp","anonymousRejected","wrongKeyRejected","stopDuringStartup","stopAfterReady","stdinEof","processExitAndOutputEof").all{proof[it]==true})
+}
 val openfluxPromotion=providers.gradleProperty("openfluxPromotionStage").orNull?.let {file(it)}
 val openfluxAck=providers.gradleProperty("openfluxAckStage").orNull?.let {path->
     require(File(path).isAbsolute){"ACK stage must be an absolute frozen stage path"};file(path)
@@ -295,6 +599,7 @@ val openfluxProviderV3=providers.gradleProperty("openfluxProviderV3Stage").orNul
 }
 require(listOf(openfluxProviderV1,openfluxProviderV2,openfluxProviderV3).count{it!=null}<=1){"Provider V1/V2/V3 stages are mutually exclusive"}
 val openfluxProvider=openfluxProviderV3?:openfluxProviderV2?:openfluxProviderV1
+if(openfluxTeamStage!=null)require(openfluxProvider==null&&openfluxPromotion==null&&openfluxAck==null){"OpenFlux016 cannot mix historical diagnostic overlays"}
 val openfluxProviderNumber=if(openfluxProviderV3!=null)3 else if(openfluxProviderV2!=null)2 else if(openfluxProviderV1!=null)1 else 0
 if(openfluxProvider!=null){
     val v2=openfluxProviderV2!=null
@@ -361,11 +666,49 @@ if(openfluxPromotion!=null){
         require(marked[abi]==expected&&digest.digest().joinToString(""){"%02x".format(it.toInt()and 255)}==expected){"Fresh OpenFlux differs from reviewed immutable native stage"}
     }
 }
-val openfluxVersion=if(openfluxProvider!=null||openfluxPromotion!=null||openfluxAck!=null) "v0.7.3" else if(openfluxCandidate==null)openfluxSource["version"].toString() else providers.gradleProperty("openfluxVersion").get()
-val openfluxCommit=if(openfluxProvider!=null||openfluxPromotion!=null||openfluxAck!=null) "f12e981629a18c8c01007d59ac002254c02972bb" else if(openfluxCandidate==null)openfluxSource["commit"].toString() else providers.gradleProperty("openfluxCommit").get()
+val openfluxVersion=if(openfluxTeamStage!=null)"v0.16.0" else if(openfluxFreshProduction!=null)"v0.13.0" else if(openfluxProvider!=null||openfluxPromotion!=null||openfluxAck!=null) "v0.7.3" else if(openfluxCandidate==null)openfluxSource["version"].toString() else providers.gradleProperty("openfluxVersion").get()
+val openfluxCommit=if(openfluxTeamStage!=null)"5a46f2f1f178637538542a36c7f086f26df86bcd" else if(openfluxFreshProduction!=null)"4f9c786cdd1d9fcd0c133e2e0fec0c5a12522610" else if(openfluxProvider!=null||openfluxPromotion!=null||openfluxAck!=null) "f12e981629a18c8c01007d59ac002254c02972bb" else if(openfluxCandidate==null)openfluxSource["commit"].toString() else providers.gradleProperty("openfluxCommit").get()
 require(openfluxVersion.matches(Regex("v[0-9]+\\.[0-9]+\\.[0-9]+"))&&openfluxCommit.matches(Regex("[0-9a-f]{40}")))
-val openfluxScriptUpdater=openfluxCandidate?.resolve("script-updater-capability.json")?.takeIf{it.isFile}?.let {marker->
-    val candidateDirectory=requireNotNull(openfluxCandidate)
+// Fresh core has its own producer/evidence; never relabel an old candidate.
+if(openfluxVersion=="v0.13.0") {
+    val stage=requireNotNull(openfluxFreshProduction?:openfluxCandidate){"OpenFlux13 requires source-bound stage and runtime acceptance for production"}
+    require(openfluxCommit=="4f9c786cdd1d9fcd0c133e2e0fec0c5a12522610")
+    val receipt=groovy.json.JsonSlurper().parse(stage.resolve("fresh-core-candidate.json")) as Map<*,*>
+    require(receipt["interface"].toString()=="1"&&receipt["upstream"]=="p1neappleXpress/OpenFlux"&&receipt["tag"]==openfluxVersion&&receipt["commit"]==openfluxCommit&&receipt["cli"]=="--mcrf-config")
+    require(receipt["scriptUpdater"].toString()=="1"&&receipt["verificationUi"].toString()=="1"&&receipt["counterObservation"].toString()=="1"&&receipt["providerDiagnostic"].toString()=="0"&&receipt["sourceStable"]==true&&receipt["productionPromotion"]==false)
+    fun freshDigest(source:java.io.File):String {
+        require(source.isFile)
+        val digest=MessageDigest.getInstance("SHA-256")
+        source.inputStream().use {input->val buffer=ByteArray(65536);while(true){val n=input.read(buffer);if(n<0)break;digest.update(buffer,0,n)}}
+        return digest.digest().joinToString(""){"%02x".format(it.toInt()and 255)}
+    }
+    val sources=receipt["sources"] as Map<*,*>
+    val expectedSources=setOf("mcrf_proxy.go","main.go","main_test.go","staged-v013/bridge_review_test.go","staged-v013/captcha_ticket.go","staged-v013/own_http_ticket.go","staged-v013/own_http_ticket_review_test.go","staged-v013/captcha_owner.go","staged-v013/captcha_owner_review_test.go","staged-v013/own_http_admission.go","staged-v013/own_http_exchange.go","staged-v013/own_http_exchange_review_test.go","staged-v013/own_http_admission_review_test.go","staged-v013/captcha_ticket_review_test.go","staged-v013/script_boundary_review_test.go","staged-v013/provider_state.go","staged-v013/provider_state_review_test.go","staged-v013/verification_ipc_review_test.go","staged-v013/reply_worker_review_test.go","staged-v013/http_gateway.go","staged-v013/http_gateway_review_test.go","staged-v013/http_worker.go","staged-v013/http_worker_review_test.go","staged-v013/document_worker.go","staged-v013/document_worker_review_test.go","staged-v013/session_observation.go","staged-v013/session_observation_review_test.go","staged-v013/session_pipeline_review_test.go","staged-v013/mobile_observation.go","staged-v013/observation_finish.go","staged-v013/observation_finish_review_test.go","staged-script/script_update.go","staged-script/script_update_test.go","staged-script/script_lock_unix.go","staged-script/script_lock_windows.go","staged-v013/deep-diagnostic/recorder.go","staged-v013/deep-diagnostic/recorder_review_test.go","staged-v013/deep-diagnostic/session_owner.go","staged-v013/deep-diagnostic/session_pipeline_review_test.go","staged-v013/deep-diagnostic/raw_owner.go","staged-v013/deep-diagnostic/lower_pipeline_review_test.go","staged-v013/deep-diagnostic/mailru_ack.go","staged-v013/deep-diagnostic/mailru_ack_review_test.go","staged-v013/deep-diagnostic/session-hook-recipe.json","build.ps1")
+    require(sources.keys==expectedSources)
+    expectedSources.forEach{name->require(sources[name]==freshDigest(file("../transports/openflux/$name"))){"Fresh OpenFlux source receipt mismatch: $name"}}
+    val files=receipt["files"] as Map<*,*>
+    listOf("arm64-v8a","armeabi-v7a","x86_64").forEach{abi->
+        val marked=files[abi] as Map<*,*>;val binary=stage.resolve("$abi/libopenflux.so")
+        require(marked["sha256"]==freshDigest(binary)&&marked["bytes"].toString()==binary.length().toString()){"Fresh OpenFlux native receipt mismatch: $abi"}
+    }
+    val requiredTests=mapOf(
+        "fresh-deep-recorder-host-tests.jsonl" to setOf("TestMcrfFreshDeepRecorderExactFalseAndTrueSchema","TestMcrfFreshDeepRecorderRetainedOldOwnerCannotAffectNewRun","TestMcrfFreshDeepRecorderNilAndOutOfRangeAreNoops","TestMcrfFreshDeepRecorderConcurrentMarksAndOneFinishWinner","TestMcrfFreshDeepRecorderIndependentLiveOwnersDoNotShareBits"),
+        "fresh-mailru-host-tests.jsonl" to setOf("TestMcrfFreshDeepMailruTypedAuthChangesNotSubstring","TestMcrfFreshDeepMailruAckSuccessSignalsAfterFixedWrite","TestMcrfFreshDeepMailruAckFailureDoesNotSignalReady","TestMcrfFreshDeepMailruFallbackIsIdempotentNotAnAck","TestMcrfFreshDeepMailruMissingWriterOrSessionCannotInventReady","TestMcrfFreshDeepMailruLateOldSessionDoesNotReportIntoNewOwner","TestMcrfFreshDeepMailruWriteReadyRequiresExactChannel"),
+        "fresh-captcha-owner-host-tests.jsonl" to setOf("TestMcrfFreshCaptchaOwnerChecksExactRawIdentity","TestMcrfFreshCaptchaOwnerNotifierCarriesOriginalInstance","TestMcrfFreshCaptchaOwnerRetiredNotifierCannotAnnounceReplacement","TestMcrfFreshCaptchaOwnerRemovedEntryCannotAnnounce","TestMcrfFreshCaptchaOwnerRejectsNilAndNonPointerIdentity","TestMcrfFreshCaptchaOwnerNotifierDoesNotHoldManagerLock","TestMcrfFreshCaptchaOwnerReloadPublishesMatchingProvider","TestMcrfFreshCaptchaOwnerReloadDropsUnsupportedProvider"),
+        "fresh-own-http-host-tests.jsonl" to setOf("TestMcrfFreshOwnHTTPCapturesExactRegisteredHandler","TestMcrfFreshOwnHTTPRejectsUnsafeOrAmbiguousAddresses","TestMcrfFreshOwnHTTPRequiresLiveRegisteredServer","TestMcrfFreshOwnHTTPPortReuseDoesNotRedirectOldLease","TestMcrfFreshOwnHTTPRejectsForeignRequestOriginAndDoesNotFollowRedirect","TestMcrfFreshOwnHTTPAdmittedHandlerDoesNotHoldOwnershipLock","TestMcrfFreshOwnHTTPAwaitReturnsOnRequestCancellation","TestMcrfFreshOwnHTTPAwaitRejectsCancelledOrClosedResult","TestMcrfFreshOwnHTTPExchangePreservesPrivateBytesAndWipesResponse","TestMcrfFreshOwnHTTPExchangeRejectsRequestBudgetsAndHopHeaders","TestMcrfFreshOwnHTTPExchangeRejectsResponseOverflowAndHeaders","TestMcrfFreshOwnHTTPExchangeBusyDoesNotLaunchAnotherHandler","TestMcrfFreshOwnHTTPExchangeCloseCancelsWaitAndDiscardsLateBody","TestMcrfFreshOwnHTTPExchangeExpiredOrRetiredOwnerCannotAdmit","TestMcrfFreshOwnHTTPExchangeParentCancellationDoesNotCloseAnotherRun","TestMcrfFreshOwnHTTPExchangeHandlerPanicStaysFiniteAndReleasesSlot","TestMcrfFreshOwnHTTPExchangeHeadAndBodylessStatusDoNotExposeBody","TestHTTPServerSyncAndAsyncHandlers","TestHTTPServerClosedOnStop"),
+"fresh-bridge-host-tests.jsonl" to setOf("TestMcrfFreshShareableCarriers","TestMcrfFreshSessionKeepsWireIdentity","TestMcrfFreshStreamAndAccountRestrictions","TestMcrfFreshTicketRejectsSamePageReplacement","TestMcrfFreshTicketIsSingleUseAndCancelledTicketStaysRetired","TestMcrfFreshTicketDoesNotExportOwnHtmlOrAcceptProxyReply","TestMcrfFreshTicketRejectsAfterDetachAndInvalidCookieHeader","TestMcrfFreshTicketUpstreamCancelAndDetachInvalidate","TestMcrfFreshExpiredTicketDoesNotRenewOrDeliver","TestMcrfFreshReplyFailureIsBoundToAdmittedEpoch","TestMcrfFreshReplacementDuringOldApplyDoesNotInheritFailure","TestMcrfFreshUpstreamCancelAndDetachRetireFailureStamp","TestMcrfFreshOwnInlineDataUsesCapturedStructuredCallback","TestMcrfFreshOwnDataRejectsTrailingInvalidAndOversizedJson","TestMcrfFreshOwnDataAndBrowserCookiesAreNotInterchangeable","TestMcrfFreshOwnDataRejectsReplacementExpiryAndProxy","TestMcrfFreshOwnDataFailureRetainsOnlyExactEpoch","TestMcrfFreshOwnDocumentSnapshotChunksAreBoundedAndDefensive","TestMcrfFreshOwnDocumentInvalidOffsetsAndWrongTicketReturnNothing","TestMcrfFreshOwnDocumentRetiresWithReplacementExpiryAndReply","TestMcrfFreshOwnDocumentMaximumAndInvalidUtf8AreRejectedBeforeExport","TestMcrfFreshOwnDocumentNeverServesExternalOrProxiedPage","TestMcrfFreshTicketOwnerRetirementRejectsReplyBeforeCallback","TestMcrfFreshTicketOwnerRetirementCannotStampNewFailure","TestMcrfFreshOwnHTTPAddressNeedsCapturedScriptServerProof","TestMcrfFreshOwnHTTPAddressNeverCapturesExternalInlineOrProxy","TestMcrfFreshTicketOwnerRetiredDuringApplyCannotPoisonReplacement","TestMcrfFreshOwnHTTPManualPermitIsSingleAndKeepsOriginalDeadline","TestMcrfFreshOwnHTTPFailedAdmissionCannotRetrySameTicket","TestMcrfFreshOwnHTTPWrongPermitCannotReadReplyOrClose","TestMcrfFreshOwnHTTPReplyRequiresInitialResponseAndSeparateContract","TestMcrfFreshOwnHTTPReplyUsesCapturedApplyAndClosesExactRun","TestMcrfFreshOwnHTTPUpstreamCancelAndDetachSignalRunCloseOnce","TestMcrfFreshOwnHTTPLateResponseAfterRetirementIsWiped","TestMcrfFreshOwnHTTPCloseRetainedOwnerAfterServerLossDoesNotTouchReplacement"),
+"fresh-script-host-tests.jsonl" to setOf("TestMcrfFreshCancelledRecoveryDoesNotPromotePrevious","TestMcrfFreshCancelledRollbackDoesNotSwapFiles","TestMcrfFreshCurrentRecoveryChecksExpectedWire","TestMcrfFreshNoPendingPageIsNotFailure","TestMcrfFreshOwnPageIsNotPassedToVkBrowser","TestMcrfFreshExternalCaptchaEmitsOnlyFiniteCode","TestMcrfFreshReplyCommandKeepsExactTicketAndCookieValue","TestMcrfFreshReplyCommandRejectsInvalidIdsAndUnknownMessages","TestMcrfFreshReplyCommandBoundsCookieBytesAndControls","TestMcrfFreshCancelCommandIsExactAndContainsNoCookie","TestMcrfFreshUiCommandsAreDisabledWithoutHostOptIn","TestMcrfFreshObservationEmitsOnlyAfterStopReturns","TestMcrfFreshObservationDoesNotEmitIfStopFailsToReturn","TestMcrfFreshRepliesAreSerializedWithOneBoundedNextSlot","TestMcrfFreshObsoleteReplyEmitsNoFalseSuccessOrFailureAck","TestMcrfFreshDrainedWorkerAcceptsLaterReplyWithoutOrphanSlot","TestMcrfFreshStoppedWorkerDiscardsQueuedReplyAndLateResult","TestMcrfFreshClosedQueueRejectsNewRepliesAndCancellation","TestMcrfFreshDocumentSingleReadStreamsMaximumInBoundedFrames","TestMcrfFreshDocumentReadRequiresSeparateHostGateAndExactCommand","TestMcrfFreshDocumentBlockedOutputDoesNotBlockStopOrStartMoreWorkers","TestMcrfFreshDocumentReplacementRetiresStreamBeforeEndAndDoesNotPoisonNewTicket","TestMcrfFreshDocumentShortChunkAndOutputFailureStayFiniteAndExact","TestMcrfFreshDocumentMissingOrMalformedMetadataEmitsNothing","TestMcrfFreshOwnReplyUtf8UsesSeparateCapturedApplyWorker","TestMcrfFreshOwnReplyCommandRejectsMalformedEncodingButDoesNotWidenCookies","TestMcrfFreshHTTPWireRequestTypedOwnedAndRedacted","TestMcrfFreshHTTPWireRequestRejectsShapeTypesEncodingAndIdentity","TestMcrfFreshHTTPWireRequestHeaderBodyAndDepthLimits","TestMcrfFreshHTTPWireUnicodeRejectsLoneSurrogatesAndMalformedUTF8","TestMcrfFreshHTTPWireResponseFramesBoundIdentityAndCanonicalBody","TestMcrfFreshHTTPWireResponseRejectsInvalidHeadersStatusAndBody","TestMcrfFreshHTTPWireResponseRetirementAndWriteFailureStopFrames","TestMcrfFreshHTTPWorkerSingleSlotAcrossTicketsAndCancelledHandler","TestMcrfFreshHTTPWorkerStopDoesNotWaitForBlockedOutput","TestMcrfFreshHTTPWorkerRetiredOwnerNeverInvokesExchange","TestMcrfFreshHTTPGatewayRequiresSeparateOptInAndStrictControlShape","TestMcrfFreshHTTPGatewayOpenReturnsPrivatePermitAndExactRequestIdentity","TestMcrfFreshHTTPGatewayFailedOpenHasOnlyFiniteResult","TestMcrfFreshHTTPGatewayStopDuringOpenClosesLatePermitWithoutEmission","TestMcrfFreshHTTPGatewayStaleCloseCannotRetireReplacement","TestMcrfFreshHTTPGatewayReplyPayloadAndResultRemainScopedAndRedacted","TestMcrfFreshHTTPGatewayStopRetainsBusyReplyAndDiscardsLateResult","TestMcrfFreshHTTPGatewayFailedOpenedWriteRetiresExactNativePermit","TestMcrfFreshHTTPWorkerOneQueuedTaskWaitsForActualActiveReturn","TestMcrfFreshHTTPWorkerStopWipesQueuedRequestWithoutClaimingActiveExit","TestMcrfFreshHTTPWorkerCancelOldQueuedScopeDoesNotCancelNewActiveScope","TestMcrfFreshHTTPWorkerCancelledOldActiveRetainsNewQueuedTaskUntilExit","TestMcrfFreshHTTPGatewayFollowingCommandDuringLastFrameUsesOneQueuedSlot","TestMcrfFreshHTTPGatewayQueuedOpenIsDroppedOnStopWithBoundedOverflow","TestMcrfFreshHTTPGatewayGenericOldTicketCancelPreservesQueuedReplacement"),
+        "fresh-observation-host-tests.jsonl" to setOf("TestMcrfFreshMissingSessionDoesNotInventObservations","TestMcrfFreshObservationUsesCountersWithoutProviderNamesOrPayload","TestMcrfFreshObservationSnapshotsDoNotShareMutableState","TestMcrfFreshActualSessionPipeline","TestMcrfFreshActualSessionPipeline/short_O","TestMcrfFreshActualSessionPipeline/same_crypto_role","TestMcrfFreshActualSessionPipeline/wrong_crypto_key","TestMcrfFreshActualSessionPipeline/plaintext_not_batch","TestMcrfFreshActualSessionPipeline/invalid_envelope","TestMcrfFreshActualSessionPipeline/same_envelope_role","TestMcrfFreshActualSessionPipeline/valid_hello","TestMcrfFreshActualSessionPipeline/invalid_hello","TestMcrfFreshActualSessionPipeline/callback_missing","TestMcrfFreshActualSessionPipeline/replay","TestMcrfFreshDeepRawOwnerBindsOnceAndRejectsReuse","TestMcrfFreshDeepDemuxMissingCallbacksAndEmptyAreSeparate","TestMcrfFreshDeepCodecEmptyUnknownMalformedAndMissingCallback","TestMcrfFreshDeepClassicActualPipelineDoesNotMarkSessionCrypto","TestMcrfFreshDeepSessionActualPipeline","TestMcrfFreshDeepSessionOwnerRequiredAndNewLinksCaptureTheirSession","TestMcrfFreshDeepSessionActualPipeline/short_O","TestMcrfFreshDeepSessionActualPipeline/same_crypto_role","TestMcrfFreshDeepSessionActualPipeline/wrong_crypto_key","TestMcrfFreshDeepSessionActualPipeline/plaintext_not_batch","TestMcrfFreshDeepSessionActualPipeline/invalid_envelope","TestMcrfFreshDeepSessionActualPipeline/same_envelope_role","TestMcrfFreshDeepSessionActualPipeline/valid_hello","TestMcrfFreshDeepSessionActualPipeline/invalid_hello","TestMcrfFreshDeepSessionActualPipeline/callback_missing","TestMcrfFreshDeepSessionActualPipeline/replay","TestMcrfFreshDeepClassicActualPipelineDoesNotMarkSessionCrypto/valid_ipv4","TestMcrfFreshDeepClassicActualPipelineDoesNotMarkSessionCrypto/not_ipv4","TestMcrfFreshDeepClassicActualPipelineDoesNotMarkSessionCrypto/short","TestMcrfFreshDeepClassicActualPipelineDoesNotMarkSessionCrypto/same_role","TestMcrfFreshDeepClassicActualPipelineDoesNotMarkSessionCrypto/wrong_key","TestMcrfFreshDeepClassicActualPipelineDoesNotMarkSessionCrypto/replay"))
+    require((receipt["tests"] as List<*>).toSet()==requiredTests.keys)
+    requiredTests.forEach{(name,required)->
+        val log=stage.resolve(name);require(log.isFile&&log.length() in 1..(4L shl 20))
+        val events=log.readLines(Charsets.UTF_8).filter{it.isNotBlank()}.map{groovy.json.JsonSlurper().parseText(it) as Map<*,*>}
+        require(events.none{it["Action"]=="fail"}&&events.any{it["Action"]=="pass"&&it["Test"]==null})
+        require(events.filter{it["Action"]=="pass"}.mapNotNull{it["Test"] as? String}.toSet().containsAll(required)){"Fresh OpenFlux host evidence incomplete: $name"}
+    }
+}
+val openfluxScriptUpdater=(openfluxFreshProduction?:openfluxCandidate)?.resolve("script-updater-capability.json")?.takeIf{it.isFile}?.let {marker->
+    val candidateDirectory=requireNotNull(openfluxFreshProduction?:openfluxCandidate)
     val data=groovy.json.JsonSlurper().parse(marker) as Map<*,*>
     require(data["interface"].toString()=="1"&&data["scriptUpdater"].toString()=="1"&&data["version"]==openfluxVersion&&data["commit"]==openfluxCommit)
     val digests=data["sha256"] as Map<*,*>
@@ -374,10 +717,20 @@ val openfluxScriptUpdater=openfluxCandidate?.resolve("script-updater-capability.
         require(digests[abi]==hash.digest().joinToString(""){"%02x".format(it.toInt()and 255)}){"Script capability binary digest mismatch for $abi"}
     };1
 }?:0
+if(openfluxVersion=="v0.13.0")require(openfluxScriptUpdater==1){"Fresh source-bound signed-script capability missing"}
 val engineStages=engineKinds.filter{it !in primaryKinds}.associateWith {kind->tasks.register<StageEngineJni>("prepare${kind.replaceFirstChar{it.uppercase()}}Jni"){
     inputDirectory.set(swgStages[kind]?:if(kind=="s3bypass"&&s3BypassStage!=null)s3BypassStage else if(kind=="csqtt"&&csqttLegacyStage!=null)csqttLegacyStage else if(kind=="csqtt25"&&csqtt25Stage!=null)csqtt25Stage else if(kind=="tgws")telegramNative else if(kind=="warpscout"&&warpScannerStage!=null)warpScannerStage.resolve("candidates") else if(kind in optionalKinds&&optionalStage!=null)optionalStage.resolve("candidates/${moduleKind(kind)}")else if(kind=="openflux"&&(openfluxProvider!=null||openfluxAck!=null||openfluxPromotion!=null||openfluxCandidate!=null))requireNotNull(openfluxProvider?:openfluxAck?:openfluxPromotion?:openfluxCandidate) else file("src/main/jniLibs"));outputDirectory.set(layout.buildDirectory.dir("generated/engine-jni/$kind"))
     if(kind in historicalStages)inputDirectory.set(historicalStages.getValue(kind))
-    libraries.set(if(kind=="csqtt")listOf("libqwdtt.so","libcsqtt_transport.so")else if(kind in historicalKinds)listOf("lib$kind.so","libcsqtt_transport.so")else if(kind=="csqtt25")listOf("libcsqtt25.so","libcsqtt25_transport.so")else listOf(moduleLibrary(kind)))
+    if(kind=="openflux"&&openfluxFreshProduction!=null)inputDirectory.set(openfluxFreshProduction)
+    if(kind=="openflux"&&openfluxTeamStage!=null)inputDirectory.set(openfluxTeamStage)
+    if(kind=="vaydns"&&vayDnsStage!=null)inputDirectory.set(vayDnsStage)
+    if(kind=="protocols"&&protocolsStage!=null)inputDirectory.set(protocolsStage)
+    if(kind=="sstp"&&sstpStage!=null)inputDirectory.set(sstpStage)
+    if(kind=="dnstt"&&dnsttStage!=null)inputDirectory.set(dnsttStage)
+    if(kind=="olcrtc"&&olcrtcStage!=null)inputDirectory.set(olcrtcStage)
+    if(kind=="masterdnsvpn"&&masterDnsStage!=null)inputDirectory.set(masterDnsStage)
+    if(kind=="slipstream"&&slipstreamStage!=null)inputDirectory.set(slipstreamStage)
+    libraries.set(if(kind=="csqtt")listOf("libqwdtt.so","libcsqtt_transport.so")else if(kind in historicalKinds)listOf("lib$kind.so","libcsqtt_transport.so")else if(kind=="csqtt25")listOf("libcsqtt25.so","libcsqtt25_transport.so")else if(kind=="slipstream")listOf("libslipstream.so","libslipstream_core.so")else listOf(moduleLibrary(kind)))
 }}
 val csqtt25Notices=csqtt25Stage?.let{stage->tasks.register<StageEngineCsqtt25Notices>("prepareCsqtt25Notices"){
     inputDirectory.set(stage.resolve("licenses"));outputDirectory.set(layout.buildDirectory.dir("generated/csqtt25-assets"))
@@ -395,6 +748,24 @@ val captchaMergedAssets=mutableMapOf<String,org.gradle.api.provider.Provider<org
 val s3Notices=s3BypassStage?.let {stage->tasks.register<StageEngineS3Notices>("prepareS3BypassNotices"){
     inputDirectory.set(stage.resolve("licenses"));outputDirectory.set(layout.buildDirectory.dir("generated/s3bypass-assets"))
 }}
+val vayDnsNotices=vayDnsStage?.let {stage->tasks.register<StageEngineS3Notices>("prepareVayDnsNotices"){
+    inputDirectory.set(stage.resolve("licenses"));outputDirectory.set(layout.buildDirectory.dir("generated/vaydns-assets"))
+}}
+val slipstreamNotices=slipstreamStage?.let {stage->tasks.register<StageEngineS3Notices>("prepareSlipstreamNotices"){
+    inputDirectory.set(stage.resolve("licenses"));outputDirectory.set(layout.buildDirectory.dir("generated/slipstream-assets"))
+}}
+val sstpNotices=sstpStage?.let {stage->tasks.register<StageEngineS3Notices>("prepareSstpNotices"){
+    inputDirectory.set(stage.resolve("licenses"));outputDirectory.set(layout.buildDirectory.dir("generated/sstp-assets"))
+}}
+val dnsttNotices=dnsttStage?.let {stage->tasks.register<StageEngineS3Notices>("prepareDnsttNotices"){
+    inputDirectory.set(stage.resolve("licenses"));outputDirectory.set(layout.buildDirectory.dir("generated/dnstt-assets"))
+}}
+val olcrtcNotices=olcrtcStage?.let {stage->tasks.register<StageEngineS3Notices>("prepareOlcrtcNotices"){
+    inputDirectory.set(stage.resolve("licenses"));outputDirectory.set(layout.buildDirectory.dir("generated/olcrtc-assets"))
+}}
+val masterDnsNotices=masterDnsStage?.let {stage->tasks.register<StageEngineS3Notices>("prepareMasterDnsNotices"){
+    inputDirectory.set(stage.resolve("licenses"));outputDirectory.set(layout.buildDirectory.dir("generated/masterdnsvpn-assets"))
+}}
 val telegramNotices=tasks.register<StageEngineTelegramNotices>("prepareTgwsNotices"){
     inputDirectory.set(file("../app/src/main/assets/licenses"));outputDirectory.set(layout.buildDirectory.dir("generated/tgws-assets"))
 }
@@ -411,11 +782,23 @@ android {
     productFlavors {
         engineKinds.forEach {kind->create(kind){dimension="engine";applicationId="org.mcrf.engines.$kind";manifestPlaceholders["engineKind"]=moduleKind(kind);manifestPlaceholders["engineLabel"]="MCRF · ${moduleKind(kind).uppercase()}"
             if(kind=="s3bypass"){versionCode=1;versionName="0.1.0-s3bypass.1"}
+            if(kind=="vaydns"&&vayDnsDescriptor!=null){versionCode=vayDnsDescriptor["packageVersionCode"].toString().toInt();versionName=vayDnsDescriptor["packageVersionName"].toString();manifestPlaceholders["engineLabel"]="MCRF · VayDNS"}
+            if(kind=="sstp"&&sstpDescriptor!=null){versionCode=sstpDescriptor["packageVersionCode"].toString().toInt();versionName=sstpDescriptor["packageVersionName"].toString();manifestPlaceholders["engineLabel"]="MCRF · SSTP"}
+            if(kind=="dnstt"&&dnsttDescriptor!=null){versionCode=dnsttDescriptor["packageVersionCode"].toString().toInt();versionName=dnsttDescriptor["packageVersionName"].toString();manifestPlaceholders["engineLabel"]="MCRF · DNSTT"}
+            if(kind=="olcrtc"&&olcrtcDescriptor!=null){versionCode=olcrtcDescriptor["packageVersionCode"].toString().toInt();versionName=olcrtcDescriptor["packageVersionName"].toString();manifestPlaceholders["engineLabel"]="MCRF · OLC"}
+            if(kind=="masterdnsvpn"&&masterDnsDescriptor!=null){versionCode=masterDnsDescriptor["packageVersionCode"].toString().toInt();versionName=masterDnsDescriptor["packageVersionName"].toString();manifestPlaceholders["engineLabel"]="MCRF · MasterDnsVPN"}
+            if(kind=="slipstream"&&slipstreamDescriptor!=null){versionCode=slipstreamDescriptor["packageVersionCode"].toString().toInt();versionName=slipstreamDescriptor["packageVersionName"].toString();manifestPlaceholders["engineLabel"]="MCRF · Slipstream"}
             if(kind=="warpscout"&&warpScannerStage!=null){versionCode=5;versionName="1.3.1-mcrf-fast.5"}
             if(kind=="csqtt25"){versionCode=1;versionName="2.5.0-mcrf-candidate.1";manifestPlaceholders["engineLabel"]="MCRF · CSQTT 2.5"}
             if(kind in historicalKinds){
                 val generation = if (kind == "csqtt20") "2.0" else "2.1.5"
-                versionCode=if(historicalReleaseAllowed)2 else 1;versionName="$generation-mcrf.${if(historicalReleaseAllowed)2 else 1}";manifestPlaceholders["engineLabel"]="MCRF · CSQTT $generation"
+                val code=if(p3p4HistoricalCandidateAllowed){
+                    val descriptor=requireNotNull(historicalDescriptors[kind]);require(descriptor["packageVersionCode"].toString()=="3");3
+                }else if(historicalReleaseAllowed)2 else 1
+                versionCode=code;versionName="$generation-mcrf.$code";manifestPlaceholders["engineLabel"]="MCRF · CSQTT $generation"
+                historicalDescriptors[kind]?.get("packageVersionCode")?.let {code->
+                    require(code.toString().toInt()>2);versionCode=code.toString().toInt();versionName="$generation-mcrf.performance.$code"
+                }
                 resValue("string","mcrf_csqtt_generation",generation)
                 resValue("string","mcrf_csqtt_revision",if (kind == "csqtt20") "2ff8a1a4fbe031fb76b799e172dce25cfe1ca942" else "de7afc23cec7481f98845bf24fc8943af19b4cf8")
                 if(kind in historicalDescriptors){manifestPlaceholders["csqttProcessGroupContract"]=1;manifestPlaceholders["turnHashPoolContract"]=1}
@@ -519,6 +902,62 @@ android {
                     }
                     val bridge=packageStage.resolve("process-group-inputs/csqtt_bridge.go").readText()
                     require(bridge.contains("mcrfPrepareProcessGroup()")&&bridge.contains("processOwner.await(ctx)"))
+                    if(descriptor["p3AbiAuthority"]!=null){
+                        require(kind=="csqtt25"&&descriptor["p3AbiAuthority"]=="human-20261023-finish-current-fixes-then-p3-p4")
+                        fun digest(input:File):String {
+                            require(input.isFile&&!Files.isSymbolicLink(input.toPath()))
+                            return MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+                        }
+                        val originFile=packageStage.resolve("p3-abi-origin.json")
+                        require(digest(originFile)==descriptor["p3AbiOriginSha256"])
+                        val origin=groovy.json.JsonSlurper().parse(originFile) as Map<*,*>
+                        require(origin["authority"]==descriptor["p3AbiAuthority"]&&origin["newOwnerExecution"]==false&&origin["newAbiRuntimeAccepted"]==false)
+                        val freshFile=packageStage.resolve("new-abi-host-evidence.json")
+                        require(digest(freshFile)==origin["hostEvidenceSha256"]&&origin["hostEvidenceSha256"]==descriptor["hostEvidenceSha256"])
+                        val fresh=groovy.json.JsonSlurper().parse(freshFile) as Map<*,*>
+                        require(fresh["state"]=="PASS_P3_CS25_ABI_HOST"&&fresh["failures"]==0&&fresh["skipped"]==0&&fresh["sourceManifestSha256"]==origin["sourceManifestSha256"])
+                        require(digest(packageStage.resolve("abi-host-tests.jsonl"))==fresh["logSha256"]&&digest(packageStage.resolve("abi-input-receipt.json"))==fresh["inputReceiptSha256"])
+                        val cases=(fresh["cases"] as List<*>).map {it.toString()}
+                        require(cases.containsAll(listOf("Test25AdditionalAbiDescriptorsAreExactAndDistinct","Test25AdditionalAbiAndroidMustMatchWrapperArchitecture","Test25AdditionalAbiHeaderInspectionRejectsMalformedOrOtherGenerations","Test25AdditionalAbiRejectsCorrectHeaderWithWrongContent","Test25AdditionalAbiActualArtifacts/arm64-v8a","Test25AdditionalAbiActualArtifacts/armeabi-v7a","Test25AdditionalAbiActualArtifacts/x86_64")))
+                        require(cases.containsAll(listOf("TestMcrfRawMTUCeilingPreservesSmallerServerValue","TestMcrfIPRelayBuffersOnOwnedSocket","TestMcrfSOCKSAdmissionQueuesAndResumes","TestMcrfRawMTUOnActualBulkUpload")))
+                        val previous=file(origin["baselineReceipt"].toString())
+                        require(previous.canonicalPath.replace('\\','/').startsWith("D:/MCRF/Builds/Android/"))
+                        require(digest(previous)==origin["baselineReceiptSha256"])
+                        val old=groovy.json.JsonSlurper().parse(previous) as Map<*,*>
+                        require(old["kind"]=="csqtt25"&&old["sourceStable"]==true&&old["state"]=="COMPILED_NOT_EXECUTED"&&old["processGroupContract"]==1&&old["turnHashPoolContract"]==1)
+                        for(key in listOf("processGroupInputs","turnFeatureInputs")){
+                            fun identities(value:Any?)=(value as List<*>).map {it as Map<*,*>}.filter {it["file"]!="csqtt_bridge.go"}.map {it["file"].toString()+"="+it["sha256"]}.sorted()
+                            require(identities(old[key])==identities(descriptor[key]))
+                        }
+                        val oldBridge=packageStage.resolve("retained-performance-bridge.go")
+                        val newBridge=packageStage.resolve("performance-bridge-input.go")
+                        require(digest(oldBridge)==origin["oldPerformanceBridgeSha256"]&&digest(newBridge)==origin["newPerformanceBridgeSha256"])
+                        require((old["processGroupInputs"] as List<*>).map {it as Map<*,*>}.single {it["file"]=="csqtt_bridge.go"}["sha256"]==origin["oldPerformanceBridgeSha256"])
+                        require(manifest.single {it["path"]=="csqtt_bridge.go"}["sha256"]==origin["newPerformanceBridgeSha256"])
+                        val tune="""
+// One loopback IP relay, not every TURN worker. Keep a functioning
+// socket if Android refuses an optional buffer request.
+if tuneErr := mcrfConfigureIPRelaySocket(socket); tuneErr != nil {
+ fmt.Printf("[IP-адаптер] Не удалось увеличить буфер: %v\n", tuneErr)
+}
+relay := make(chan struct{})
+""".trimIndent()
+                        val bridgeBefore=oldBridge.readText().replace("\r\n","\n")
+                        require(bridgeBefore.split("relay := make(chan struct{})").size==2&&
+                            newBridge.readText().replace("\r\n","\n")==bridgeBefore.replace("relay := make(chan struct{})",tune)){"Performance change must not alter child ownership or CAPTCHA code"}
+                        val oldRuntime=packageStage.resolve("retained-native-runtime.go")
+                        val newRuntime=packageStage.resolve("abi-runtime-input.go")
+                        require(digest(oldRuntime)==origin["oldRuntimeSha256"]&&digest(newRuntime)==origin["newRuntimeSha256"])
+                        require(manifest.single {it["path"]=="internal/csqtt25/runtime.go"}["sha256"]==origin["newRuntimeSha256"])
+                        require(digest(packageStage.resolve("source-manifest.json"))==origin["sourceManifestSha256"])
+                        val marker="// Construction only:"
+                        val before=oldRuntime.readText().replace("\r\n","\n");val after=newRuntime.readText().replace("\r\n","\n")
+                        require(marker in before&&marker in after&&before.substringAfter(marker)==after.substringAfter(marker)){"ABI loader change altered process launch/retirement"}
+                        val retained=packageStage.resolve("retained-p3-owner-evidence.json")
+                        require(digest(retained)==origin["retainedEvidenceSha256"])
+                        val proof=groovy.json.JsonSlurper().parse(retained) as Map<*,*>
+                        require(proof["passed"]==true&&proof["sourceStable"]==true&&(proof["cases"] as List<*>).size==8)
+                    }
                     if(descriptor["expansionAuthority"]!=null){
                         fun sha(path:java.io.File):String {
                             require(path.isFile&&!Files.isSymbolicLink(path.toPath()))
@@ -610,6 +1049,12 @@ android {
             }
             if(kind in optionalKinds){manifestPlaceholders["optionalSourceCommit"]=optionalCommits.getValue(kind);manifestPlaceholders["optionalSourceRepository"] = if (kind == "xray") "throneproj/xray-core" else "throneproj/sing-box"}
             if(kind in optionalKinds){manifestPlaceholders["optionalIngress"] = if (kind == "xray") "authenticated-loopback-socks5-tcp-udp" else "authenticated-loopback-socks5-tcp"}
+            if(kind=="protocols"){
+                manifestPlaceholders["optionalSourceCommit"]="3d3d3db3a2ccef3b1a8eb71b831ed2461c54b94d"
+                manifestPlaceholders["optionalSourceRepository"]="Leadaxe/sing-box-lx"
+                manifestPlaceholders["optionalIngress"]="authenticated-loopback-socks5-tcp-udp"
+                versionCode=1;versionName="protocols-3d3d3db-mcrf.1"
+            }
             if(kind in primaryKinds){
                 val d=primaryDescriptors[moduleKind(kind)] as? Map<*,*>
                 if(d!=null){versionCode=d["versionCode"].toString().toInt();versionName=d["moduleVersion"].toString()}
@@ -619,13 +1064,21 @@ android {
                 manifestPlaceholders["primarySourceRepository"]=d?.get("sourceRepository")?:""
                 manifestPlaceholders["primarySourceVersion"]=d?.get("sourceVersion")?:""
                 manifestPlaceholders["primarySourceSha256"]=d?.get("sourceSha256")?:""
+                manifestPlaceholders["steerSocksUdpSourcePort"]=if(kind=="steer"&&d?.get("p3SocksCandidate")==true)1 else 0
+                manifestPlaceholders["steerPrivateHelperProfile"]=if(kind=="steer"&&d?.get("privateHelperProfile").toString()=="1")1 else 0
             }
+            manifestPlaceholders["openfluxSourceRepository"]=if(openfluxTeamStage!=null)"OpenFluxTeam/OpenFlux" else "p1neappleXpress/OpenFlux"
             manifestPlaceholders["openfluxSourceVersion"]=openfluxVersion;manifestPlaceholders["openfluxSourceCommit"]=openfluxCommit
             manifestPlaceholders["openfluxSourceOverlay"]=if(openfluxProvider!=null) "mcrf-provider-stage.$openfluxProviderNumber" else if(openfluxAck!=null) "mcrf-mailru-ack.1" else ""
             manifestPlaceholders["openfluxProviderDiagnostic"]=openfluxProviderNumber
             manifestPlaceholders["openfluxProviderDiagnosticCli"]=if(openfluxProvider!=null) "diagnostic-config-v$openfluxProviderNumber" else ""
-            manifestPlaceholders["openfluxScriptUpdater"]=if(kind=="openflux")openfluxScriptUpdater else 0
+            manifestPlaceholders["openfluxScriptUpdater"]=if(kind=="openflux"&&openfluxFreshProduction==null)openfluxScriptUpdater else 0
+            manifestPlaceholders["openfluxVerification"]=if(kind=="openflux"&&openfluxCandidate!=null&&openfluxVersion=="v0.13.0")1 else 0
+            manifestPlaceholders["openfluxObservation"]=if(kind=="openflux"&&openfluxCandidate!=null&&openfluxVersion=="v0.13.0")1 else 0
             if(kind=="openflux"&&openfluxCandidate!=null){applicationId="org.mcrf.engines.openflux.candidate";versionCode=5;versionName="0.1.0-dev.5-candidate"}
+            if(kind=="openflux"&&openfluxCandidate!=null&&openfluxVersion=="v0.13.0"){versionCode=13;versionName="0.13.0-mcrf-candidate.13"}
+            if(kind=="openflux"&&openfluxFreshProduction!=null){versionCode=14;versionName="0.13.0-mcrf.14"}
+            if(kind=="openflux"&&openfluxTeamStage!=null){versionCode=15;versionName="0.16.0-mcrf.15"}
             if(kind=="openflux"&&openfluxPromotion!=null){versionCode=6;versionName="0.7.3-mcrf.6"}
             if(kind=="openflux"&&openfluxAck!=null){versionCode=7;versionName="0.7.3-mcrf.7"}
             if(kind=="openflux"&&openfluxProvider!=null){val code=7+openfluxProviderNumber;applicationId="org.mcrf.engines.openflux.diagnostic";versionCode=code;versionName="0.7.3-mcrf-diagnostic.$code"}
@@ -638,13 +1091,21 @@ android {
         sourceSets.getByName(kind).manifest.srcFile(historicalManifest)
     }
     sourceSets.getByName("s3bypass").manifest.srcFile("EngineUpdateS3BypassManifest.xml")
+    sourceSets.getByName("vaydns").manifest.srcFile("EngineUpdateVayDnsManifest.xml")
+    sourceSets.getByName("sstp").manifest.srcFile("EngineUpdateSstpManifest.xml")
+    if(dnsttStage!=null)sourceSets.getByName("dnstt").manifest.srcFile("EngineUpdateDnsttManifest.xml")
+    if(olcrtcStage!=null)sourceSets.getByName("olcrtc").manifest.srcFile("EngineUpdateOlcrtcManifest.xml")
+    sourceSets.getByName("masterdnsvpn").manifest.srcFile("EngineUpdateMasterDnsManifest.xml")
+    sourceSets.getByName("slipstream").manifest.srcFile("EngineUpdateSlipstreamManifest.xml")
     if(csqttLegacyStage!=null)sourceSets.getByName("csqtt").manifest.srcFile("EngineUpdateCsqttLegacyManifest.xml")
     swgStages.keys.forEach{kind->sourceSets.getByName(kind).manifest.srcFile("EngineUpdateSwgManifest.xml")}
-    sourceSets.getByName("main").jniLibs.setSrcDirs(emptyList<String>())
-    if(openfluxProvider!=null)sourceSets.getByName("main").assets.setSrcDirs(emptyList<String>())
-    optionalKinds.forEach{kind->sourceSets.getByName(kind).manifest.srcFile(file("EngineUpdateOptionalManifest.xml"));sourceSets.getByName(kind).assets.srcDir(file("../optional-cores/licenses"))}
+    sourceSets.getByName("main").jniLibs.directories.clear()
+    if(openfluxProvider!=null)sourceSets.getByName("main").assets.directories.clear()
+    optionalKinds.forEach{kind->sourceSets.getByName(kind).manifest.srcFile(file("EngineUpdateOptionalManifest.xml"));sourceSets.getByName(kind).assets.directories.add(file("../optional-cores/licenses").absolutePath)}
+    sourceSets.getByName("protocols").manifest.srcFile(file("EngineUpdateOptionalManifest.xml"))
+    if(protocolsStage!=null)sourceSets.getByName("protocols").assets.directories.add(protocolsStage.resolve("licenses").absolutePath)
     sourceSets.getByName("tgws").manifest.srcFile(file("EngineUpdateTelegramManifest.xml"))
-    primaryKinds.forEach{kind->sourceSets.getByName(kind).manifest.srcFile(file("EngineUpdatePrimaryManifest.xml"));primaryStage?.let{stage->sourceSets.getByName(kind).assets.srcDir(stage.resolve("${moduleKind(kind)}/licenses"))}}
+    primaryKinds.forEach{kind->sourceSets.getByName(kind).manifest.srcFile(file("EngineUpdatePrimaryManifest.xml"));primaryStage?.let{stage->sourceSets.getByName(kind).assets.directories.add(stage.resolve("${moduleKind(kind)}/licenses").absolutePath)}}
     splits { abi { isEnable = true; reset(); include("arm64-v8a", "armeabi-v7a", "x86_64"); isUniversalApk = true } }
     packaging { jniLibs { useLegacyPackaging = true; keepDebugSymbols += "**/*.so" } }
     buildTypes { release { if(project.findProperty("testRelease") == "true") signingConfig = signingConfigs.getByName("debug") } }
@@ -652,19 +1113,32 @@ android {
 androidComponents {
     // A candidate can never leak into a release build or the other engine packages.
     beforeVariants(selector().all()){variant->
-        if(variant.productFlavors.any {it.second in historicalKinds&&(it.second !in historicalStages||(variant.buildType!="debug"&&!historicalReleaseAllowed))})variant.enable=false
+        if(variant.productFlavors.any {it.second in historicalKinds&&(it.second !in historicalStages||(variant.buildType!="debug"&&!historicalReleaseAllowed&&!p3p4HistoricalCandidateAllowed))})variant.enable=false
         if(variant.productFlavors.any{it.second=="csqtt25"}&&(csqtt25Stage==null||!csqtt25Gate))variant.enable=false
         if(variant.productFlavors.any{it.second=="s3bypass"}&&s3BypassStage==null)variant.enable=false
+        if(variant.productFlavors.any{it.second=="vaydns"}&&vayDnsStage==null)variant.enable=false
+        if(variant.productFlavors.any{it.second=="sstp"}&&sstpStage==null)variant.enable=false
+        if(variant.productFlavors.any{it.second=="masterdnsvpn"}&&masterDnsStage==null)variant.enable=false
+        if(variant.productFlavors.any{it.second=="slipstream"}&&slipstreamStage==null)variant.enable=false
         if(variant.productFlavors.any{it.second in optionalKinds}&&(optionalStage==null||!optionalGate))variant.enable=false
+        if(variant.productFlavors.any{it.second=="protocols"}&&protocolsStage==null)variant.enable=false
         if(variant.productFlavors.any{it.second in primaryKinds&&(!primaryGate||moduleKind(it.second) !in primaryDescriptors)})variant.enable=false
         if(providers.gradleProperty("p2SteerCandidate").orNull=="true"&&variant.productFlavors.any {it.second=="steer"}&&variant.buildType!="debug"&&!historicalReleaseAllowed)variant.enable=false
         if(variant.productFlavors.any{it.second=="tgws"}&&!telegramGate)variant.enable=false
         if(openfluxCandidate!=null&&(variant.buildType!="debug"||variant.productFlavors.none{it.second=="openflux"}))variant.enable=false
+        if(openfluxFreshProduction!=null&&(variant.buildType!="release"||variant.productFlavors.none{it.second=="openflux"}))variant.enable=false
+        if(openfluxTeamStage!=null&&(variant.buildType!="release"||variant.productFlavors.none{it.second=="openflux"}))variant.enable=false
         if(openfluxProvider!=null&&variant.productFlavors.none{it.second=="openflux"})variant.enable=false
     }
     onVariants(selector().all()){variant->
     val kind=variant.productFlavors.first{it.first=="engine"}.second
     if(kind=="s3bypass")variant.sources.assets?.addGeneratedSourceDirectory(requireNotNull(s3Notices),StageEngineS3Notices::outputDirectory)
+    if(kind=="vaydns")variant.sources.assets?.addGeneratedSourceDirectory(requireNotNull(vayDnsNotices),StageEngineS3Notices::outputDirectory)
+    if(kind=="sstp")variant.sources.assets?.addGeneratedSourceDirectory(requireNotNull(sstpNotices),StageEngineS3Notices::outputDirectory)
+    if(kind=="dnstt"&&dnsttNotices!=null)variant.sources.assets?.addGeneratedSourceDirectory(dnsttNotices,StageEngineS3Notices::outputDirectory)
+    if(kind=="olcrtc"&&olcrtcNotices!=null)variant.sources.assets?.addGeneratedSourceDirectory(olcrtcNotices,StageEngineS3Notices::outputDirectory)
+    if(kind=="masterdnsvpn")variant.sources.assets?.addGeneratedSourceDirectory(requireNotNull(masterDnsNotices),StageEngineS3Notices::outputDirectory)
+    if(kind=="slipstream")variant.sources.assets?.addGeneratedSourceDirectory(requireNotNull(slipstreamNotices),StageEngineS3Notices::outputDirectory)
     if(variant.buildType=="debug"&&(kind in swgStages||kind=="csqtt"&&csqttLegacyStage!=null||kind=="csqtt25"&&csqtt25Stage!=null))
         captchaMergedAssets[kind]=variant.artifacts.get(com.android.build.api.artifact.SingleArtifact.ASSETS)
     if(kind=="csqtt"&&csqttLegacyNotices!=null)variant.sources.assets?.addGeneratedSourceDirectory(csqttLegacyNotices,StageEngineCsqtt25Notices::outputDirectory)
@@ -689,7 +1163,7 @@ androidComponents {
     }
     if(kind !in primaryKinds)variant.sources.jniLibs?.addGeneratedSourceDirectory(engineStages.getValue(kind),StageEngineJni::outputDirectory)
     if(kind=="tgws")variant.sources.assets?.addGeneratedSourceDirectory(telegramNotices,StageEngineTelegramNotices::outputDirectory)
-    if(openfluxCandidate!=null&&variant.buildType=="debug"&&kind=="openflux"){
+    if(openfluxCandidate!=null&&openfluxVersion!="v0.13.0"&&variant.buildType=="debug"&&kind=="openflux"){
         val fixture=tasks.register<StageEngineJni>("prepareOpenfluxCandidateFixture"){
             inputDirectory.set(openfluxCandidate.resolve("fixtures"));outputDirectory.set(layout.buildDirectory.dir("generated/engine-fixtures/openflux"));libraries.set(listOf("libopenflux_testserver.so"))
         }
@@ -791,7 +1265,68 @@ val candidateFatRuntimeVerified = if(p1SteerCandidate||p2SteerCandidate){
     }
     true
 }else false
-if(primaryGate&&(steerRuntimePin in reviewedFatSteerRuntimePins||candidateFatRuntimeVerified)){
+// New P3 native-only candidate has its OWN source/fixture gate. Do not reopen
+// P1/P2 authority or pretend their old runtime accepted the new SOCKS code.
+val p3SteerFatRuntimeVerified=if(steerDescriptor?.get("p3SocksCandidate")==true){
+    require(providers.gradleProperty("p3SteerSocksGate").orNull=="true"&&!p1SteerCandidate&&!p2SteerCandidate)
+    val gate=groovy.json.JsonSlurper().parse(file("../coordination/p3-p4-2026-10-23.json")) as Map<*,*>
+    val retainedUserFixes=(gate["userFixes26"] as? Map<*,*>)?.let {it["authority"] in setOf("human-20261026-four-ui-fixes-csqtt-analysis","human-20261026-bs-sites-vk-layout-polish")&&it["sourceReady"]==true}==true&&
+        gradle.startParameter.taskNames.none {it.startsWith(":engines:")}
+    require(gate["sourceReady"]==true&&gate["allowCommonVerification"]==true&&(gate["allowNativeCandidateBuild"]==true||retainedUserFixes))
+    val descriptor=requireNotNull(steerDescriptor);val directory=requireNotNull(primaryStage).resolve("steer")
+    require(descriptor["versionCode"].toString() in setOf("15","16")&&descriptor["socksUdpSourcePort"].toString()=="1")
+    val privateHelper=descriptor["versionCode"].toString()=="16"
+    if(privateHelper)require(descriptor["privateHelperProfile"].toString()=="1")
+    fun digest(file:File):String{
+        require(file.isFile&&!Files.isSymbolicLink(file.toPath()))
+        val hash=MessageDigest.getInstance("SHA-256");file.inputStream().use {input->val buffer=ByteArray(65536);while(true){val n=input.read(buffer);if(n<0)break;hash.update(buffer,0,n)}}
+        return hash.digest().joinToString(""){"%02x".format(it.toInt()and 255)}
+    }
+    val proofFile=directory.resolve("p3-socks-proof.json");require(digest(proofFile)==descriptor["p3SocksProofSha256"])
+    val proof=groovy.json.JsonSlurper().parse(proofFile) as Map<*,*>
+    require(proof["state"]=="VERIFIED_NEW_SOCKS_C_ONLY"&&proof["version"].toString()=="1"&&proof["nonNativeUnchanged"]==true&&proof["abiExecuted"]=="x86_64")
+    require(proof["sourceManifestSha256"]==descriptor["sourceSha256"]&&digest(directory.resolve("source-manifest.json"))==proof["sourceManifestSha256"])
+    require(digest(directory.resolve("retained-runtime.aar"))==proof["retainedRuntimeSha256"]&&digest(directory.resolve("adapter.aar"))==proof["retainedAdapterSha256"])
+    val cases=setOf("mcrf_socks_udp_test","mcrf_socks_local_udp_test","mcrf_socks_udp_wire_test")+(if(privateHelper)setOf("mcrf_private_socks_profile_test")else emptySet())
+    if(privateHelper){
+        require(proof["privateHelperProfile"].toString()=="1")
+        val retained=proof["retainedSocks"] as Map<*,*>
+        require(retained["unchangedFixtureSources"]==true&&retained["testsReplayed"]==false&&retained["receiptSha256"].toString().matches(Regex("[a-f0-9]{64}")))
+    }
+    require((proof["cases"] as List<*>).toSet()==cases)
+    val attempts=(proof["attempts"] as List<*>).map{it as Map<*,*>};require(attempts.size==cases.size)
+    cases.forEach {name->val row=attempts.single{it["case"]==name};require(row["exit"].toString()=="0"&&row["abi"]=="x86_64"&&row["log"]=="$name.log"&&digest(directory.resolve("$name.log"))==row["logSha256"])}
+    ZipFile(directory.resolve("retained-runtime.aar")).use {old->ZipFile(directory.resolve("runtime.aar")).use {fresh->
+        val names=old.entries().asSequence().map{it.name}.toList();val replacements=setOf("jni/arm64-v8a/libsteer_vpn.so","jni/x86_64/libsteer_vpn.so")
+        require(names.size==names.toSet().size&&names.toSet()==fresh.entries().asSequence().map{it.name}.toSet()&&names.containsAll(replacements))
+        names.filter{it !in replacements}.forEach {name->
+            val a=old.getEntry(name);val b=fresh.getEntry(name);require(a.size==b.size)
+            val left=old.getInputStream(a).use{MessageDigest.getInstance("SHA-256").digest(it.readBytes())}
+            val right=fresh.getInputStream(b).use{MessageDigest.getInstance("SHA-256").digest(it.readBytes())};require(left.contentEquals(right)){"P3 changed retained Java/assets/TLS helper"}
+        }
+        val native=(proof["nativeArtifacts"] as List<*>).map{it as Map<*,*>};require(native.size==2)
+        listOf("arm64-v8a","x86_64").forEach {abi->val row=native.single{it["abi"]==abi&&it["file"]=="$abi/libsteer_vpn.so"};val entry=fresh.getEntry("jni/$abi/libsteer_vpn.so");require(entry.size==row["bytes"].toString().toLong());require(fresh.getInputStream(entry).use{MessageDigest.getInstance("SHA-256").digest(it.readBytes()).joinToString(""){b->"%02x".format(b.toInt()and 255)}}==row["sha256"])}
+    }}
+    // Same pinned fat-Java ownership as the accepted runtime, independently
+    // checked here so no unreviewed bundled classes enter through a new proof.
+    val pins=mapOf(
+        "com.squareup.okhttp3:okhttp:4.12.0" to "b1050081b14bb7a3a7e55a4d3ef01b5dcfabc453b4573a4fc019767191d5f4e0",
+        "com.squareup.okio:okio-jvm:3.6.0" to "67543f0736fc422ae927ed0e504b98bc5e269fda0d3500579337cb713da28412",
+        "org.jetbrains.kotlin:kotlin-stdlib:2.2.10" to "9c67cc79efd6b9215b49d2a4308f5f3433537376c7c88e89bdd6729bd096e61a",
+        "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.10" to "ac6361bf9ad1ed382c2103d9712c47cdec166232b4903ed596e8876b0681c9b7",
+        "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10" to "a4c74d94d64ce1abe53760fe0389dd941f6fc558d0dab35e47c085a11ec80f28",
+        "org.jetbrains:annotations:13.0" to "ace2a10dc8e2d5fd34925ecac03e4988b2c0f851650c94b8cef49ba1bd111478")
+    val dependencies=(descriptor["bundledDependencies"] as List<*>).map{it as Map<*,*>};require(dependencies.size==pins.size&&dependencies.map{it["coordinate"]}.toSet()==pins.keys)
+    ZipFile(directory.resolve("runtime.aar")).use {aar->
+        val runtime=aar.getInputStream(requireNotNull(aar.getEntry("classes.jar"))).use {stream->ZipInputStream(stream).use {jar->buildMap<String,ByteArray>{while(true){val entry=jar.nextEntry?:break;if(entry.name.endsWith(".class")&&(entry.name.startsWith("kotlin/")||entry.name.startsWith("org/jetbrains/annotations/")))put(entry.name,jar.readBytes())}}}}
+        val owned=hashSetOf<String>()
+        dependencies.forEach {row->val coordinate=row["coordinate"].toString();val relative="bundled/"+coordinate.replace(':','_')+".jar";require(row["file"]==relative&&row["sha256"]==pins[coordinate]&&digest(directory.resolve(relative))==pins[coordinate])
+            ZipFile(directory.resolve(relative)).use {jar->jar.entries().asSequence().filter{it.name.endsWith(".class")&&(it.name.startsWith("kotlin/")||it.name.startsWith("org/jetbrains/annotations/"))}.forEach {entry->val bytes=jar.getInputStream(entry).use{it.readBytes()};require(runtime[entry.name]?.contentEquals(bytes)==true);owned+=entry.name}}
+        };require(runtime.isNotEmpty()&&runtime.keys==owned)
+    }
+    true
+}else false
+if(primaryGate&&(steerRuntimePin in reviewedFatSteerRuntimePins||candidateFatRuntimeVerified||p3SteerFatRuntimeVerified)){
     configurations.configureEach {
         if(name.startsWith("steer")){
             listOf("kotlin-stdlib","kotlin-stdlib-jdk7","kotlin-stdlib-jdk8","kotlin-stdlib-common").forEach{module->exclude(group="org.jetbrains.kotlin",module=module)}
@@ -850,7 +1385,7 @@ if(csqtt25Stage!=null&&csqtt25Gate){
         doLast{
             val root=layout.buildDirectory.dir("intermediates/merged_native_libs/csqtt25Debug/mergeCsqtt25DebugNativeLibs/out/lib").get().asFile
             val actual=root.walkTopDown().filter{it.isFile&&it.extension=="so"}.map{it.relativeTo(root).invariantSeparatorsPath}.toSet()
-            val expected=setOf("arm64-v8a/libcsqtt25.so","arm64-v8a/libcsqtt25_transport.so")
+            val expected=csqtt25StagedAbis.flatMap {abi->listOf("$abi/libcsqtt25.so","$abi/libcsqtt25_transport.so")}.toSet()
             require(actual==expected){"New CSQTT package mixed legacy/unrelated native libraries or an unavailable ABI"}
             expected.forEach{name->
                 val staged=requireNotNull(csqtt25Stage).resolve(name)
@@ -860,7 +1395,7 @@ if(csqtt25Stage!=null&&csqtt25Gate){
             listOf("CSQTT-LICENSE","qwdtt-LICENSE").forEach{name->require(notices.resolve(name).readBytes().contentEquals(requireNotNull(csqtt25Stage).resolve("licenses/$name").readBytes()))}
             val manifests=layout.buildDirectory.dir("intermediates").get().asFile.walkTopDown().filter{it.isFile&&it.name=="AndroidManifest.xml"&&it.invariantSeparatorsPath.contains("csqtt25Debug")}.toList()
             require(manifests.any{it.readText().let{text->text.contains("org.mcrf.engines.csqtt25")&&text.contains("org.mcrf.engines.csqtt_generation")&&text.contains("@string/mcrf_csqtt_generation")}}){"Dedicated generation manifest missing"}
-            println("CSQTT25_CANDIDATE_VERIFIED: arm64-only; exact2native; separatepackage; generation-string-resource; originalnotices; noAPK/noexecution")
+            println("CSQTT25_CANDIDATE_VERIFIED: ABI=$csqtt25StagedAbis; exact-native-pairs; separatepackage; generation-string-resource; originalnotices; noAPK/noexecution")
         }
     }
 }

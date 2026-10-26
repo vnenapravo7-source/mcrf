@@ -20,9 +20,9 @@ class ProfileStore @JvmOverloads constructor(context: Context, private val name:
         require(name in NAMES) { "Unknown profile store" }
     }
     /** Cheap change detection, including a backup restore into a new generation. */
-    fun revision(): String {
+    fun revision(): String = synchronized(storageLock) {
         val target=file.baseFile
-        return "${target.parentFile?.name}:${target.lastModified()}:${target.length()}"
+        "${target.parentFile?.name}:${target.lastModified()}:${target.length()}"
     }
     private fun key(): SecretKey = synchronized(keyLock) {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }

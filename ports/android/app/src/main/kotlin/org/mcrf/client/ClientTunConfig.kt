@@ -51,7 +51,7 @@ object ClientTunConfig {
             notes.add("Общая совместимость IPv4: имена всех подключений разрешаются в IPv4; профили и IPv6-защита TUN не изменены.")
             CarrierAddressFamily.ipv4Only(config)
         } else config
-        return Result(compatible, if (settings.mixedEnabled) selectedPort else null, exclusions, notes)
+        return Result(NativeRouteTunDns.apply(compatible), if (settings.mixedEnabled) selectedPort else null, exclusions, notes)
     }
     private fun users(auth: JSONObject) = JSONArray().put(JSONObject().put("username",auth.getString("username")).put("password",auth.getString("password")))
     fun validatePorts(inputs: JSONArray, config: JSONObject) {

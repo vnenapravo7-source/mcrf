@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data android:name="org.mcrf.engines.sstp" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.source.repository" android:value="ttrroyy/qThroneMobile" />
+        <meta-data android:name="org.mcrf.engines.source.commit" android:value="8463d3397b0a8522f92811f5c0698679ab8efc77" />
+    </application>
+</manifest>

@@ -17,6 +17,7 @@ class ClientTunUi(private val activity: MainActivity,private val features:Set<Us
         val showVpn=UsageFeatures.usesVpn(features)
         val showProxy=UsageFeatures.Feature.PROXY in features
         if(!advanced) {
+        form.view.addView(BsDetectionSitesUi.view(activity),0,activity.space(0,20))
         form.toggle("ipv4Compatibility","Совместимость IPv4","Для всех существующих и новых серверов: разрешает доменные имена только в IPv4 при следующем подключении. Профили и IPv6-защита VPN не изменяются. Сайты только с IPv6 могут не открыться; явные и ранее закэшированные IPv6-адреса не преобразуются в IPv4.")
         if(showVpn) {
         form.section("Виртуальный сетевой интерфейс · TUN")

@@ -11,6 +11,8 @@ object LogEntries {
     private val line=Regex("^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}) \\[([^]\\r\\n]{1,80})] (.*)$")
     private val error=Regex("\\b(error|fatal|panic|failed|failure|refused|unauthorized)\\b|no such host|network is unreachable|no route to host|ошиб|не удалось|недоступ",RegexOption.IGNORE_CASE)
     private val warning=Regex("\\b(warn|warning|timeout|timed out|unexpected eof)\\b|предупреж|отозван|ист[её]к запуск",RegexOption.IGNORE_CASE)
+    private val trustFailure=Regex("SSLHandshakeException|SSLPeerUnverifiedException|CertPathValidatorException|certificate (?:verify failed|verification failed|signed by unknown authority|has expired|is not valid|is valid for.*not )|tls handshake (?:error|failed|failure)",RegexOption.IGNORE_CASE)
+    private val interruptedConnection=Regex("context deadline exceeded|connection reset by peer|broken pipe",RegexOption.IGNORE_CASE)
     private val encryptedLinks=Regex("(?:mcrf://encrypted|happ://crypt)[^\\s\"'<>]*",RegexOption.IGNORE_CASE)
     fun redact(text:String?):String = ClientEvents.redact((text ?: "").replace(encryptedLinks,"[шифрованный профиль скрыт]"))
     fun read(text:String):List<Entry> = text.lineSequence().filter {it.isNotBlank()}.map(::parse).toList().asReversed()
@@ -31,8 +33,8 @@ object LogEntries {
             else->Kind.CONNECTION
         }
         val level=when {
-            error.containsMatchIn(lower.replace(Regex("недоступны:\\s*нет(?=\\s|[;,.]|$)"),""))->Level.ERROR
-            warning.containsMatchIn(lower)->Level.WARNING
+            error.containsMatchIn(lower.replace(Regex("недоступны:\\s*нет(?=\\s|[;,.]|$)"),""))||trustFailure.containsMatchIn(lower)->Level.ERROR
+            warning.containsMatchIn(lower)||interruptedConnection.containsMatchIn(lower)->Level.WARNING
             listOf("подключён","подключен","запущен","успешно","обновлено","сохранён").any {it in lower}->Level.SUCCESS
             source=="Ядро"&&( "inbound/" in lower||"outbound/" in lower||"debug" in lower)->Level.DEBUG
             else->Level.INFO

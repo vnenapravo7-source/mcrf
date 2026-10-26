@@ -7,11 +7,12 @@ import java.util.Date
 import java.util.Locale
 
 object ClientEvents {
-    private val profile = Regex("(?i)(?:s3bypass|s3-bypass|fedarisha|vless|vmess|trojan|ss|openflux|csqtt|wdtt|qwdtt|dnstt|olcrtc|mcrf|happ|wireguard|wg|awg|v2raytun)://[^\\s]+")
+    private val profile = Regex("(?i)(?:socks|socks5|tuic|anytls|naive|ssh|sstp|s3bypass|s3-bypass|fedarisha|vless|vmess|trojan|ss|openflux|csqtt|wdtt|qwdtt|dnstt|olcrtc|mcrf|happ|wireguard|wg|awg|v2raytun)://[^\\s]+")
     private val authorization = Regex("(?i)(authorization[\\\"']?\\s*[:=]\\s*[\\\"']?)(?:Bearer|Basic)\\s+[^\\s,;\\\"']+")
     private val userInfo = Regex("(?i)(https?://)[^/\\s@]+@")
     private val secret = Regex("(?i)(password|token|secret|uuid|private_key|authorization)([\\\"']?\\s*[=:]\\s*[\\\"']?)[^\\s,;\\\"']+")
     private val query = Regex("(https?://[^\\s?]+)\\?[^\\s]+")
+    private val dnsKey = Regex("""(?i)(encryption_key["']?\s*[:=]\s*)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\r\n,;]+)""")
     private val storageSecret=Regex("""(?i)(access_?key(?:_?id)?|secret_?key|aws_?secret_?access_?key|aws_?access_?key_?id|socks_pass|pass|credential|signature|x-amz-(?:credential|signature|security-token))(["']?\s*[=:]\s*["']?)[^\s,;"']+""")
     private var lastPrunedAt=0L
     private var lastPrunedPath=""
@@ -38,8 +39,10 @@ object ClientEvents {
     @JvmStatic @Synchronized fun prune(context:Context){locked(context){pruneLocked(context,true,System.currentTimeMillis())}}
     @JvmStatic fun redact(text: String?): String = (text ?: "")
         .replace(profile, "[профиль скрыт]")
+        .let(DiagnosticSecrets::redact)
         .replace(authorization, "\$1[скрыто]")
         .replace(userInfo, "\$1[скрыто]@")
+        .replace(dnsKey){match->match.groupValues[1]+"[скрыто]"}
         .replace(secret, "\$1\$2[скрыто]")
         .replace(storageSecret){match->match.groupValues[1]+match.groupValues[2]+"[скрыто]"}
         .replace(query, "\$1?[параметры скрыты]")

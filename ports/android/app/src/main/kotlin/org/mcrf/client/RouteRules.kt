@@ -129,7 +129,7 @@ object RouteRules {
         if(!inserted)values.put(rule);settings.put("rules",values)
     }
     @JvmStatic @JvmOverloads fun apply(source: JSONObject, settings: JSONObject, tun: Boolean, presetPaths: Map<String, String> = emptyMap(),ipPresetTags:Set<String> = emptySet(),directIpv4Only:Boolean=false,routeServers:List<ServerImport.Server> = emptyList()): JSONObject {
-        val config = RouteServerPlan(settings,routeServers).append(source); val route = config.getJSONObject("route"); val proxy = route.getString("final")
+        val config = RouteServerPlan(settings,routeServers).append(source); val route = config.getJSONObject("route"); val proxy = settings.optJSONObject(RoutingConnectionBinding.DEFAULT)?.let{RouteServerPlan.outbound(it,route.getString("final"))}?:route.getString("final")
         val appDns=DnsConfig.appOwned(config)
         PresetRules.attach(config,settings,presetPaths)
         val outputs = config.getJSONArray("outbounds")
@@ -175,7 +175,8 @@ object RouteRules {
         }
         repeat(original.length()) { if (!essential(original.getJSONObject(it))) ordered.put(JSONObject(original.getJSONObject(it).toString())) }
         val defaultTarget = settings.optString("defaultTarget", "proxy")
-        if (defaultTarget == "block") { ordered.put(JSONObject().put("action", "reject")); route.put("final", directTag) } else route.put("final", target(defaultTarget, proxy, directTag))
+        val boundProxy=settings.optJSONObject(RoutingConnectionBinding.DEFAULT)?.let{RouteServerPlan.outbound(it,proxy)}?:proxy
+        if (defaultTarget == "block") { ordered.put(JSONObject().put("action", "reject")); route.put("final", directTag) } else route.put("final", target(defaultTarget, boundProxy, directTag))
         route.put("rules", ordered)
         if (dnsRules.length() > 0) { dns?.optJSONArray("rules")?.let { old -> repeat(old.length()) { dnsRules.put(JSONObject(old.getJSONObject(it).toString())) } }; dns!!.put("rules", dnsRules) }
         val excluded = settings.getJSONArray("excludedApps")

@@ -93,7 +93,7 @@ class AdvancedDnsEditor(private val activity: MainActivity, private val store: R
         body.addView(text("Изменения этой страницы применяют DNS-настройки приложения при следующем подключении. Явный DNS отдельных списков сохраняет приоритет.",12,Loft.MUTED),space(0,10))
         if(UsageFeatures.showFakeIp(features,state.optBoolean("fakeIp"))) {
             group("Виртуальные адреса · FakeIP")
-            if(!UsageFeatures.usesVpn(features))body.addView(text("FakeIP сохранён из режима VPN и требует TUN. Для подключения в режиме «Только прокси» выключи его здесь либо верни VPN в «Минимализме». Значение не сбрасывается автоматически.",12,Loft.MUTED),space(0,8))
+            if(!UsageFeatures.usesVpn(features))body.addView(text("FakeIP сохранён из режима VPN и требует TUN. Для подключения в режиме «Только прокси» выключи его здесь либо верни VPN в «Скрыть разделы». Значение не сбрасывается автоматически.",12,Loft.MUTED),space(0,8))
             toggle("fakeIp", "Выдавать виртуальные IP-адреса", "FakeIP в системном VPN. Явные доменные правила и hosts остаются выше.")
             toggle("fakeNoAAAA", "FakeIP без IPv6", "Отключает IPv6-диапазон виртуальных адресов.")
         }

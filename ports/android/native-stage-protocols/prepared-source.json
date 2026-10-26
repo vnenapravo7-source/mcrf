@@ -1,0 +1,25 @@
+{
+  "androidIntegrated": false,
+  "manifestSha256": "601548d34923f0245ca4faa73480b261bf3a42b637c8446c7761afe1ee66e2d1",
+  "module": "D:/MCRF/Builds/Android/p3-protocols-source-0495fcc2f4df474d9b0e7564f0c818bd/module",
+  "repository": "Leadaxe/sing-box-lx",
+  "commit": "3d3d3db3a2ccef3b1a8eb71b831ed2461c54b94d",
+  "tags": "with_quic,with_utls,with_naive_outbound",
+  "executed": false,
+  "contract": 1,
+  "compiled": false,
+  "pins": {
+    "submodules/gvisor": "117243aa02fa2915cb53d1d4549bfca3a3ebf238",
+    "submodules/sing-tun": "6f56eca9cb2e81d1c233b6104618ff30500e9f39",
+    "submodules/utls": "59e89bb121d8cc7a0a1c87a930864122b5685d00",
+    "submodules/wireguard-go": "64065e6826ad82aa28429dd829c1c65f29b7f6c9"
+  },
+  "kind": "protocols",
+  "state": "SOURCE_PREPARED_NOT_COMPILED",
+  "naive": "original-statically-linked-Cronet",
+  "parentPreparedSource": "D:/MCRF/Builds/Android/p3-protocols-source-33749dd8bc3b4608a0ccef6790505b8d",
+  "parentReceiptSha256": "d92bff35ec0a45f4e920d0c356ddb70db2ebb7e783cc33190630ac7e76009eff",
+  "goDirective": "1.26.0",
+  "revision": "root-go-matches-existing-local-bridge",
+  "revisionProducerSha256": "02c17d3bbd2801ad182a25e86398ad81313d1c33465a600f9be81ba7673702ba"
+}

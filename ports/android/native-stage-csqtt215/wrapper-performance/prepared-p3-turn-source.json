@@ -1,0 +1,13 @@
+{
+  "manifestSha256": "6d2700e295f49ccbbdd7337b4d9a60b86026cdf63d7cefb87598e45152c5a542",
+  "executed": false,
+  "state": "P3_TURN_SOURCE_PREPARED_NOT_COMPILED",
+  "performanceSourceSha256": "9da572165e2f01da1418ac485e7d4280134780a8f01709aa1be7467e1b028e6e",
+  "compiled": false,
+  "kind": "csqtt",
+  "baselineReceiptSha256": "cd049a00326189e713c203ec64cfe1f06f8025bc8e66751bdaa17fc0f24647a3",
+  "sourceStable": true,
+  "baselinePreparedSha256": "9c817d1f33134fb9463bfbae8e89cd03e5a55a3349f9f35c234d011f327bab51",
+  "module": "D:/MCRF/Builds/Android/p3-turn-source-97dd9fe01a434837b698c0b997d95b19/module",
+  "baselineReceipt": "D:/MCRF/Builds/Android/next-independent-20d0f883b4cf419c8d155969a0f54408/source/ports/android/native-stage-csqtt-legacy/receipt.json"
+}

@@ -1,0 +1,43 @@
+{
+  "packageVersionCode": 5,
+  "packageVersionName": "dnstt-v1.20260501.0-mcrf.5",
+  "source": "D:/MCRF/Builds/Android/p3-dnstt-source-d42b041ed82c4f999c6e6a83c80eb7b6/module",
+  "repository": "www.bamsoftware.com/git/dnstt.git",
+  "dnsttContract": 1,
+  "hostEvidenceSha256": "f4fa74c424dc92ab6f45b77fa06bfb2f3b8cdae74b3996d0195b231815421360",
+  "producerComplete": true,
+  "kind": "dnstt",
+  "sourceStable": true,
+  "nativeExecuted": false,
+  "sourceManifestSha256": "3c32c230926160b5f4894004eff9fd0205e26051196f5b745f87048b4e62a913",
+  "apkBuilt": false,
+  "state": "COMPILED_NOT_EXECUTED",
+  "commit": "0c5c52a57d899c05428c116898941761a2ed83c2",
+  "artifacts": [
+    {
+      "sha256": "ab2b8844f93b0483efc09f5f9602d257787209849f16579cc19ecc821ca4377b",
+      "nativeExecuted": false,
+      "elfChecked": true,
+      "bytes": 9415376,
+      "abi": "arm64-v8a",
+      "file": "arm64-v8a/libdnstt.so"
+    },
+    {
+      "sha256": "a3a4176d38ca371080e0b9f88c8c4a0a0d12092376736774ef62cfd6ddf364c6",
+      "nativeExecuted": false,
+      "elfChecked": true,
+      "bytes": 9322388,
+      "abi": "armeabi-v7a",
+      "file": "armeabi-v7a/libdnstt.so"
+    },
+    {
+      "sha256": "265449965dc409b2aec13635fc4ad12966b32fd4d75fb3bb43567096470809dc",
+      "nativeExecuted": false,
+      "elfChecked": true,
+      "bytes": 11295976,
+      "abi": "x86_64",
+      "file": "x86_64/libdnstt.so"
+    }
+  ],
+  "toolchainSha256": "21761eceb9302062c9623fb699f332c8c7fe000f15f70efe8da01a2cfbbc16b9"
+}

@@ -1,0 +1,87 @@
+{
+  "state": "COMPILED_NOT_EXECUTED",
+  "kind": "qwdtt",
+  "source": "D:\\MCRF\\Projects\\MCRF\\work\\ports-test-2026-10-14\\swg-mobile-63d1459eef7649dab6f2fded1c392bea",
+  "stage": "D:\\MCRF\\Builds\\Android\\qwdtt-captcha-38af11e3b81e442a8b9a2cd2d793a328",
+  "hostTests": "PASS 2 newly executed affected cases; 0 source-exact cases retained; unchanged ownership evidence separate",
+  "currentABI": null,
+  "artifacts": [
+    {
+      "elfChecked": true,
+      "abi": "arm64-v8a",
+      "bytes": 18286224,
+      "sha256": "744be97edc1d1fea52c4f545769a9c6b1ae89a258b733570216d166100486877",
+      "file": "D:\\MCRF\\Builds\\Android\\qwdtt-captcha-38af11e3b81e442a8b9a2cd2d793a328\\arm64-v8a\\libqwdtt.so"
+    },
+    {
+      "elfChecked": true,
+      "abi": "armeabi-v7a",
+      "bytes": 17473588,
+      "sha256": "08eba57459645e80af2dae1788a73f60eb61ebfb0d44857ad5a9c3144a81039a",
+      "file": "D:\\MCRF\\Builds\\Android\\qwdtt-captcha-38af11e3b81e442a8b9a2cd2d793a328\\armeabi-v7a\\libqwdtt.so"
+    },
+    {
+      "elfChecked": true,
+      "abi": "x86_64",
+      "bytes": 19444456,
+      "sha256": "e102ee5ac41857fef3b5938cc2d9ed286c62fd945be773f2707396d43425f782",
+      "file": "D:\\MCRF\\Builds\\Android\\qwdtt-captcha-38af11e3b81e442a8b9a2cd2d793a328\\x86_64\\libqwdtt.so"
+    }
+  ],
+  "sourceStable": true,
+  "nativeExecuted": false,
+  "apkBuilt": false,
+  "legacyTransportStage": "",
+  "captchaWaiterCapability": "",
+  "packageVersionCode": 8,
+  "packageVersionName": "0.1.0-turn-pool.8",
+  "processGroupContract": 0,
+  "processGroupInputs": [],
+  "expansionAuthority": "human-20261021-expanded-p2-whole-source-before-common-verification",
+  "expansionReadinessSha256": "b1e81094a0656094d9fa19ddd3a769e3b8883f3d10f640394f720e9c9bbafeee",
+  "fingerprintContract": 1,
+  "fingerprintInputs": [
+    {
+      "sha256": "77c7b281be0ceca59a1213edd631b1ad0c18723c14a8cdcc1e4e9441ea0b8ea4",
+      "file": "mcrf_qwdtt_fingerprint.go"
+    },
+    {
+      "sha256": "850f0873a82d9f48fff862cc7dc2fc86da4a484c6a0754196e02cdbb7179aa1e",
+      "file": "bridge_config.go"
+    },
+    {
+      "sha256": "f80c7e56e3dd28c97de70846d774bf2aded1b14e3229ebd62dfc50f5848d10e7",
+      "file": "creds.go"
+    },
+    {
+      "sha256": "ab857d764b58a70a46200bed5283f50caa1f7ff8a424dfec45ec795d037de3b6",
+      "file": "creds_vkcalls.go"
+    },
+    {
+      "sha256": "363605a4fce84c2e4a79690d3bd8b9ff911fdcdae9677aafcf00181be7dd77e9",
+      "file": "profiles.go"
+    },
+    {
+      "sha256": "c9d9fd30134662f6be112f155234e9d0eaa5623b6d6c0547743d26a6d43aeb33",
+      "file": "captcha_v2.go"
+    },
+    {
+      "sha256": "c6f886a943494f64e1d42b691f2a2ea1b724c6e14e25d3171eb3b75d01135b26",
+      "file": "main.go"
+    }
+  ],
+  "turnFeatureInputs": [
+    {
+      "file": "bridge_config.go",
+      "sha256": "850f0873a82d9f48fff862cc7dc2fc86da4a484c6a0754196e02cdbb7179aa1e"
+    }
+  ],
+  "turnHashPoolContract": 1,
+  "wdttDualFamilyContract": 0,
+  "affectedCases": [
+    "TestMcrfSixCallBridge",
+    "TestMcrfQwdttExtendedHashPool"
+  ],
+  "newAffectedExecutionCount": 2,
+  "affectedLogSha256": "469eddf54fbdd805a554511f668a3a3910579098a8a20cbbf3b346471cfd1b83"
+}

@@ -32,7 +32,14 @@ object EngineUpdateUi {
         val auto=Switch(this).apply{text="Проверять автоматически";isChecked=EngineUpdates.automatic(this@with)}
         body.addView(auto,space(8,8))
         body.addView(text("Проверка каждые 6 часов для установленного OpenFlux. Установка отдельного подписанного модуля требует подтверждения Android.",12,Loft.MUTED),space(4,8))
-        auto.setOnCheckedChangeListener{_,enabled->try{EngineUpdates.setAutomatic(this@with,enabled)}catch(_:Exception){alert("OpenFlux","Не удалось сохранить расписание проверки.")}}
+        var restoringAutomatic=false
+        auto.setOnCheckedChangeListener{_,enabled->
+            if(!restoringAutomatic)try{EngineUpdates.setAutomatic(this@with,enabled)}catch(_:Exception){
+                restoringAutomatic=true
+                try{auto.isChecked=EngineUpdates.automatic(this@with)}catch(_:Exception){auto.isEnabled=false}finally{restoringAutomatic=false}
+                alert("OpenFlux","Не удалось применить расписание проверки. Проверь текущее значение перед повтором.")
+            }
+        }
         val status=text("",13,Loft.INK);body.addView(status,space(8,8))
         val action=button("Проверить обновление",false);body.addView(action)
         fun install(){
@@ -44,19 +51,26 @@ object EngineUpdateUi {
             val worker=Executors.newSingleThreadExecutor()
             worker.execute{
                 try{
-                    val file=EngineUpdates.consentFile(applicationContext,active()||ProbeCoordinator.measurements!=null)
+                    val prepared=EngineUpdates.consentFile(applicationContext,active()||ProbeCoordinator.measurements!=null)
                     handler.post{
                         preparing=false
-                        if(file==null||!body.isAttachedToWindow||isFinishing||isDestroyed||!hasWindowFocus()||active()||ProbeCoordinator.measurements!=null){EngineUpdates.abortPreparedConsent(this@with);return@post}
+                        if(prepared==null)return@post // This attempt owns no mutation; do not abort another view's consent.
                         try{
-                            val request=EngineUpdates.installing(this@with)
+                            if(!body.isAttachedToWindow||isFinishing||isDestroyed||!hasWindowFocus()||active()||ProbeCoordinator.measurements!=null){
+                                EngineUpdates.abortPreparedConsent(this@with,prepared.token);return@post
+                            }
+                            val request=EngineUpdates.installing(this@with,prepared.token)
                             @Suppress("DEPRECATION") val intent=Intent(Intent.ACTION_INSTALL_PACKAGE)
-                                .setDataAndType(Uri.parse("content://$packageName.engine-package/${file.name}"),"application/vnd.android.package-archive")
+                                .setDataAndType(Uri.parse("content://$packageName.engine-package/${prepared.file.name}"),"application/vnd.android.package-archive")
                                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION).putExtra(Intent.EXTRA_RETURN_RESULT,true)
                             startActivityForResult(intent,request)
-                        }catch(_:Exception){EngineUpdates.installerLaunchFailed(this@with);alert("Установка","Не удалось открыть установщик. APK сохранён в очереди.")}
+                        }catch(_:Exception){
+                            runCatching{EngineUpdates.installerLaunchFailed(this@with,prepared.token)}
+                            if(body.isAttachedToWindow&&!isFinishing&&!isDestroyed)alert("Установка","Не удалось открыть установщик. Проверь очередь обновления перед повтором.")
+                            else ClientEvents.record(applicationContext,"Предупреждение","Подготовка установки OpenFlux прервана; проверь очередь обновления.")
+                        }
                     }
-                }catch(e:Exception){handler.post{preparing=false;if(body.isAttachedToWindow)alert("OpenFlux",e.message?:"Не удалось проверить пакет.")}}
+                }catch(_:Exception){handler.post{preparing=false;if(body.isAttachedToWindow&&!isFinishing&&!isDestroyed)alert("OpenFlux","Не удалось подготовить проверенный APK. Проверь очередь обновления перед повтором.")}}
                 finally{worker.shutdown()}
             }
         }
@@ -77,7 +91,11 @@ object EngineUpdateUi {
         }}
         body.addOnAttachStateChangeListener(object:View.OnAttachStateChangeListener{
             override fun onViewAttachedToWindow(v:View){EngineUpdates.recover(this@with);handler.post(refresh)}
-            override fun onViewDetachedFromWindow(v:View){handler.removeCallbacksAndMessages(null);EngineUpdates.abortPreparedConsent(this@with)}
+            override fun onViewDetachedFromWindow(v:View){
+                // Keep an in-flight preparation's completion: it must reset preparing
+                // and abort its exact prepared consent after this view detaches.
+                handler.removeCallbacks(refresh)
+            }
         })
         body
     }

@@ -7,10 +7,34 @@ import java.net.URI
 data class AppRelease(val asset: EnginePackage, val prerelease: Boolean, val notes:String="") {
     val page: URI get() = URI("https://github.com/${EnginePackage.REPOSITORY}/releases/tag/${asset.version}")
     companion object {
+        /** Use the same platform/version gate as the offer; never include Windows notes. */
+        fun withHistory(found:AppRelease,releases:JSONArray,installed:String):AppRelease {
+            val notes=linkedMapOf<String,String>()
+            repeat(releases.length()) { i ->
+                val release=releases.optJSONObject(i)?:return@repeat;val tag=release.optString("tag_name")
+                if(!release.optBoolean("draft")&&tag.startsWith("android-v")&&
+                    AppUpdatePresentation.newer(tag,installed)&&!AppUpdatePresentation.newer(tag,found.asset.version)) {
+                    notes.putIfAbsent(tag,release.optString("body").take(6000).ifBlank {"Исправления и улучшения приложения."})
+                }
+            }
+            val ordered=notes.keys.sortedWith(Comparator {a,b->when {
+                AppUpdatePresentation.newer(a,b)->-1
+                AppUpdatePresentation.newer(b,a)->1
+                else->a.compareTo(b)
+            }})
+            return found.copy(notes=ordered.joinToString("\n\n") {"${AppUpdatePresentation.buildLabel(it)}\n${notes.getValue(it)}"}.ifBlank {found.notes})
+        }
         fun find(releases: JSONArray, abi: String): AppRelease? {
             val legacyName = when(abi) { "arm64-v8a" -> "arm64-v8a-release.apk";"armeabi-v7a" -> "armeabi-v7a-release.apk";"x86_64" -> "androidApp-x86_64-release.apk";else -> throw IllegalArgumentException("Неподдерживаемая архитектура Android.") }
-            for(index in 0 until releases.length()) {
-                val release=releases.getJSONObject(index);if(release.optBoolean("draft"))continue
+            // API creation/list order is not semantic precedence (e.g. backports).
+            val ordered=(0 until releases.length()).mapNotNull {releases.optJSONObject(it)}
+                .filter {!it.optBoolean("draft")&&it.optString("tag_name").let {tag->tag.startsWith("android-v")&&AppUpdatePresentation.valid(tag)}}
+                .sortedWith(Comparator {a,b->val left=a.getString("tag_name");val right=b.getString("tag_name");when {
+                    AppUpdatePresentation.newer(left,right)->-1
+                    AppUpdatePresentation.newer(right,left)->1
+                    else->left.compareTo(right)
+                }})
+            for(release in ordered) {
                 val tag=release.optString("tag_name")
                 if(!tag.startsWith("android-v"))continue
                 val assets=release.optJSONArray("assets")?:continue

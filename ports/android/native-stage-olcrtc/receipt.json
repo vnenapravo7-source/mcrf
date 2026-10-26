@@ -1,0 +1,43 @@
+{
+  "olcrtcContract": 1,
+  "state": "COMPILED_NOT_EXECUTED",
+  "artifacts": [
+    {
+      "elfChecked": true,
+      "sha256": "c4d4c2c91888ade33f922f0e21d5cd38681003f0ed3000b6258c8d92ba5aff90",
+      "abi": "arm64-v8a",
+      "file": "arm64-v8a/libolcrtc.so",
+      "bytes": 33385712,
+      "nativeExecuted": false
+    },
+    {
+      "elfChecked": true,
+      "sha256": "4c3394d8b0ca973bf42688403d4516b866084293b6908a3b6c1c982c4e5ebea7",
+      "abi": "armeabi-v7a",
+      "file": "armeabi-v7a/libolcrtc.so",
+      "bytes": 31730644,
+      "nativeExecuted": false
+    },
+    {
+      "elfChecked": true,
+      "sha256": "d56b044c7f9d3c3edc702ae4d8991b75e374cbb24013a853abe417ee40dfb2c9",
+      "abi": "x86_64",
+      "file": "x86_64/libolcrtc.so",
+      "bytes": 36263688,
+      "nativeExecuted": false
+    }
+  ],
+  "toolchainSha256": "21761eceb9302062c9623fb699f332c8c7fe000f15f70efe8da01a2cfbbc16b9",
+  "commit": "f3ad8fb7c0d0fa981423f83269526fa94077c23d",
+  "sourceManifestSha256": "9afa79fe6738ca6cf883c8ea6a88697390bba31834cedef97f8cbe8053d2dd95",
+  "kind": "olcrtc",
+  "packageVersionCode": 5,
+  "repository": "openlibrecommunity/olcrtc",
+  "sourceStable": true,
+  "nativeExecuted": false,
+  "apkBuilt": false,
+  "packageVersionName": "olcrtc-f3ad8fb-mcrf.5",
+  "source": "D:/MCRF/Builds/Android/p3-olcrtc-source-02a0e70bd6e6446b8af068cfc1543aa8/module",
+  "hostEvidenceSha256": "5df0c609e920dad082008a6c09a0748291e56f93051aa9c79ff34eae4478a354",
+  "producerComplete": true
+}

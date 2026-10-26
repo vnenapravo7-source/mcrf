@@ -13,9 +13,9 @@ class RoutingStore(private val context: Context) {
     private var presentationEpoch=0L
     internal val presentationCache=RoutingPresentationCache<RoutingPresentation>()
     @Synchronized internal fun presentationRevision():String="${store.revision()}:$presentationEpoch"
-    @Synchronized internal fun presentationSnapshot():Pair<String,JSONObject> {
+    @Synchronized internal fun presentationSnapshot():Pair<String,JSONObject> = synchronized(ProfileStore.storageLock) {
         val copy=snapshot()
-        return presentationRevision() to copy
+        presentationRevision() to copy
     }
     @Synchronized fun generation():String = ProfileStore.generation(context)
     @Synchronized fun snapshotWithGeneration():Pair<JSONObject,String> = synchronized(ProfileStore.storageLock) {snapshot() to ProfileStore.generation(context)}
@@ -26,7 +26,9 @@ class RoutingStore(private val context: Context) {
     @Synchronized fun load() {
         presentationEpoch++;presentationCache.clear()
         state = null
-        val source = store.read()
+        // Parse outside the storage lock, but never stamp an old document with
+        // a newer writer's revision. snapshot() can then detect any intervening save.
+        val (source,loadedRevision)=synchronized(ProfileStore.storageLock){store.read() to store.revision()}
         val candidate = if (source.isEmpty()) {
             RouteRules.defaults().apply {
                 val previous = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE).getString("dns", "Cloudflare")
@@ -42,7 +44,7 @@ class RoutingStore(private val context: Context) {
         if (!candidate.has("vpnApps")) candidate.put("vpnApps", JSONArray())
         RoutingGroups.ensure(candidate)
         RoutingGroups.synchronize(candidate)
-        validate(candidate); PresetAssets.validate(context,candidate); state = candidate; diskRevision = store.revision();diskSource = source
+        validate(candidate); PresetAssets.validate(context,candidate); state = candidate; diskRevision = loadedRevision;diskSource = source
     }
     @Synchronized fun snapshot(): JSONObject {
         if(state != null && diskRevision != store.revision()) load()
@@ -67,8 +69,10 @@ class RoutingStore(private val context: Context) {
     }
     companion object {
         @JvmStatic fun validate(settings: JSONObject) {
+            require(!settings.has(RoutingConnectionBinding.RUNTIME)&&!settings.has(RoutingConnectionBinding.DEFAULT)){"Служебные маршруты нельзя сохранять как пользовательские настройки."}
             require(settings.getInt("version") == 1) { "Неизвестная версия настроек маршрутизации." }
             RoutingGroups.validate(settings)
+            RoutingConnectionBinding.validate(settings)
             require(settings.getString("defaultTarget") in setOf("proxy", "direct", "block")) { "Неизвестный выход по умолчанию." }
             require(settings.optString("appMode", "all") in setOf("all", "include")) { "Неизвестный режим VPN приложений." }
             if(settings.optString("appMode","all")=="include")require((settings.optJSONArray("vpnApps")?.length()?:0)>0){"Режим «только выбранные» требует хотя бы одно приложение VPN."}

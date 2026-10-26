@@ -1,0 +1,181 @@
+{
+  "nativeExecuted": true,
+  "artifacts": [
+    {
+      "bytes": 52935160,
+      "file": "arm64-v8a/libprotocols.so",
+      "sha256": "f4d178cf970116582acd9504b3d8744146f5fc90b072a92d16741185e3b9e9cb",
+      "elfChecked": true,
+      "nativeExecuted": false,
+      "abi": "arm64-v8a"
+    },
+    {
+      "bytes": 46802672,
+      "file": "armeabi-v7a/libprotocols.so",
+      "sha256": "1e938e19053a56da718eb7ba95a11d071608535c4889a031047ba481a9f4dc93",
+      "elfChecked": true,
+      "nativeExecuted": false,
+      "abi": "armeabi-v7a"
+    },
+    {
+      "bytes": 56081080,
+      "file": "x86_64/libprotocols.so",
+      "sha256": "664787e71abc895219f96398c7ff0e04f19ba489bbc520c10f1814d8b45c971f",
+      "elfChecked": true,
+      "nativeExecuted": false,
+      "abi": "x86_64"
+    }
+  ],
+  "producerComplete": true,
+  "sourceStable": true,
+  "apkBuilt": false,
+  "clangSha256": "7d31c6f6fad98987b6c9d21b800afaa8b3e37f052e94aaddc941d42ff2a35579",
+  "commit": "3d3d3db3a2ccef3b1a8eb71b831ed2461c54b94d",
+  "goSha256": "21761eceb9302062c9623fb699f332c8c7fe000f15f70efe8da01a2cfbbc16b9",
+  "compiledSourceManifestSha256": "11e1e42879539fa0647dde2f1e6b5c45453a266ba490ac13bd9fc9680bc9027d",
+  "kind": "protocols",
+  "repository": "Leadaxe/sing-box-lx",
+  "sourceManifestSha256": "601548d34923f0245ca4faa73480b261bf3a42b637c8446c7761afe1ee66e2d1",
+  "skipped": 0,
+  "ndkSourcePropertiesSha256": "c00aa236fdb205e9be9edd9e2169763e48aca52735efff4e16f34205d49783b5",
+  "contract": 1,
+  "state": "COMPILED_OWNED_FIXTURE_VERIFIED",
+  "noticeManifestSha256": "f19df2d842f38d5ab22543de8cb6a879916d54e8c7a339eb1f2de974a6560bbf",
+  "sourceDerivation": "pinned-sdk-Start-stage-only-DNS-lifecycle-plus-new-owner-close-case",
+  "dependencyIntakeLogSha256": "acdb6a6a98dc2c297af31bb3538319778be8c8ef263cd0a8c9799de9c4998533",
+  "failures": 0,
+  "cases": [
+    "TestMcrfProtocolsAddressFraming",
+    "TestMcrfProtocolsAnonymousAndBadPasswordRejected",
+    "TestMcrfProtocolsAnyTlsOriginalWire",
+    "TestMcrfProtocolsDescriptor",
+    "TestMcrfProtocolsDiagnosticPrivacy",
+    "TestMcrfProtocolsDnsNotSilentlyDropped",
+    "TestMcrfProtocolsNaiveCronetOriginalWire",
+    "TestMcrfProtocolsOwnerEofAndStop",
+    "TestMcrfProtocolsPhysicalNetworkBinding",
+    "TestMcrfProtocolsSshHostTrust",
+    "TestMcrfProtocolsSshOriginalWire",
+    "TestMcrfProtocolsStrictConfig",
+    "TestMcrfProtocolsSystemDnsLifecycle",
+    "TestMcrfProtocolsTuicOriginalWire",
+    "TestMcrfProtocolsUdpSourcePortPin"
+  ],
+  "tags": "with_quic,with_utls,with_naive_outbound",
+  "fixtureSha256": "b15edbb7daf0a0e5a4033f5ecc48cc2a9366a77d82c93766cc30c04584dcf901",
+  "producerSha256": "8a0a7f45c523604ccb4d5b614b20616b40d12cbbe66300abc5ac365e7c897572",
+  "cronetLibraries": [
+    {
+      "sha256": "3588acd27dfa992852ffb3225c3bddb1c65eaeea785ea4e3bfb1f927b65c8733",
+      "module": "github.com/sagernet/cronet-go/lib/android_arm64",
+      "directory": "D:\\MCRF\\Projects\\MCRF\\work\\toolchains\\go-home\\pkg\\mod\\github.com\\sagernet\\cronet-go\\lib\\android_arm64@v0.0.0-20260912104006-c10c03c318db",
+      "bytes": 67626274,
+      "abi": "arm64-v8a"
+    },
+    {
+      "sha256": "7987c5507b0f0bdf401b830ddaa4734b357f282fc1233aaa52973ffef9e9a5cc",
+      "module": "github.com/sagernet/cronet-go/lib/android_arm",
+      "directory": "D:\\MCRF\\Projects\\MCRF\\work\\toolchains\\go-home\\pkg\\mod\\github.com\\sagernet\\cronet-go\\lib\\android_arm@v0.0.0-20260912104006-c10c03c318db",
+      "bytes": 80131608,
+      "abi": "armeabi-v7a"
+    },
+    {
+      "sha256": "85d39fdb4eabc04d2427bd578b69546602e727e1ee88be2232699be668bede3a",
+      "module": "github.com/sagernet/cronet-go/lib/android_amd64",
+      "directory": "D:\\MCRF\\Projects\\MCRF\\work\\toolchains\\go-home\\pkg\\mod\\github.com\\sagernet\\cronet-go\\lib\\android_amd64@v0.0.0-20260912104006-c10c03c318db",
+      "bytes": 63614414,
+      "abi": "x86_64"
+    }
+  ],
+  "ownedLogSha256": "d1a2a0eae0a9a19c54d3d7093dd796d5893638916bb419c50d7052de89407882",
+  "ownedAttempts": [
+    {
+      "instrumentSha256": "dbcb6cc139d85d1c3ac66a31430ec60f5354441bb25ea9fd742781d42f6002fd",
+      "skipped": [],
+      "fixtureApkSha256": "15737064598faeba50438cce3dbae4bb21cfef3d262ab03ab507985912999994",
+      "cases": [
+        "TestMcrfProtocolsStrictConfig",
+        "TestMcrfProtocolsSshHostTrust",
+        "TestMcrfProtocolsDnsNotSilentlyDropped",
+        "TestMcrfProtocolsAddressFraming",
+        "TestMcrfProtocolsAnonymousAndBadPasswordRejected",
+        "TestMcrfProtocolsOwnerEofAndStop",
+        "TestMcrfProtocolsDiagnosticPrivacy",
+        "TestMcrfProtocolsTuicOriginalWire",
+        "TestMcrfProtocolsAnyTlsOriginalWire",
+        "TestMcrfProtocolsNaiveCronetOriginalWire",
+        "TestMcrfProtocolsSshOriginalWire",
+        "TestMcrfProtocolsUdpSourcePortPin",
+        "TestMcrfProtocolsDescriptor",
+        "TestMcrfProtocolsPhysicalNetworkBinding",
+        "TestMcrfProtocolsSystemDnsLifecycle"
+      ],
+      "logSha256": "da14906b00b4649064b30ed0fd704e5ae9bbd094282b0414b0971de1d56eace0",
+      "failed": [
+        "TestMcrfProtocolsPhysicalNetworkBinding",
+        "TestMcrfProtocolsSshOriginalWire",
+        "TestMcrfProtocolsTuicOriginalWire",
+        "TestMcrfProtocolsAnyTlsOriginalWire",
+        "TestMcrfProtocolsNaiveCronetOriginalWire"
+      ],
+      "runId": "8741d072448942b7a6499380bd691802",
+      "passed": [
+        "TestMcrfProtocolsStrictConfig",
+        "TestMcrfProtocolsSshHostTrust",
+        "TestMcrfProtocolsDnsNotSilentlyDropped",
+        "TestMcrfProtocolsAddressFraming",
+        "TestMcrfProtocolsAnonymousAndBadPasswordRejected",
+        "TestMcrfProtocolsOwnerEofAndStop",
+        "TestMcrfProtocolsDiagnosticPrivacy",
+        "TestMcrfProtocolsSystemDnsLifecycle",
+        "TestMcrfProtocolsUdpSourcePortPin",
+        "TestMcrfProtocolsDescriptor"
+      ]
+    },
+    {
+      "logSha256": "dec827300b36d5b411883bd5f4556c95f4a544a4abdaf608d0902485feb94841",
+      "passed": [],
+      "fixtureApkSha256": "3162e4902f9586f8879c612601aa3f12381e7dc88db1f593193ac5349d51b75f",
+      "skipped": [],
+      "runId": "a4459b06ad6347eca97f9bc11fec2396",
+      "cases": [
+        "TestMcrfProtocolsTuicOriginalWire",
+        "TestMcrfProtocolsAnyTlsOriginalWire",
+        "TestMcrfProtocolsNaiveCronetOriginalWire",
+        "TestMcrfProtocolsSshOriginalWire",
+        "TestMcrfProtocolsPhysicalNetworkBinding"
+      ],
+      "failed": [
+        "TestMcrfProtocolsPhysicalNetworkBinding",
+        "TestMcrfProtocolsSshOriginalWire",
+        "TestMcrfProtocolsTuicOriginalWire",
+        "TestMcrfProtocolsAnyTlsOriginalWire",
+        "TestMcrfProtocolsNaiveCronetOriginalWire"
+      ],
+      "instrumentSha256": "97d5a0a5f7b5a1e9d0881413405f9a063c9beb57d3d5855a78d823a5bc815901"
+    },
+    {
+      "passed": [
+        "TestMcrfProtocolsPhysicalNetworkBinding",
+        "TestMcrfProtocolsSshOriginalWire",
+        "TestMcrfProtocolsTuicOriginalWire",
+        "TestMcrfProtocolsAnyTlsOriginalWire",
+        "TestMcrfProtocolsNaiveCronetOriginalWire"
+      ],
+      "cases": [
+        "TestMcrfProtocolsTuicOriginalWire",
+        "TestMcrfProtocolsAnyTlsOriginalWire",
+        "TestMcrfProtocolsNaiveCronetOriginalWire",
+        "TestMcrfProtocolsSshOriginalWire",
+        "TestMcrfProtocolsPhysicalNetworkBinding"
+      ],
+      "failed": [],
+      "runId": "599467d8082042ecb04d35e40a66c64d",
+      "logSha256": "f43c79ad1c36f7357efffd541d7f518a796054cecd2fa630616bd6f29b949250",
+      "instrumentSha256": "b767c9334bfc9f1d9fb8cb86b23b3507ff04a844add5f432df405aee916809b8",
+      "fixtureApkSha256": "700647f118935c6efe9a52e2f1af5daff05a18ca75d9a37274a2e76a65f3145a",
+      "skipped": []
+    }
+  ],
+  "executedAbi": "x86_64"
+}

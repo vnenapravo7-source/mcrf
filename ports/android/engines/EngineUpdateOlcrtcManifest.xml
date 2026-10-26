@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data android:name="org.mcrf.engines.olcrtc_lifecycle" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.source.repository" android:value="openlibrecommunity/olcrtc" />
+        <meta-data android:name="org.mcrf.engines.source.commit" android:value="f3ad8fb7c0d0fa981423f83269526fa94077c23d" />
+    </application>
+</manifest>

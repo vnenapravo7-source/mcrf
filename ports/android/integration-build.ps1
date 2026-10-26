@@ -14,6 +14,7 @@ param(
     [string]$OpenFluxProviderStage='',
     [string]$OpenFluxProviderV2Stage='',
     [string]$OpenFluxProviderV3Stage='',
+    [string]$OpenFluxFreshStage='',
     [switch]$TelegramModule,
     [switch]$PreparePrimaryStage,
     [string]$PrimaryStageSteer='outputs/steer-android/primary-stage-dev.5',
@@ -23,6 +24,13 @@ param(
     [string]$BuildScratchRoot='',
     [string]$Csqtt25Stage='',
     [string]$S3BypassStage='',
+    [string]$VayDnsStage='',
+    [string]$SlipstreamStage='',
+    [string]$SstpStage='',
+    [string]$DnsttStage='',
+    [string]$OlcrtcStage='',
+    [string]$MasterDnsStage='',
+    [string]$ProtocolsStage='',
     [string]$CsqttLegacyStage='',
     [hashtable]$SwgNativeStages=@{},
     [hashtable]$CsqttHistoricalStages=@{},
@@ -35,6 +43,7 @@ param(
     [switch]$P1WgCandidate,
     [switch]$P1SteerCandidate,
     [switch]$P2SteerCandidate,
+    [switch]$P3SteerSocksCandidate,
     [switch]$P2WgCandidate,
     [switch]$P2DispatcherCandidate,
     [string]$RetainedP2JvmSnapshot='',
@@ -44,12 +53,17 @@ param(
 )
 $ErrorActionPreference='Stop'
 & (Join-Path $PSScriptRoot 'maintenance/Assert-HumanBatchReady.ps1') -Operation build
+if($P3SteerSocksCandidate -and (!$PrimaryCoreStage -or $P1SteerCandidate -or $P2SteerCandidate)){throw 'New P3 Steer source stage has separate authority; never reuse P1/P2 candidates'}
 if($args.Count){throw 'Unknown integration build arguments; do not silently ignore fixture or safety options'}
 $taskP1BatchRelative=$null
 $taskP2BatchRelative=$null
 $taskP2Candidate=$P2SteerCandidate -or $P2WgCandidate -or $P2DispatcherCandidate
 $taskActiveForBuild=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'coordination/current.json') -Raw|ConvertFrom-Json
-if(($taskActiveForBuild.activeBatch -ceq 'p2-expansion-2026-10-21.json') -ne [bool]$P2Expansion){throw 'Expanded P2 requires its own explicit common recipe; do not reuse a legacy build'}
+$taskP3P4Candidate=[bool]$taskActiveForBuild.p3p4Batch
+if($taskP3P4Candidate -and ($P2Expansion -or $taskP2Candidate -or $P1OwnerFixture -or $P1WgCandidate -or $P1SteerCandidate)){
+    throw 'P3/P4 uses its own common source authority, not a reopened P1/P2 fixture grant'
+}
+if(!$taskP3P4Candidate -and (($taskActiveForBuild.activeBatch -ceq 'p2-expansion-2026-10-21.json') -ne [bool]$P2Expansion)){throw 'Expanded P2 requires its own explicit common recipe; do not reuse a legacy build'}
 if($P2Expansion){
     $required=@(':app:testDebugUnitTest',':app:assembleDebug',':app:assembleDebugAndroidTest',':engines:assembleCsqttDebug',':engines:assembleCsqtt25Debug',':engines:assembleQwdttDebug',':engines:assembleWdttDebug')
     if($CsqttHistoricalStages.Count){
@@ -66,8 +80,46 @@ if($P2Expansion){
     $taskExpansionRelative='ports/android/coordination/p2-expansion-2026-10-21.json'
     $taskExpansionSha=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'coordination/p2-expansion-2026-10-21.json')).Hash.ToLowerInvariant()
 }
-if($CsqttHistoricalStages.Count -and !$P2Expansion){throw 'Historical CSQTT candidates require the explicit whole expanded-P2 common batch'}
-if($taskActiveForBuild.activeBatch -ceq 'p2-progress-2026-10-20.json' -and !$taskP2Candidate){throw 'Whole-P2 common build requires its explicit candidate/affected-test recipe, not an unfiltered legacy build'}
+if($CsqttHistoricalStages.Count -and !$P2Expansion){
+    $taskCorrectionTasks=@(':app:testDebugUnitTest','--tests','org.mcrf.client.SteerHelperPreparationTest',':app:assembleRelease')
+    $taskP3MainCorrection=$false
+    if($taskP3P4Candidate){
+        $taskCorrectionGate=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'coordination/p3-p4-2026-10-23.json') -Raw|ConvertFrom-Json
+        if($taskCorrectionGate.protocolCorrection.versionCode -eq 10051){$taskCorrectionTasks=@(':app:testDebugUnitTest','--tests','org.mcrf.client.PrimaryValidationDiagnosticTest',':app:assembleRelease',':engines:assembleSteerRelease')}
+        if($taskCorrectionGate.protocolCorrection.versionCode -eq 10052){$taskCorrectionTasks=@(':app:testDebugUnitTest','--tests','org.mcrf.client.NativeRouteTunDnsTest',':app:assembleRelease')}
+        if($taskCorrectionGate.protocolCorrection.versionCode -eq 10053){$taskCorrectionTasks=@(':app:testDebugUnitTest','--tests','org.mcrf.client.CandidateAuditFixesTest',':app:assembleRelease')}
+        if($taskCorrectionGate.protocolCorrection.versionCode -eq 10054){$taskCorrectionTasks=@(':app:testDebugUnitTest','--tests','org.mcrf.client.BackgroundReviewFixesTest',':app:assembleRelease')}
+        if($taskCorrectionGate.protocolCorrection.versionCode -eq 10055){$taskCorrectionTasks=@(':app:testDebugUnitTest','--tests','org.mcrf.client.SubscriptionFailureReviewTest','--tests','org.mcrf.client.EditorFailureReviewTest','--tests','org.mcrf.client.ImportCountReviewTest',':app:assembleRelease')}
+        if($taskCorrectionGate.protocolCorrection.versionCode -eq 10056 -and $taskCorrectionGate.finalization.authority -ceq 'human-20261025-finish-existing-fixes-build-stop'){
+            $taskCorrectionTasks=@(':app:testDebugUnitTest')
+            foreach($taskSelector in $taskCorrectionGate.post55ReviewPackage.selectors){$taskCorrectionTasks+=@('--tests',[string]$taskSelector)}
+            $taskCorrectionTasks+=@(':app:assembleRelease',':app:compileDebugAndroidTestKotlin')
+            if($OpenFluxFreshStage){$taskCorrectionTasks=@(':engines:assembleOpenfluxDebug')}
+        }
+        if($taskCorrectionGate.protocolCorrection.versionCode -eq 10057){
+            if($taskCorrectionGate.userFixes26.authority -cne 'human-20261026-four-ui-fixes-csqtt-analysis' -or !$taskCorrectionGate.userFixes26.sourceReady){throw 'New whole user-fix package authority required'}
+            $taskCorrectionTasks=@(':app:testDebugUnitTest','--tests','org.mcrf.client.UserRequestedFixesTest',':app:assembleRelease',':app:compileDebugAndroidTestKotlin')
+        }
+        if($taskCorrectionGate.protocolCorrection.versionCode -eq 10058){
+            if($taskCorrectionGate.userFixes26.authority -cne 'human-20261026-bs-sites-vk-layout-polish' -or !$taskCorrectionGate.userFixes26.sourceReady){throw 'Whole BS sites and VK layout source authority required'}
+            $taskCorrectionTasks=@(':app:testDebugUnitTest','--tests','org.mcrf.client.BsSitesUiPolishTest','--tests','org.mcrf.client.UserRequestedFixesTest.backupAndSettingsHaveAllThreeEditableSites','--tests','org.mcrf.client.UserRequestedFixesTest.alternativeVkLoginDoesNotInjectBridgeOrEraseCookiesOrLink',':app:assembleRelease',':app:compileDebugAndroidTestKotlin')
+            if($taskCorrectionGate.userFixes26.retainedUiChecks -eq 14){$taskCorrectionTasks=@(':app:testDebugUnitTest','--tests','org.mcrf.client.BsSitesUiPolishTest.linkedVkOffersOnlyUnlinkAndUnlinkedOnlyLink',':app:assembleRelease',':app:compileDebugAndroidTestKotlin')}
+            if($taskCorrectionGate.userFixes26.freshUiChecks -eq 2){$taskCorrectionTasks=@(':app:testDebugUnitTest','--tests','org.mcrf.client.BsSitesUiPolishTest.helpExplainsBothDirectionsAndLimits','--tests','org.mcrf.client.BsSitesUiPolishTest.startupHelpAndFailureMessageMatchCustomSites',':app:assembleRelease',':app:compileDebugAndroidTestKotlin')}
+        }
+        $taskP3MainCorrection=$taskCorrectionGate.protocolCorrection.state -ceq 'WHOLE_CORRECTION_SOURCE_READY_VERIFICATION_PENDING' -and
+            $taskCorrectionGate.protocolCorrection.versionCode -in @(10050,10051,10052,10053,10054,10055,10056,10057,10058) -and $taskCorrectionGate.protocolCorrection.publish -eq $false -and
+            ($Task -join '|') -ceq ($taskCorrectionTasks -join '|')
+    }
+    if(!$taskP3P4Candidate -or $taskActiveForBuild.p3p4Batch -cne 'p3-p4-2026-10-23.json' -or
+       (($CsqttHistoricalStages.Keys|Sort-Object) -join ',') -cne 'csqtt20,csqtt215' -or !$TestRelease -or
+       (!$taskP3MainCorrection -and @(@(':app:assembleRelease',':engines:assembleCsqtt20Release',':engines:assembleCsqtt215Release')|Where-Object {$_ -cnotin $Task}).Count)){
+        throw 'Historical CSQTT requires the whole expanded-P2 batch or explicitly staged complete P3/P4 release batch'
+    }
+    $taskHistoricalAuthority=Get-Content (Join-Path $PSScriptRoot 'coordination/p3-p4-2026-10-23.json') -Raw|ConvertFrom-Json
+    if($taskHistoricalAuthority.authority -cne 'human-20261023-finish-current-fixes-then-p3-p4' -or
+       !$taskHistoricalAuthority.sourceReady -or !$taskHistoricalAuthority.allowCommonVerification -or !$taskHistoricalAuthority.allowApkBuild){throw 'Current P3/P4 whole-source APK authority required'}
+}
+if(!$taskP3P4Candidate -and $taskActiveForBuild.activeBatch -ceq 'p2-progress-2026-10-20.json' -and !$taskP2Candidate){throw 'Whole-P2 common build requires its explicit candidate/affected-test recipe, not an unfiltered legacy build'}
 if($taskP2Candidate){
     if(!$P2SteerCandidate -or !$P2WgCandidate -or !$P2DispatcherCandidate -or !$DispatcherNativeStage -or !$CsqttLegacyStage -or !$Csqtt25Stage){throw 'The whole-P2 common package includes all changed Steer/WG/dispatcher/CSQTT candidates; no partial APK micro-batch'}
     $taskP2Required=@(':app:testDebugUnitTest',':app:assembleDebug',':app:assembleDebugAndroidTest')
@@ -115,7 +167,10 @@ if(Test-Path -LiteralPath $taskRetention){
     }
     $taskPolicy.activeSnapshots=@()
     [IO.File]::WriteAllText($taskRetention,($taskPolicy|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
-    if(!$taskP2Candidate -and !$P2Expansion){& (Join-Path $PSScriptRoot 'cleanup-builds.ps1') -Apply}
+    if(!$taskP2Candidate -and !$P2Expansion){
+        if($taskP3P4Candidate){& (Join-Path $PSScriptRoot 'cleanup-builds.ps1')}
+        else {& (Join-Path $PSScriptRoot 'cleanup-builds.ps1') -Apply}
+    }
 }
 $taskOptionalRelative=$null
 $taskOptionalFixtureRelative=$null
@@ -155,6 +210,27 @@ $taskOpenFluxProviderRelative=$null
 $taskOpenFluxProviderV2Relative=$null
 $taskOpenFluxProviderV3Relative=$null
 $taskExternalInputs=@{}
+$taskOpenFluxFreshRelative=$null
+if($OpenFluxFreshStage){
+    $taskFreshRoot=[IO.Path]::GetFullPath($OpenFluxFreshStage)
+    $taskFreshPrefix=[IO.Path]::GetFullPath('D:/MCRF/Projects/MCRF/work/ports-test-2026-10-14')+[IO.Path]::DirectorySeparatorChar
+    if(!$taskFreshRoot.StartsWith($taskFreshPrefix,[StringComparison]::OrdinalIgnoreCase) -or
+       $taskFreshRoot -notmatch 'openflux-build-v0\.13\.0-[0-9a-f]{32}[/\\]verified-native$'){throw 'Exact disposable fresh OpenFlux stage required'}
+    $taskFreshProof=Get-Content -LiteralPath (Join-Path $taskFreshRoot 'fresh-core-candidate.json') -Raw|ConvertFrom-Json
+    if(!$taskFreshProof.sourceStable -or $taskFreshProof.tag -cne 'v0.13.0' -or
+       $taskFreshProof.commit -cne '4f9c786cdd1d9fcd0c133e2e0fec0c5a12522610' -or $taskFreshProof.productionPromotion -ne $false -or
+       $taskFreshProof.providerDiagnostic -ne 0 -or ($Task -join '|') -cne ':engines:assembleOpenfluxDebug'){
+        throw 'Fresh candidate packaging is isolated debug only, no promotion or mixed tasks'
+    }
+    $taskOpenFluxFreshRelative='ports/android/native-stage-openflux-fresh'
+    $taskFreshFiles=@('fresh-core-candidate.json','script-updater-capability.json')+@($taskFreshProof.tests)
+    foreach($taskAbi in @('arm64-v8a','armeabi-v7a','x86_64')){$taskFreshFiles+="$taskAbi/libopenflux.so"}
+    foreach($taskFile in $taskFreshFiles){
+        $taskEntry=Get-Item -LiteralPath (Join-Path $taskFreshRoot $taskFile)
+        if($taskEntry.PSIsContainer -or $taskEntry.LinkType){throw 'Ordinary immutable fresh-stage file required'}
+        $taskExternalInputs["$taskOpenFluxFreshRelative/$taskFile"]=$taskEntry.FullName
+    }
+}
 function Add-P2ProcessInputs([string]$Stage,$Receipt,[string]$Relative){
     if($Receipt.processGroupContract -ne 1){if($taskP2Candidate){throw 'P2 CSQTT requires actual before-child owned group contract'};return}
     $expected=@('mcrf_process_group.go','mcrf_process_group_linux.go','mcrf_process_group_other.go','mcrf_child_input.go','csqtt_bridge.go')
@@ -245,6 +321,19 @@ foreach($stageName in @('PrimaryCoreStage','OpenFluxPromotionStage','OpenFluxAck
     $stageValue=Get-Variable -Name $stageName -ValueOnly
     if(!$stageValue){continue}
     $stageRoot=[IO.Path]::GetFullPath($(if([IO.Path]::IsPathRooted($stageValue)){$stageValue}else{Join-Path $taskWorkspace $stageValue}))
+    if($stageName -ceq 'PrimaryCoreStage' -and $P3SteerSocksCandidate){
+        $taskParent=Get-Item -LiteralPath ([IO.Path]::GetDirectoryName($stageRoot))
+        if($taskParent.Parent.FullName -ine [IO.Path]::GetFullPath('D:/MCRF/Builds/Android') -or $taskParent.Name -cnotmatch '^p3-steer-native-[a-f0-9]{32}$' -or $taskParent.LinkType -or [IO.Path]::GetFileName($stageRoot) -cne 'primary-stage'){throw 'Exact new P3 Steer stage required'}
+        $taskProducer=Get-Content "$($taskParent.FullName)/receipt.json" -Raw|ConvertFrom-Json
+        if($taskProducer.state -cne 'COMPILED_SOCKS_FIXTURE_PACKAGED_NOT_PHONE_VERIFIED' -or !$taskProducer.sourceStable -or !$taskProducer.producerComplete -or $taskProducer.primaryStageReceiptSha256 -cne (Get-FileHash "$stageRoot/receipt.json").Hash.ToLowerInvariant()){throw 'Source-bound Steer JNI-only producer incomplete'}
+        $taskPrimaryRelative='ports/android/primary-stage-p3-steer'
+        foreach($taskInput in (Get-ChildItem -LiteralPath $stageRoot -Recurse -Force)){
+            if($taskInput.LinkType){throw 'Linked P3 Steer stage refused'}
+            if(!$taskInput.PSIsContainer){$taskRelative=[IO.Path]::GetRelativePath($stageRoot,$taskInput.FullName).Replace([char]92,[char]47);$taskExternalInputs["$taskPrimaryRelative/$taskRelative"]=$taskInput.FullName}
+        }
+        $taskP1ExternalPrimary=$true # External inventory already captured, not P1 authority.
+        continue
+    }
     if($stageName -ceq 'PrimaryCoreStage' -and $P2SteerCandidate){
         $parent=Get-Item -LiteralPath ([IO.Path]::GetDirectoryName($stageRoot))
         if($parent.Parent.FullName -ine [IO.Path]::GetFullPath('D:/MCRF/Builds/Android') -or $parent.Name -cnotmatch '^p2-steer-candidate-[0-9a-f]{32}$' -or
@@ -356,6 +445,8 @@ if($DnsttFixtureStage){
 }
 $taskCsqtt25Relative=$null
 function Add-CarrierFeatureInputs([string]$Stage,$Receipt,[string]$Relative){
+    if($Receipt.p3AbiAuthority -and $Receipt.p3AbiAuthority -cne 'human-20261023-finish-current-fixes-then-p3-p4'){throw 'Unexpected P3 ABI authority'}
+    if($Receipt.p3PerformanceAuthority -and $Receipt.p3PerformanceAuthority -cne 'human-20261023-finish-current-fixes-then-p3-p4'){throw 'Unexpected P3 performance authority'}
     $files=@()
     if($Receipt.fingerprintContract -eq 1){$files+=@($Receipt.fingerprintInputs|ForEach-Object {'fingerprint-inputs/'+$_.file})}
     if($Receipt.turnHashPoolContract -eq 1){$files+=@($Receipt.turnFeatureInputs|ForEach-Object {'turn-feature-inputs/'+$_.file})}
@@ -364,6 +455,8 @@ function Add-CarrierFeatureInputs([string]$Stage,$Receipt,[string]$Relative){
     if($Receipt.masqueContract -eq 1){$files+='masque-main-input.go'}
     if($Receipt.retainedOwnerClosureSha256){$files+=@('retained-owned-closure.json','retained-owned-bridge.go','retained-owned-evidence.json')}
     if($Receipt.kind -ceq 'csqtt25'){$files+='licenses/swg-panel-reference.json'}
+    if($Receipt.p3AbiAuthority){$files+=@('p3-abi-origin.json','new-abi-host-evidence.json','abi-host-tests.jsonl','abi-input-receipt.json','retained-native-runtime.go','abi-runtime-input.go','retained-p3-owner-evidence.json','retained-performance-bridge.go','performance-bridge-input.go')}
+    if($Receipt.p3PerformanceAuthority){$files+=@('prepared-p3-turn-source.json','retained-baseline-receipt.json','turn-performance-host-evidence.json','turn-performance-tests.jsonl')}
     if($P2Expansion){
         $proofPath=if($RetainedCarrierOrigins.ContainsKey($Receipt.kind)){$RetainedCarrierOrigins[$Receipt.kind]}else{Join-Path $Stage 'prepared-expansion-source.json'}
         $proof=Get-Content -LiteralPath $proofPath -Raw|ConvertFrom-Json
@@ -419,26 +512,38 @@ if($Csqtt25Stage){
     $taskCsqtt25Root=[IO.Path]::GetFullPath($Csqtt25Stage)
     $taskCsqtt25Allowed=[IO.Path]::GetFullPath('D:/MCRF/Builds/Android')
     if(!$taskCsqtt25Root.StartsWith($taskCsqtt25Allowed+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or
-       [IO.Path]::GetFileName($taskCsqtt25Root) -notmatch '^csqtt25-captcha-[0-9a-f]{32}$' -or
+       [IO.Path]::GetFileName($taskCsqtt25Root) -notmatch '^(csqtt25-captcha|p3-csqtt25-native)-[0-9a-f]{32}$' -or
        (Get-Item -LiteralPath $taskCsqtt25Root).LinkType){throw 'Use a completed isolated CSQTT2.5 stage, never a live source directory'}
     $taskCsqtt25Receipt=Get-Content -LiteralPath (Join-Path $taskCsqtt25Root 'receipt.json') -Raw | ConvertFrom-Json
     if($taskCsqtt25Receipt.state -ne 'COMPILED_NOT_EXECUTED' -or $taskCsqtt25Receipt.kind -ne 'csqtt25' -or !$taskCsqtt25Receipt.sourceStable){throw 'CSQTT2.5 native producer has not completed'}
+    if([IO.Path]::GetFileName($taskCsqtt25Root).StartsWith('p3-') -and $taskCsqtt25Receipt.p3AbiAuthority -cne 'human-20261023-finish-current-fixes-then-p3-p4'){throw 'P3 CSQTT native origin missing'}
     $taskCsqtt25Relative='ports/android/native-stage-csqtt25'
     Add-CarrierFeatureInputs $taskCsqtt25Root $taskCsqtt25Receipt $taskCsqtt25Relative
     Add-P2ProcessInputs $taskCsqtt25Root $taskCsqtt25Receipt $taskCsqtt25Relative
-    foreach($taskFile in @('receipt.json','source-manifest.json','arm64-v8a/libcsqtt25.so','arm64-v8a/libcsqtt25_transport.so','licenses/CSQTT-LICENSE','licenses/qwdtt-LICENSE')){
+    $taskCsqtt25Files=@('receipt.json','source-manifest.json','licenses/CSQTT-LICENSE','licenses/qwdtt-LICENSE')
+    foreach($taskArtifact in $taskCsqtt25Receipt.artifacts){
+        $taskLibrary=[IO.Path]::GetFileName($taskArtifact.file)
+        if($taskArtifact.abi -cnotin @('arm64-v8a','armeabi-v7a','x86_64') -or $taskLibrary -cnotin @('libcsqtt25.so','libcsqtt25_transport.so')){throw 'Unexpected CSQTT2.5 ABI/library'}
+        $taskCsqtt25Files+="$($taskArtifact.abi)/$taskLibrary"
+    }
+    foreach($taskFile in $taskCsqtt25Files){
         $taskInput=Get-Item -LiteralPath (Join-Path $taskCsqtt25Root $taskFile)
         if($taskInput.PSIsContainer -or $taskInput.LinkType){throw 'Native stage must contain regular immutable inputs'}
         $taskExternalInputs["$taskCsqtt25Relative/$taskFile"]=$taskInput.FullName
     }
 }
 $taskCsqttLegacyRelative=$null
+$taskCsqttLegacyP3=$false
 if($CsqttLegacyStage){
     $taskCsqttLegacyRoot=[IO.Path]::GetFullPath($CsqttLegacyStage)
     if([IO.Path]::GetDirectoryName($taskCsqttLegacyRoot) -ine [IO.Path]::GetFullPath('D:/MCRF/Builds/Android') -or
-       [IO.Path]::GetFileName($taskCsqttLegacyRoot) -notmatch '^csqtt-captcha-[0-9a-f]{32}$' -or
+       [IO.Path]::GetFileName($taskCsqttLegacyRoot) -notmatch '^(csqtt-captcha|p3-turn-native)-[0-9a-f]{32}$' -or
        (Get-Item -LiteralPath $taskCsqttLegacyRoot).LinkType){throw 'Explicit completed paired legacy CSQTT stage required'}
     $taskCsqttLegacyReceipt=Get-Content -LiteralPath (Join-Path $taskCsqttLegacyRoot 'receipt.json') -Raw|ConvertFrom-Json
+    if([IO.Path]::GetFileName($taskCsqttLegacyRoot).StartsWith('p3-')){
+        if($taskCsqttLegacyReceipt.p3PerformanceAuthority -cne 'human-20261023-finish-current-fixes-then-p3-p4'){throw 'P3 legacy performance origin missing'}
+        $taskCsqttLegacyP3=$true
+    }
     if($taskCsqttLegacyReceipt.kind -ne 'csqtt' -or $taskCsqttLegacyReceipt.state -ne 'COMPILED_NOT_EXECUTED' -or
        !$taskCsqttLegacyReceipt.sourceStable -or $taskCsqttLegacyReceipt.captchaWaiterCapability -ne 'csqtt-id48-v1'){throw 'Paired legacy producer has not completed'}
     $taskCsqttLegacyRelative='ports/android/native-stage-csqtt-legacy'
@@ -467,6 +572,12 @@ foreach($taskKind in $CsqttHistoricalStages.Keys){
        $taskHistorical.revision -cne $taskRevision -or @($taskHistorical.artifacts).Count -ne 6){throw 'Historical package descriptor mismatch'}
     $taskHistoricalRelative[$taskKind]="ports/android/native-stage-$taskKind"
     $taskHistoricalFiles=@('receipt.json','native-receipt.json','wrapper-receipt.json','licenses/CSQTT-LICENSE','licenses/qwdtt-LICENSE')
+    $taskWrapperProof=Get-Content -LiteralPath "$taskHistoricalRoot/wrapper-receipt.json" -Raw|ConvertFrom-Json
+    if($taskWrapperProof.p3PerformanceAuthority){
+        if($taskWrapperProof.p3PerformanceAuthority -cne 'human-20261023-finish-current-fixes-then-p3-p4' -or $taskHistorical.packageVersionCode -ne 3){throw 'Unexpected historical performance wrapper'}
+        $taskCsqttLegacyP3=$true
+        $taskHistoricalFiles+=@('source-manifest.json','prepared-p3-turn-source.json','retained-baseline-receipt.json','turn-performance-host-evidence.json','turn-performance-tests.jsonl')|ForEach-Object {'wrapper-performance/'+$_}
+    }
     foreach($taskReceiptName in @('native','wrapper')){
         $taskReceiptPath="$taskHistoricalRoot/$taskReceiptName-receipt.json"
         if((Get-FileHash -LiteralPath $taskReceiptPath).Hash.ToLowerInvariant() -cne $taskHistorical."$($taskReceiptName)ReceiptSha256"){throw 'Historical producer receipt changed'}
@@ -488,6 +599,84 @@ foreach($taskKind in $CsqttHistoricalStages.Keys){
     }
 }
 $taskSwgRelative=@{}
+$taskSwgP3=$false
+$taskVayDnsRelative=$null
+if($VayDnsStage){
+    $taskVayRoot=[IO.Path]::GetFullPath($VayDnsStage)
+    if([IO.Path]::GetDirectoryName($taskVayRoot) -ine [IO.Path]::GetFullPath('D:/MCRF/Builds/Android') -or [IO.Path]::GetFileName($taskVayRoot) -cnotmatch '^p3-vaydns-native-[0-9a-f]{32}$' -or (Get-Item -LiteralPath $taskVayRoot).LinkType){throw 'Exact external VayDNS stage required'}
+    $taskVayReceipt=Get-Content "$taskVayRoot/receipt.json" -Raw|ConvertFrom-Json
+    if($taskVayReceipt.kind -cne 'vaydns' -or $taskVayReceipt.state -cne 'COMPILED_NOT_EXECUTED' -or !$taskVayReceipt.sourceStable -or !$taskVayReceipt.producerComplete -or $taskVayReceipt.vaydnsContract -ne 1){throw 'VayDNS native/legal producer incomplete'}
+    $taskVayDnsRelative='ports/android/native-stage-vaydns'
+    $taskVayNotices=Get-Content "$taskVayRoot/notice-manifest.json" -Raw|ConvertFrom-Json
+    if(@($taskVayNotices.missingModules).Count){throw 'VayDNS dependency notices require review'}
+    $taskVayFiles=@('receipt.json','source-manifest.json','prepared-source.json','host-evidence.json','vaydns-host-tests.jsonl','notice-manifest.json')
+    foreach($taskNotice in $taskVayNotices.files){
+        if([IO.Path]::IsPathRooted($taskNotice.file) -or '..' -in ($taskNotice.file -split '[/\\]')){throw 'Unsafe VayDNS legal notice path'}
+        $taskVayFile="licenses/$($taskNotice.file)"
+        if((Get-FileHash -LiteralPath "$taskVayRoot/$taskVayFile").Hash.ToLowerInvariant() -cne $taskNotice.sha256){throw 'VayDNS legal notice changed'}
+        $taskVayFiles+=$taskVayFile
+    }
+    foreach($taskAbi in @('arm64-v8a','armeabi-v7a','x86_64')){$taskVayFiles+="$taskAbi/libvaydns.so"}
+    foreach($taskVayFile in $taskVayFiles){$taskInput=Get-Item -LiteralPath "$taskVayRoot/$taskVayFile";if($taskInput.LinkType -or $taskInput.PSIsContainer){throw 'Regular VayDNS frozen input required'};$taskExternalInputs["$taskVayDnsRelative/$taskVayFile"]=$taskInput.FullName}
+}
+$taskProtocolsRelative=$null
+if($ProtocolsStage){
+    $taskProtocolRoot=[IO.Path]::GetFullPath($ProtocolsStage)
+    if($taskProtocolRoot.Replace([char]92,[char]47) -notmatch '^D:/MCRF/Builds/Android/p3-protocols-native-[a-f0-9]{32}$' -or (Get-Item -LiteralPath $taskProtocolRoot).LinkType){throw 'Exact owned protocol native stage required'}
+    $taskProtocolReceipt=Get-Content "$taskProtocolRoot/receipt.json" -Raw|ConvertFrom-Json
+    if($taskProtocolReceipt.kind -cne 'protocols' -or $taskProtocolReceipt.state -cne 'COMPILED_OWNED_FIXTURE_VERIFIED' -or !$taskProtocolReceipt.producerComplete -or !$taskProtocolReceipt.sourceStable -or $taskProtocolReceipt.contract -ne 1){throw 'Protocol producer/legal/owned wire fixture incomplete'}
+    $taskProtocolsRelative='ports/android/native-stage-protocols'
+    $taskProtocolFiles=@('receipt.json','source-manifest.json','prepared-source.json','notice-manifest.json','owned-tests.jsonl','cronet-notices.json','cronet-provenance.json','cronet-source-headers.json','dependency-intake-verify.log')
+    $taskProtocolFiles+=@($taskProtocolReceipt.artifacts|ForEach-Object {$_.file})
+    $taskProtocolNotices=Get-Content "$taskProtocolRoot/notice-manifest.json" -Raw|ConvertFrom-Json
+    if(!$taskProtocolNotices.complete -or $taskProtocolNotices.missing.Count){throw 'Original protocol licence closure incomplete'}
+    $taskProtocolFiles+=@($taskProtocolNotices.files|ForEach-Object {"licenses/$($_.file)"})
+    foreach($taskAttempt in $taskProtocolReceipt.ownedAttempts){
+        if($taskAttempt.runId -cnotmatch '^[a-f0-9]{32}$'){throw 'Unknown protocol fixture attempt'}
+        $taskProtocolFiles+="owned-$($taskAttempt.runId)/instrument.txt";$taskProtocolFiles+="owned-$($taskAttempt.runId)/native.log"
+    }
+    foreach($taskRelative in @($taskProtocolFiles|Sort-Object -Unique)){
+        if([IO.Path]::IsPathRooted($taskRelative) -or '..' -in ($taskRelative -split '[/\\]')){throw 'Unsafe protocol frozen input'}
+        $taskInput=Get-Item -LiteralPath "$taskProtocolRoot/$taskRelative"
+        if($taskInput.LinkType -or $taskInput.PSIsContainer){throw 'Regular protocol input required'}
+        $taskExternalInputs["$taskProtocolsRelative/$taskRelative"]=$taskInput.FullName
+    }
+}
+$taskNewCarrierRelatives=@{}
+foreach($taskNewCarrier in @(@{kind='slipstream';stage=$SlipstreamStage;pattern='^p3-slipstream-native-[0-9a-f]{32}$';state='COMPILED_OWNED_FIXTURE_VERIFIED';contract='slipstreamContract'},@{kind='sstp';stage=$SstpStage;pattern='^p4-sstp-native-[0-9a-f]{32}$';state='COMPILED_NOT_EXECUTED';contract='sstpContract'},@{kind='masterdnsvpn';stage=$MasterDnsStage;pattern='^p4-masterdnsvpn-native-[0-9a-f]{32}$';state='COMPILED_NOT_EXECUTED';contract='masterdnsvpnContract'},@{kind='dnstt';stage=$DnsttStage;pattern='^p3-dnstt-native-[0-9a-f]{32}$';state='COMPILED_NOT_EXECUTED';contract='dnsttContract'},@{kind='olcrtc';stage=$OlcrtcStage;pattern='^p3-olcrtc-native-[0-9a-f]{32}$';state='COMPILED_NOT_EXECUTED';contract='olcrtcContract'})){
+    if(!$taskNewCarrier.stage){continue}
+    $taskCarrierRoot=[IO.Path]::GetFullPath($taskNewCarrier.stage)
+    if([IO.Path]::GetDirectoryName($taskCarrierRoot) -ine [IO.Path]::GetFullPath('D:/MCRF/Builds/Android') -or [IO.Path]::GetFileName($taskCarrierRoot) -cnotmatch $taskNewCarrier.pattern -or (Get-Item -LiteralPath $taskCarrierRoot).LinkType){throw 'Exact external new-carrier stage required'}
+    $taskCarrierReceipt=Get-Content -LiteralPath "$taskCarrierRoot/receipt.json" -Raw|ConvertFrom-Json
+    if($taskCarrierReceipt.kind -cne $taskNewCarrier.kind -or $taskCarrierReceipt.state -cne $taskNewCarrier.state -or !$taskCarrierReceipt.sourceStable -or !$taskCarrierReceipt.producerComplete -or $taskCarrierReceipt.($taskNewCarrier.contract) -ne 1){throw 'New carrier native/legal producer incomplete'}
+    $taskCarrierRelative="ports/android/native-stage-$($taskNewCarrier.kind)"
+    $taskNewCarrierRelatives[$taskNewCarrier.kind]=$taskCarrierRelative
+    $taskCarrierNotices=Get-Content -LiteralPath "$taskCarrierRoot/notice-manifest.json" -Raw|ConvertFrom-Json
+    if(@($taskCarrierNotices.missingModules).Count){throw 'New carrier dependency notices require review'}
+    $taskCarrierFiles=@('receipt.json','source-manifest.json','prepared-source.json','notice-manifest.json')
+    if($taskNewCarrier.kind -ceq 'slipstream'){
+        $taskCarrierFiles+=@('fixture-evidence.json','slipstream-tests.jsonl','built-rust-package-ids.json','recovered-built-rust-package-ids.json','legal-inventory-recovery.json','rust-metadata.json','c-dependencies.json','cfixture-source-manifest.json','cfixture-source.json')
+        $taskFixtureEvidence=Get-Content "$taskCarrierRoot/fixture-evidence.json" -Raw|ConvertFrom-Json
+        foreach($attempt in $taskFixtureEvidence.attempts){
+            if($attempt.log -cnotmatch '^attempt-[a-f0-9]{32}/raw\.log$' -or (Get-FileHash "$taskCarrierRoot/$($attempt.log)").Hash.ToLowerInvariant() -cne $attempt.sha256){throw 'Actual retained Slipstream attempt changed'}
+            $taskCarrierFiles+=$attempt.log
+        }
+    }else{$taskCarrierFiles+=@('host-evidence.json',"$($taskNewCarrier.kind)-host-tests.jsonl")}
+    foreach($taskCarrierNotice in $taskCarrierNotices.files){
+        if([IO.Path]::IsPathRooted($taskCarrierNotice.file) -or '..' -in ($taskCarrierNotice.file -split '[/\\]')){throw 'Unsafe new-carrier legal notice path'}
+        $taskCarrierFile="licenses/$($taskCarrierNotice.file)"
+        if((Get-FileHash -LiteralPath "$taskCarrierRoot/$taskCarrierFile").Hash.ToLowerInvariant() -cne $taskCarrierNotice.sha256){throw 'New-carrier legal notice changed'}
+        $taskCarrierFiles+=$taskCarrierFile
+    }
+    $taskCarrierLibraries=if($taskNewCarrier.kind -ceq 'slipstream'){@('libslipstream.so','libslipstream_core.so')}else{@("lib$($taskNewCarrier.kind).so")}
+    foreach($taskAbi in @('arm64-v8a','armeabi-v7a','x86_64')){foreach($taskLibrary in $taskCarrierLibraries){
+        $taskCarrierFile="$taskAbi/$taskLibrary"
+        $taskCarrierArtifact=@($taskCarrierReceipt.artifacts|Where-Object {$_.file -ceq $taskCarrierFile})
+        if($taskCarrierArtifact.Count -ne 1 -or !$taskCarrierArtifact[0].elfChecked -or (Get-FileHash -LiteralPath "$taskCarrierRoot/$taskCarrierFile").Hash.ToLowerInvariant() -cne $taskCarrierArtifact[0].sha256){throw 'New carrier artifact identity changed'}
+        $taskCarrierFiles+=$taskCarrierFile
+    }}
+    foreach($taskCarrierFile in $taskCarrierFiles){$taskInput=Get-Item -LiteralPath "$taskCarrierRoot/$taskCarrierFile";if($taskInput.LinkType -or $taskInput.PSIsContainer){throw 'Regular frozen new-carrier input required'};$taskExternalInputs["$taskCarrierRelative/$taskCarrierFile"]=$taskInput.FullName}
+}
 $taskS3Relative=$null
 if($S3BypassStage){
     $taskS3Root=[IO.Path]::GetFullPath($S3BypassStage)
@@ -519,10 +708,11 @@ foreach($taskKind in $SwgNativeStages.Keys){
     if($taskKind -notin @('qwdtt','wdtt')){throw 'Only WDTT/QWDTT standalone stages are accepted here'}
     $taskStageRoot=[IO.Path]::GetFullPath($SwgNativeStages[$taskKind])
     if([IO.Path]::GetDirectoryName($taskStageRoot) -ine [IO.Path]::GetFullPath('D:/MCRF/Builds/Android') -or
-       [IO.Path]::GetFileName($taskStageRoot) -notmatch "^$taskKind-captcha-[0-9a-f]{32}$" -or
+       [IO.Path]::GetFileName($taskStageRoot) -notmatch "^($taskKind-captcha|p3-turn-native)-[0-9a-f]{32}$" -or
        (Get-Item -LiteralPath $taskStageRoot).LinkType){throw 'Explicit completed standalone native stage required'}
     $taskStageReceipt=Get-Content -LiteralPath (Join-Path $taskStageRoot 'receipt.json') -Raw|ConvertFrom-Json
     if($taskStageReceipt.kind -ne $taskKind -or $taskStageReceipt.state -ne 'COMPILED_NOT_EXECUTED' -or !$taskStageReceipt.sourceStable){throw 'Standalone native producer has not completed'}
+    if([IO.Path]::GetFileName($taskStageRoot).StartsWith('p3-')){if($taskStageReceipt.p3PerformanceAuthority -cne 'human-20261023-finish-current-fixes-then-p3-p4'){throw 'P3 TURN performance origin missing'};$taskSwgP3=$true}
     $taskSwgRelative[$taskKind]="ports/android/native-stage-$taskKind"
     Add-CarrierFeatureInputs $taskStageRoot $taskStageReceipt $taskSwgRelative[$taskKind]
     $taskStageFiles=@('receipt.json','source-manifest.json',"licenses/$taskKind-LICENSE")
@@ -551,6 +741,13 @@ $taskInputs=@(
     'work/steer-android-port/android-vpn/integration-helper/src/main/java/org/mcrf/steerprep/json/SteerNativeFlowShape.java'
 )
 $taskInputs+=@($taskExternalInputs.Keys)
+if($OpenFluxFreshStage){
+    foreach($taskName in $taskFreshProof.sources.psobject.Properties.Name){$taskInputs+="ports/android/transports/openflux/$taskName"}
+}
+if($taskP3P4Candidate){
+    $taskInputs+=@('ports/android/coordination/current.json','ports/android/coordination/p3-p4-2026-10-23.json',
+        'ports/android/integration-build.ps1','ports/android/maintenance/Assert-HumanBatchReady.ps1')
+}
 if($P2Expansion){
     $taskInputs+=@('ports/android/coordination/current.json',$taskExpansionRelative,
         'ports/android/coordination/p2-expansion-jvm-affected-2026-10-21.txt',
@@ -579,6 +776,17 @@ if($P1OwnerFixture){$taskInputs+=@('ports/android/integration-packet-phone.ps1',
 $taskInputs+='ports/android/engines/EngineUpdateCsqtt25Manifest.xml'
 $taskInputs+='ports/android/engines/EngineUpdateCsqttHistoricalManifest.xml'
 $taskInputs+='ports/android/engines/EngineUpdateS3BypassManifest.xml'
+$taskInputs+='ports/android/engines/EngineUpdateVayDnsManifest.xml'
+$taskInputs+='ports/android/engines/EngineUpdateSlipstreamManifest.xml'
+$taskInputs+='ports/android/engines/EngineUpdateSstpManifest.xml'
+$taskInputs+='ports/android/engines/EngineUpdateDnsttManifest.xml'
+$taskInputs+='ports/android/engines/EngineUpdateOlcrtcManifest.xml'
+$taskInputs+='ports/android/engines/EngineUpdateMasterDnsManifest.xml'
+Push-Location $taskWorkspace
+try{
+    $taskInputs+=@(& rg --files ports/android/transports/vaydns ports/android/transports/slipstream ports/android/transports/sstp ports/android/transports/masterdnsvpn ports/android/transports/dnstt ports/android/transports/olcrtc ports/android/transports/protocols ports/android/primary-cores/steer ports/android/protocols-owned-fixture -g '!**/build/**' -g '!**/*.exe')
+    if($LASTEXITCODE){throw 'Unable to capture exact P3/P4 transport sources'}
+}finally{Pop-Location}
 $taskInputs+='ports/android/engines/EngineUpdateCsqttLegacyManifest.xml'
 $taskInputs+='ports/android/engines/EngineUpdateSwgManifest.xml'
 foreach($stageRelative in @($taskPrimaryRelative,$taskOpenFluxRelative,$taskOpenFluxAckRelative,$taskOpenFluxProviderRelative,$taskOpenFluxProviderV2Relative,$taskOpenFluxProviderV3Relative)) {
@@ -730,9 +938,12 @@ if($taskCsqtt25Relative){$taskExtra+="-Pcsqtt25Stage=$(Join-Path $taskSnapshot $
 foreach($taskKind in $taskHistoricalRelative.Keys){$taskExtra+="-P$($taskKind)Stage=$(Join-Path $taskSnapshot $taskHistoricalRelative[$taskKind])"}
 if($taskHistoricalRelative.Count){$taskExtra+='-PhistoricalCsqttCandidateGate=true'}
 if($taskS3Relative){$taskExtra+="-Ps3BypassStage=$(Join-Path $taskSnapshot $taskS3Relative)";$taskExtra+='-Ps3BypassCandidateGate=true'}
+if($taskVayDnsRelative){$taskExtra+="-PvayDnsStage=$(Join-Path $taskSnapshot $taskVayDnsRelative)";$taskExtra+='-PvayDnsNativeGate=true'}
+foreach($taskNewCarrierKind in $taskNewCarrierRelatives.Keys){$taskExtra+="-P${taskNewCarrierKind}Stage=$(Join-Path $taskSnapshot $taskNewCarrierRelatives[$taskNewCarrierKind])";$taskExtra+="-P${taskNewCarrierKind}NativeGate=true"}
 if($taskCsqttLegacyRelative){$taskExtra+="-PcsqttLegacyStage=$(Join-Path $taskSnapshot $taskCsqttLegacyRelative)";$taskExtra+='-PcsqttLegacyCandidateGate=true'}
 foreach($taskKind in $taskSwgRelative.Keys){$taskExtra+="-Pswg$($taskKind.Substring(0,1).ToUpperInvariant()+$taskKind.Substring(1))Stage=$(Join-Path $taskSnapshot $taskSwgRelative[$taskKind])"}
 if($taskSwgRelative.Count){$taskExtra+='-PswgNativeCandidateGate=true'}
+if($taskSwgP3 -or $taskCsqttLegacyP3){$taskExtra+='-Pp3TurnPerformanceGate=true'}
 if($taskWarpRelative){$taskExtra+="-PwarpScannerStage=$(Join-Path $taskSnapshot $taskWarpRelative)";$taskExtra+='-PwarpScannerCandidateGate=true'}
 if($taskWgRelative){$taskExtra+="-PwgBackendStage=$(Join-Path $taskSnapshot $taskWgRelative)";$taskExtra+='-PwgBackendCandidateGate=true'}
 if($TestRelease){$taskExtra+='-PtestRelease=true'}
@@ -757,7 +968,14 @@ if($taskOptionalRelative){$taskExtra+="-PoptionalCoreStage=$(Join-Path $taskSnap
 if($taskOptionalFixtureRelative){$taskExtra+="-PoptionalDebugFixtureStage=$(Join-Path $taskSnapshot $taskOptionalFixtureRelative)";$taskExtra+='-PoptionalDebugFixtureNativeGate=true'}
 if($taskDnsttFixtureRelative){$taskExtra+="-PdnsttDebugFixtureStage=$(Join-Path $taskSnapshot $taskDnsttFixtureRelative)";$taskExtra+='-PdnsttDebugFixtureNativeGate=true'}
 if($taskPrimaryRelative){$taskExtra+="-PprimaryCoreStage=$(Join-Path $taskSnapshot $taskPrimaryRelative)";$taskExtra+='-PprimaryCoreNativeGate=true'}
+if($P3SteerSocksCandidate){$taskExtra+='-Pp3SteerSocksGate=true'}
+if($taskP3P4Candidate){
+    $taskGatePath=Join-Path $taskSnapshot 'ports/android/coordination/p3-p4-2026-10-23.json'
+    $taskExtra+=@("-Pp3p4CandidateReceipt=$taskGatePath","-Pp3p4CandidateSha256=$((Get-FileHash -LiteralPath $taskGatePath).Hash.ToLowerInvariant())")
+}
+if($taskProtocolsRelative){$taskExtra+="-PprotocolsNativeStage=$(Join-Path $taskSnapshot $taskProtocolsRelative)";$taskExtra+='-PprotocolsNativeGate=true'}
 if($taskOpenFluxRelative){$taskExtra+="-PopenfluxPromotionStage=$(Join-Path $taskSnapshot $taskOpenFluxRelative)";$taskExtra+='-PopenfluxPromotionGate=true'}
+if($taskOpenFluxFreshRelative){$taskExtra+=@("-PopenfluxCandidate=$(Join-Path $taskSnapshot $taskOpenFluxFreshRelative)",'-PopenfluxVersion=v0.13.0','-PopenfluxCommit=4f9c786cdd1d9fcd0c133e2e0fec0c5a12522610')}
 if($taskOpenFluxAckRelative){$taskExtra+="-PopenfluxAckStage=$(Join-Path $taskSnapshot $taskOpenFluxAckRelative)";$taskExtra+='-PopenfluxAckGate=true'}
 if($taskOpenFluxProviderRelative){$taskExtra+="-PopenfluxProviderStage=$(Join-Path $taskSnapshot $taskOpenFluxProviderRelative)";$taskExtra+='-PopenfluxProviderGate=true'}
 if($taskOpenFluxProviderV2Relative){$taskExtra+="-PopenfluxProviderV2Stage=$(Join-Path $taskSnapshot $taskOpenFluxProviderV2Relative)";$taskExtra+='-PopenfluxProviderV2Gate=true'}
@@ -944,7 +1162,7 @@ try{
         $taskExportRows=@()
         foreach($taskApk in $taskEngineApks){
             $taskArtifactRelative=[IO.Path]::GetRelativePath($taskEngineOutputs,$taskApk.FullName) -replace '\\','/'
-            if($taskArtifactRelative -notmatch '^(singbox|steer|tgws|openflux|s3bypass|csqtt|csqtt25|qwdtt|wdtt|olcrtc|dnstt|warpscout|xray|tlscore)/(release|debug)/[A-Za-z0-9._-]+\.apk$'){throw 'Unexpected engine artifact path'}
+            if($taskArtifactRelative -notmatch '^(singbox|steer|tgws|openflux|s3bypass|csqtt|csqtt20|csqtt215|csqtt25|qwdtt|wdtt|olcrtc|dnstt|vaydns|slipstream|sstp|masterdnsvpn|warpscout|xray|tlscore|protocols)/(release|debug)/[A-Za-z0-9._-]+\.apk$'){throw 'Unexpected engine artifact path'}
             $taskTo=Join-Path $taskExport $taskArtifactRelative
             New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($taskTo)) -Force|Out-Null
             [IO.File]::Copy($taskApk.FullName,$taskTo,$false)
@@ -964,6 +1182,9 @@ try{
             $taskPolicy.activeSnapshots=@($taskPolicy.activeSnapshots|Where-Object {$_ -ne [IO.Path]::GetFileName($taskSnapshot)})
             [IO.File]::WriteAllText($taskRetention,($taskPolicy|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
         }
-        if(!$taskP2Candidate -and !$P2Expansion){& (Join-Path $PSScriptRoot 'cleanup-builds.ps1') -Apply}
+        if(!$taskP2Candidate -and !$P2Expansion){
+            if($taskP3P4Candidate){& (Join-Path $PSScriptRoot 'cleanup-builds.ps1')}
+            else {& (Join-Path $PSScriptRoot 'cleanup-builds.ps1') -Apply}
+        }
     }
 }

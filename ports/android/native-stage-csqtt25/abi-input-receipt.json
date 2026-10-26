@@ -1,0 +1,49 @@
+{
+  "state": "PINNED_ABI_INPUTS_STATIC_VERIFIED_NOT_EXECUTED",
+  "upstream": "SanityProtocol/swg-panel",
+  "release": "csqtt-app-2.5.1",
+  "releaseId": 418086617,
+  "apiVerifiedOn": "2026-10-23",
+  "assetsUpdatedOn": "2026-10-22T17:33:52Z",
+  "pinSource": "GitHub release asset API digest; body table still lists withdrawn assets",
+  "artifacts": [
+    {
+      "elfMachine": 40,
+      "requiredAlignment": 4096,
+      "abi": "armeabi-v7a",
+      "apk": "CSQTT-2.5.1-armeabi-v7a.apk",
+      "sha256": "ef3c6ef1bc4937e416cb53c1ef4e29de388c3bc6dc9f06643f89ec68a2715751",
+      "file": "armeabi-v7a/libcsqtt25_transport.so",
+      "bytes": 6823384,
+      "loadAlignments": [
+        4096,
+        4096,
+        4096,
+        4096
+      ],
+      "elfClass": 1,
+      "apiAssetId": 666575466,
+      "apkSha256": "4ebbcf22370bd2f52a6ae08105577c650bd8f7eca732285afc68775746750ebd"
+    },
+    {
+      "elfMachine": 62,
+      "requiredAlignment": 16384,
+      "abi": "x86_64",
+      "apk": "CSQTT-2.5.1-x86_64.apk",
+      "sha256": "d3b1edf30235a879e745be8c60c3b155309f69fd3bf97e2426415c1de67a45ff",
+      "file": "x86_64/libcsqtt25_transport.so",
+      "bytes": 11049008,
+      "loadAlignments": [
+        16384,
+        16384,
+        16384,
+        16384
+      ],
+      "elfClass": 2,
+      "apiAssetId": 666575463,
+      "apkSha256": "85643dbd8e232ae07886f6fe6a68879db257455226de8aa4ac3aeb270314514d"
+    }
+  ],
+  "nativeExecuted": false,
+  "compiled": false
+}

@@ -31,15 +31,25 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
     private var nativeRoutePlatforms:NativeRoutePlatforms?=null
     private var nativeRouteBootstrap:ServerBootstrapResolver?=null
     private var carrierSwitchboard:CarrierSocksSwitch?=null
+    @Volatile private var routeBindingSelection:RouteBindingSelection?=null
+    private val boundSelectionReload=Runnable {
+        if(!destroyed&&currentService===this&&core!=null&&routeBindingSelection!=null&&currentStart?.applyRoutes==true)
+            startService(Intent(this,McrfVpnService::class.java).setAction(RELOAD_ROUTES))
+    }
+    private val boundSelectionListener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,key->
+        if(key in RouteBindingSelection.preferenceKeys&&routeBindingSelection!=null){main.removeCallbacks(boundSelectionReload);main.postDelayed(boundSelectionReload,250)}
+    }
     private var bsCandidateCursor=0
     private val bsHotMeasurements=linkedMapOf<String,Pair<Long,Long>>()
     private var optionalSession:OptionalCoreSession?=null
+    private var compactSession:CompactProtocolSession?=null
     private var engineUsage:EngineUpdateGate.Usage?=null
     @Volatile private var retirement:ClientPrimaryRetirement<ClientPrimaryWorker>?=null
     @Volatile private var destroyed=false
     private data class RuntimeStart(val template:JSONObject,val candidate:JSONObject?,val vpn:Boolean,val port:Int,val applyRoutes:Boolean,val requested:Long)
     @Volatile private var currentStart:RuntimeStart?=null
     private var bsDetection:BsDetectionMonitor?=null
+    @Volatile private var routeBindingDetectionAllowed=true
     @Volatile private var bsWifiPaused:RuntimeStart?=null
     @Volatile private var bsWifiSettings=BsWifiSettings()
     @Volatile private var bsWifiMonitor:BsWifiMonitor?=null
@@ -61,8 +71,13 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
     @Volatile private var target = ""
     @Volatile private var generation = 0L
     @Volatile private var epoch = 0L
+    @Volatile private var steerProbeEpoch = -1L
+    internal fun runtimeSteerProbeToken():Long? = generation.takeIf {
+        steerProbeEpoch>=0&&steerProbeEpoch==epoch&&!destroyed&&currentService===this
+    }
     private var healthTask: Runnable? = null
     private var steerVpnNetwork:Network?=null
+    private var packetVpnNetwork:Network?=null
     private var steerFrozenId=""
     private val steerRunLock=Any()
     @Volatile private var autoDisabled = false
@@ -79,29 +94,82 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
     private var healthUrl="https://www.gstatic.com/generate_204"
     private var behavior=ClientBehaviorSettings()
     private var wakeRegistered=false
-    private val wakeReceiver=object:BroadcastReceiver(){override fun onReceive(context:Context,intent:Intent){if(intent.action==Intent.ACTION_SCREEN_ON&&behavior.resetOnWake)resetConnections("пробуждение")}}
+    private val wakeCheck=WakeTunnelCheck()
+    private var wakeCheckTask:Runnable?=null
+    private val wakeReceiver=object:BroadcastReceiver(){override fun onReceive(context:Context,intent:Intent){
+        val power=getSystemService(PowerManager::class.java)
+        if(intent.action in setOf(Intent.ACTION_SCREEN_ON,Intent.ACTION_USER_PRESENT)||
+            intent.action==PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED&&!power.isDeviceIdleMode&&power.isInteractive)
+            checkTunnelAfterWake()
+    }}
+    private fun checkTunnelAfterWake() {
+        if(fixtureMode||!wakeCheck.admit(SystemClock.elapsedRealtime(),behavior.resetOnWake,
+                !destroyed&&currentService===this&&currentStart!=null&&core!=null&&networkRecovery==null&&bsWifiPaused==null))return
+        val requested=epoch;val captured=generation
+        val task=Runnable {
+            wakeCheckTask=null
+            if(worker.isShutdown){wakeCheck.complete(SystemClock.elapsedRealtime(),false);return@Runnable}
+            try {worker.execute {
+                var performed=false
+                try {
+                fun current()=!destroyed&&currentService===this&&epoch==requested&&generation==captured&&
+                    currentStart!=null&&core!=null&&networkRecovery==null&&bsWifiPaused==null&&getSystemService(PowerManager::class.java).isInteractive
+                if(!current()||!getSystemService(PowerManager::class.java).isInteractive)return@execute
+                val running=core?:return@execute
+                val outcome=WakeTunnelCheck.verify(listOf(healthUrl,"https://www.cloudflare.com/cdn-cgi/trace"),::current) {url->
+                    if(running.choiceId=="singbox") {
+                        // Explicit outbound: carrier children exclude our UID from TUN.
+                        running.health(target,url,3500)>=0
+                    }else {
+                        // Packet/Steer: bind strictly to our own VPN, never physical fallback.
+                        val connectivity=getSystemService(android.net.ConnectivityManager::class.java)
+                        val network=connectivity.allNetworks.firstOrNull {network->
+                            connectivity.getNetworkCapabilities(network)?.let {caps->
+                                caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)&&
+                                    (if(android.os.Build.VERSION.SDK_INT>=30)caps.ownerUid==android.os.Process.myUid()
+                                     else network==(steerVpnNetwork?:packetVpnNetwork))
+                            }==true
+                        }
+                        if(network==null)false else {
+                            val test=network.openConnection(java.net.URL(url),java.net.Proxy.NO_PROXY) as java.net.HttpURLConnection
+                            try {test.useCaches=false;test.connectTimeout=3500;test.readTimeout=3500;test.instanceFollowRedirects=false;test.responseCode in 200..399}finally{test.disconnect()}
+                        }
+                    }
+                }
+                if(outcome==WakeTunnelCheck.Result.CANCELLED||!current())return@execute
+                performed=true
+                val healthy=outcome==WakeTunnelCheck.Result.HEALTHY
+                ClientEvents.record(this,"Клиент",if(healthy)"После пробуждения связь через туннель подтверждена"else"После пробуждения туннель не отвечает; восстанавливаем соединение")
+                if(!healthy)resetConnections("нет связи после пробуждения",forceRestart=true)
+                }finally{wakeCheck.complete(SystemClock.elapsedRealtime(),performed)}
+            }}catch(_:java.util.concurrent.RejectedExecutionException){wakeCheck.complete(SystemClock.elapsedRealtime(),false)}
+        }
+        wakeCheckTask=task;main.postDelayed(task,2000)
+    }
     override fun onCreate(){
         super.onCreate()
         currentService=this
+        preferences.registerOnSharedPreferenceChangeListener(boundSelectionListener)
         behavior=try{ClientBehaviorStore.load(this)}catch(_:Exception){ClientBehaviorSettings()}
-        if(Build.VERSION.SDK_INT>=33)registerReceiver(wakeReceiver,IntentFilter(Intent.ACTION_SCREEN_ON),Context.RECEIVER_NOT_EXPORTED)
-        else @Suppress("DEPRECATION") registerReceiver(wakeReceiver,IntentFilter(Intent.ACTION_SCREEN_ON))
+        val wakeFilter=IntentFilter(Intent.ACTION_SCREEN_ON).apply {addAction(Intent.ACTION_USER_PRESENT);addAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)}
+        if(Build.VERSION.SDK_INT>=33)registerReceiver(wakeReceiver,wakeFilter,Context.RECEIVER_NOT_EXPORTED)
+        else @Suppress("DEPRECATION") registerReceiver(wakeReceiver,wakeFilter)
         wakeRegistered=true
         reloadBsWifiMonitor()
         bsDetection=BsDetectionMonitor(this,{
             val start=currentStart
             if(destroyed||core==null||networkRecovery!=null||start==null||
                 !(status.startsWith("VPN подключён")||status.startsWith("Прокси ")))null
-            else if(fixtureMode)null // Owned P1 fixtures must never poll public sites or change pools.
+            else if(fixtureMode||!routeBindingDetectionAllowed)null // No route-family switching outside the bound Auto group.
             else BsDetectionMonitor.Stamp(epoch,generation,!start.template.has("mcrf_bs")&&!start.template.has("mcrf_carrier"),start.vpn)
-        },{stamp->if(stamp.vpnSection)switchAutomaticallyToBs(stamp)else switchAutomaticallyToVpn(stamp)},{stamp->
+        },{stamp->if(stamp.vpnSection)switchAutomaticallyToBs(stamp)else switchAutomaticallyToVpn(stamp)},{stamp,site->
             // Our UID is deliberately excluded from the TUN when carrier children run.
             // Test the actual selected primary outbound, not a VPN Network inaccessible to that UID.
             val running=core
             if(destroyed||epoch!=stamp.epoch||generation!=stamp.generation||networkRecovery!=null||running==null)
                 DirectAccessCheck.Outcome.CANCELLED
             else try{
-                if(running.health(target,"https://youtube.com/",2500)>=0)DirectAccessCheck.Outcome.RESPONSE
+                if(running.health(target,BsDetectionSites.url(site),2500)>=0)DirectAccessCheck.Outcome.RESPONSE
                 else DirectAccessCheck.Outcome.NO_RESPONSE
             }catch(_:Exception){DirectAccessCheck.Outcome.NO_RESPONSE}
         })
@@ -185,11 +253,12 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
             if(autoAllowed()&&bs!=null&&paused.candidate!=null)
                 scheduleHealth(paused.template,BsPlan.candidates(bs),paused.candidate,bs.getInt("interval"),paused.vpn,paused.port,paused.applyRoutes,paused.requested)
             ClientEvents.record(this,"БС","Wi-Fi: восстановлено прежнее подключение БС без изменения выбранного сервера и группы правил.")
-        }catch(_:Exception){
+        }catch(error:Exception){
             if(paused.requested==epoch&&!destroyed){
+                val detail=NetworkRecoveryFailure.classify(error).detail
                 closeCore(keepTun=paused.vpn)
-                status="Ошибка подключения: БС не восстановлено после Wi-Fi";foreground(status)
-                ClientEvents.record(this,"БС","Автовосстановление не удалось. Повторите подключение вручную; повторные запросы VK автоматически не запускаются.")
+                status="Ошибка подключения: БС не восстановлено после Wi-Fi · $detail";foreground(status)
+                ClientEvents.record(this,"БС","Автовосстановление после Wi-Fi не удалось: $detail. Повторите подключение вручную; повторные запросы VK автоматически не запускаются.")
             }
         }finally{rebuildingForNetwork=false}
     }
@@ -319,7 +388,7 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         main.postDelayed(task,networkRecoveryDelay)
         networkRecoveryDelay=(networkRecoveryDelay*2).coerceAtMost(30000L)
     }
-    private fun resetConnections(reason:String){
+    private fun resetConnections(reason:String,forceRestart:Boolean=false){
         if(worker.isShutdown||!networkResetQueued.compareAndSet(false,true))return
         val requested=epoch
         try{worker.execute {
@@ -340,7 +409,8 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
                 val selected=chooseEngine(freshSource,candidates,session.vpn,session.port,session.applyRoutes,requested)
                 clearNetworkRecovery()
                 scheduleHealth(freshSource,candidates,selected,freshSource.getJSONObject("mcrf_bs").getInt("interval"),session.vpn,session.port,session.applyRoutes,requested)
-            }else if(optionalSession!=null||routeServerSession!=null||carrier!=null||ClientPrimarySelection.selected(this)=="steer"||
+            }else if(forceRestart||optionalSession!=null||routeServerSession!=null||carrier!=null||
+                PrimaryRuntimeNetworkScope.requiresRestart(sessionPrimaryChoice?:core?.choiceId,compactSession!=null,nativeRouteSession!=null)||
                 DirectDnsFamily.requiresRestart(runningDirectDnsIpv4,DirectDnsNetwork.ipv4Only(this,startingPhysical))){
                 val frozen=if(autoDisabled)selectedOutbound.takeIf{it.isNotEmpty()}else null
                 optionalSession?.networkChanged()
@@ -355,13 +425,22 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
             if(bs==null&&sessionPrimaryChoice=="steer"&&autoAllowed())
                 currentStart?.takeIf {it.requested==requested}?.let {scheduleSteerHealth(it)}
             ClientEvents.record(this,"Клиент","Соединения обновлены: $reason")
-        }catch(_:Exception){
+        }catch(error:Exception){
             val recovery=networkRecovery
+            val failure=NetworkRecoveryFailure.classify(error)
             closeCore(keepTun=recovery?.vpn==true)
             if(!destroyed&&currentService===this&&requested==epoch&&recovery?.requested==requested){
-                networkRecovery=recovery;status="Восстановление соединения…";foreground("Повторяем подключение после смены сети")
-                ClientEvents.record(this,"Предупреждение","Сеть изменилась; соединение пока не восстановлено, повторяем с задержкой")
-                retryNetworkRecovery(recovery)
+                if(failure.retry){
+                    networkRecovery=recovery;status="Восстановление соединения…";foreground("Повторяем подключение после смены сети")
+                    ClientEvents.record(this,"Предупреждение","Соединение пока не восстановлено; повторяем с задержкой. ${failure.detail}")
+                    retryNetworkRecovery(recovery)
+                }else{
+                    clearNetworkRecovery()
+                    if(!fixtureMode)preferences.edit().putBoolean("wantedRunning",false).apply()
+                    status="Восстановление остановлено: ${failure.detail}"+
+                        if(recovery.vpn)" Трафик приостановлен до нового подключения или отключения VPN."else""
+                    foreground(status);ClientEvents.record(this,"Ошибка восстановления",status)
+                }
             }
         }finally{
             rebuildingForNetwork=false;networkResetQueued.set(false)
@@ -399,11 +478,13 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
                         scheduleHealth(session.template,BsPlan.candidates(bs),session.candidate,bs.getInt("interval"),session.vpn,session.port,true,requested)
                     else if(autoAllowed()&&sessionPrimaryChoice=="steer")currentStart?.let {scheduleSteerHealth(it)}
                     ClientEvents.record(this,"Маршруты","Активная группа правил применена; параметры выбора серверов сохранены.")
-                }catch(_:Exception){
-                    if(requested==epoch&&!destroyed){
+                }catch(error:Exception){
+                    if(requested==epoch&&!destroyed&&currentService===this){
+                        val detail=NetworkRecoveryFailure.classify(error).detail
                         closeCore(keepTun=session.vpn)
-                        status="Ошибка подключения: группа правил не применена";foreground(status)
-                        ClientEvents.record(this,"Маршруты","Не удалось применить группу. Трафик VPN приостановлен, обход через прямой выход не включён.")
+                        status="Ошибка подключения: группа правил не применена · $detail";foreground(status)
+                        val retained=if(session.vpn)"Трафик VPN приостановлен, обход через прямой выход не включён."else"Прокси остановлен."
+                        ClientEvents.record(this,"Маршруты","Не удалось применить группу · $detail. $retained")
                     }
                 }
             }
@@ -509,9 +590,18 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         val catalogue=Connections(this).apply {load()}
         val marked=catalogue.bsStartupEntries()
         val mode=BsAutoSelectionPolicy.selected(preferences)
+        val binding=RoutingStore(this).apply{load()}.snapshot()
+        if(RoutingConnectionBinding.enabled(binding)){
+            val entry=RoutingConnectionBinding.bsDetectorEntries(this,binding,catalogue.entries(),catalogue.probes()).first()
+            val template=ServerImport.build(listOf(entry),entry.id,false,preferences.getInt("interval",60),AutoSelectionDeviation.millis(preferences),"Cloudflare")
+            DnsConfig.applyGenerated(template,binding.getJSONObject("globalDns"))
+            return template.put("mcrf_bs",JSONObject().put("interval",preferences.getInt("interval",60).coerceIn(5,86400)).put("connectionBound",true)
+                .put("candidates",org.json.JSONArray().put(JSONObject().put("id",entry.id).put("name",entry.name).put("profile",JSONObject(requireNotNull(entry.carrier).toString())))))
+        }
+        val allowed=RoutingConnectionBinding.admitted(binding,catalogue.entries(),true).map{it.id}.toSet()
         val pool=(if(marked.isNotEmpty()&&mode!=BsAutoSelectionPolicy.OFF)marked else catalogue.entries().filter {AutoSelection.eligible(it,AutoSelection.BS_ENGINES)}
             .sortedBy {AutoSelection.ENGINE_PRIORITY.indexOf(it.protocol)}).filter {entry->
-            runCatching {NativeCarrier.executable(this,EngineModules.carrierKind(requireNotNull(entry.carrier)));true}.getOrDefault(false)
+            entry.id in allowed&&runCatching {NativeCarrier.executable(this,EngineModules.carrierKind(requireNotNull(entry.carrier)));true}.getOrDefault(false)
         }
         require(pool.isNotEmpty()) {"Автоопределение БС: нет серверов с установленным совместимым движком. Проверь серверы БС и движки."}
         val ranked=AutoSelection.startup(pool,pool.map {it.id}.toSet(),catalogue.probes(),System.currentTimeMillis(),AutoSelection.BS_ENGINES)
@@ -526,7 +616,8 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
     private fun autoVpnTargets(fallback:JSONObject?):List<JSONObject> {
         val catalogue=Connections(this).apply {load()}
         val steer=ClientPrimarySelection.selected(this)=="steer"
-        val pool=catalogue.entries().filter {AutoSelection.eligible(it,AutoSelection.LATENCY)&&(!steer||SteerProbePlan.supports(it))}
+        val binding=RoutingStore(this).apply{load()}.snapshot()
+        val pool=RoutingConnectionBinding.admitted(binding,catalogue.entries(),false).filter {AutoSelection.eligible(it,AutoSelection.LATENCY)&&(!steer||SteerProbePlan.supports(it))}
         val fastest=AutoSelection.startup(pool,pool.map {it.id}.toSet(),catalogue.probes(),System.currentTimeMillis())
         val mode=BsAutoSelectionPolicy.selected(preferences)
         val ordered=BsAutoSelectionPolicy.targets(fastest,BsAutoSelectionPolicy.last(preferences,false),mode){it.id}
@@ -535,12 +626,13 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         autoVpnCandidateCursor=if(ordered.size>1)(autoVpnCandidateCursor+7)%(ordered.size-1) else 0
         return attempts.mapNotNull {entry->runCatching {
             ServerImport.build(listOf(entry),entry.id,false,preferences.getInt("interval",60),AutoSelectionDeviation.millis(preferences),"Cloudflare").also {DnsConfig.applyGenerated(it,dns)}
-        }.getOrNull()}.ifEmpty {if(mode==BsAutoSelectionPolicy.OFF)emptyList()else listOfNotNull(fallback)}
+        }.getOrNull()}.ifEmpty {if(mode==BsAutoSelectionPolicy.OFF||RoutingConnectionBinding.enabled(binding))emptyList()else listOfNotNull(fallback)}
     }
     private fun startVpnWithBsPreflight(source:JSONObject,vpn:Boolean,port:Int,applyRoutes:Boolean,requested:Long) {
+        routeBindingDetectionAllowed=if(applyRoutes){val state=RoutingStore(this).apply{load()}.snapshot();!RoutingConnectionBinding.enabled(state)||RoutingConnectionBinding.networkDriven(state,true)}else true
         fun cancelled()=requested!=epoch||destroyed||currentService!==this
         val decision=BsStartupPolicy.start(
-            enabled={preferences.getBoolean(BsDetectionMonitor.KEY,false)},fixture=fixtureMode,
+            enabled={routeBindingDetectionAllowed&&preferences.getBoolean(BsDetectionMonitor.KEY,false)},fixture=fixtureMode,
             alreadyBs=source.has("mcrf_bs")||source.has("mcrf_carrier"),cancelled={cancelled()},
             probe={
                 require(ClientPrimarySelection.selected(this)!="steer") {"Автоопределение БС: выбранное ядро пока не поддерживает транспорты БС."}
@@ -576,7 +668,7 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
             sessionPrimaryChoice=initial
         }catch(error:Exception) {
             // Steer resolves the selected catalogue entry; never substitute it for a raw/diagnostic profile.
-            val catalogueFallback=applyRoutes&&candidate==null&&frozenOutbound==null&&
+            val catalogueFallback=PrimaryFallbackPolicy.canRetryFailure(error)&&applyRoutes&&candidate==null&&frozenOutbound==null&&
                 preferences.getBoolean("catalogueProfile",false)&&!preferences.getBoolean("automatic",false)&&
                 !template.has("mcrf_carrier")&&!template.has("mcrf_bs")
             val alternate=PrimaryFallbackPolicy.alternate(initial,preferences.getBoolean(PrimaryFallbackPolicy.KEY,false)&&catalogueFallback,
@@ -614,6 +706,7 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         if(requested!=epoch) throw IOException("Подключение отменено")
         closeCore(keepTraffic&&vpn);vpnMode=vpn
         if(requested!=epoch||destroyed||currentService!==this)throw IOException("Подключение отменено")
+        if(primaryChoice=="steer")steerProbeEpoch=requested
         if(BuildConfig.DEBUG&&fixtureMode&&template.has("mcrf_packet_fixture")) {
             require(vpn&&candidate==null&&!keepTraffic&&!applyRoutes)
             startPacketFixture(template,ClientPacketFixture.parse(template,healthUrl),port,requested)
@@ -640,11 +733,13 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         engineUsage=EngineUpdateGate.acquireUsage(this)?:throw IOException("Движок обновляется. Завершите установку перед подключением.")
         if(nativePreparation!=null)prepareCarrierHandoverTun(vpn,requested)
         val source=JSONObject(template.toString())
+        val boundRouting=if(applyRoutes&&nativePreparation==null)RoutingStore(this).apply{load()}.snapshot().takeIf{RoutingConnectionBinding.enabled(it)}else null
+        routeBindingDetectionAllowed=boundRouting==null||RoutingConnectionBinding.networkDriven(boundRouting,true)
         val profile=candidate?.getJSONObject("profile") ?: source.optJSONObject("mcrf_carrier")
         val bridgeTag=source.optJSONObject("mcrf_carrier")?.optString("outbound_tag").orEmpty()
         source.remove("mcrf_carrier");source.remove("mcrf_bs")
         if(frozenOutbound!=null)source.optJSONArray("outbounds")?.let {list->repeat(list.length()){i->val node=list.getJSONObject(i);if(node.optString("type") in setOf("urltest","selector")&&node.optJSONArray("outbounds")?.let {members->(0 until members.length()).any{members.getString(it)==frozenOutbound}}==true){node.put("type","selector").put("default",frozenOutbound);listOf("url","interval","tolerance").forEach(node::remove)}}}
-        profile?.let {
+        profile?.takeUnless{boundRouting!=null}?.let {
             prepareCarrierHandoverTun(vpn,requested)
             val transport=ConnectTiming.measure(this,"carrier_start"){NativeCarrier.start(this,it,java.util.function.BooleanSupplier { requested!=epoch },carrierTimeout)};carrier=transport
             val outputs=source.getJSONArray("outbounds")
@@ -662,8 +757,10 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         runningDirectDnsIpv4=null
         var routePlan:RouteServerPlan?=null
         if(applyRoutes){
-            val routes=RoutingStore(this);ConnectTiming.measure(this,"routes_load"){routes.load()};val settings=nativePreparation?.state()?:routes.snapshot()
+            val routes=RoutingStore(this);ConnectTiming.measure(this,"routes_load"){routes.load()};val stored=nativePreparation?.state()?:boundRouting?:routes.snapshot()
             val catalogue=Connections(this);catalogue.load();val routeEntries=nativePreparation?.entries()?:catalogue.entries()
+            val settings=if(nativePreparation!=null)stored else RoutingConnectionBinding.prepare(this,stored,routeEntries,profile!=null||template.has("mcrf_bs"),catalogue.probes())
+            routeBindingSelection=if(settings.has(RoutingConnectionBinding.RUNTIME))RouteBindingSelection(settings,routeEntries)else null
             val plan=RouteServerPlan(settings,routeEntries)
             routePlan=plan
             RouteServerSession.check(this,plan,java.util.function.BooleanSupplier{requested!=epoch})
@@ -674,6 +771,7 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
                 val session=RouteServerSession.start(this,prepared,plan,java.util.function.BooleanSupplier{requested!=epoch})
                 routeServerSession=session;prepared=session.config
             }
+            if(RoutingConnectionBinding.enabled(settings))target=RouteServerPlan.outbound(settings.getJSONObject(RoutingConnectionBinding.DEFAULT),prepared.getJSONObject("route").getString("final"))
             if(DnsConfig.appOwned(source)){runningDirectDnsIpv4=directIpv4;if(directIpv4)ClientEvents.record(this,"DNS","У физической сети нет IPv6-маршрута в интернет. Для однозначных прямых TCP-маршрутов включён быстрый отказ недоступного IPv6, позволяющий приложению попробовать IPv4. AAAA, IPv6 через VPN и защита TUN не отключены.")}
         }
         val coreSettings=if(fixtureMode)CoreTuningSettings()else CoreTuningStore(this).load()
@@ -739,6 +837,7 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         }) {tx,rx->
             if(requested==epoch&&runGeneration==generation)TrafficState.update(tx,rx,SystemClock.elapsedRealtime())
         }
+        var admittedNativeProof=nativeProof
         if(nativePreparation!=null){
             nativeProof?.let {proof->
                 require(proof.moduleSha==nativePreparation.steerSha&&proof.networkHandle==underlying?.networkHandle&&
@@ -748,11 +847,13 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
             val bootstrap=ServerBootstrapResolver(this,ServerBootstrapPolicy.capture(nativePreparation.state()),platform,runGeneration,{underlying?.networkHandle}){requested!=epoch||runGeneration!=generation||destroyed}
                 .also {nativeRouteBootstrap=it}
             val session=NativeRouteWorkers.start(this,prepared,nativePreparation.plan,runGeneration,nativePreparation.steerSha,
-                java.util.function.BooleanSupplier{requested!=epoch||runGeneration!=generation||destroyed},children::child,bootstrap::ipv4)
+                java.util.function.BooleanSupplier{requested!=epoch||runGeneration!=generation||destroyed},children::child,bootstrap::ipv4,
+                nativePreparation.state(),underlying?.networkHandle,nativeEntry?.id?.takeIf {nativeProof!=null},healthUrl)
+            if(session.admittedProof!=null)admittedNativeProof=session.admittedProof
             nativeRouteSession=session;prepared=session.config;runningConfig=prepared
             bootstrap.close();if(nativeRouteBootstrap===bootstrap)nativeRouteBootstrap=null
             session.requireListening()
-            ClientEvents.record(this,"Движки","Правила/DNS: внешний диспетчер sing-box; протоколы выбранных серверов: Steer. Основной выбор и серверы правил не изменены.")
+            ClientEvents.record(this,"Движки","Правила/DNS: внешний диспетчер sing-box; серверы: собственные выходы Steer и необходимые протокольные помощники. Основной выбор и серверы правил не изменены.")
         }
         val dispatcherDeath=java.util.concurrent.atomic.AtomicBoolean()
         val server=connectPrimary(choice,runGeneration,platform,onDeath={
@@ -768,12 +869,13 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         val validation=ConnectTiming.measure(this,"worker_validate"){server.validate("",settings,mode)}
         require(validation.supported) {"Движок не поддерживает профиль (${validation.code})."}
         ConnectTiming.measure(this,"worker_start"){server.start("",settings,mode)}
+        routeBindingSelection?.tick(SystemClock.elapsedRealtime(),{tag->server.health(tag,healthUrl,2500)},{group,tag->server.selectOutbound(group,tag)},{requested!=epoch||destroyed||core!==server})
         if(nativePreparation!=null){nativeRouteSession?.requireListening();require(health()>=0){"Основной сервер Steer не подтвердил передачу через диспетчер."}}
         if(candidate!=null){val delay=health();record(candidate.getString("id"),delay);if(delay<0) throw IOException("Движок не прошёл проверку передачи данных")}
         else if(optionalSession!=null&&(optionalSession?.isAlive()!=true||health()<0))throw IOException("Дополнительное ядро не подтвердило передачу данных. ${optionalSession?.failureDetails().orEmpty()}")
         carrier?.checkFailure()
         if(requested!=epoch) throw IOException("Подключение отменено")
-        val ready=nativeEntry?.let {captureSteerReady(it.id,SteerProbePlan.profile(it),nativeProof)}
+        val ready=nativeEntry?.let {captureSteerReady(it.id,nativeRouteSession?.assistedProfile(it.id)?:SteerProbePlan.profile(it),admittedNativeProof)}
         synchronized(steerRunLock){
             if(nativeEntry!=null){
                 require(!dispatcherDeath.get()&&requested==epoch&&runGeneration==generation&&core===server&&server.state=="RUNNING"){"NATIVE_ROUTE_START_RETIRED"}
@@ -804,17 +906,19 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
     private fun startSteer(template:JSONObject,vpn:Boolean,port:Int,applyRoutes:Boolean,requested:Long,keepTraffic:Boolean) {
         require(vpn&&!fixtureMode) {"Steer сейчас работает только как системный VPN; локальный прокси не поддерживается."}
         val routes=RoutingStore(this);routes.load()
-        val state=routes.snapshot()
+        val connections=Connections(this);connections.load()
+        val state=RoutingConnectionBinding.prepare(this,routes.snapshot(),connections.entries(),template.has("mcrf_carrier")||template.has("mcrf_bs"),connections.probes())
         val dispatcher=RouteServerPlan.activeIds(state).isNotEmpty()
         val snapshot=if(dispatcher)null else ClientPrimarySelection.steerSnapshot(this,state,true)
         if(snapshot!=null)require(snapshot.supported) {ClientPrimarySelection.steerFailure(snapshot)}
-        val connections=Connections(this);connections.load()
         fun begin(entry:ServerImport.Server,proof:SteerProbeDelays?=null){
             if(dispatcher){
                 val preparation=NativeRoutePreparation.capture(this,entry,state,connections.entries())
                 startSourceWithCore(preparation.source(),null,true,port,applyRoutes,requested,keepTraffic||tunnel!=null,null,"steer",preparation,entry,proof)
-            }else startSteerPrepared(template,SteerPrepared(SteerProbePlan.profile(entry),entry.host,entry.name,entry.id,requireNotNull(requireNotNull(snapshot).settingsJson),proof=proof,serverDns=ServerBootstrapPolicy.capture(state)),
-                port,applyRoutes,requested,keepTraffic)
+            }else {
+                startSteerPrepared(template,prepareSteerSelected(entry,state,requireNotNull(requireNotNull(snapshot).settingsJson),requested,proof),
+                    port,applyRoutes,requested,keepTraffic)
+            }
         }
         if(autoAllowed()) {
             fun paused(){
@@ -824,9 +928,9 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
             }
             val pool=SteerAutomaticPool(ConnectionSections.entries(connections.entries(),false),connections.autoIds(),System.nanoTime().coerceAtLeast(1))
             require(pool.candidates.isNotEmpty()) {"Нет отмеченных серверов, совместимых с собственным движком Steer. Отметки не изменены; другой движок автоматически не выбирается."}
-            val native=ProbeCoordinator.measureSteerRuntime(this,pool.measurements,healthUrl) {
+            val native=ProbeCoordinator.measureSteerCandidatesRuntime(this,pool.measurements,state,healthUrl) {
                 requested!=epoch||destroyed||currentService!==this||!autoAllowed()
-            } as? SteerProbeDelays ?:throw IOException("Не получены собственные результаты Steer.")
+            }
             val ranked=pool.rank(native,SystemClock.elapsedRealtime())
             for(entry in ranked) {
                 if(!autoAllowed()&&requested==epoch&&!destroyed&&currentService===this&&tunnel!=null){paused();return}
@@ -837,8 +941,9 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
                 try {
                     begin(entry,native)
                     scheduleSteerHealth(requireNotNull(currentStart));return
-                }catch(_:Exception){
+                }catch(error:Exception){
                     closeCore(keepTun=true)
+                    if(!PrimaryFallbackPolicy.canRetryFailure(error))throw error
                     if(!autoAllowed()&&requested==epoch&&!destroyed&&currentService===this&&tunnel!=null){paused();return}
                     if(requested!=epoch||destroyed||currentService!==this||!autoAllowed())throw IOException("Подключение отменено")
                 }
@@ -854,7 +959,31 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
     }
     /** Immutable capture shared by ordinary selection and the strictly local DEBUG fixture.
      * No user choice/settings are written by the native run itself. */
-    private class SteerPrepared(val original:String,val host:String,val name:String,val id:String,val settings:String,val fixtureDial:String?=null,val proof:SteerProbeDelays?=null,val serverDns:ServerBootstrapPolicy?=null)
+    private fun prepareSteerSelected(entry:ServerImport.Server,state:JSONObject,settings:String,requested:Long,proof:SteerProbeDelays?):SteerPrepared {
+        check(requested==epoch&&!destroyed&&currentService===this){"STEER_SELECTED_OWNER_RETIRED"}
+        steerProbeEpoch=requested
+        val bootstrap=ServerBootstrapPolicy.capture(state)
+        if(!CompactProtocolPolicy.eligible(entry))return SteerPrepared(SteerProbePlan.profile(entry),entry.host,entry.name,entry.id,settings,proof=proof,serverDns=bootstrap)
+        val capturedState=JSONObject(state.toString())
+        val deferred=SteerHelperPreparation {handle->
+            var admitted=proof
+            require(compactSession==null){"STEER_HELPER_ALREADY_OWNED"}
+            if(engineUsage==null)engineUsage=EngineUpdateGate.acquireUsage(this)?:throw IOException("Движок обновляется.")
+            fun retired()=requested!=epoch||destroyed||currentService!==this||underlying?.networkHandle!=handle
+            val helper=CompactProtocolSession.start(this,entry,capturedState,handle,java.util.function.BooleanSupplier(::retired))
+            compactSession=helper // The service now owns cleanup even if its fresh probe fails.
+            if(proof!=null){
+                val fresh=ProbeCoordinator.measureSteerRuntime(this,listOf(helper.effective),healthUrl) {retired()||!autoAllowed()} as SteerProbeDelays
+                helper.requireAlive(underlying?.networkHandle);helper.requireHealthy(fresh.getValue(entry.id)>=0)
+                admitted=SteerProbeDelays(fresh.toMap(),fresh.completedAt,fresh.moduleSha,fresh.networkHandle,mapOf(entry.id to helper.binding))
+            }
+            SteerPrepared(SteerProbePlan.profile(helper.effective),helper.effective.host,entry.name,entry.id,settings,proof=admitted,serverDns=bootstrap)
+        }
+        // Creating the immutable preparation must not start a process or read
+        // underlying: startSteerPrepared initializes its one owning HostRun first.
+        return SteerPrepared("",entry.host,entry.name,entry.id,settings,proof=proof,serverDns=bootstrap,deferred=deferred)
+    }
+    private class SteerPrepared(val original:String,val host:String,val name:String,val id:String,val settings:String,val fixtureDial:String?=null,val proof:SteerProbeDelays?=null,val serverDns:ServerBootstrapPolicy?=null,val deferred:SteerHelperPreparation<SteerPrepared>?=null)
     private fun startCompactWireGuard(template:JSONObject,vpn:Boolean,port:Int,applyRoutes:Boolean,requested:Long) {
         require(vpn&&applyRoutes&&!fixtureMode&&preferences.getBoolean("catalogueProfile",false)&&!preferences.getBoolean("automatic",false)) {
             "Компактный WG: выбери один WG/AWG-профиль в режиме VPN, без автовыбора или JSON-профиля."
@@ -882,7 +1011,7 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         val run=startPacketPrepared(entry.original,dial,pin,prepared.plan,prepared.routing.routes,prepared.routing.dns,
             prepared.routing.directApps,emptyList(),"MCRF · WG/AWG",requested,prepared.routing.captured.settings,false,prepared.storageGeneration)
         val test=run.second.openConnection(java.net.URL(healthUrl),java.net.Proxy.NO_PROXY) as java.net.HttpURLConnection
-        val verified=try {test.connectTimeout=10000;test.readTimeout=10000;test.instanceFollowRedirects=false;test.responseCode==204}finally{test.disconnect()}
+        val verified=try {test.useCaches=false;test.connectTimeout=10000;test.readTimeout=10000;test.instanceFollowRedirects=false;test.responseCode==204}finally{test.disconnect()}
         check(verified&&requested==epoch&&!destroyed&&core===run.first) {"WG/AWG запущен, но передача данных не подтверждена."}
         TrafficState.reset(entry.name,countersSupported=false) // Distinct from waiting for a supported core's first sample.
         selectedId=entry.id;target=entry.id;runningConfig=null
@@ -944,9 +1073,12 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
             val cancellation=CancellationSignal()
             val answer=java.util.concurrent.CompletableFuture<List<java.net.InetAddress>>()
             try {
+                // DnsResolver cache flags are documented combinable bit flags.
+                @android.annotation.SuppressLint("WrongConstant")
+                val noCacheFlags=android.net.DnsResolver.FLAG_NO_CACHE_LOOKUP or android.net.DnsResolver.FLAG_NO_CACHE_STORE
                 android.net.DnsResolver.getInstance().query(network,fixture.body.removePrefix("mcrf-fixture-")+".invalid",
                     if(ipv6)android.net.DnsResolver.TYPE_AAAA else android.net.DnsResolver.TYPE_A,
-                    android.net.DnsResolver.FLAG_NO_CACHE_LOOKUP or android.net.DnsResolver.FLAG_NO_CACHE_STORE,
+                    noCacheFlags,
                     java.util.concurrent.Executor {it.run()},cancellation,object:android.net.DnsResolver.Callback<List<java.net.InetAddress>> {
                         override fun onAnswer(addresses:List<java.net.InetAddress>,rcode:Int) {
                             if(rcode==0)answer.complete(addresses)else answer.completeExceptionally(IOException("PACKET_PROFILE_DNS_RCODE"))
@@ -1008,7 +1140,8 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         while(requested==epoch&&!destroyed&&core===server&&SystemClock.elapsedRealtime()<deadline&&selected==null) {
             selected=cm.allNetworks.firstOrNull {network->
                 val caps=cm.getNetworkCapabilities(network)
-                caps?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)==true&&caps.ownerUid==android.os.Process.myUid()&&
+                caps?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)==true&&
+                    (android.os.Build.VERSION.SDK_INT<30||caps.ownerUid==android.os.Process.myUid())&&
                     cm.getLinkProperties(network)?.linkAddresses?.let {actual->actual.size==plan.addresses.size&&plan.addresses.all {cidr->
                         val parts=cidr.split('/');actual.any {it.address==java.net.InetAddress.getByName(parts[0])&&it.prefixLength==parts[1].toInt()}
                     }}==true
@@ -1020,13 +1153,16 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         check(requested==epoch&&!destroyed&&currentService===this&&core===server) {"PACKET_START_RETIRED"}
         val managed=PacketRouteEnvelope.decode(routeSettings,plan.routes,plan.addresses).managed!=null
         server.startPacket(original,descriptor,dial,routeSettings,ownedBlockFixture,if(managed)network.networkHandle else 0)
+        packetVpnNetwork=network
         return server to network
     }
 
-    private fun startSteerPrepared(template:JSONObject,entry:SteerPrepared,port:Int,applyRoutes:Boolean,requested:Long,keepTraffic:Boolean) {
+    private fun startSteerPrepared(template:JSONObject,prepared:SteerPrepared,port:Int,applyRoutes:Boolean,requested:Long,keepTraffic:Boolean) {
+        var entry=prepared
         require(vpnMode&&(!fixtureMode||BuildConfig.DEBUG&&entry.fixtureDial!=null)) {"Steer требует системный VPN."}
         if(requested!=epoch||destroyed||currentService!==this)throw IOException("Подключение отменено")
-        engineUsage=EngineUpdateGate.acquireUsage(this)?:throw IOException("Заверши установку движка.")
+        steerProbeEpoch=requested
+        if(engineUsage==null)engineUsage=EngineUpdateGate.acquireUsage(this)?:throw IOException("Заверши установку движка.")
         val runGeneration=generation.coerceAtLeast(1)
         var proofPinned=false
         val unexpectedDeath=java.util.concurrent.atomic.AtomicBoolean()
@@ -1034,6 +1170,7 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
             proofPinned&&entry.proof?.networkHandle?.let {underlying?.networkHandle!=it}==true},{throw IOException("Steer использует заранее созданный TUN")}) {tx,rx->
             if(requested==epoch&&runGeneration==generation)TrafficState.update(tx,rx,SystemClock.elapsedRealtime())
         }
+        entry=entry.deferred?.materialize(underlying?.networkHandle)?:entry
         entry.proof?.let {proof->
             val installed=EngineUpdatePrimary.installation(this,"steer")
             require(ClientPrimaryWorkerWire.hashFile(File(installed.sourceDir))==proof.moduleSha&&
@@ -1070,7 +1207,8 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
             }
         })
         val settings=entry.settings
-        require(server.validate(entry.original,settings,Engine.Mode.VPN).supported) {"Steer не поддерживает параметры выбранного сервера. Профиль не изменён."}
+        val validation=server.validate(entry.original,settings,Engine.Mode.VPN)
+        require(validation.supported) {"Steer не поддерживает параметры выбранного сервера (${validation.code} · ${validation.field}). Профиль не изменён."}
         val plan=JSONObject(server.tunPlan(entry.original,settings,Engine.Mode.VPN))
         val admittedPlan=SteerTunPlanPolicy.parse(plan,JSONObject(settings),packageName)
         val physical=underlying?:throw IOException("Нет физической сети для Steer.")
@@ -1112,7 +1250,8 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         while(requested==epoch&&SystemClock.elapsedRealtime()<deadline&&vpnNetwork==null){
             vpnNetwork=connectivity.allNetworks.firstOrNull {network->
                 val caps=connectivity.getNetworkCapabilities(network)
-                caps?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)==true&&caps.ownerUid==android.os.Process.myUid()&&
+                caps?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)==true&&
+                    (android.os.Build.VERSION.SDK_INT<30||caps.ownerUid==android.os.Process.myUid())&&
                     connectivity.getLinkProperties(network)?.linkAddresses?.any {it.address.hostAddress=="10.89.0.2"}==true
             }
             if(vpnNetwork==null)Thread.sleep(50)
@@ -1121,11 +1260,14 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         steerVpnNetwork=selectedNetwork
         if(keepTraffic)TrafficState.handover(entry.name)else TrafficState.reset(entry.name)
         server.start(entry.original,settings,Engine.Mode.VPN,descriptor,dial,bootstrap,selectedNetwork.networkHandle)
-        val verified=if(entry.fixtureDial!=null) verifySteerFixtureHealth(selectedNetwork,requested) else {
+        val verifyTransfer={if(entry.fixtureDial!=null) verifySteerFixtureHealth(selectedNetwork,requested) else {
             val test=selectedNetwork.openConnection(java.net.URL(healthUrl),java.net.Proxy.NO_PROXY) as java.net.HttpURLConnection
-            try {test.connectTimeout=10000;test.readTimeout=10000;test.instanceFollowRedirects=false;test.responseCode==204}finally{test.disconnect()}
-        }
-        require(verified&&requested==epoch) {"Steer запущен, но передача данных не подтверждена."}
+            try {test.useCaches=false;test.connectTimeout=10000;test.readTimeout=10000;test.instanceFollowRedirects=false;test.responseCode==204}finally{test.disconnect()}
+        }}
+        val verified=compactSession?.verifyHealth(verifyTransfer)?:verifyTransfer()
+        compactSession?.requireAlive(underlying?.networkHandle)
+        compactSession?.requireHealthy(verified)
+        require(verified&&requested==epoch) {"Steer запущен, но передача данных не подтверждена. ${compactSession?.diagnostic().orEmpty()}"}
         val ready=captureSteerReady(entry.id,entry.original,entry.proof)
         synchronized(steerRunLock) {
             require(!unexpectedDeath.get()&&runGeneration==generation&&core===server&&server.state in setOf("STARTING","RUNNING")) {"STEER_START_OWNER_DIED"}
@@ -1175,7 +1317,7 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         return try {
             require(java.net.URI(healthUrl).scheme=="https") {"STEER_HEALTH_HTTPS_REQUIRED"}
             val test=selectedNetwork.openConnection(java.net.URL(healthUrl),java.net.Proxy.NO_PROXY) as java.net.HttpURLConnection
-            val success=try {test.connectTimeout=5000;test.readTimeout=5000;test.instanceFollowRedirects=false;test.responseCode==204}finally{test.disconnect()}
+            val success=try {test.useCaches=false;test.connectTimeout=5000;test.readTimeout=5000;test.instanceFollowRedirects=false;test.responseCode==204}finally{test.disconnect()}
             if(success&&captured==generation&&requested==epoch)SystemClock.elapsedRealtime()-started else -1
         }catch(_:Exception){-1}
     }
@@ -1183,7 +1325,13 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         if(proof==null)return null
         val latest=Connections(this);latest.load()
         val entry=latest.entries().singleOrNull {it.id==id}
-        val matches=entry!=null&&try{SteerProbePlan.profile(entry)==profile}catch(_:Exception){false}
+        val matches=entry!=null&&try{
+            if(CompactProtocolPolicy.eligible(entry)){
+                val helper=compactSession
+                if(helper!=null)proof.assisted[id]===helper.binding&&helper.binding.matches(entry,profile)
+                else nativeRouteSession?.matchesAssisted(id,entry,profile,proof)==true
+            }else SteerProbePlan.profile(entry)==profile
+        }catch(_:Exception){false}
         return SteerReadyAdmission(id in latest.autoIds(),matches,proof.completedAt[id]?:Long.MIN_VALUE,proof.networkHandle)
     }
     private fun nativeDispatcherDied(captured:Long,requested:Long){
@@ -1208,6 +1356,10 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
     }
     private fun scheduleSteerHealth(source:RuntimeStart,immediate:Boolean=false) {
         if(!autoAllowed()||source.requested!=epoch||destroyed||networkRecovery!=null)return
+        // An all-failed round may have retired its core while retaining the
+        // captured VPN and this explicit Steer retry plan. Re-arm only this
+        // live plan, not the saved primary preference or an old probe owner.
+        steerProbeEpoch=source.requested
         healthTask?.let(main::removeCallbacks)
         val captured=generation
         val task=Runnable {
@@ -1219,11 +1371,13 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
                 var replaced=false
                 try {
                     val catalogue=Connections(this);catalogue.load()
+                    val routes=RoutingStore(this);routes.load()
+                    val state=routes.snapshot()
                     val pool=SteerAutomaticPool(ConnectionSections.entries(catalogue.entries(),false),catalogue.autoIds(),System.nanoTime().coerceAtLeast(1))
                     require(pool.candidates.isNotEmpty()) {"STEER_AUTOMATIC_NO_COMPATIBLE_MARKS"}
-                    val native=ProbeCoordinator.measureSteerRuntime(this,pool.measurements,healthUrl) {
+                    val native=ProbeCoordinator.measureSteerCandidatesRuntime(this,pool.measurements,state,healthUrl) {
                         source.requested!=epoch||destroyed||currentService!==this||!autoAllowed()||captured!=generation
-                    } as? SteerProbeDelays ?:throw IOException("STEER_AUTOMATIC_WRONG_BACKEND")
+                    }
                     if(source.requested!=epoch||captured!=generation||!autoAllowed())return@execute
                     val latest=Connections(this);latest.load()
                     val ranked=pool.stillMarked(pool.rank(native,SystemClock.elapsedRealtime(),if(healthy)null else previous),latest.entries(),latest.autoIds())
@@ -1231,8 +1385,6 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
                     if(healthy&&(next.id==previous||previous in latest.autoIds()&&!SteerAutomaticPool.better(native.getValue(next.id),native[previous]?:-1,AutoSelectionDeviation.millis(preferences)))) {
                         scheduleSteerHealth(source);return@execute
                     }
-                    val routes=RoutingStore(this);routes.load()
-                    val state=routes.snapshot()
                     val useDispatcher=RouteServerPlan.activeIds(state).isNotEmpty()
                     val prepared=if(useDispatcher)null else ClientPrimarySelection.steerSnapshot(this,state,true)
                     if(prepared!=null)require(prepared.supported) {"STEER_AUTOMATIC_CONFIG_CHANGED"}
@@ -1242,7 +1394,7 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
                     closeCore(keepTun=true)
                     if(source.requested!=epoch||!autoAllowed()||destroyed)return@execute
                     if(dispatch!=null)startSourceWithCore(dispatch.source(),null,true,source.port,source.applyRoutes,source.requested,true,null,"steer",dispatch,next,native)
-                    else startSteerPrepared(source.template,SteerPrepared(SteerProbePlan.profile(next),next.host,next.name,next.id,requireNotNull(requireNotNull(prepared).settingsJson),proof=native,serverDns=ServerBootstrapPolicy.capture(state)),
+                    else startSteerPrepared(source.template,prepareSteerSelected(next,state,requireNotNull(requireNotNull(prepared).settingsJson),source.requested,native),
                         source.port,source.applyRoutes,source.requested,true)
                     ClientEvents.record(this,"Автовыбор","Steer: выполнено переключение на проверенный отмеченный сервер")
                     scheduleSteerHealth(requireNotNull(currentStart))
@@ -1287,7 +1439,7 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         return data.getJSONObject("source")
     }
     private fun chooseEngine(source:JSONObject,candidates:List<JSONObject>,vpn:Boolean,port:Int,applyRoutes:Boolean,requested:Long):JSONObject {
-        val ordered=if(!fixtureMode&&preferences.getBoolean(BsDetectionMonitor.KEY,false))
+        val ordered=if(!fixtureMode&&preferences.getBoolean(BsDetectionMonitor.KEY,false)&&source.optJSONObject("mcrf_bs")?.optBoolean("connectionBound",false)!=true)
             BsAutoSelectionPolicy.targets(candidates,BsAutoSelectionPolicy.last(preferences,true),BsAutoSelectionPolicy.selected(preferences)){it.getString("id")}else candidates
         for(candidate in ordered){
             if(requested!=epoch) throw IOException("Подключение отменено")
@@ -1299,7 +1451,8 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
     private fun refreshBsPool(source:JSONObject,requested:Long):Pair<JSONObject,List<JSONObject>> {
         val fresh=if(fixtureMode)source else {
             val catalogue=Connections(this).apply {load()}
-            BsPlan.refresh(source,catalogue.bsStartupEntries(),preferences.getInt("interval",60).coerceIn(5,86400))
+            if(source.optJSONObject("mcrf_bs")?.optBoolean("connectionBound",false)==true)prepareAutoBsTemplate()
+            else BsPlan.refresh(source,catalogue.bsStartupEntries(),preferences.getInt("interval",60).coerceIn(5,86400))
         }
         if(requested!=epoch||destroyed||!autoAllowed())throw IOException("Автовыбор отменён")
         val candidates=BsPlan.candidates(fresh.getJSONObject("mcrf_bs"))
@@ -1378,7 +1531,7 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
                 val transport=existing?:NativeCarrier.startBackground(this,JSONObject(candidate.getJSONObject("profile").toString()),
                     java.util.function.BooleanSupplier {!live()},minOf(carrierTimeout,5000)).also {created=it}
                 val delay=CarrierSocksSwitch.probe(transport,healthUrl,3000);record(id,delay)
-            if(!live()||!AutoSelection.prefer(candidate.getJSONObject("profile").getString("type"),delay,currentKind,if(currentMarked)currentDelay else -1L,AutoSelectionDeviation.millis(preferences)))continue
+                if(!live()||!AutoSelection.prefer(candidate.getJSONObject("profile").getString("type"),delay,currentKind,if(currentMarked)currentDelay else -1L,AutoSelectionDeviation.millis(preferences)))continue
                 if(existing!=null)board.selectExisting(id)else board.select(id,transport)
                 adopted=true;carrier=transport;selectedId=id
                 currentStart=currentStart?.copy(candidate=JSONObject(candidate.toString()))
@@ -1477,9 +1630,12 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         throw pending
     }
     private fun closeCore(keepTun:Boolean=false) {
+        routeBindingSelection=null
+        steerProbeEpoch=-1L
         releaseBsPowerLease()
         currentStart=null
         steerVpnNetwork=null
+        packetVpnNetwork=null
         healthTask?.let(main::removeCallbacks);healthTask=null
         generation++; TrafficState.stop()
         val client = telemetry; telemetry = null; if(client!=null)main.removeCallbacks(client)
@@ -1490,6 +1646,7 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
             val transport=carrier
             val board=carrierSwitchboard
             val extra=optionalSession
+            val compact=compactSession
             val routeExtras=routeServerSession
             val nativeRoutes=nativeRouteSession
             val nativePlatforms=nativeRoutePlatforms
@@ -1506,12 +1663,13 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
                     }
                     it.close()
                 },
-                dependents=listOf({closePlatform(keepTun)},{board?.close();transport?.close();Unit},{bootstrap?.close();Unit},{nativeRoutes?.close();Unit},{nativePlatforms?.close();Unit},{routeExtras?.close();Unit},{extra?.close();Unit},{usage?.close();Unit}),
+                dependents=listOf({closePlatform(keepTun)},{board?.close();transport?.close();Unit},{bootstrap?.close();Unit},{nativeRoutes?.close();Unit},{nativePlatforms?.close();Unit},{routeExtras?.close();Unit},{extra?.close();Unit},{compact?.close();Unit},{usage?.close();Unit}),
                 completed={
                     if(core===previous)core=null
                     if(carrier===transport)carrier=null
                     if(carrierSwitchboard===board)carrierSwitchboard=null
                     if(optionalSession===extra)optionalSession=null
+                    if(compactSession===compact)compactSession=null
                     if(routeServerSession===routeExtras)routeServerSession=null
                     if(nativeRouteSession===nativeRoutes)nativeRouteSession=null
                     if(nativeRoutePlatforms===nativePlatforms)nativeRoutePlatforms=null
@@ -1540,12 +1698,27 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
             if(interrupted)Thread.currentThread().interrupt()
         }
     }
+    private fun retireFailedMainTransport(detail:String,requested:Long) {
+        if(requested!=epoch||destroyed||currentService!==this)return
+        val failure="Ошибка подключения: $detail"+
+            if(vpnMode)" Трафик приостановлен до нового подключения или отключения VPN."else""
+        status=failure;try{foreground(status)}catch(_:Exception){}
+        ClientEvents.record(this,"Ошибка",failure)
+        if(!fixtureMode)preferences.edit().putBoolean("wantedRunning",false).apply()
+        // An established VPN TUN stays held; retirement is never a direct bypass.
+        closeCore(keepTun=vpnMode)
+        if(requested==epoch&&!destroyed&&currentService===this){status=failure;try{foreground(status)}catch(_:Exception){}}
+    }
     private fun startTelemetry() {
         scheduleBsWifiCheck()
         val session = generation
         val requested = epoch
         notificationTraffic?.close()
         val fixedOutbound=OutboundObservation.fixed(runningConfig,target)
+        // Route defaults may send otherwise-unmatched traffic directly instead of
+        // through the profile's original target. Only the actual compiled final
+        // outbound may turn an optional-worker failure into main-session failure.
+        val fixedFinalOutbound=OutboundObservation.fixedFinal(runningConfig)
         fun live()=session==generation&&requested==epoch&&core!=null&&!destroyed&&currentService===this@McrfVpnService
         notificationTraffic=try{NotificationTrafficSampler(this,main,worker,{live()&&TrafficState.current.countersSupported},{
             val current=core
@@ -1563,6 +1736,7 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
             worker.execute {try {
                 if(session!=generation||requested!=epoch||destroyed||networkRecovery!=null||currentService!==this@McrfVpnService)return@execute
                 val current=core?:return@execute
+                routeBindingSelection?.tick(SystemClock.elapsedRealtime(),{tag->current.health(tag,healthUrl,2500)},{group,tag->current.selectOutbound(group,tag)},{!live()||core!==current})
                 // A live primary SOCKS/TUN does not mean the external carrier is
                 // alive. Manual sessions previously kept a green status after
                 // the owned transport died. BS sessions retain their existing
@@ -1582,19 +1756,19 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
                     ClientEvents.record(this@McrfVpnService,"Маршруты",if(tag.startsWith("mcrf-route-"))
                         "Модуль сервера отдельного правила остановился. Трафик этого правила не переводится на основной сервер."
                         else "Дополнительный модуль остановился. Его выходы не заменяются другим сервером автоматически.")
-                    optionalSession?.failureDetail(tag)?.let {ClientEvents.record(this@McrfVpnService,"Ошибка движка",it)}
+                    val detail=optionalSession?.failureDetail(tag)
+                    detail?.let {ClientEvents.record(this@McrfVpnService,"Ошибка движка",it)}
                 }
-                val transportFailure=if(automaticCarrier)null else carrier?.runtimeFailure()
+                // Notification delivery is one-shot; main-session health must remain
+                // observable on subsequent ticks even if a prior reporting step failed.
+                val extras=optionalSession
+                val dead=extras?.deadTags().orEmpty()
+                val primaryOptionalFailure=fixedFinalOutbound?.takeIf {it in dead}?.let {tag->
+                    "Дополнительное ядро основного выхода остановилось. ${extras?.failureDetail(tag).orEmpty()}"
+                }
+                val transportFailure=primaryOptionalFailure ?: if(automaticCarrier)null else carrier?.runtimeFailure()
                 if(transportFailure!=null){
-                    val failure="Ошибка подключения: $transportFailure"+
-                        if(vpnMode)" Трафик приостановлен до нового подключения или отключения VPN."else""
-                    status=failure;try{foreground(status)}catch(_:Exception){}
-                    ClientEvents.record(this@McrfVpnService,"Ошибка",failure)
-                    if(!fixtureMode)preferences.edit().putBoolean("wantedRunning",false).apply()
-                    // Retain an established TUN while retiring its exact owner;
-                    // do not silently expose VPN traffic directly on failure.
-                    closeCore(keepTun=vpnMode)
-                    if(requested==epoch&&!destroyed&&currentService===this@McrfVpnService){status=failure;try{foreground(status)}catch(_:Exception){}}
+                    retireFailedMainTransport(transportFailure,requested)
                     return@execute
                 }
                 val outbound=if(current.choiceId=="singbox")fixedOutbound?:current.selectedOutbound(target)else""
@@ -1603,6 +1777,15 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
                     val hot=currentStart?.candidate?.takeIf {carrierSwitchboard!=null}
                     if(hot!=null){selectedId=hot.getString("id");TrafficState.server(hot.getString("name"))}
                     else {ids[outbound]?.let {selectedId=it};names[outbound]?.let(TrafficState::server)}
+                }
+                if(current.choiceId=="singbox"&&extras!=null){
+                    val failed=OutboundObservation.failedManualFinal(runningConfig,autoAllowed(),dead){group->
+                        if(group==target)outbound else current.selectedOutbound(group)
+                    }
+                    if(failed!=null){
+                        retireFailedMainTransport("Дополнительное ядро выбранного основного выхода остановилось. ${extras.failureDetail(failed).orEmpty()}",requested)
+                        return@execute
+                    }
                 }
                 carrierSwitchboard?.retireDrained()
             }catch(_:Exception){}finally{main.post {if(session==generation&&requested==epoch&&core!=null&&!destroyed&&currentService===this@McrfVpnService){foreground(status);main.postDelayed(this,2000)}}}}
@@ -1653,6 +1836,7 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         }}
     }
     override fun onDestroy() {
+        preferences.unregisterOnSharedPreferenceChangeListener(boundSelectionListener);main.removeCallbacks(boundSelectionReload)
         ProbeCoordinator.cancelRuntime(this)
         bsDetection?.close();bsDetection=null
         bsWifiPaused=null;main.removeCallbacks(bsWifiCheck);bsWifiMonitor?.close();bsWifiMonitor=null
@@ -1660,6 +1844,7 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         // Service: even a queued cleanup task must block its new native START.
         retiringServices.add(this)
         destroyed=true;epoch++;clearNetworkRecovery();core?.requestStop()
+        wakeCheckTask?.let(main::removeCallbacks);wakeCheckTask=null
         releaseBsPowerLease()
         if(wakeRegistered){try{unregisterReceiver(wakeReceiver)}catch(_:IllegalArgumentException){};wakeRegistered=false}
         ClientBehaviorUi.applyRecents(this);localProxyPort=0

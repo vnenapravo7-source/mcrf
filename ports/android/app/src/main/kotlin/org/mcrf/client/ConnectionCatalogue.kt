@@ -6,6 +6,7 @@ import java.util.UUID
 
 /** Pure transaction model. The v1 schema remains compatible with existing encrypted catalogues. */
 class ConnectionCatalogue(source: String) {
+    companion object { const val MAX_SUBSCRIPTIONS = 256 }
     private val data = if (source.isEmpty()) JSONObject().put("version", 1)
         .put("servers", JSONArray()).put("subscriptions", JSONArray()) else JSONObject(source)
     init {
@@ -13,7 +14,7 @@ class ConnectionCatalogue(source: String) {
         if (!data.has("subscriptions")) data.put("subscriptions", JSONArray())
         data.getJSONArray("servers")
         val subscriptions = data.getJSONArray("subscriptions")
-        require(subscriptions.length() <= 256) { "Слишком много подписок." }
+        require(subscriptions.length() <= MAX_SUBSCRIPTIONS) { "Слишком много подписок." }
         val ids = hashSetOf<String>(); val urls = hashSetOf<String>()
         repeat(subscriptions.length()) { i ->
             val sub = subscriptions.getJSONObject(i)
@@ -73,7 +74,7 @@ class ConnectionCatalogue(source: String) {
         sub.put("url", url).put("servers", JSONArray(after.map { it.original })).put("updatedAt", System.currentTimeMillis())
         if (metadata != null) sub.put("metadata", JSONObject(metadata.toString()))
         if (index == null) {
-            require(subscriptions.length() < 256) { "Слишком много подписок." }
+            require(subscriptions.length() < MAX_SUBSCRIPTIONS) { "Слишком много подписок." }
             subscriptions.put(sub)
         } else subscriptions.put(index, sub)
         preserveRenamedChoices(before, after)

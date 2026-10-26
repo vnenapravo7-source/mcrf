@@ -1,0 +1,79 @@
+{"Time":"2026-10-24T11:18:25.7233591+03:00","Action":"start","Package":"github.com/net2share/vaydns/client"}
+{"Time":"2026-10-24T11:18:25.7233591+03:00","Action":"start","Package":"github.com/net2share/vaydns/cmd/mcrf-vaydns"}
+{"Time":"2026-10-24T11:18:25.7233591+03:00","Action":"start","Package":"github.com/net2share/vaydns/mcrf-integration"}
+{"Time":"2026-10-24T11:18:26.1692328+03:00","Action":"run","Package":"github.com/net2share/vaydns/cmd/mcrf-vaydns","Test":"TestMcrfVayConfigStrictBoundary"}
+{"Time":"2026-10-24T11:18:26.1692328+03:00","Action":"output","Package":"github.com/net2share/vaydns/cmd/mcrf-vaydns","Test":"TestMcrfVayConfigStrictBoundary","Output":"=== RUN   TestMcrfVayConfigStrictBoundary\n"}
+{"Time":"2026-10-24T11:18:26.1692328+03:00","Action":"output","Package":"github.com/net2share/vaydns/cmd/mcrf-vaydns","Test":"TestMcrfVayConfigStrictBoundary","Output":"--- PASS: TestMcrfVayConfigStrictBoundary (0.00s)\n"}
+{"Time":"2026-10-24T11:18:26.1697492+03:00","Action":"pass","Package":"github.com/net2share/vaydns/cmd/mcrf-vaydns","Test":"TestMcrfVayConfigStrictBoundary","Elapsed":0}
+{"Time":"2026-10-24T11:18:26.1697492+03:00","Action":"output","Package":"github.com/net2share/vaydns/cmd/mcrf-vaydns","Output":"PASS\n"}
+{"Time":"2026-10-24T11:18:26.1719187+03:00","Action":"output","Package":"github.com/net2share/vaydns/cmd/mcrf-vaydns","Output":"ok  \tgithub.com/net2share/vaydns/cmd/mcrf-vaydns\t0.449s\n"}
+{"Time":"2026-10-24T11:18:26.1719187+03:00","Action":"pass","Package":"github.com/net2share/vaydns/cmd/mcrf-vaydns","Elapsed":0.449}
+{"Time":"2026-10-24T11:18:26.4754448+03:00","Action":"run","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfServeRejectsUnprotectedListener"}
+{"Time":"2026-10-24T11:18:26.4754448+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfServeRejectsUnprotectedListener","Output":"=== RUN   TestMcrfServeRejectsUnprotectedListener\n"}
+{"Time":"2026-10-24T11:18:26.4764758+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfServeRejectsUnprotectedListener","Output":"--- PASS: TestMcrfServeRejectsUnprotectedListener (0.00s)\n"}
+{"Time":"2026-10-24T11:18:26.4764758+03:00","Action":"pass","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfServeRejectsUnprotectedListener","Elapsed":0}
+{"Time":"2026-10-24T11:18:26.4764758+03:00","Action":"run","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfServeRejectsWildcardListener"}
+{"Time":"2026-10-24T11:18:26.4764758+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfServeRejectsWildcardListener","Output":"=== RUN   TestMcrfServeRejectsWildcardListener\n"}
+{"Time":"2026-10-24T11:18:26.4764758+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfServeRejectsWildcardListener","Output":"--- PASS: TestMcrfServeRejectsWildcardListener (0.00s)\n"}
+{"Time":"2026-10-24T11:18:26.4764758+03:00","Action":"pass","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfServeRejectsWildcardListener","Elapsed":0}
+{"Time":"2026-10-24T11:18:26.4764758+03:00","Action":"run","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfBackoffCancellation"}
+{"Time":"2026-10-24T11:18:26.4764758+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfBackoffCancellation","Output":"=== RUN   TestMcrfBackoffCancellation\n"}
+{"Time":"2026-10-24T11:18:26.4764758+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfBackoffCancellation","Output":"--- PASS: TestMcrfBackoffCancellation (0.00s)\n"}
+{"Time":"2026-10-24T11:18:26.4764758+03:00","Action":"pass","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfBackoffCancellation","Elapsed":0}
+{"Time":"2026-10-24T11:18:26.4764758+03:00","Action":"run","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfRemoteAuthPreservesTerminalFailure"}
+{"Time":"2026-10-24T11:18:26.4764758+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfRemoteAuthPreservesTerminalFailure","Output":"=== RUN   TestMcrfRemoteAuthPreservesTerminalFailure\n"}
+{"Time":"2026-10-24T11:18:26.4764758+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfRemoteAuthPreservesTerminalFailure","Output":"--- PASS: TestMcrfRemoteAuthPreservesTerminalFailure (0.00s)\n"}
+{"Time":"2026-10-24T11:18:26.4764758+03:00","Action":"pass","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfRemoteAuthPreservesTerminalFailure","Elapsed":0}
+{"Time":"2026-10-24T11:18:26.4764758+03:00","Action":"run","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfVayCapacityQueuesAndCancels"}
+{"Time":"2026-10-24T11:18:26.4764758+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfVayCapacityQueuesAndCancels","Output":"=== RUN   TestMcrfVayCapacityQueuesAndCancels\n"}
+{"Time":"2026-10-24T11:18:26.4832413+03:00","Action":"run","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayOwnedDNSNoiseSOCKSData"}
+{"Time":"2026-10-24T11:18:26.4832413+03:00","Action":"output","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayOwnedDNSNoiseSOCKSData","Output":"=== RUN   TestMcrfVayOwnedDNSNoiseSOCKSData\n"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfVayCapacityQueuesAndCancels","Output":"--- PASS: TestMcrfVayCapacityQueuesAndCancels (0.05s)\n"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"pass","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfVayCapacityQueuesAndCancels","Elapsed":0.05}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"run","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSRejectsInvalidCredentials"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSRejectsInvalidCredentials","Output":"=== RUN   TestMcrfSOCKSRejectsInvalidCredentials\n"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSRejectsInvalidCredentials","Output":"--- PASS: TestMcrfSOCKSRejectsInvalidCredentials (0.00s)\n"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"pass","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSRejectsInvalidCredentials","Elapsed":0}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"run","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSLocalDoesNotConsumeConnectRequest"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSLocalDoesNotConsumeConnectRequest","Output":"=== RUN   TestMcrfSOCKSLocalDoesNotConsumeConnectRequest\n"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSLocalDoesNotConsumeConnectRequest","Output":"--- PASS: TestMcrfSOCKSLocalDoesNotConsumeConnectRequest (0.00s)\n"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"pass","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSLocalDoesNotConsumeConnectRequest","Elapsed":0}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"run","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSLocalRejectsUnauthenticatedClient"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSLocalRejectsUnauthenticatedClient","Output":"=== RUN   TestMcrfSOCKSLocalRejectsUnauthenticatedClient\n"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSLocalRejectsUnauthenticatedClient","Output":"--- PASS: TestMcrfSOCKSLocalRejectsUnauthenticatedClient (0.00s)\n"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"pass","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSLocalRejectsUnauthenticatedClient","Elapsed":0}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"run","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSRemoteRefusalIsTerminal"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSRemoteRefusalIsTerminal","Output":"=== RUN   TestMcrfSOCKSRemoteRefusalIsTerminal\n"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSRemoteRefusalIsTerminal","Output":"--- PASS: TestMcrfSOCKSRemoteRefusalIsTerminal (0.00s)\n"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"pass","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSRemoteRefusalIsTerminal","Elapsed":0}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"run","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSLocalRejectsWrongPassword"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSLocalRejectsWrongPassword","Output":"=== RUN   TestMcrfSOCKSLocalRejectsWrongPassword\n"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSLocalRejectsWrongPassword","Output":"--- PASS: TestMcrfSOCKSLocalRejectsWrongPassword (0.00s)\n"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"pass","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSLocalRejectsWrongPassword","Elapsed":0}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"run","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSRemoteWrongProtocolIsTerminal"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSRemoteWrongProtocolIsTerminal","Output":"=== RUN   TestMcrfSOCKSRemoteWrongProtocolIsTerminal\n"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSRemoteWrongProtocolIsTerminal","Output":"--- PASS: TestMcrfSOCKSRemoteWrongProtocolIsTerminal (0.00s)\n"}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"pass","Package":"github.com/net2share/vaydns/client","Test":"TestMcrfSOCKSRemoteWrongProtocolIsTerminal","Elapsed":0}
+{"Time":"2026-10-24T11:18:26.5271983+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Output":"PASS\n"}
+{"Time":"2026-10-24T11:18:26.5321855+03:00","Action":"output","Package":"github.com/net2share/vaydns/client","Output":"ok  \tgithub.com/net2share/vaydns/client\t0.809s\n"}
+{"Time":"2026-10-24T11:18:26.5321855+03:00","Action":"pass","Package":"github.com/net2share/vaydns/client","Elapsed":0.809}
+{"Time":"2026-10-24T11:18:26.6334659+03:00","Action":"output","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayOwnedDNSNoiseSOCKSData","Output":"time=\"2026-10-24T11:18:26+03:00\" level=info msg=\"session 67232739 ready\"\n"}
+{"Time":"2026-10-24T11:18:26.8438653+03:00","Action":"output","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayOwnedDNSNoiseSOCKSData","Output":"--- PASS: TestMcrfVayOwnedDNSNoiseSOCKSData (0.36s)\n"}
+{"Time":"2026-10-24T11:18:26.8438653+03:00","Action":"pass","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayOwnedDNSNoiseSOCKSData","Elapsed":0.36}
+{"Time":"2026-10-24T11:18:26.8438653+03:00","Action":"run","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayLocalRejectionDoesNotOpenDNSStream"}
+{"Time":"2026-10-24T11:18:26.8438653+03:00","Action":"output","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayLocalRejectionDoesNotOpenDNSStream","Output":"=== RUN   TestMcrfVayLocalRejectionDoesNotOpenDNSStream\n"}
+{"Time":"2026-10-24T11:18:26.8474968+03:00","Action":"output","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayLocalRejectionDoesNotOpenDNSStream","Output":"time=\"2026-10-24T11:18:26+03:00\" level=info msg=\"session 9755b6b9 ready\"\n"}
+{"Time":"2026-10-24T11:18:27.0554337+03:00","Action":"output","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayLocalRejectionDoesNotOpenDNSStream","Output":"--- PASS: TestMcrfVayLocalRejectionDoesNotOpenDNSStream (0.21s)\n"}
+{"Time":"2026-10-24T11:18:27.0554337+03:00","Action":"pass","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayLocalRejectionDoesNotOpenDNSStream","Elapsed":0.21}
+{"Time":"2026-10-24T11:18:27.0554337+03:00","Action":"run","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayRemoteRejectionStopsWithoutRetry"}
+{"Time":"2026-10-24T11:18:27.0554337+03:00","Action":"output","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayRemoteRejectionStopsWithoutRetry","Output":"=== RUN   TestMcrfVayRemoteRejectionStopsWithoutRetry\n"}
+{"Time":"2026-10-24T11:18:27.0601853+03:00","Action":"output","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayRemoteRejectionStopsWithoutRetry","Output":"time=\"2026-10-24T11:18:27+03:00\" level=info msg=\"session 137efd99 ready\"\n"}
+{"Time":"2026-10-24T11:18:27.2672685+03:00","Action":"output","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayRemoteRejectionStopsWithoutRetry","Output":"--- PASS: TestMcrfVayRemoteRejectionStopsWithoutRetry (0.21s)\n"}
+{"Time":"2026-10-24T11:18:27.2672685+03:00","Action":"pass","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayRemoteRejectionStopsWithoutRetry","Elapsed":0.21}
+{"Time":"2026-10-24T11:18:27.2672685+03:00","Action":"run","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayStdinEOFStopsDuringLostNetwork"}
+{"Time":"2026-10-24T11:18:27.2672685+03:00","Action":"output","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayStdinEOFStopsDuringLostNetwork","Output":"=== RUN   TestMcrfVayStdinEOFStopsDuringLostNetwork\n"}
+{"Time":"2026-10-24T11:18:27.7504669+03:00","Action":"output","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayStdinEOFStopsDuringLostNetwork","Output":"--- PASS: TestMcrfVayStdinEOFStopsDuringLostNetwork (0.48s)\n"}
+{"Time":"2026-10-24T11:18:27.7504669+03:00","Action":"pass","Package":"github.com/net2share/vaydns/mcrf-integration","Test":"TestMcrfVayStdinEOFStopsDuringLostNetwork","Elapsed":0.48}
+{"Time":"2026-10-24T11:18:27.7504669+03:00","Action":"output","Package":"github.com/net2share/vaydns/mcrf-integration","Output":"PASS\n"}
+{"Time":"2026-10-24T11:18:27.7565505+03:00","Action":"output","Package":"github.com/net2share/vaydns/mcrf-integration","Output":"ok  \tgithub.com/net2share/vaydns/mcrf-integration\t2.033s\n"}
+{"Time":"2026-10-24T11:18:27.7565505+03:00","Action":"pass","Package":"github.com/net2share/vaydns/mcrf-integration","Elapsed":2.033}

@@ -1,0 +1,91 @@
+{
+  "hostEvidenceSha256": "221e9dd4bd7af844d8a97040ede228d4bfdd1779514c14cfc0d2a3346c05a9eb",
+  "turnFeatureInputs": [
+    {
+      "sha256": "850f0873a82d9f48fff862cc7dc2fc86da4a484c6a0754196e02cdbb7179aa1e",
+      "file": "bridge_config.go"
+    }
+  ],
+  "affectedLogSha256": "469eddf54fbdd805a554511f668a3a3910579098a8a20cbbf3b346471cfd1b83",
+  "p3PerformanceAuthority": "human-20261023-finish-current-fixes-then-p3-p4",
+  "affectedCases": [
+    "TestMcrfSixCallBridge",
+    "TestMcrfQwdttExtendedHashPool"
+  ],
+  "fingerprintContract": 1,
+  "newAffectedExecutionCount": 2,
+  "nativeExecuted": false,
+  "captchaWaiterCapability": "",
+  "apkBuilt": false,
+  "processGroupContract": 0,
+  "source": "D:/MCRF/Builds/Android/p3-turn-source-ab461da06329483eaa3a06139f2608c2/module",
+  "wdttDualFamilyContract": 0,
+  "stage": "D:/MCRF/Builds/Android/p3-turn-native-5a8ea013d59d42429029dfcf09238b67",
+  "hostTests": "PASS 4 new affected cases; unchanged feature evidence retained separately",
+  "sourceManifestSha256": "6d2700e295f49ccbbdd7337b4d9a60b86026cdf63d7cefb87598e45152c5a542",
+  "kind": "qwdtt",
+  "legacyTransportStage": "",
+  "sourceStable": true,
+  "packageVersionName": "0.1.0-performance.9",
+  "fingerprintInputs": [
+    {
+      "sha256": "77c7b281be0ceca59a1213edd631b1ad0c18723c14a8cdcc1e4e9441ea0b8ea4",
+      "file": "mcrf_qwdtt_fingerprint.go"
+    },
+    {
+      "sha256": "850f0873a82d9f48fff862cc7dc2fc86da4a484c6a0754196e02cdbb7179aa1e",
+      "file": "bridge_config.go"
+    },
+    {
+      "sha256": "f80c7e56e3dd28c97de70846d774bf2aded1b14e3229ebd62dfc50f5848d10e7",
+      "file": "creds.go"
+    },
+    {
+      "sha256": "ab857d764b58a70a46200bed5283f50caa1f7ff8a424dfec45ec795d037de3b6",
+      "file": "creds_vkcalls.go"
+    },
+    {
+      "sha256": "363605a4fce84c2e4a79690d3bd8b9ff911fdcdae9677aafcf00181be7dd77e9",
+      "file": "profiles.go"
+    },
+    {
+      "sha256": "c9d9fd30134662f6be112f155234e9d0eaa5623b6d6c0547743d26a6d43aeb33",
+      "file": "captcha_v2.go"
+    },
+    {
+      "sha256": "7e74db133f75d837bf151a384901b7e26659a3e7914c93e819e73433c852721c",
+      "file": "main.go"
+    }
+  ],
+  "turnHashPoolContract": 1,
+  "processGroupInputs": [],
+  "artifacts": [
+    {
+      "elfChecked": true,
+      "file": "arm64-v8a/libqwdtt.so",
+      "sha256": "8abcbc7d57c565b351adaf09b7cdf39b68aec090583e1b521d782eea830512ba",
+      "bytes": 18288400,
+      "abi": "arm64-v8a",
+      "nativeExecuted": false
+    },
+    {
+      "elfChecked": true,
+      "file": "armeabi-v7a/libqwdtt.so",
+      "sha256": "0fb86988ec1b2a5b8ac566e97ca066976f314646235283ae24517ff8563384e4",
+      "bytes": 17476500,
+      "abi": "armeabi-v7a",
+      "nativeExecuted": false
+    },
+    {
+      "elfChecked": true,
+      "file": "x86_64/libqwdtt.so",
+      "sha256": "99d5c8a2d6faabd164234e97f9577a56b0b30a303cb17a83a0cf8a34c07df518",
+      "bytes": 19446856,
+      "abi": "x86_64",
+      "nativeExecuted": false
+    }
+  ],
+  "packageVersionCode": 9,
+  "baselineReceiptSha256": "6ffc23c18ecfc68c8414864529540695f31f3e6f0d8b2e5501b64b65cbcfb51f",
+  "state": "COMPILED_NOT_EXECUTED"
+}

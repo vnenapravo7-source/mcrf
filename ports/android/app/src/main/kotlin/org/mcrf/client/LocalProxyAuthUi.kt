@@ -16,8 +16,11 @@ object LocalProxyAuthUi {
         val dialog=ThemedDialogBuilder(this).setTitle("Авторизация локального прокси").setView(body).setNegativeButton("Отмена",null).setPositiveButton("Сохранить",null).create()
         dialog.setOnShowListener {dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             if(active()){toast("Сначала отключите MCRF");return@setOnClickListener}
-            try{store.saveAuth(JSONObject(old.toString()).put("username",user.text.toString()).put("password",password.text.toString()));password.text.clear();dialog.dismiss();render()}
-            catch(_:Exception){password.error="Нужны логин и пароль длиной 1–255 байт без управляющих символов"}
+            val candidate=JSONObject(old.toString()).put("username",user.text.toString()).put("password",password.text.toString())
+            try {LocalProxyConfig.validate(candidate)}
+            catch(_:IllegalArgumentException){password.error="Нужны логин и пароль длиной 1–255 байт без управляющих символов";return@setOnClickListener}
+            try{store.saveAuth(candidate);password.text.clear();dialog.dismiss();render()}
+            catch(_:Exception){password.error="Не удалось подтвердить сохранение. Проверьте данные после повторного открытия."}
         }}
         dialog.setOnDismissListener {password.text.clear()};dialog.show()
     }

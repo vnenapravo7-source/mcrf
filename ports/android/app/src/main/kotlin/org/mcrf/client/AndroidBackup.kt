@@ -38,7 +38,7 @@ object AndroidBackup {
     internal fun sectionKeys() = sections.keys.toSet()+"webDavBackup"
     private val booleans = setOf("tun", "automatic", "applyRoutes", "catalogueProfile")
     private val integers = setOf("port", "interval", "tolerance", "subscriptionHours")
-    private val strings = setOf("theme", "selected", "dns", "autoPolicy")
+    private val strings = setOf("theme", "selected", "dns", "autoPolicy")+BsDetectionSites.keys
     @JvmStatic fun export(context: Context, password: CharArray): ByteArray {
         val source = synchronized(ProfileStore.storageLock) {
             val proxyAuth=LocalProxySettings.value(context)
@@ -134,6 +134,7 @@ object AndroidBackup {
         if(values.has("localProxy"))LocalProxyConfig.validate(values.getJSONObject("localProxy"))
         booleans.filter(values::has).forEach(values::getBoolean); integers.filter(values::has).forEach(values::getInt); strings.filter(values::has).forEach(values::getString)
         require(values.optInt("port", 10808) in 1024..65535 && values.optInt("interval", 60) in 5..86400 && values.optInt("tolerance", 50) in 0..10000)
+        BsDetectionSites.keys.filter(values::has).forEach {BsDetectionSites.normalize(values.getString(it))}
         require(values.optInt(BsDetectionInterval.KEY,BsDetectionInterval.DEFAULT) in BsDetectionInterval.seconds) { "Неизвестный интервал автоопределения БС." }
         require(values.optString(BsAutoSelectionPolicy.KEY,BsAutoSelectionPolicy.FASTEST) in BsAutoSelectionPolicy.modes) {"Неизвестный режим выбора сервера БС."}
         listOf(BsAutoSelectionPolicy.LAST_VPN,BsAutoSelectionPolicy.LAST_BS).forEach {key->require(values.optString(key).let {it.isEmpty()||it.matches(Regex("[0-9a-f]{64}"))}) {"Некорректный сохранённый сервер."}}

@@ -1,0 +1,62 @@
+{
+  "nativeChanged": false,
+  "testsExecuted": false,
+  "baselineReceiptSha256": "78d403d6b90302b84e0e120382e9257b329d0fefaad4c4ff44b7bf6c7b0c40ef",
+  "files": [
+    {
+      "bytes": 1084,
+      "sha256": "3d180008e36922a4e8daec11c34c7af264fed5962d07924aea928c38e8663c94",
+      "file": "brotli.txt"
+    },
+    {
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "file": "kotlin-Apache-2.0.txt"
+    },
+    {
+      "bytes": 482,
+      "sha256": "0b09a83d3ef7795c7dec65e815866597c066c53898f2852a76599b8f5552941a",
+      "file": "kotlin-NOTICE.txt"
+    },
+    {
+      "bytes": 1121,
+      "sha256": "6c2ea37323f6191cb829c3ae906a878f5c5fafa03b53d4155c0ce8053a5c8944",
+      "file": "libyaml-MIT.txt"
+    },
+    {
+      "bytes": 1080,
+      "sha256": "542dd526d2ea23565f0571cc68df6f05ed11248a90ff0f32de19d8ba589db513",
+      "file": "ngtcp2-MIT.txt"
+    },
+    {
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "file": "okhttp-Apache-2.0.txt"
+    },
+    {
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "file": "okio-Apache-2.0.txt"
+    },
+    {
+      "bytes": 35823,
+      "sha256": "230184f60bae2feaf244f10a8bac053c8ff33a183bcc365b4d8b876d2b7f4809",
+      "file": "steer-GPL-3.0.txt"
+    },
+    {
+      "bytes": 47764,
+      "sha256": "ef084f38c358192edf6db1ce698d0c5c3d5f4116df554e583df49cb937f36b09",
+      "file": "steer-tls49-NOTICES.txt"
+    },
+    {
+      "bytes": 35147,
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+      "file": "wolfSSL-COPYING.txt"
+    },
+    {
+      "bytes": 1549,
+      "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8",
+      "file": "zstd.txt"
+    }
+  ]
+}

@@ -24,7 +24,6 @@ data class EnginePackage(val abi: String, val version: String, val url: URI, val
         } ?: throw IllegalArgumentException("Для этой архитектуры пакет движков не собран.")
         fun find(releases: JSONArray, abi: String, engine:String?=null, previewTag:String?=null): EnginePackage {
             require(abi in setOf("arm64-v8a", "armeabi-v7a", "x86_64", "universal"))
-            require(engine!="csqtt25"||abi=="arm64-v8a") {"Для CSQTT 2.5 пока предоставлен только движок arm64. Старый CSQTT не заменяется и остаётся доступным."}
             val expected = if(engine==null)"mcrf-engines-$abi-release.apk"else EngineModules.assetName(engine,abi)
             // One enduring cross-platform catalogue; older Android tags stay as compatibility fallbacks.
             val order=(0 until releases.length()).sortedBy {

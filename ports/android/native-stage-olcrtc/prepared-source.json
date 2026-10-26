@@ -1,0 +1,10 @@
+{
+  "commit": "f3ad8fb7c0d0fa981423f83269526fa94077c23d",
+  "androidIntegrated": false,
+  "compiled": false,
+  "module": "D:/MCRF/Builds/Android/p3-olcrtc-source-02a0e70bd6e6446b8af068cfc1543aa8/module",
+  "manifestSha256": "9afa79fe6738ca6cf883c8ea6a88697390bba31834cedef97f8cbe8053d2dd95",
+  "adapterCommit": "8463d3397b0a8522f92811f5c0698679ab8efc77",
+  "executed": false,
+  "state": "SOURCE_PREPARED_NOT_COMPILED"
+}

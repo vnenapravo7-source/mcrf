@@ -1,0 +1,1741 @@
+{
+  "files": [
+    {
+      "sha256": "cacf078b978a768b9696928cde383db0846ff797a4917acd29b0093a86a876c6",
+      "bytes": 11565,
+      "file": "Slipstream-LICENSE",
+      "origin": "Mygod/slipstream-rust 7de506b Apache-2.0"
+    },
+    {
+      "sha256": "eb5c6aa04f0278bbe214a0b08b3a3fad778b0df78ddd423aa13dd27bebc3d0f2",
+      "bytes": 1093,
+      "file": "picoquic-LICENSE",
+      "origin": "Mygod/slipstream-picoquic d4a865c5"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "picotls-LICENSE",
+      "origin": "h2o/picotls 5a4461d8; exact leading comment from picotls.h"
+    },
+    {
+      "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+      "bytes": 10175,
+      "file": "openssl-LICENSE",
+      "origin": "openssl-src 300.6.0+3.6.2 pinned Cargo checksum"
+    },
+    {
+      "sha256": "f4e7f373b9b996950337e8d41a4a2939c2d90b7725e9baf3d5084a22717ad328",
+      "bytes": 7169,
+      "file": "c-dependencies/picotls/deps/cifra/COPYING",
+      "origin": "picotls"
+    },
+    {
+      "sha256": "fd0fcdaba5ad2a9ca9b051dd7db92b71a550ce8cd88c4aaae1a8edc564a71eec",
+      "bytes": 1321,
+      "file": "c-dependencies/picotls/deps/micro-ecc/LICENSE.txt",
+      "origin": "picotls"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/aes.c.txt",
+      "origin": "picotls; exact leading comment from aes.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/aes.h.txt",
+      "origin": "picotls; exact leading comment from aes.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/bitops.h.txt",
+      "origin": "picotls; exact leading comment from bitops.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/blockwise.c.txt",
+      "origin": "picotls; exact leading comment from blockwise.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/blockwise.h.txt",
+      "origin": "picotls; exact leading comment from blockwise.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/cbcmac.c.txt",
+      "origin": "picotls; exact leading comment from cbcmac.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/ccm.c.txt",
+      "origin": "picotls; exact leading comment from ccm.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/cf_config.h.txt",
+      "origin": "picotls; exact leading comment from cf_config.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/chacha20.c.txt",
+      "origin": "picotls; exact leading comment from chacha20.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/chacha20poly1305.c.txt",
+      "origin": "picotls; exact leading comment from chacha20poly1305.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/chacha20poly1305.h.txt",
+      "origin": "picotls; exact leading comment from chacha20poly1305.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/chash.c.txt",
+      "origin": "picotls; exact leading comment from chash.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/chash.h.txt",
+      "origin": "picotls; exact leading comment from chash.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/cmac.c.txt",
+      "origin": "picotls; exact leading comment from cmac.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/curve25519.c.txt",
+      "origin": "picotls; exact leading comment from curve25519.c"
+    },
+    {
+      "sha256": "d22c60a72a059077f0d258ef7b77977fa96e78922a63ca22f7102ce408c6f9bd",
+      "bytes": 2277,
+      "file": "c-embedded/picotls/deps/cifra/src/curve25519.donna.c.txt",
+      "origin": "picotls; exact leading comment from curve25519.donna.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/curve25519.h.txt",
+      "origin": "picotls; exact leading comment from curve25519.h"
+    },
+    {
+      "sha256": "af20df4086a1b24c269061643534e6ea243283e1aefbeadd409513e7547b5ecc",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/drbg.c.txt",
+      "origin": "picotls; exact leading comment from drbg.c"
+    },
+    {
+      "sha256": "af20df4086a1b24c269061643534e6ea243283e1aefbeadd409513e7547b5ecc",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/drbg.h.txt",
+      "origin": "picotls; exact leading comment from drbg.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/eax.c.txt",
+      "origin": "picotls; exact leading comment from eax.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/gcm.c.txt",
+      "origin": "picotls; exact leading comment from gcm.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/gf128.c.txt",
+      "origin": "picotls; exact leading comment from gf128.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/gf128.h.txt",
+      "origin": "picotls; exact leading comment from gf128.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/hmac.c.txt",
+      "origin": "picotls; exact leading comment from hmac.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/hmac.h.txt",
+      "origin": "picotls; exact leading comment from hmac.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/modes.c.txt",
+      "origin": "picotls; exact leading comment from modes.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/modes.h.txt",
+      "origin": "picotls; exact leading comment from modes.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/norx.c.txt",
+      "origin": "picotls; exact leading comment from norx.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/norx.h.txt",
+      "origin": "picotls; exact leading comment from norx.h"
+    },
+    {
+      "sha256": "af20df4086a1b24c269061643534e6ea243283e1aefbeadd409513e7547b5ecc",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/ocb.c.txt",
+      "origin": "picotls; exact leading comment from ocb.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/pbkdf2.c.txt",
+      "origin": "picotls; exact leading comment from pbkdf2.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/pbkdf2.h.txt",
+      "origin": "picotls; exact leading comment from pbkdf2.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/poly1305.c.txt",
+      "origin": "picotls; exact leading comment from poly1305.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/poly1305.h.txt",
+      "origin": "picotls; exact leading comment from poly1305.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/prp.h.txt",
+      "origin": "picotls; exact leading comment from prp.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/salsa20.c.txt",
+      "origin": "picotls; exact leading comment from salsa20.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/salsa20.h.txt",
+      "origin": "picotls; exact leading comment from salsa20.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/sha1.c.txt",
+      "origin": "picotls; exact leading comment from sha1.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/sha1.h.txt",
+      "origin": "picotls; exact leading comment from sha1.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/sha2.h.txt",
+      "origin": "picotls; exact leading comment from sha2.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/sha256.c.txt",
+      "origin": "picotls; exact leading comment from sha256.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/sha3.c.txt",
+      "origin": "picotls; exact leading comment from sha3.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/sha3.h.txt",
+      "origin": "picotls; exact leading comment from sha3.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/sha512.c.txt",
+      "origin": "picotls; exact leading comment from sha512.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/tassert.h.txt",
+      "origin": "picotls; exact leading comment from tassert.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/testaes.c.txt",
+      "origin": "picotls; exact leading comment from testaes.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/testchacha20poly1305.c.txt",
+      "origin": "picotls; exact leading comment from testchacha20poly1305.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/testcurve25519.c.txt",
+      "origin": "picotls; exact leading comment from testcurve25519.c"
+    },
+    {
+      "sha256": "af20df4086a1b24c269061643534e6ea243283e1aefbeadd409513e7547b5ecc",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/testdrbg.c.txt",
+      "origin": "picotls; exact leading comment from testdrbg.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/testmodes.c.txt",
+      "origin": "picotls; exact leading comment from testmodes.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/testnorx.c.txt",
+      "origin": "picotls; exact leading comment from testnorx.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/testpoly1305.c.txt",
+      "origin": "picotls; exact leading comment from testpoly1305.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/testsalsa20.c.txt",
+      "origin": "picotls; exact leading comment from testsalsa20.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/testsha.h.txt",
+      "origin": "picotls; exact leading comment from testsha.h"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/testsha1.c.txt",
+      "origin": "picotls; exact leading comment from testsha1.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/testsha2.c.txt",
+      "origin": "picotls; exact leading comment from testsha2.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/testsha3.c.txt",
+      "origin": "picotls; exact leading comment from testsha3.c"
+    },
+    {
+      "sha256": "edc7b4312324b164017cd9b81990f6919de34a3d2975df2bac075433fa5ca9aa",
+      "bytes": 518,
+      "file": "c-embedded/picotls/deps/cifra/src/testutil.h.txt",
+      "origin": "picotls; exact leading comment from testutil.h"
+    },
+    {
+      "sha256": "8297b3a908d15a1eabfc3f32161ec976b8d3846b7266b80d9d72fa1d3e3d4872",
+      "bytes": 885,
+      "file": "c-embedded/picotls/deps/cifra/src/ext/cutest.h.txt",
+      "origin": "picotls; exact leading comment from cutest.h"
+    },
+    {
+      "sha256": "bc4f442809266304a12552ef09d7f32f809120a01eca60ec3a5490ee9d3e0a86",
+      "bytes": 78,
+      "file": "c-embedded/picotls/deps/micro-ecc/types.h.txt",
+      "origin": "picotls; exact leading comment from types.h"
+    },
+    {
+      "sha256": "bc4f442809266304a12552ef09d7f32f809120a01eca60ec3a5490ee9d3e0a86",
+      "bytes": 78,
+      "file": "c-embedded/picotls/deps/micro-ecc/uECC_vli.h.txt",
+      "origin": "picotls; exact leading comment from uECC_vli.h"
+    },
+    {
+      "sha256": "038d192f71d5c5b530d9402250fde3550f4c254d6a7e68d871800eb555a663ac",
+      "bytes": 78,
+      "file": "c-embedded/picotls/deps/micro-ecc/uECC.c.txt",
+      "origin": "picotls; exact leading comment from uECC.c"
+    },
+    {
+      "sha256": "038d192f71d5c5b530d9402250fde3550f4c254d6a7e68d871800eb555a663ac",
+      "bytes": 78,
+      "file": "c-embedded/picotls/deps/micro-ecc/uECC.h.txt",
+      "origin": "picotls; exact leading comment from uECC.h"
+    },
+    {
+      "sha256": "d3c21f7f27f3a49f66986462081fb2640465dcf519a5df74101ee82ae44bcefb",
+      "bytes": 78,
+      "file": "c-embedded/picotls/deps/micro-ecc/test/ecdsa_test_vectors.c.txt",
+      "origin": "picotls; exact leading comment from ecdsa_test_vectors.c"
+    },
+    {
+      "sha256": "d3c21f7f27f3a49f66986462081fb2640465dcf519a5df74101ee82ae44bcefb",
+      "bytes": 78,
+      "file": "c-embedded/picotls/deps/micro-ecc/test/public_key_test_vectors.c.txt",
+      "origin": "picotls; exact leading comment from public_key_test_vectors.c"
+    },
+    {
+      "sha256": "038d192f71d5c5b530d9402250fde3550f4c254d6a7e68d871800eb555a663ac",
+      "bytes": 78,
+      "file": "c-embedded/picotls/deps/micro-ecc/test/test_compress.c.txt",
+      "origin": "picotls; exact leading comment from test_compress.c"
+    },
+    {
+      "sha256": "038d192f71d5c5b530d9402250fde3550f4c254d6a7e68d871800eb555a663ac",
+      "bytes": 78,
+      "file": "c-embedded/picotls/deps/micro-ecc/test/test_compute.c.txt",
+      "origin": "picotls; exact leading comment from test_compute.c"
+    },
+    {
+      "sha256": "038d192f71d5c5b530d9402250fde3550f4c254d6a7e68d871800eb555a663ac",
+      "bytes": 78,
+      "file": "c-embedded/picotls/deps/micro-ecc/test/test_ecdh.c.txt",
+      "origin": "picotls; exact leading comment from test_ecdh.c"
+    },
+    {
+      "sha256": "038d192f71d5c5b530d9402250fde3550f4c254d6a7e68d871800eb555a663ac",
+      "bytes": 78,
+      "file": "c-embedded/picotls/deps/micro-ecc/test/test_ecdsa.c.txt",
+      "origin": "picotls; exact leading comment from test_ecdsa.c"
+    },
+    {
+      "sha256": "6dfdf82058702e19650033c2870d00fb097356e4b0b3d251a56db4ada1217ee2",
+      "bytes": 1138,
+      "file": "c-embedded/picotls/deps/picotest/picotest.c.txt",
+      "origin": "picotls; exact leading comment from picotest.c"
+    },
+    {
+      "sha256": "6dfdf82058702e19650033c2870d00fb097356e4b0b3d251a56db4ada1217ee2",
+      "bytes": 1138,
+      "file": "c-embedded/picotls/deps/picotest/picotest.h.txt",
+      "origin": "picotls; exact leading comment from picotest.h"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/include/picotls.h.txt",
+      "origin": "picotls; exact leading comment from picotls.h"
+    },
+    {
+      "sha256": "74b7e6e25e7477afa4af9c470e1545a24efdbc29a3cc750af8d99611a32fbc5c",
+      "bytes": 811,
+      "file": "c-embedded/picotls/include/picotls/asn1.h.txt",
+      "origin": "picotls; exact leading comment from asn1.h"
+    },
+    {
+      "sha256": "443e775f2c883c44bba5c62179226b7ed872a003a6a1a62aa85633c2b0a1feb8",
+      "bytes": 1130,
+      "file": "c-embedded/picotls/include/picotls/certificate_compression.h.txt",
+      "origin": "picotls; exact leading comment from certificate_compression.h"
+    },
+    {
+      "sha256": "f6cf1ec421d63533ab57ad9f4cafca6d92ae483e8b994789a975e8f802d30adc",
+      "bytes": 811,
+      "file": "c-embedded/picotls/include/picotls/ffx.h.txt",
+      "origin": "picotls; exact leading comment from ffx.h"
+    },
+    {
+      "sha256": "1af9d629db1c3be4f12d083e0233f0cbccd836d088d4980f607af2e0af99a46d",
+      "bytes": 1142,
+      "file": "c-embedded/picotls/include/picotls/fusion.h.txt",
+      "origin": "picotls; exact leading comment from fusion.h"
+    },
+    {
+      "sha256": "f572bb53dc1cdedfe60c93c683c8242fd636a3bb5bd9a82c881dbb9e8cd14958",
+      "bytes": 1142,
+      "file": "c-embedded/picotls/include/picotls/mbedtls.h.txt",
+      "origin": "picotls; exact leading comment from mbedtls.h"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/include/picotls/minicrypto.h.txt",
+      "origin": "picotls; exact leading comment from minicrypto.h"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/include/picotls/openssl.h.txt",
+      "origin": "picotls; exact leading comment from openssl.h"
+    },
+    {
+      "sha256": "74b7e6e25e7477afa4af9c470e1545a24efdbc29a3cc750af8d99611a32fbc5c",
+      "bytes": 811,
+      "file": "c-embedded/picotls/include/picotls/pembase64.h.txt",
+      "origin": "picotls; exact leading comment from pembase64.h"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/include/picotls/ptlsbcrypt.h.txt",
+      "origin": "picotls; exact leading comment from ptlsbcrypt.h"
+    },
+    {
+      "sha256": "3121af7e347eb51ac949c2055a74c8274a98929b3266d785a0d395ef478d48fa",
+      "bytes": 811,
+      "file": "c-embedded/picotls/lib/asn1.c.txt",
+      "origin": "picotls; exact leading comment from asn1.c"
+    },
+    {
+      "sha256": "443e775f2c883c44bba5c62179226b7ed872a003a6a1a62aa85633c2b0a1feb8",
+      "bytes": 1130,
+      "file": "c-embedded/picotls/lib/certificate_compression.c.txt",
+      "origin": "picotls; exact leading comment from certificate_compression.c"
+    },
+    {
+      "sha256": "7843c87face3e9dbb8f47588e79cf03f434e04001882b80624a437c3758465a3",
+      "bytes": 1223,
+      "file": "c-embedded/picotls/lib/chacha20poly1305.h.txt",
+      "origin": "picotls; exact leading comment from chacha20poly1305.h"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/lib/cifra.c.txt",
+      "origin": "picotls; exact leading comment from cifra.c"
+    },
+    {
+      "sha256": "3121af7e347eb51ac949c2055a74c8274a98929b3266d785a0d395ef478d48fa",
+      "bytes": 811,
+      "file": "c-embedded/picotls/lib/ffx.c.txt",
+      "origin": "picotls; exact leading comment from ffx.c"
+    },
+    {
+      "sha256": "937ee9610b76bfecfd213b8e7389a015ba0dea5f04bcc085bb73a083b173db8d",
+      "bytes": 1878,
+      "file": "c-embedded/picotls/lib/fusion.c.txt",
+      "origin": "picotls; exact leading comment from fusion.c"
+    },
+    {
+      "sha256": "855d27fccd2bc9b86b1f903f8bdf4455229be7e4d415ca03460ac91f9a3908ed",
+      "bytes": 1142,
+      "file": "c-embedded/picotls/lib/hpke.c.txt",
+      "origin": "picotls; exact leading comment from hpke.c"
+    },
+    {
+      "sha256": "e26bc32f7de3c650740549bab6afe9dc1303826c55635bbce7b245f4b11ea1f2",
+      "bytes": 1135,
+      "file": "c-embedded/picotls/lib/libaegis.h.txt",
+      "origin": "picotls; exact leading comment from libaegis.h"
+    },
+    {
+      "sha256": "f572bb53dc1cdedfe60c93c683c8242fd636a3bb5bd9a82c881dbb9e8cd14958",
+      "bytes": 1142,
+      "file": "c-embedded/picotls/lib/mbedtls_sign.c.txt",
+      "origin": "picotls; exact leading comment from mbedtls_sign.c"
+    },
+    {
+      "sha256": "f572bb53dc1cdedfe60c93c683c8242fd636a3bb5bd9a82c881dbb9e8cd14958",
+      "bytes": 1142,
+      "file": "c-embedded/picotls/lib/mbedtls.c.txt",
+      "origin": "picotls; exact leading comment from mbedtls.c"
+    },
+    {
+      "sha256": "b8b91178a1647fae7b3df9b7b5917540b62d4ce6fe56d545a244e710159ecf9b",
+      "bytes": 1146,
+      "file": "c-embedded/picotls/lib/minicrypto-pem.c.txt",
+      "origin": "picotls; exact leading comment from minicrypto-pem.c"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/lib/openssl.c.txt",
+      "origin": "picotls; exact leading comment from openssl.c"
+    },
+    {
+      "sha256": "3121af7e347eb51ac949c2055a74c8274a98929b3266d785a0d395ef478d48fa",
+      "bytes": 811,
+      "file": "c-embedded/picotls/lib/pembase64.c.txt",
+      "origin": "picotls; exact leading comment from pembase64.c"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/lib/picotls.c.txt",
+      "origin": "picotls; exact leading comment from picotls.c"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/lib/ptlsbcrypt.c.txt",
+      "origin": "picotls; exact leading comment from ptlsbcrypt.c"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/lib/uecc.c.txt",
+      "origin": "picotls; exact leading comment from uecc.c"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/lib/cifra/aes-common.h.txt",
+      "origin": "picotls; exact leading comment from aes-common.h"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/lib/cifra/aes128.c.txt",
+      "origin": "picotls; exact leading comment from aes128.c"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/lib/cifra/aes256.c.txt",
+      "origin": "picotls; exact leading comment from aes256.c"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/lib/cifra/chacha20.c.txt",
+      "origin": "picotls; exact leading comment from chacha20.c"
+    },
+    {
+      "sha256": "e26bc32f7de3c650740549bab6afe9dc1303826c55635bbce7b245f4b11ea1f2",
+      "bytes": 1135,
+      "file": "c-embedded/picotls/lib/cifra/libaegis.c.txt",
+      "origin": "picotls; exact leading comment from libaegis.c"
+    },
+    {
+      "sha256": "ccf75d834d4d553fb33affa57d3347407f69790de628936ca80d3ec228f231c9",
+      "bytes": 1174,
+      "file": "c-embedded/picotls/lib/cifra/random.c.txt",
+      "origin": "picotls; exact leading comment from random.c"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/lib/cifra/x25519.c.txt",
+      "origin": "picotls; exact leading comment from x25519.c"
+    },
+    {
+      "sha256": "3121af7e347eb51ac949c2055a74c8274a98929b3266d785a0d395ef478d48fa",
+      "bytes": 811,
+      "file": "c-embedded/picotls/picotlsvs/picotls/wintimeofday.c.txt",
+      "origin": "picotls; exact leading comment from wintimeofday.c"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/t/cli.c.txt",
+      "origin": "picotls; exact leading comment from cli.c"
+    },
+    {
+      "sha256": "1af9d629db1c3be4f12d083e0233f0cbccd836d088d4980f607af2e0af99a46d",
+      "bytes": 1142,
+      "file": "c-embedded/picotls/t/fusion.c.txt",
+      "origin": "picotls; exact leading comment from fusion.c"
+    },
+    {
+      "sha256": "855d27fccd2bc9b86b1f903f8bdf4455229be7e4d415ca03460ac91f9a3908ed",
+      "bytes": 1142,
+      "file": "c-embedded/picotls/t/hpke.c.txt",
+      "origin": "picotls; exact leading comment from hpke.c"
+    },
+    {
+      "sha256": "f572bb53dc1cdedfe60c93c683c8242fd636a3bb5bd9a82c881dbb9e8cd14958",
+      "bytes": 1142,
+      "file": "c-embedded/picotls/t/mbedtls.c.txt",
+      "origin": "picotls; exact leading comment from mbedtls.c"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/t/minicrypto.c.txt",
+      "origin": "picotls; exact leading comment from minicrypto.c"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/t/openssl.c.txt",
+      "origin": "picotls; exact leading comment from openssl.c"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/t/picotls.c.txt",
+      "origin": "picotls; exact leading comment from picotls.c"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/t/ptlsbench.c.txt",
+      "origin": "picotls; exact leading comment from ptlsbench.c"
+    },
+    {
+      "sha256": "96b53545fc595cf482b4c6f10cb3d3475354eaa3fae2d56d9d0dfafa9335f3ca",
+      "bytes": 1150,
+      "file": "c-embedded/picotls/t/test.h.txt",
+      "origin": "picotls; exact leading comment from test.h"
+    },
+    {
+      "sha256": "4a8830bd0c9ac76b2a52ddb877cc52a68e860de2fb7a2b37165d977c6bd9e7a9",
+      "bytes": 1163,
+      "file": "c-embedded/picotls/t/util.h.txt",
+      "origin": "picotls; exact leading comment from util.h"
+    },
+    {
+      "sha256": "eb5c6aa04f0278bbe214a0b08b3a3fad778b0df78ddd423aa13dd27bebc3d0f2",
+      "bytes": 1093,
+      "file": "c-dependencies/picoquic/LICENSE",
+      "origin": "picoquic"
+    },
+    {
+      "sha256": "ccdbc4838f862685d7af6d86535161c85f618fceaba947bb7bf642a2a227ca53",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/bbr.c.txt",
+      "origin": "picoquic; exact leading comment from bbr.c"
+    },
+    {
+      "sha256": "ccdbc4838f862685d7af6d86535161c85f618fceaba947bb7bf642a2a227ca53",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/bbr1.c.txt",
+      "origin": "picoquic; exact leading comment from bbr1.c"
+    },
+    {
+      "sha256": "ccdbc4838f862685d7af6d86535161c85f618fceaba947bb7bf642a2a227ca53",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/bytestream.c.txt",
+      "origin": "picoquic; exact leading comment from bytestream.c"
+    },
+    {
+      "sha256": "ccdbc4838f862685d7af6d86535161c85f618fceaba947bb7bf642a2a227ca53",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/bytestream.h.txt",
+      "origin": "picoquic; exact leading comment from bytestream.h"
+    },
+    {
+      "sha256": "ccdbc4838f862685d7af6d86535161c85f618fceaba947bb7bf642a2a227ca53",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/cc_common.c.txt",
+      "origin": "picoquic; exact leading comment from cc_common.c"
+    },
+    {
+      "sha256": "ccdbc4838f862685d7af6d86535161c85f618fceaba947bb7bf642a2a227ca53",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/cc_common.h.txt",
+      "origin": "picoquic; exact leading comment from cc_common.h"
+    },
+    {
+      "sha256": "ccdbc4838f862685d7af6d86535161c85f618fceaba947bb7bf642a2a227ca53",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/cidset.h.txt",
+      "origin": "picoquic; exact leading comment from cidset.h"
+    },
+    {
+      "sha256": "4600e430ea756406d5ec7af354d5a6c69373731a0e5e0c5f742dbd5831ad9eb7",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/config.c.txt",
+      "origin": "picoquic; exact leading comment from config.c"
+    },
+    {
+      "sha256": "ccdbc4838f862685d7af6d86535161c85f618fceaba947bb7bf642a2a227ca53",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/cubic.c.txt",
+      "origin": "picoquic; exact leading comment from cubic.c"
+    },
+    {
+      "sha256": "ccdbc4838f862685d7af6d86535161c85f618fceaba947bb7bf642a2a227ca53",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/fastcc.c.txt",
+      "origin": "picoquic; exact leading comment from fastcc.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/intformat.c.txt",
+      "origin": "picoquic; exact leading comment from intformat.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/logger.c.txt",
+      "origin": "picoquic; exact leading comment from logger.c"
+    },
+    {
+      "sha256": "ccdbc4838f862685d7af6d86535161c85f618fceaba947bb7bf642a2a227ca53",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/logwriter.c.txt",
+      "origin": "picoquic; exact leading comment from logwriter.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/loss_recovery.c.txt",
+      "origin": "picoquic; exact leading comment from loss_recovery.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/newreno.c.txt",
+      "origin": "picoquic; exact leading comment from newreno.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/pacing.c.txt",
+      "origin": "picoquic; exact leading comment from pacing.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/packet.c.txt",
+      "origin": "picoquic; exact leading comment from packet.c"
+    },
+    {
+      "sha256": "4600e430ea756406d5ec7af354d5a6c69373731a0e5e0c5f742dbd5831ad9eb7",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/performance_log.c.txt",
+      "origin": "picoquic; exact leading comment from performance_log.c"
+    },
+    {
+      "sha256": "4600e430ea756406d5ec7af354d5a6c69373731a0e5e0c5f742dbd5831ad9eb7",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/performance_log.h.txt",
+      "origin": "picoquic; exact leading comment from performance_log.h"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picohash.c.txt",
+      "origin": "picoquic; exact leading comment from picohash.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picohash.h.txt",
+      "origin": "picoquic; exact leading comment from picohash.h"
+    },
+    {
+      "sha256": "ccdbc4838f862685d7af6d86535161c85f618fceaba947bb7bf642a2a227ca53",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picoquic_binlog.h.txt",
+      "origin": "picoquic; exact leading comment from picoquic_binlog.h"
+    },
+    {
+      "sha256": "4600e430ea756406d5ec7af354d5a6c69373731a0e5e0c5f742dbd5831ad9eb7",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picoquic_config.h.txt",
+      "origin": "picoquic; exact leading comment from picoquic_config.h"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picoquic_crypto_provider_api.h.txt",
+      "origin": "picoquic; exact leading comment from picoquic_crypto_provider_api.h"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picoquic_internal.h.txt",
+      "origin": "picoquic; exact leading comment from picoquic_internal.h"
+    },
+    {
+      "sha256": "8fad2d0e0e6cbaa9d60aa08e56b7ea46f4619d4bee37cab07dadd493dcfd46ef",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picoquic_lb.h.txt",
+      "origin": "picoquic; exact leading comment from picoquic_lb.h"
+    },
+    {
+      "sha256": "7b103f1afe166c84eefbbfcdc946722a5b5d2b6e4861880b84dd9cfb40e15278",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picoquic_logger.h.txt",
+      "origin": "picoquic; exact leading comment from picoquic_logger.h"
+    },
+    {
+      "sha256": "411ec817447392d38bf5be2d15225de695b555f8acd173d9cb61f0897155e603",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picoquic_mbedtls.c.txt",
+      "origin": "picoquic; exact leading comment from picoquic_mbedtls.c"
+    },
+    {
+      "sha256": "4600e430ea756406d5ec7af354d5a6c69373731a0e5e0c5f742dbd5831ad9eb7",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picoquic_packet_loop.h.txt",
+      "origin": "picoquic; exact leading comment from picoquic_packet_loop.h"
+    },
+    {
+      "sha256": "411ec817447392d38bf5be2d15225de695b555f8acd173d9cb61f0897155e603",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picoquic_ptls_fusion.c.txt",
+      "origin": "picoquic; exact leading comment from picoquic_ptls_fusion.c"
+    },
+    {
+      "sha256": "411ec817447392d38bf5be2d15225de695b555f8acd173d9cb61f0897155e603",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picoquic_ptls_minicrypto.c.txt",
+      "origin": "picoquic; exact leading comment from picoquic_ptls_minicrypto.c"
+    },
+    {
+      "sha256": "411ec817447392d38bf5be2d15225de695b555f8acd173d9cb61f0897155e603",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picoquic_ptls_openssl.c.txt",
+      "origin": "picoquic; exact leading comment from picoquic_ptls_openssl.c"
+    },
+    {
+      "sha256": "4600e430ea756406d5ec7af354d5a6c69373731a0e5e0c5f742dbd5831ad9eb7",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picoquic_set_binlog.h.txt",
+      "origin": "picoquic; exact leading comment from picoquic_set_binlog.h"
+    },
+    {
+      "sha256": "4600e430ea756406d5ec7af354d5a6c69373731a0e5e0c5f742dbd5831ad9eb7",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picoquic_set_textlog.h.txt",
+      "origin": "picoquic; exact leading comment from picoquic_set_textlog.h"
+    },
+    {
+      "sha256": "4600e430ea756406d5ec7af354d5a6c69373731a0e5e0c5f742dbd5831ad9eb7",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picoquic_unified_log.h.txt",
+      "origin": "picoquic; exact leading comment from picoquic_unified_log.h"
+    },
+    {
+      "sha256": "5ceedae114ae29ed2de3b42f21015863d1063e5336abf9f3358dc73ead955e11",
+      "bytes": 1093,
+      "file": "c-embedded/picoquic/picoquic/picoquic_utils.h.txt",
+      "origin": "picoquic; exact leading comment from picoquic_utils.h"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picoquic.h.txt",
+      "origin": "picoquic; exact leading comment from picoquic.h"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picosocks.c.txt",
+      "origin": "picoquic; exact leading comment from picosocks.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/picosocks.h.txt",
+      "origin": "picoquic; exact leading comment from picosocks.h"
+    },
+    {
+      "sha256": "b4213f0331979e191a0494b7d6036eac48a3e3178eb401cc4dc18df0866bdccd",
+      "bytes": 1251,
+      "file": "c-embedded/picoquic/picoquic/picosplay.c.txt",
+      "origin": "picoquic; exact leading comment from picosplay.c"
+    },
+    {
+      "sha256": "b4213f0331979e191a0494b7d6036eac48a3e3178eb401cc4dc18df0866bdccd",
+      "bytes": 1251,
+      "file": "c-embedded/picoquic/picoquic/picosplay.h.txt",
+      "origin": "picoquic; exact leading comment from picosplay.h"
+    },
+    {
+      "sha256": "61b4c712decfb2ea4c3364842cea29c54d4db0442c4d48b9900f3d106bcf2901",
+      "bytes": 1248,
+      "file": "c-embedded/picoquic/picoquic/port_blocking.c.txt",
+      "origin": "picoquic; exact leading comment from port_blocking.c"
+    },
+    {
+      "sha256": "f9ad6f25a9163fcbe03e423ebab7eb4a0b9cff21c5f7a275e431bb391aa490be",
+      "bytes": 1247,
+      "file": "c-embedded/picoquic/picoquic/prague.c.txt",
+      "origin": "picoquic; exact leading comment from prague.c"
+    },
+    {
+      "sha256": "fa5f5c959235582f0a56966530d0be64bea1c668e4bf7be4509c67e7c5427d11",
+      "bytes": 1099,
+      "file": "c-embedded/picoquic/picoquic/quicctx.c.txt",
+      "origin": "picoquic; exact leading comment from quicctx.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/sacks.c.txt",
+      "origin": "picoquic; exact leading comment from sacks.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/sim_link.c.txt",
+      "origin": "picoquic; exact leading comment from sim_link.c"
+    },
+    {
+      "sha256": "4600e430ea756406d5ec7af354d5a6c69373731a0e5e0c5f742dbd5831ad9eb7",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/sockloop.c.txt",
+      "origin": "picoquic; exact leading comment from sockloop.c"
+    },
+    {
+      "sha256": "7b103f1afe166c84eefbbfcdc946722a5b5d2b6e4861880b84dd9cfb40e15278",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/spinbit.c.txt",
+      "origin": "picoquic; exact leading comment from spinbit.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/ticket_store.c.txt",
+      "origin": "picoquic; exact leading comment from ticket_store.c"
+    },
+    {
+      "sha256": "411ec817447392d38bf5be2d15225de695b555f8acd173d9cb61f0897155e603",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/timing.c.txt",
+      "origin": "picoquic; exact leading comment from timing.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/tls_api.c.txt",
+      "origin": "picoquic; exact leading comment from tls_api.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/tls_api.h.txt",
+      "origin": "picoquic; exact leading comment from tls_api.h"
+    },
+    {
+      "sha256": "ccdbc4838f862685d7af6d86535161c85f618fceaba947bb7bf642a2a227ca53",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/token_store.c.txt",
+      "origin": "picoquic; exact leading comment from token_store.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/transport.c.txt",
+      "origin": "picoquic; exact leading comment from transport.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/unified_log.c.txt",
+      "origin": "picoquic; exact leading comment from unified_log.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/util.c.txt",
+      "origin": "picoquic; exact leading comment from util.c"
+    },
+    {
+      "sha256": "9376f946a2c0ed2db6c1b5fb6ff638532fca4a822129f2f3be17299806bfa133",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/wincompat.h.txt",
+      "origin": "picoquic; exact leading comment from wincompat.h"
+    },
+    {
+      "sha256": "4600e430ea756406d5ec7af354d5a6c69373731a0e5e0c5f742dbd5831ad9eb7",
+      "bytes": 1097,
+      "file": "c-embedded/picoquic/picoquic/winsockloop.c.txt",
+      "origin": "picoquic; exact leading comment from winsockloop.c"
+    },
+    {
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+      "bytes": 1453,
+      "file": "go/LICENSE",
+      "origin": "Go standard library/toolchain"
+    },
+    {
+      "sha256": "cacf078b978a768b9696928cde383db0846ff797a4917acd29b0093a86a876c6",
+      "bytes": 11565,
+      "file": "rust/f7fa2823b6d6ef6ad5c183279aaa767413eff368e8ab6863d892a0a2b846208c/LICENSE",
+      "origin": "path+file:///D:/MCRF/Builds/Android/p3-slipstream-source-7a844c8896c74ee9b86cd10576402887/rust/crates/slipstream-client#0.1.1"
+    },
+    {
+      "sha256": "cacf078b978a768b9696928cde383db0846ff797a4917acd29b0093a86a876c6",
+      "bytes": 11565,
+      "file": "rust/85f5de0180fd7c8d3ccf80ccb31a5758c77dab249e0e5d8ffcc96240fd100bb1/LICENSE",
+      "origin": "path+file:///D:/MCRF/Builds/Android/p3-slipstream-source-7a844c8896c74ee9b86cd10576402887/rust/crates/slipstream-core#0.1.1"
+    },
+    {
+      "sha256": "cacf078b978a768b9696928cde383db0846ff797a4917acd29b0093a86a876c6",
+      "bytes": 11565,
+      "file": "rust/2d88ee0bdd24c2928a270b0daeec3f5be9d8b1d89fdabd6b681aa1c16f05082c/LICENSE",
+      "origin": "path+file:///D:/MCRF/Builds/Android/p3-slipstream-source-7a844c8896c74ee9b86cd10576402887/rust/crates/slipstream-dns#0.1.1"
+    },
+    {
+      "sha256": "cacf078b978a768b9696928cde383db0846ff797a4917acd29b0093a86a876c6",
+      "bytes": 11565,
+      "file": "rust/bc4d6e4f0a70829ab6948129f89fb29639e30d047ebe18f2a49ebdc1af24875a/LICENSE",
+      "origin": "path+file:///D:/MCRF/Builds/Android/p3-slipstream-source-7a844c8896c74ee9b86cd10576402887/rust/crates/slipstream-ffi#0.1.1"
+    },
+    {
+      "sha256": "cacf078b978a768b9696928cde383db0846ff797a4917acd29b0093a86a876c6",
+      "bytes": 11565,
+      "file": "rust/e6d5399f9a53955d1402f1b1559ed51a482560564f7e41afe5b2a3d1bdabb268/LICENSE",
+      "origin": "path+file:///D:/MCRF/Builds/Android/p3-slipstream-source-7a844c8896c74ee9b86cd10576402887/rust/crates/slipstream-server#0.1.1"
+    },
+    {
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "bytes": 11358,
+      "file": "rust/b7ae47ce4dd118a7d43c700aba90adf1e6ff559886631c70fd6a897075e0f2fa/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#anstream@1.0.0"
+    },
+    {
+      "sha256": "6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6",
+      "bytes": 1062,
+      "file": "rust/b7ae47ce4dd118a7d43c700aba90adf1e6ff559886631c70fd6a897075e0f2fa/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#anstream@1.0.0"
+    },
+    {
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "bytes": 11358,
+      "file": "rust/48f5a7764a9a2cb24a8f6bafb8f35023d744fecb90ad54f58a15528102abb716/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#anstyle-parse@1.0.0"
+    },
+    {
+      "sha256": "6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6",
+      "bytes": 1062,
+      "file": "rust/48f5a7764a9a2cb24a8f6bafb8f35023d744fecb90ad54f58a15528102abb716/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#anstyle-parse@1.0.0"
+    },
+    {
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "bytes": 11358,
+      "file": "rust/d6c5fd29f4b48a6d1020efc4cd091075a36b14e5959de61d10246218e7c5e35d/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#anstyle-query@1.1.5"
+    },
+    {
+      "sha256": "6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6",
+      "bytes": 1062,
+      "file": "rust/d6c5fd29f4b48a6d1020efc4cd091075a36b14e5959de61d10246218e7c5e35d/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#anstyle-query@1.1.5"
+    },
+    {
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "bytes": 11358,
+      "file": "rust/f65811ba5717f4d7bbc050f08daa1b199f745f1f10273982b78ec79fda15804d/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#anstyle@1.0.14"
+    },
+    {
+      "sha256": "6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6",
+      "bytes": 1062,
+      "file": "rust/f65811ba5717f4d7bbc050f08daa1b199f745f1f10273982b78ec79fda15804d/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#anstyle@1.0.14"
+    },
+    {
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "bytes": 10847,
+      "file": "rust/5be89066847d13bd6f8d931e9aadd459bf7361061ca5a048702441e086b3ce1a/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#bitflags@2.11.1"
+    },
+    {
+      "sha256": "6485b8ed310d3f0340bf1ad1f47645069ce4069dcc6bb46c7d5c6faf41de1fdb",
+      "bytes": 1071,
+      "file": "rust/5be89066847d13bd6f8d931e9aadd459bf7361061ca5a048702441e086b3ce1a/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#bitflags@2.11.1"
+    },
+    {
+      "sha256": "45f522cacecb1023856e46df79ca625dfc550c94910078bd8aec6e02880b3d42",
+      "bytes": 1055,
+      "file": "rust/3c8c708263c417e248c7e08747826ad3124f41a46533526230b702df18440df9/LICENSE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#bytes@1.11.1"
+    },
+    {
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "bytes": 10847,
+      "file": "rust/d538533368d8f20c8fd3e0ddda77469517b293f097602e7f85e741eaa1dd070b/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#cc@1.2.62"
+    },
+    {
+      "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397",
+      "bytes": 1057,
+      "file": "rust/d538533368d8f20c8fd3e0ddda77469517b293f097602e7f85e741eaa1dd070b/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#cc@1.2.62"
+    },
+    {
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "bytes": 10847,
+      "file": "rust/56635a2c4fd7b2df3fa7c6974c41b17d67e84b87cd5092aeaba0dbbbdee92670/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4"
+    },
+    {
+      "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397",
+      "bytes": 1057,
+      "file": "rust/56635a2c4fd7b2df3fa7c6974c41b17d67e84b87cd5092aeaba0dbbbdee92670/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4"
+    },
+    {
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "bytes": 11358,
+      "file": "rust/4dfed9a7b80d9d83bd2b5e514f78e2cc633dc5af2fd58173d138fe0f96994691/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#clap_builder@4.6.0"
+    },
+    {
+      "sha256": "6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6",
+      "bytes": 1062,
+      "file": "rust/4dfed9a7b80d9d83bd2b5e514f78e2cc633dc5af2fd58173d138fe0f96994691/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#clap_builder@4.6.0"
+    },
+    {
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "bytes": 11358,
+      "file": "rust/24b392a0f5d611c4cc19d661866f00d6eff864270d4fbb463521ffabc01a1c9f/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#clap_derive@4.6.1"
+    },
+    {
+      "sha256": "6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6",
+      "bytes": 1062,
+      "file": "rust/24b392a0f5d611c4cc19d661866f00d6eff864270d4fbb463521ffabc01a1c9f/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#clap_derive@4.6.1"
+    },
+    {
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "bytes": 11358,
+      "file": "rust/ea417a9465b8b50a1f36b5837ed4dfca20ad17e75905a94cd27d1b0656dc1458/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#clap_lex@1.1.0"
+    },
+    {
+      "sha256": "6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6",
+      "bytes": 1062,
+      "file": "rust/ea417a9465b8b50a1f36b5837ed4dfca20ad17e75905a94cd27d1b0656dc1458/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#clap_lex@1.1.0"
+    },
+    {
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "bytes": 11358,
+      "file": "rust/a3b1670b743398ee40ce244c8b9b5c258f632ebcfd94004f0c0fd71eb98b5567/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.1"
+    },
+    {
+      "sha256": "6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6",
+      "bytes": 1062,
+      "file": "rust/a3b1670b743398ee40ce244c8b9b5c258f632ebcfd94004f0c0fd71eb98b5567/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#clap@4.6.1"
+    },
+    {
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "bytes": 11358,
+      "file": "rust/517e9f40d538d765cd2c02f7a85802ee5a8f1a4f991f782d022a7fdabb459b1f/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#colorchoice@1.0.5"
+    },
+    {
+      "sha256": "6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6",
+      "bytes": 1062,
+      "file": "rust/517e9f40d538d765cd2c02f7a85802ee5a8f1a4f991f782d022a7fdabb459b1f/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#colorchoice@1.0.5"
+    },
+    {
+      "sha256": "edd65bdd88957a205c47d53fa499eed8865a70320f0f03f6391668cb304ea376",
+      "bytes": 11349,
+      "file": "rust/f6c70bc8ec2c2adc5e083d1474fbed7705f359da500628feb1519e7548792965/LICENSE-Apache",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#deranged@0.5.8"
+    },
+    {
+      "sha256": "231c837c45eb53f108fb48929e488965bc4fcc14e9ea21d35f50e6b99d98685b",
+      "bytes": 1062,
+      "file": "rust/f6c70bc8ec2c2adc5e083d1474fbed7705f359da500628feb1519e7548792965/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#deranged@0.5.8"
+    },
+    {
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "bytes": 10847,
+      "file": "rust/8d2117b3c55dcccc1425468a59380aaec518d090d4021fa28e555b047d7011fd/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#find-msvc-tools@0.1.9"
+    },
+    {
+      "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397",
+      "bytes": 1057,
+      "file": "rust/8d2117b3c55dcccc1425468a59380aaec518d090d4021fa28e555b047d7011fd/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#find-msvc-tools@0.1.9"
+    },
+    {
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "bytes": 11358,
+      "file": "rust/2594f1581890dcb6cef9d4acc3cafa4f2c5b5d3ad996d9190c7a1aba3c29995f/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#foreign-types-shared@0.1.1"
+    },
+    {
+      "sha256": "333ea3aaa3cadb819f4acd9f9153f9feee060a995ca8710f32bc5bd9a4b91734",
+      "bytes": 1072,
+      "file": "rust/2594f1581890dcb6cef9d4acc3cafa4f2c5b5d3ad996d9190c7a1aba3c29995f/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#foreign-types-shared@0.1.1"
+    },
+    {
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "bytes": 11358,
+      "file": "rust/43695325fbe300d9d63dc26f717be33400d1a91d2be65a7d6f5fbe0b921ea226/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#foreign-types@0.3.2"
+    },
+    {
+      "sha256": "333ea3aaa3cadb819f4acd9f9153f9feee060a995ca8710f32bc5bd9a4b91734",
+      "bytes": 1072,
+      "file": "rust/43695325fbe300d9d63dc26f717be33400d1a91d2be65a7d6f5fbe0b921ea226/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#foreign-types@0.3.2"
+    },
+    {
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "bytes": 10847,
+      "file": "rust/f63e88c3dd883d30cb1e1daf49f5034fa612345896d10da3996e73c41a582531/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#heck@0.5.0"
+    },
+    {
+      "sha256": "7b63ecd5f1902af1b63729947373683c32745c16a10e8e6292e2e2dcd7e90ae0",
+      "bytes": 1071,
+      "file": "rust/f63e88c3dd883d30cb1e1daf49f5034fa612345896d10da3996e73c41a582531/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#heck@0.5.0"
+    },
+    {
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "bytes": 11358,
+      "file": "rust/50146a7801ff744d67e6290f2fb74e4e2e9b1efb98c1dda5440c16d28cf6f37c/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#is_terminal_polyfill@1.70.2"
+    },
+    {
+      "sha256": "6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6",
+      "bytes": 1062,
+      "file": "rust/50146a7801ff744d67e6290f2fb74e4e2e9b1efb98c1dda5440c16d28cf6f37c/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#is_terminal_polyfill@1.70.2"
+    },
+    {
+      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+      "bytes": 9723,
+      "file": "rust/b22a1f7a12102d0d19e62c0a28f9e02cc1d5ea23ccf44b99be4891d29e5c545a/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#itoa@1.0.18"
+    },
+    {
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "bytes": 1023,
+      "file": "rust/b22a1f7a12102d0d19e62c0a28f9e02cc1d5ea23ccf44b99be4891d29e5c545a/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#itoa@1.0.18"
+    },
+    {
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "bytes": 10847,
+      "file": "rust/a54446e6cbf604951a48feea2e3717fb8b8ffbd6230584a537d1ff2edce7bd78/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#lazy_static@1.5.0"
+    },
+    {
+      "sha256": "0621878e61f0d0fda054bcbe02df75192c28bde1ecc8289cbd86aeba2dd72720",
+      "bytes": 1071,
+      "file": "rust/a54446e6cbf604951a48feea2e3717fb8b8ffbd6230584a537d1ff2edce7bd78/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#lazy_static@1.5.0"
+    },
+    {
+      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+      "bytes": 9723,
+      "file": "rust/a733304fa0307800e9ac62baf3dc2f09883de44e6efdaaf417cd56408f9a36db/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.186"
+    },
+    {
+      "sha256": "123a331b5dbf04c30097fa43b8f858bc85df671fe776de498d01f3d6b7c1f69e",
+      "bytes": 1066,
+      "file": "rust/a733304fa0307800e9ac62baf3dc2f09883de44e6efdaaf417cd56408f9a36db/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.186"
+    },
+    {
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "bytes": 10847,
+      "file": "rust/dca80c9ab52c2b3e67a41c9a86c3ba3eed8eabdd3859ff7a6e7553e57786cbe0/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#log@0.4.29"
+    },
+    {
+      "sha256": "6485b8ed310d3f0340bf1ad1f47645069ce4069dcc6bb46c7d5c6faf41de1fdb",
+      "bytes": 1071,
+      "file": "rust/dca80c9ab52c2b3e67a41c9a86c3ba3eed8eabdd3859ff7a6e7553e57786cbe0/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#log@0.4.29"
+    },
+    {
+      "sha256": "a47129d738752a6ae52247fea645b42cb320d19e9327f1eb2d1a7f99d9455ad3",
+      "bytes": 1057,
+      "file": "rust/4bee28c760e6ab148c2acfb088b01ea7455756a3b5beeb45e9697c7b8ac7b92d/LICENSE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#matchers@0.2.0"
+    },
+    {
+      "sha256": "07919255c7e04793d8ea760d6c2ce32d19f9ff02bdbdde3ce90b1e1880929a9b",
+      "bytes": 1082,
+      "file": "rust/4234ba28ab5d3c71facffd0dfe2974f8f68440b1219a98f800ba8f8bdd3bc32d/LICENSE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#mio@1.2.0"
+    },
+    {
+      "sha256": "284465860407420254e39be4e1bdcaaf2e7f2d18e06f9bab75bc75341a5d8501",
+      "bytes": 1157,
+      "file": "rust/240a0c615bca8a1e180340edd0109565fe8801813e07cff54f042a3ccffbd21e/LICENSE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#nu-ansi-term@0.50.3"
+    },
+    {
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+      "bytes": 10174,
+      "file": "rust/bb96156d5f22290426d4164b06d103374cb779ad5afc8dd8ac4049ff610c31d1/LICENSE-Apache",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#num-conv@0.2.2"
+    },
+    {
+      "sha256": "e2e245f2b566d0bfafb0f6a04c16b82d710c4e6e7d799e39bb4ef6e541b85b98",
+      "bytes": 1050,
+      "file": "rust/bb96156d5f22290426d4164b06d103374cb779ad5afc8dd8ac4049ff610c31d1/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#num-conv@0.2.2"
+    },
+    {
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "bytes": 10847,
+      "file": "rust/4a678fe26ea416ea43c805a4e83015e3e5516d4f91b944519ed6f69e8a0a2057/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#once_cell@1.21.4"
+    },
+    {
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "bytes": 1023,
+      "file": "rust/4a678fe26ea416ea43c805a4e83015e3e5516d4f91b944519ed6f69e8a0a2057/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#once_cell@1.21.4"
+    },
+    {
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "bytes": 11358,
+      "file": "rust/abff2c92b12f685b35ceff703a7a240aad12f010457b0ab375e8474aaf461e13/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#openssl-macros@0.1.1"
+    },
+    {
+      "sha256": "ea5ab440900ab271811d5c2dc02a9de6e03a6956ac5727e85c11d76df5883d30",
+      "bytes": 1058,
+      "file": "rust/abff2c92b12f685b35ceff703a7a240aad12f010457b0ab375e8474aaf461e13/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#openssl-macros@0.1.1"
+    },
+    {
+      "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397",
+      "bytes": 1057,
+      "file": "rust/90ab7c1f315776d7d9b77b72bec04e88fef907b4a1af65d336fc8319fac683c7/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#openssl-sys@0.9.116"
+    },
+    {
+      "sha256": "f3d4287b4a21c5176fea2f9bd4ae800696004e2fb8e05cbc818be513f188a941",
+      "bytes": 618,
+      "file": "rust/c706c3e486948f4f32076a4c2e3d5d7f13425b0cc70adc76bcfe3673be8012d2/LICENSE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#openssl@0.10.80"
+    },
+    {
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "bytes": 11358,
+      "file": "rust/c706c3e486948f4f32076a4c2e3d5d7f13425b0cc70adc76bcfe3673be8012d2/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#openssl@0.10.80"
+    },
+    {
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+      "bytes": 10174,
+      "file": "rust/71615b4167bbd1b6f657ac7a7ddd3767d0e8b1e1c2c8b033e10de543cf7e11a2/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#pin-project-lite@0.2.17"
+    },
+    {
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "bytes": 1023,
+      "file": "rust/71615b4167bbd1b6f657ac7a7ddd3767d0e8b1e1c2c8b033e10de543cf7e11a2/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#pin-project-lite@0.2.17"
+    },
+    {
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "bytes": 10847,
+      "file": "rust/f8d8ace627fecf642513a018ec3bd10acc0bfe5a5be17004f6b68671d3274647/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#pkg-config@0.3.33"
+    },
+    {
+      "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397",
+      "bytes": 1057,
+      "file": "rust/f8d8ace627fecf642513a018ec3bd10acc0bfe5a5be17004f6b68671d3274647/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#pkg-config@0.3.33"
+    },
+    {
+      "sha256": "155420c6403d4e0fca34105e3c03fdd6939b64c393c7ec6f95f5b72c5474eab0",
+      "bytes": 11349,
+      "file": "rust/e44475da6c1c23e02ea02a45d002ebd5bfafa77a2ebd325b83f126ccc3e74fde/LICENSE-Apache",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#powerfmt@0.2.0"
+    },
+    {
+      "sha256": "070dbc7dda03a29296f2d58bdb9b7331af90f2abc9f31df22875d1eabaf29852",
+      "bytes": 1062,
+      "file": "rust/e44475da6c1c23e02ea02a45d002ebd5bfafa77a2ebd325b83f126ccc3e74fde/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#powerfmt@0.2.0"
+    },
+    {
+      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+      "bytes": 9723,
+      "file": "rust/de579e35607e37bb33f36ab3924f511aa79a0090e9dda98e497c12a4559bbb2a/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#proc-macro2@1.0.106"
+    },
+    {
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "bytes": 1023,
+      "file": "rust/de579e35607e37bb33f36ab3924f511aa79a0090e9dda98e497c12a4559bbb2a/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#proc-macro2@1.0.106"
+    },
+    {
+      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+      "bytes": 9723,
+      "file": "rust/0b4bdb53b18a26bf501f0c841528a28b3e1e051dbae08f682e82769d3823580f/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#quote@1.0.45"
+    },
+    {
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "bytes": 1023,
+      "file": "rust/0b4bdb53b18a26bf501f0c841528a28b3e1e051dbae08f682e82769d3823580f/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#quote@1.0.45"
+    },
+    {
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "bytes": 10847,
+      "file": "rust/1ba8ab6018529f2fd3f62fc934695eccd1b908cdfff7c816f6798357b96c2d89/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#regex-automata@0.4.14"
+    },
+    {
+      "sha256": "6485b8ed310d3f0340bf1ad1f47645069ce4069dcc6bb46c7d5c6faf41de1fdb",
+      "bytes": 1071,
+      "file": "rust/1ba8ab6018529f2fd3f62fc934695eccd1b908cdfff7c816f6798357b96c2d89/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#regex-automata@0.4.14"
+    },
+    {
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "bytes": 10847,
+      "file": "rust/09e6765359c1928517d7f623f08756b1398d5f4ca41cf5cc03f7c8fbdb562cd2/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#regex-syntax@0.8.10"
+    },
+    {
+      "sha256": "6485b8ed310d3f0340bf1ad1f47645069ce4069dcc6bb46c7d5c6faf41de1fdb",
+      "bytes": 1071,
+      "file": "rust/09e6765359c1928517d7f623f08756b1398d5f4ca41cf5cc03f7c8fbdb562cd2/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#regex-syntax@0.8.10"
+    },
+    {
+      "sha256": "eafbfa606bc005ed7fd2f623d65af17ffe4ef7c017221ac14405bf4140771ea9",
+      "bytes": 1057,
+      "file": "rust/b0d7d944092343a2b7c85df29a20e378ae73c76f833c7f5a69905a7784686d21/LICENSE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#sharded-slab@0.1.7"
+    },
+    {
+      "sha256": "553fffcd9b1cb158bc3e9edc35da85ca5c3b3d7d2e61c883ebcfa8a65814b583",
+      "bytes": 566,
+      "file": "rust/404e3edc0c9e5c08082356665f52d367859bb78c88ea0547d37591aa1b263d3b/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#shlex@1.3.0"
+    },
+    {
+      "sha256": "4455bf75a91154108304cb283e0fea9948c14f13e20d60887cf2552449dea3b1",
+      "bytes": 1092,
+      "file": "rust/404e3edc0c9e5c08082356665f52d367859bb78c88ea0547d37591aa1b263d3b/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#shlex@1.3.0"
+    },
+    {
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "bytes": 10847,
+      "file": "rust/d791cf61cd53a206f9c5f64f56777e556fe6b68728380123424056499cf8871e/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#smallvec@1.15.1"
+    },
+    {
+      "sha256": "0b28172679e0009b655da42797c03fd163a3379d5cfa67ba1f1655e974a2a1a9",
+      "bytes": 1072,
+      "file": "rust/d791cf61cd53a206f9c5f64f56777e556fe6b68728380123424056499cf8871e/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#smallvec@1.15.1"
+    },
+    {
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "bytes": 10847,
+      "file": "rust/16154446be58a9b9417838051264972096b2023ae665124b5f51a731fc78c033/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#socket2@0.6.3"
+    },
+    {
+      "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397",
+      "bytes": 1057,
+      "file": "rust/16154446be58a9b9417838051264972096b2023ae665124b5f51a731fc78c033/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#socket2@0.6.3"
+    },
+    {
+      "sha256": "1e697ce8d21401fbf1bddd9b5c3fd4c4c79ae1e3bdf51f81761c85e11d5a89cd",
+      "bytes": 1166,
+      "file": "rust/293d2faa1881de9e441996a02567d01829a82e2052dc968bbff7b5f5ce8b19cc/LICENSE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#strsim@0.11.1"
+    },
+    {
+      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+      "bytes": 9723,
+      "file": "rust/a414db980b219a3bd03e172f9238a89e5092d660297c9da8b4443da0db21a550/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#syn@2.0.117"
+    },
+    {
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "bytes": 1023,
+      "file": "rust/a414db980b219a3bd03e172f9238a89e5092d660297c9da8b4443da0db21a550/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#syn@2.0.117"
+    },
+    {
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "bytes": 10847,
+      "file": "rust/0b4dd08488bd150e735ed04c4feda778d4023dbf7be49becc1761bf84a8910ed/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#thread_local@1.1.9"
+    },
+    {
+      "sha256": "c9a75f18b9ab2927829a208fc6aa2cf4e63b8420887ba29cdb265d6619ae82d5",
+      "bytes": 1071,
+      "file": "rust/0b4dd08488bd150e735ed04c4feda778d4023dbf7be49becc1761bf84a8910ed/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#thread_local@1.1.9"
+    },
+    {
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+      "bytes": 10174,
+      "file": "rust/90a3d40c7f6477095d939c941a3202fbc0a602cc948ea760b7ee07df76660e50/LICENSE-Apache",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#time-core@0.1.8"
+    },
+    {
+      "sha256": "2537228d9a1b44a5dc595241349cae7090b326c8de165aaf89bfddef4a00d0fc",
+      "bytes": 1057,
+      "file": "rust/90a3d40c7f6477095d939c941a3202fbc0a602cc948ea760b7ee07df76660e50/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#time-core@0.1.8"
+    },
+    {
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+      "bytes": 10174,
+      "file": "rust/636637b46abbfde7f4eca792fde95072f1fb8fca27050a4c3b78c9c81b3e5911/LICENSE-Apache",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#time-macros@0.2.27"
+    },
+    {
+      "sha256": "2537228d9a1b44a5dc595241349cae7090b326c8de165aaf89bfddef4a00d0fc",
+      "bytes": 1057,
+      "file": "rust/636637b46abbfde7f4eca792fde95072f1fb8fca27050a4c3b78c9c81b3e5911/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#time-macros@0.2.27"
+    },
+    {
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+      "bytes": 10174,
+      "file": "rust/2796b1e68db469fb7b07c2f66e611df568fbf01b345847199e255ba3b227d460/LICENSE-Apache",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#time@0.3.47"
+    },
+    {
+      "sha256": "2537228d9a1b44a5dc595241349cae7090b326c8de165aaf89bfddef4a00d0fc",
+      "bytes": 1057,
+      "file": "rust/2796b1e68db469fb7b07c2f66e611df568fbf01b345847199e255ba3b227d460/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#time@0.3.47"
+    },
+    {
+      "sha256": "0b83dc40cba89b9922bb84b0a9c7d2768ce37c1d7e138b7424fd4549915778c9",
+      "bytes": 1102,
+      "file": "rust/770e91ca8d2d5eaf34ac5a5b83a9d13d196b613cb0dd5c0b31870ed266918719/LICENSE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#tokio-macros@2.7.0"
+    },
+    {
+      "sha256": "253cd04c6714889df2d32f3f64d669179a1c95c76ac43c40882c52eb06bc3552",
+      "bytes": 1070,
+      "file": "rust/f61724fbfddd8dccc283f07c9139f821e270aa64121c06fe4ad8b4a035803ffe/LICENSE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#tokio@1.52.3"
+    },
+    {
+      "sha256": "898b1ae9821e98daf8964c8d6c7f61641f5f5aa78ad500020771c0939ee0dea1",
+      "bytes": 1062,
+      "file": "rust/b73ed64d9efb34b87eec50835babd4f8dc69aba6b50b4fdd9e562e6259cb8e13/LICENSE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#tracing-attributes@0.1.31"
+    },
+    {
+      "sha256": "898b1ae9821e98daf8964c8d6c7f61641f5f5aa78ad500020771c0939ee0dea1",
+      "bytes": 1062,
+      "file": "rust/071fb690acef661ace5de3055fbd131a131cb7ab91c1e59e7a03aade69283533/LICENSE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#tracing-core@0.1.36"
+    },
+    {
+      "sha256": "898b1ae9821e98daf8964c8d6c7f61641f5f5aa78ad500020771c0939ee0dea1",
+      "bytes": 1062,
+      "file": "rust/5cbd13331729d65ed293b1a35f30c1f977f9f1bf377614d2bfa23d436a41fbed/LICENSE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#tracing-log@0.2.0"
+    },
+    {
+      "sha256": "898b1ae9821e98daf8964c8d6c7f61641f5f5aa78ad500020771c0939ee0dea1",
+      "bytes": 1062,
+      "file": "rust/21ba565ff80b082f8455b59b62bf5773a9eceaff311a8087449d8cebc8f6f35a/LICENSE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#tracing-subscriber@0.3.23"
+    },
+    {
+      "sha256": "898b1ae9821e98daf8964c8d6c7f61641f5f5aa78ad500020771c0939ee0dea1",
+      "bytes": 1062,
+      "file": "rust/159de55e6c8cad97db3e9ccf2a39ce743c65bba84b9b756f23c80aaf8bf0153f/LICENSE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#tracing@0.1.44"
+    },
+    {
+      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+      "bytes": 9723,
+      "file": "rust/60dd4efe1bb6c94bfa74be20738e62b4c3abd4de2122d933faed1a0a74064cda/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#unicode-ident@1.0.24"
+    },
+    {
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "bytes": 1023,
+      "file": "rust/60dd4efe1bb6c94bfa74be20738e62b4c3abd4de2122d933faed1a0a74064cda/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#unicode-ident@1.0.24"
+    },
+    {
+      "sha256": "f7db81051789b729fea528a63ec4c938fdcb93d9d61d97dc8cc2e9df6d47f2a1",
+      "bytes": 1995,
+      "file": "rust/60dd4efe1bb6c94bfa74be20738e62b4c3abd4de2122d933faed1a0a74064cda/LICENSE-UNICODE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#unicode-ident@1.0.24"
+    },
+    {
+      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+      "bytes": 9723,
+      "file": "rust/9fd6c7e0f51e84f075db4ed8305eec4289fce21d78452f6b5ab7e2a78fc22ed3/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#utf8parse@0.2.2"
+    },
+    {
+      "sha256": "e4c9b06fa850cb9b540a5e400e9f6394cf15efcf4098144de477d1d3dae10150",
+      "bytes": 1052,
+      "file": "rust/9fd6c7e0f51e84f075db4ed8305eec4289fce21d78452f6b5ab7e2a78fc22ed3/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#utf8parse@0.2.2"
+    },
+    {
+      "sha256": "60c93a31f490375aadf64098b75f10715010379541021e00261045d7800611d3",
+      "bytes": 11050,
+      "file": "rust/769c0475a5fa67f770d4a3326b9f9244aca24ed31ff39695d4361a1d0ea3b6a6/LICENSE-APACHE",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#vcpkg@0.2.15"
+    },
+    {
+      "sha256": "016d20f335060a70e79d9fcf8dfaa6201114d65d592211f4bdfb8ae9ca2bc1dc",
+      "bytes": 1082,
+      "file": "rust/769c0475a5fa67f770d4a3326b9f9244aca24ed31ff39695d4361a1d0ea3b6a6/LICENSE-MIT",
+      "origin": "registry+https://github.com/rust-lang/crates.io-index#vcpkg@0.2.15"
+    }
+  ],
+  "missingModules": [],
+  "binaryExecuted": false,
+  "linkedModules": 63
+}

@@ -83,8 +83,7 @@ abstract class McrfQuickTile:TileService() {
                             selectedIsBs=catalogue.entries().firstOrNull {it.id==selected}?.carrier!=null
                             lastSelected=selected
                         }
-                        val connected=McrfVpnService.status.startsWith("VPN подключён")||McrfVpnService.status.startsWith("Прокси ")
-                        (connected&&selectedIsBs==(command=="bs")) to title}
+                        QuickTilePresentation.active(command,McrfVpnService.status,selectedIsBs) to title}
                 }
             }
             handler.post {
@@ -103,6 +102,8 @@ abstract class McrfQuickTile:TileService() {
     override fun onStartListening(){super.onStartListening();listeningEpoch++;refreshing=false;listening=true;handler.removeCallbacks(refresh);handler.post(refresh)}
     override fun onStopListening(){listeningEpoch++;refreshing=false;listening=false;handler.removeCallbacksAndMessages(null);super.onStopListening()}
     override fun onDestroy(){listening=false;handler.removeCallbacksAndMessages(null);worker.shutdownNow();super.onDestroy()}
+    // Intent overload is required on API29-33; PendingIntent exists from34.
+    @android.annotation.SuppressLint("StartActivityAndCollapseDeprecated")
     override fun onClick(){super.onClick();unlockAndRun {
         val ticket=runCatching {QuickTileCommand.issue(this,command)}.getOrNull()?:run {
             android.widget.Toast.makeText(this,"Откройте MCRF и повторите нажатие после завершения текущего действия.",android.widget.Toast.LENGTH_SHORT).show()

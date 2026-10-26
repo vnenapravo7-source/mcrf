@@ -1,0 +1,49 @@
+{
+  "state": "HISTORICAL_ENGINE_INPUTS_READY",
+  "kind": "csqtt215",
+  "generation": "2.1.5",
+  "revision": "de7afc23cec7481f98845bf24fc8943af19b4cf8",
+  "sourceStable": true,
+  "wrapperReceiptSha256": "336969381747f320b153641314370eeee00de76e48f641d8bd1edba0beb5c2ad",
+  "nativeReceiptSha256": "bf6b7a8700c69cbac03d915e2b89a6e2e77a19ca0f44400c1d937abf8698fed8",
+  "artifacts": [
+    {
+      "bytes": 8881120,
+      "sha256": "9b6fee2cb979bd2aef69ee30a8e2c807420d996d9f4b38f34ce39813777c11ab",
+      "abi": "arm64-v8a",
+      "path": "arm64-v8a/libcsqtt_transport.so"
+    },
+    {
+      "bytes": 18288400,
+      "sha256": "8abcbc7d57c565b351adaf09b7cdf39b68aec090583e1b521d782eea830512ba",
+      "abi": "arm64-v8a",
+      "path": "arm64-v8a/libcsqtt215.so"
+    },
+    {
+      "bytes": 6462288,
+      "sha256": "d8562d61f766d577e0db2191ee43c2e6f89b4b5aac4a34681d7a47d61534be22",
+      "abi": "armeabi-v7a",
+      "path": "armeabi-v7a/libcsqtt_transport.so"
+    },
+    {
+      "bytes": 17476500,
+      "sha256": "0fb86988ec1b2a5b8ac566e97ca066976f314646235283ae24517ff8563384e4",
+      "abi": "armeabi-v7a",
+      "path": "armeabi-v7a/libcsqtt215.so"
+    },
+    {
+      "bytes": 10493144,
+      "sha256": "b836f02593e4bd2d803abcafd405641bd0c13a685ecbfe9d6a131f4f57f1cb84",
+      "abi": "x86_64",
+      "path": "x86_64/libcsqtt_transport.so"
+    },
+    {
+      "bytes": 19446856,
+      "sha256": "99d5c8a2d6faabd164234e97f9577a56b0b30a303cb17a83a0cf8a34c07df518",
+      "abi": "x86_64",
+      "path": "x86_64/libcsqtt215.so"
+    }
+  ],
+  "releaseVerified": false,
+  "packageVersionCode": 3
+}

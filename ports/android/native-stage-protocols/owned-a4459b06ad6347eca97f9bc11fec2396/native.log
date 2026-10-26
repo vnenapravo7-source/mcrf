@@ -1,0 +1,16 @@
+=== RUN   TestMcrfProtocolsPhysicalNetworkBinding
+    network_test.go:32: PROTOCOL_PHYSICAL_NETWORK_BIND_FAILED
+--- FAIL: TestMcrfProtocolsPhysicalNetworkBinding (0.00s)
+=== RUN   TestMcrfProtocolsSshOriginalWire
+    ssh_wire_test.go:128: dial tcp 127.0.0.1:36641: PROTOCOL_PHYSICAL_NETWORK_BIND_FAILED
+--- FAIL: TestMcrfProtocolsSshOriginalWire (0.01s)
+=== RUN   TestMcrfProtocolsTuicOriginalWire
+    wire_test.go:152: dial udp 127.0.0.1:47581: PROTOCOL_PHYSICAL_NETWORK_BIND_FAILED
+--- FAIL: TestMcrfProtocolsTuicOriginalWire (0.01s)
+=== RUN   TestMcrfProtocolsAnyTlsOriginalWire
+    wire_test.go:153: failed to create session: dial tcp 127.0.0.1:42771: PROTOCOL_PHYSICAL_NETWORK_BIND_FAILED
+--- FAIL: TestMcrfProtocolsAnyTlsOriginalWire (0.00s)
+=== RUN   TestMcrfProtocolsNaiveCronetOriginalWire
+    wire_test.go:154: connection failed
+--- FAIL: TestMcrfProtocolsNaiveCronetOriginalWire (0.01s)
+FAIL

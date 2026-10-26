@@ -1,0 +1,36 @@
+{"Time":"2026-10-24T11:27:05.5855425+03:00","Action":"start","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc"}
+{"Time":"2026-10-24T11:27:07.001351+03:00","Action":"run","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcStrictPrivateSchema"}
+{"Time":"2026-10-24T11:27:07.001351+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcStrictPrivateSchema","Output":"=== RUN   TestMcrfOlcStrictPrivateSchema\n"}
+{"Time":"2026-10-24T11:27:07.0018693+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcStrictPrivateSchema","Output":"--- PASS: TestMcrfOlcStrictPrivateSchema (0.00s)\n"}
+{"Time":"2026-10-24T11:27:07.0018693+03:00","Action":"pass","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcStrictPrivateSchema","Elapsed":0}
+{"Time":"2026-10-24T11:27:07.0018693+03:00","Action":"run","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcTransportOptionsPreserveOriginalMapping"}
+{"Time":"2026-10-24T11:27:07.0018693+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcTransportOptionsPreserveOriginalMapping","Output":"=== RUN   TestMcrfOlcTransportOptionsPreserveOriginalMapping\n"}
+{"Time":"2026-10-24T11:27:07.0018693+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcTransportOptionsPreserveOriginalMapping","Output":"--- PASS: TestMcrfOlcTransportOptionsPreserveOriginalMapping (0.00s)\n"}
+{"Time":"2026-10-24T11:27:07.0018693+03:00","Action":"pass","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcTransportOptionsPreserveOriginalMapping","Elapsed":0}
+{"Time":"2026-10-24T11:27:07.0018693+03:00","Action":"run","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcStopCancelsTheOwnedListener"}
+{"Time":"2026-10-24T11:27:07.0018693+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcStopCancelsTheOwnedListener","Output":"=== RUN   TestMcrfOlcStopCancelsTheOwnedListener\n"}
+{"Time":"2026-10-24T11:27:07.0024003+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcStopCancelsTheOwnedListener","Output":"--- PASS: TestMcrfOlcStopCancelsTheOwnedListener (0.00s)\n"}
+{"Time":"2026-10-24T11:27:07.0024003+03:00","Action":"pass","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcStopCancelsTheOwnedListener","Elapsed":0}
+{"Time":"2026-10-24T11:27:07.0024003+03:00","Action":"run","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcEOFIsCancellationWithoutReady"}
+{"Time":"2026-10-24T11:27:07.0024003+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcEOFIsCancellationWithoutReady","Output":"=== RUN   TestMcrfOlcEOFIsCancellationWithoutReady\n"}
+{"Time":"2026-10-24T11:27:07.0024003+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcEOFIsCancellationWithoutReady","Output":"--- PASS: TestMcrfOlcEOFIsCancellationWithoutReady (0.00s)\n"}
+{"Time":"2026-10-24T11:27:07.0024003+03:00","Action":"pass","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcEOFIsCancellationWithoutReady","Elapsed":0}
+{"Time":"2026-10-24T11:27:07.0024003+03:00","Action":"run","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcStartupFailureIsNotSwallowed"}
+{"Time":"2026-10-24T11:27:07.0030387+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcStartupFailureIsNotSwallowed","Output":"=== RUN   TestMcrfOlcStartupFailureIsNotSwallowed\n"}
+{"Time":"2026-10-24T11:27:07.0030387+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcStartupFailureIsNotSwallowed","Output":"--- PASS: TestMcrfOlcStartupFailureIsNotSwallowed (0.00s)\n"}
+{"Time":"2026-10-24T11:27:07.0030387+03:00","Action":"pass","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Test":"TestMcrfOlcStartupFailureIsNotSwallowed","Elapsed":0}
+{"Time":"2026-10-24T11:27:07.0030387+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Output":"PASS\n"}
+{"Time":"2026-10-24T11:27:07.0068194+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Output":"ok  \tgithub.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc\t1.421s\n"}
+{"Time":"2026-10-24T11:27:07.0068194+03:00","Action":"pass","Package":"github.com/openlibrecommunity/olcrtc/cmd/mcrf-olcrtc","Elapsed":1.421}
+{"Time":"2026-10-24T11:27:08.7968443+03:00","Action":"start","Package":"github.com/openlibrecommunity/olcrtc/internal/client"}
+{"Time":"2026-10-24T11:27:10.1956432+03:00","Action":"run","Package":"github.com/openlibrecommunity/olcrtc/internal/client","Test":"TestShutdownClosesLinkAndConn"}
+{"Time":"2026-10-24T11:27:10.1956432+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/internal/client","Test":"TestShutdownClosesLinkAndConn","Output":"=== RUN   TestShutdownClosesLinkAndConn\n"}
+{"Time":"2026-10-24T11:27:10.1961566+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/internal/client","Test":"TestShutdownClosesLinkAndConn","Output":"--- PASS: TestShutdownClosesLinkAndConn (0.00s)\n"}
+{"Time":"2026-10-24T11:27:10.1961566+03:00","Action":"pass","Package":"github.com/openlibrecommunity/olcrtc/internal/client","Test":"TestShutdownClosesLinkAndConn","Elapsed":0}
+{"Time":"2026-10-24T11:27:10.1961566+03:00","Action":"run","Package":"github.com/openlibrecommunity/olcrtc/internal/client","Test":"TestShutdownWaitsForTrackedGoroutines"}
+{"Time":"2026-10-24T11:27:10.1961566+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/internal/client","Test":"TestShutdownWaitsForTrackedGoroutines","Output":"=== RUN   TestShutdownWaitsForTrackedGoroutines\n"}
+{"Time":"2026-10-24T11:27:10.2168382+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/internal/client","Test":"TestShutdownWaitsForTrackedGoroutines","Output":"--- PASS: TestShutdownWaitsForTrackedGoroutines (0.02s)\n"}
+{"Time":"2026-10-24T11:27:10.2168382+03:00","Action":"pass","Package":"github.com/openlibrecommunity/olcrtc/internal/client","Test":"TestShutdownWaitsForTrackedGoroutines","Elapsed":0.02}
+{"Time":"2026-10-24T11:27:10.2168382+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/internal/client","Output":"PASS\n"}
+{"Time":"2026-10-24T11:27:10.2207177+03:00","Action":"output","Package":"github.com/openlibrecommunity/olcrtc/internal/client","Output":"ok  \tgithub.com/openlibrecommunity/olcrtc/internal/client\t1.423s\n"}
+{"Time":"2026-10-24T11:27:10.2207177+03:00","Action":"pass","Package":"github.com/openlibrecommunity/olcrtc/internal/client","Elapsed":1.424}

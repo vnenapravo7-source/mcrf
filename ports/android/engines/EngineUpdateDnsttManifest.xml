@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data android:name="org.mcrf.engines.dnstt_lifecycle" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.source.repository" android:value="www.bamsoftware.com/git/dnstt.git" />
+        <meta-data android:name="org.mcrf.engines.source.commit" android:value="0c5c52a57d899c05428c116898941761a2ed83c2" />
+    </application>
+</manifest>

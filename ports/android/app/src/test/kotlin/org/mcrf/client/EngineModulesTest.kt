@@ -12,7 +12,7 @@ class EngineModulesTest {
         assertEquals("csqtt25",EngineModules.carrierKind(modern))
         assertNotEquals(EngineModules.packageName(EngineModules.carrierKind(legacy)),EngineModules.packageName(EngineModules.carrierKind(modern)))
         assertTrue(EngineModules.validNativeEntries("csqtt25","arm64-v8a",listOf("lib/arm64-v8a/libcsqtt25.so","lib/arm64-v8a/libcsqtt25_transport.so")))
-        assertFalse(EngineModules.validNativeEntries("csqtt25","armeabi-v7a",listOf("lib/armeabi-v7a/libcsqtt25.so","lib/armeabi-v7a/libcsqtt25_transport.so")))
+        assertTrue(EngineModules.validNativeEntries("csqtt25","armeabi-v7a",listOf("lib/armeabi-v7a/libcsqtt25.so","lib/armeabi-v7a/libcsqtt25_transport.so")))
         assertThrows(IllegalArgumentException::class.java){EngineModules.carrierKind(JSONObject(legacy.toString()).put("csqtt_generation","future"))}
     }
     @Test fun eachEngineHasItsOwnIdentity(){assertEquals(12,EngineModules.kinds.map{EngineModules.packageName(it)}.toSet().size);EngineModules.kinds.forEach {assertEquals(it,EngineModules.kind(EngineModules.packageName(it)))}}

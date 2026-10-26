@@ -21,7 +21,7 @@ import java.util.concurrent.Future
 object SubscriptionUpdates {
     @JvmField val HOURS = SubscriptionSchedule.hours.toIntArray()
     @JvmField val LABELS = SubscriptionSchedule.labels.toTypedArray()
-    private const val JOB = 2401
+    private const val JOB = BackgroundJobIds.SUBSCRIPTIONS
     private const val CHANNEL = "subscription-updates-silent"
     @JvmStatic fun initialize(context: Context, prefs: SharedPreferences) {
         val saved = if (prefs.contains("subscriptionHours")) prefs.getInt("subscriptionHours", SubscriptionSchedule.DEFAULT_HOURS) else null
@@ -65,9 +65,10 @@ object SubscriptionUpdates {
     }
     @JvmStatic fun refresh(context: Context, catalogue: Connections): SubscriptionChanges {
         val fetched = linkedMapOf<String, SubscriptionClient.Downloaded>()
+        val budget=SubscriptionPayloadBudget()
         val snapshot = catalogue.subscriptions()
         val expected = snapshot.associate { it.getString("url") to it.getString("id") }
-        snapshot.forEach { sub -> fetched[sub.getString("url")] = fetch(context, sub.getString("url")) }
+        snapshot.forEach { sub -> val url=sub.getString("url");val response=fetch(context,url);budget.accept(url,response);fetched[url]=response }
         val changes = catalogue.refreshFetched(fetched, expected)
         if(fetched.isNotEmpty())SubscriptionOpenRefresh.completed(context)
         ClientEvents.record(context, "Подписки", changes.summary())
@@ -111,21 +112,24 @@ class SubscriptionUpdateService : JobService() {
         if(fromOpen&&!SubscriptionOpenRefresh.idle(this))return false
         if(!activeFetch.compareAndSet(false,true))return false
         val lease=SubscriptionRefreshLease {activeFetch.set(false)};activeLease=lease
-        val attempt=runs.begin()
+        val attempt=runs.begin(params.jobId)
         work?.cancel(true)
         try {work = worker.submit {
             if(!lease.enter())return@submit
             var retry = false
+            var phase=SubscriptionFailure.Phase.FETCH
             try {
                 if(fromOpen&&!SubscriptionOpenRefresh.dueNow(this))return@submit
                 val catalogue = Connections(this); catalogue.load()
                 val fetched = linkedMapOf<String, SubscriptionClient.Downloaded>()
+                val budget=SubscriptionPayloadBudget()
                 val snapshot = catalogue.subscriptions()
                 val expected = snapshot.associate { it.getString("url") to it.getString("id") }
                 snapshot.forEach { sub ->
                     attempt.checkActive()
                     if(fromOpen&&!SubscriptionOpenRefresh.idle(this))throw InterruptedException("App-open refresh retired")
-                    val url = sub.getString("url"); fetched[url] = SubscriptionUpdates.fetch(this, url)
+                    val url = sub.getString("url");val response=SubscriptionUpdates.fetch(this,url)
+                    budget.accept(url,response);fetched[url]=response
                 }
                 if (attempt.active && fetched.isNotEmpty()) {
                     if(fromOpen&&!SubscriptionOpenRefresh.idle(this))throw InterruptedException("App-open refresh retired")
@@ -134,6 +138,7 @@ class SubscriptionUpdateService : JobService() {
                     val present = catalogue.subscriptions().map { it.getString("url") }.toSet()
                     val committed = fetched.filterKeys { it in present }
                     if (committed.isNotEmpty()) {
+                        phase=SubscriptionFailure.Phase.SAVE
                         val changes = catalogue.refreshFetchedGuarded(committed,expected,attempt::checkActive)
                         attempt.checkActive()
                         val message = changes.summary()
@@ -143,18 +148,27 @@ class SubscriptionUpdateService : JobService() {
                     }
                 }
             } catch (_: InterruptedException) { retry = !fromOpen }
-            catch (_: Exception) {
+            catch (error: Exception) {
                 retry = !fromOpen
                 if (attempt.active) {
-                    val message = "Не удалось обновить подписки. Сохранённые серверы оставлены; повторим позже."
-                    ClientEvents.record(this, "Подписки", message)
+                    val message = if(phase==SubscriptionFailure.Phase.SAVE)
+                        "Не удалось подтвердить обновление подписок. Проверьте текущие данные при повторном открытии; повторим позже."
+                        else "Не удалось обновить подписки. Сохранённые серверы оставлены; повторим позже."
+                    ClientEvents.record(this, "Подписки", "$message ${SubscriptionFailure.describe(error,phase)}")
                     SubscriptionUpdates.notifyResult(this, message, false)
                 }
             }
-            finally {lease.finish();main.post {runs.finish(attempt){jobFinished(params,retry)}}}
+            finally {
+                // Keep admission until the scheduler completion is delivered on main.
+                // Otherwise a new ID can start before the old completion/stop callback.
+                if(!main.post {try {runs.finish(attempt){jobFinished(params,retry)}}finally {lease.finish()}})lease.finish()
+            }
         }}catch(_:Exception){lease.cancelQueued();runs.cancel();return false}
         return true
     }
-    override fun onStopJob(params: JobParameters): Boolean {runs.cancel();activeLease?.cancelQueued();work?.cancel(true);return params.jobId!=SubscriptionOpenRefresh.JOB}
+    override fun onStopJob(params: JobParameters): Boolean {
+        if(runs.cancel(params.jobId)){activeLease?.cancelQueued();work?.cancel(true)}
+        return params.jobId!=SubscriptionOpenRefresh.JOB
+    }
     override fun onDestroy() {runs.cancel();activeLease?.cancelQueued();work?.cancel(true);worker.shutdownNow();super.onDestroy()}
 }

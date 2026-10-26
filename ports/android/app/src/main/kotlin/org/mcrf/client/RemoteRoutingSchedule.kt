@@ -21,7 +21,7 @@ object RemoteRoutingNetwork {
 }
 
 object RemoteRoutingSchedule {
-    const val JOB_ID=0x4d435244
+    const val JOB_ID=BackgroundJobIds.ROUTING
     /** Call on every startup/upgrade; cancel the persisted job without rewriting encrypted legacy data. */
     @JvmStatic fun cancelRetired(context:Context) {context.getSystemService(JobScheduler::class.java)?.cancel(JOB_ID)}
     @Suppress("UNUSED_PARAMETER") fun sync(context:Context,state:JSONObject):Boolean {cancelRetired(context);return true}

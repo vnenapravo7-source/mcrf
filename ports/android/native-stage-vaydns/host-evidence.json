@@ -1,0 +1,29 @@
+{
+  "state": "PASS_P3_VAYDNS_HOST",
+  "failures": 0,
+  "androidRuntimeAccepted": false,
+  "skipped": 0,
+  "logSha256": "7bf2bfa35e7f1a0ae57dadd3133093fe7ba521340eaf762f1a61e4fcbdcb7c36",
+  "toolchainSha256": "21761eceb9302062c9623fb699f332c8c7fe000f15f70efe8da01a2cfbbc16b9",
+  "clientSha256": "cfff018525d054e1a3a66240d0c018bc8ef4da537ce9be0e05fafe7680b61498",
+  "cases": [
+    "TestMcrfBackoffCancellation",
+    "TestMcrfRemoteAuthPreservesTerminalFailure",
+    "TestMcrfServeRejectsUnprotectedListener",
+    "TestMcrfServeRejectsWildcardListener",
+    "TestMcrfSOCKSLocalDoesNotConsumeConnectRequest",
+    "TestMcrfSOCKSLocalRejectsUnauthenticatedClient",
+    "TestMcrfSOCKSLocalRejectsWrongPassword",
+    "TestMcrfSOCKSRejectsInvalidCredentials",
+    "TestMcrfSOCKSRemoteRefusalIsTerminal",
+    "TestMcrfSOCKSRemoteWrongProtocolIsTerminal",
+    "TestMcrfVayCapacityQueuesAndCancels",
+    "TestMcrfVayConfigStrictBoundary",
+    "TestMcrfVayLocalRejectionDoesNotOpenDNSStream",
+    "TestMcrfVayOwnedDNSNoiseSOCKSData",
+    "TestMcrfVayRemoteRejectionStopsWithoutRetry",
+    "TestMcrfVayStdinEOFStopsDuringLostNetwork"
+  ],
+  "peerSha256": "a68bf4716a105885d4fd1e533f5c551b0a4161a069ae094e94d1467f8fe74e45",
+  "sourceManifestSha256": "dce0f913d9936bdbb308da50fc896df1c5779abdcd9ef8a9c0c848008bbeffbb"
+}

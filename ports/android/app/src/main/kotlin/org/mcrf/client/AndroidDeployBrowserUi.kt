@@ -84,7 +84,9 @@ internal class AndroidDeployBrowserUi(
         EditorLayout.field(activity,body,"Название",input)
         val dialog=ThemedDialogBuilder(activity).setTitle("Изменить название").setView(body).setNegativeButton("Отмена",null).setPositiveButton("Сохранить",null).create()
         dialog.setOnShowListener {dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            runCatching {store.renameInventory(kind,id,input.text.toString())}.onSuccess {dialog.dismiss();render(false)}.onFailure {input.error="От 1 до 80 символов"}
+            val chosen=runCatching {AndroidDeployInventory.name(input.text.toString())}.getOrElse {input.error="От 1 до 80 символов";return@setOnClickListener}
+            runCatching {store.renameInventory(kind,id,chosen)}.onSuccess {dialog.dismiss();render(false)}
+                .onFailure {input.error="Не удалось подтвердить сохранение. Проверьте название после повторного открытия."}
         }};dialog.show()
     }
     private fun openPanel(panel:JSONObject){runCatching {activity.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(panel.getString("url"))))}.onFailure {activity.alert("Панель","Не найдено приложение для открытия адреса панели.")}}
@@ -143,7 +145,7 @@ internal class AndroidDeployBrowserUi(
                             navigation.toggleServer(id);render(false)
                         },LinearLayout.LayoutParams(0,-2,1f))
                         addView(activity.iconButton("edit","Изменить название сервера").apply {setOnClickListener {rename("servers",id)}},LinearLayout.LayoutParams(activity.dp(48),activity.dp(48)))
-                    },activity.space(0,if(expanded)0 else 10))
+                    },activity.space(0,10))
                     if(expanded){
                         choices.forEach {panelId->val panel=panels.getJSONObject(panelId)
                             row(panel.getString("name"),"Подключений: ${panelEntries(panelId).sumOf {it.result.optJSONArray("connections")?.length()?:0}}","servers"){change(Destination("panel",panelId))}

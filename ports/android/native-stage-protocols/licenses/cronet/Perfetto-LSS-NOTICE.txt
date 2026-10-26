@@ -1,0 +1,55 @@
+Conservative original-source copyright notices; Perfetto uses Apache2, LSS retains its full source licence below.
+# Copyright (C) 2017 The Android Open Source Project
+# Copyright (C) 2018 The Android Open Source Project
+# Copyright (C) 2019 The Android Open Source Project
+# Copyright (C) 2020 The Android Open Source Project
+# Copyright (C) 2021 The Android Open Source Project
+# Copyright (C) 2022 The Android Open Source Project
+# Copyright (C) 2023 The Android Open Source Project
+# Copyright (C) 2024 The Android Open Source Project
+# Copyright (C) 2025 The Android Open Source Project
+# Copyright (C) 2026 The Android Open Source Project
+# Copyright 2020 The Chromium Authors
+# Copyright 2023 The Chromium Authors
+*     * Redistributions of source code must retain the above copyright
+* 1. Redistributions of source code must retain the above copyright
+* 2. Redistributions in binary form must reproduce the above copyright
+* A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+* Copyright (C) 2006 The Android Open Source Project
+* Copyright (C) 2007 The Android Open Source Project
+* Copyright (C) 2010 The Android Open Source Project
+* Copyright (C) 2011 The Android Open Source Project
+* Copyright (C) 2016 The Android Open Source Project
+* Copyright (C) 2017 The Android Open Source Project
+* Copyright (C) 2018 The Android Open Source Project
+* Copyright (C) 2019 The Android Open Source Project
+* Copyright (C) 2020 The Android Open Source Project
+* Copyright (C) 2021 The Android Open Source Project
+* Copyright (C) 2022 The Android Open Source Project
+* Copyright (C) 2023 The Android Open Source Project
+* Copyright (C) 2024 The Android Open Source Project
+* Copyright (C) 2024 The Android Open Source Projectf
+* Copyright (C) 2025 The Android Open Source Project
+* Copyright (C) 2026 The Android Open Source Project
+* Copyright 2002 Niels Provos <provos@citi.umich.edu>
+* Copyright 2024 The Android Open Source Project
+* Copyright 2025 The Android Open Source Project
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* copyright notice, this list of conditions and the following disclaimer
+/* Copyright 2005-2011 Google LLC
+// Copyright (C) 2018 The Android Open Source Project
+// Copyright (C) 2019 The Android Open Source Project
+// Copyright (C) 2020 The Android Open Source Project
+// Copyright (C) 2021 The Android Open Source Project
+// Copyright (C) 2022 The Android Open Source Project
+// Copyright (C) 2023 The Android Open Source Project
+// Copyright (C) 2024 The Android Open Source Project
+// Copyright (C) 2025 Rivos Inc.
+// Copyright (C) 2025 The Android Open Source Project
+// Copyright (C) 2026 The Android Open Source Project
+// Copyright 2020 The Chromium Authors
+// Copyright 2023 The Chromium Authors
+// Copyright 2025 The Chromium Authors
+// Copyright 2025 The syntaqlite Authors. All rights reserved.
+const char kCopyrightHeader[] = R"(/*
+etw* Copyright (C) 2024 The Android Open Source Project

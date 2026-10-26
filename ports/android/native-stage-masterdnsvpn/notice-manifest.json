@@ -1,0 +1,43 @@
+{
+  "linkedModules": 4,
+  "missingModules": [],
+  "files": [
+    {
+      "origin": "masterking32/MasterDnsVPN MIT",
+      "sha256": "be7eb5388e7996a5df273a5a6f0a4d6b31a8ef22a51dc24cdde3ab3a417245fe",
+      "file": "MASTERDNS-LICENSE",
+      "bytes": 1091
+    },
+    {
+      "origin": "Go toolchain",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+      "file": "go/LICENSE",
+      "bytes": 1453
+    },
+    {
+      "origin": "github.com/BurntSushi/toml@v1.4.0",
+      "sha256": "d21cb1c60785d6d3a84a7059323ccafc45c645b1bbda281c76a62d66ad2d7dc3",
+      "file": "dependencies/74e25d6927e7dd4f783811108c841e29ab01b82cca49693a976f962ae2f9684c/COPYING",
+      "bytes": 1079
+    },
+    {
+      "origin": "github.com/klauspost/compress@v1.18.5",
+      "sha256": "0d9e582ee4bff57bf1189c9e514e6da7ce277f9cd3bc2d488b22fbb39a6d87cf",
+      "file": "dependencies/7e7877fae212e622c6d6cf21be9e8df34937ff5564132a295c52a2c59a6f4d7f/LICENSE",
+      "bytes": 16733
+    },
+    {
+      "origin": "github.com/pierrec/lz4/v4@v4.1.26",
+      "sha256": "6a358d2540ca14048f02d366f23787c0a480157e58f058113f0e27168dd4e447",
+      "file": "dependencies/18a36c320fc597f9023db7034ba803e3be523bc434c99bb92bef753d07c1c3fc/LICENSE",
+      "bytes": 1477
+    },
+    {
+      "origin": "golang.org/x/crypto@v0.49.0",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+      "file": "dependencies/a21cca9b574794548fa86ad80ae493c4663aae674d5de1264497bbc87399b9b0/LICENSE",
+      "bytes": 1453
+    }
+  ],
+  "binaryExecuted": false
+}

@@ -29,7 +29,7 @@ internal object RoutingGroupsUi {
                     val dialog=ThemedDialogBuilder(activity).setTitle("Название группы").setView(form).setNegativeButton("Отмена",null).setPositiveButton("Сохранить",null).create()
                     dialog.setOnShowListener {dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                         val name=field.text.toString()
-                        run(MainActivity.Operation {val next=routing.snapshot();RoutingGroups.rename(next,active,name);routing.save(next);"Название группы сохранено"},true,Runnable {dialog.dismiss()})
+                        runAfterSuccess(MainActivity.Operation {val next=routing.snapshot();RoutingGroups.rename(next,active,name);routing.save(next);"Название группы сохранено"},true,Runnable {dialog.dismiss()})
                     }}
                     dialog.show()
                 }

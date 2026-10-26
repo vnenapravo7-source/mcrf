@@ -10,5 +10,7 @@
         <meta-data android:name="org.mcrf.engines.source.repository" android:value="${primarySourceRepository}" />
         <meta-data android:name="org.mcrf.engines.source.version" android:value="${primarySourceVersion}" />
         <meta-data android:name="org.mcrf.engines.source.sha256" android:value="${primarySourceSha256}" />
+        <meta-data android:name="org.mcrf.engines.steer.socks-udp-source-port" android:value="${steerSocksUdpSourcePort}" />
+        <meta-data android:name="org.mcrf.engines.steer.private-helper-profile" android:value="${steerPrivateHelperProfile}" />
     </application>
 </manifest>

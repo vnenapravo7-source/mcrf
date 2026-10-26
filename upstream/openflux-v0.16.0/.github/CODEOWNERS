@@ -1,0 +1,8 @@
+# OpenFlux core — engine ownership.
+# Project decision 2026-10-23: the tunnel engine is owned by p1neappleXpress.
+# PRs touching these paths auto-request p1neappleXpress as a reviewer.
+# main is PR-only for everyone (see branch protection).
+
+/transport/   @p1neappleXpress
+/tunnel/      @p1neappleXpress
+/mobile/      @p1neappleXpress

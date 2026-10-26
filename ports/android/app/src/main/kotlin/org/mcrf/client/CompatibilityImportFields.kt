@@ -3,10 +3,10 @@ package org.mcrf.client
 /** Labels accompany the actual canonical fields; runtime validators remain the authority. */
 object CompatibilityImportFields {
     fun describe(key: String): Pair<String, String> = when (key) {
-        "server", "domain" -> "Адрес сервера" to "Домен или IP сервера без схемы и пути. Для DNSTT — делегированный домен туннеля."
+        "server", "domain" -> "Адрес сервера" to "Домен или IP сервера без схемы и пути. Для DNSTT/VayDNS — делегированный домен туннеля."
         "server_port", "wg_port", "raw_port", "local_port" -> "Порт · $key" to "Порт 1–65535 из конфигурации. RAW и WireGuard могут использовать разные порты."
         "password", "secret" -> "Пароль / секрет" to "Секрет доступа из конфигурации провайдера; сохраняется в зашифрованном каталоге."
-        "key" -> "Ключ сервера" to "Публичный ключ DNSTT или ключ комнаты OLC: 64 шестнадцатеричных символа."
+        "key" -> "Ключ сервера" to "Публичный ключ DNSTT/VayDNS или ключ комнаты OLC: 64 шестнадцатеричных символа."
         "doh", "dot", "udp" -> "Резолвер · $key" to "Ровно один транспорт DNS: DoH — HTTPS URL; DoT — домен:порт; UDP — IP:порт."
         "username" -> "Логин" to "Необязательная авторизация прокси DNSTT. Логин и пароль задаются вместе."
         "workers" -> "Параллельные потоки" to "Число кратно 9 и зависит от числа звонков; превышение лимита не сохраняется."

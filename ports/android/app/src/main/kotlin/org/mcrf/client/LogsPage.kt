@@ -43,7 +43,7 @@ class LogsPage(private val activity:MainActivity) {
                 row.addView(text(whenText,10,Loft.MUTED).apply {typeface=Typeface.MONOSPACE},LinearLayout.LayoutParams(dp(56),-2))
                 val tone=when(item.level){LogEntries.Level.ERROR->Loft.ERROR;LogEntries.Level.WARNING->if(Loft.dark)0xffe5be6c.toInt()else 0xff84580a.toInt();LogEntries.Level.SUCCESS->Loft.ACCENT;else->Loft.MUTED}
                 row.addView(LinearLayout(this@with).apply {orientation=LinearLayout.VERTICAL;addView(text(item.level.label,11,tone));addView(text(item.kind.label,9,Loft.MUTED),space(4,0))},LinearLayout.LayoutParams(dp(68),-2))
-                row.addView(text(item.message,12,Loft.INK).apply {setHorizontallyScrolling(false);breakStrategy=android.text.Layout.BREAK_STRATEGY_SIMPLE},LinearLayout.LayoutParams(0,-2,1f))
+                row.addView(text(item.message,12,Loft.INK).apply {setHorizontallyScrolling(false);breakStrategy=android.graphics.text.LineBreaker.BREAK_STRATEGY_SIMPLE},LinearLayout.LayoutParams(0,-2,1f))
                 row.contentDescription="${item.timestamp}, ${item.level.label}, ${item.kind.label}, ${item.message}"
                 return row
             }

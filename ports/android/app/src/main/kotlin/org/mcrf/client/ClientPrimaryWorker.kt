@@ -117,7 +117,10 @@ class ClientPrimaryWorker private constructor(
             val reply = withInput(profile, settings) { file ->
                 call("VALIDATE", 15000) { putString("file", file.path); putString("mode", mode.name) }
             }
-            if (!reply.getBoolean("supported")) return Engine.Validation(false, "PRIMARY_CORE_CONFIG_REJECTED", "config")
+            if (!reply.getBoolean("supported")) {
+                val rejection=PrimaryValidationDiagnostic.reject(reply.getString("code"),reply.getString("field"))
+                return Engine.Validation(false,rejection.code,rejection.field)
+            }
             check(reply.getString("mode") == mode.name) { "PRIMARY_WORKER_VALIDATION_MODE" }
             val acquisition = ClientPrimaryWorkerWire.acquisition(ClientPrimaryCorePolicy.Core.parse(choiceId), mode)
             check(reply.getString("acquisition") == acquisition.name) { "PRIMARY_WORKER_VALIDATION_MODE" }

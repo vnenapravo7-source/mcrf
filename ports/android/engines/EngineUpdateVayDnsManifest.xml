@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data android:name="org.mcrf.engines.vaydns" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.source.repository" android:value="net2share/vaydns" />
+        <meta-data android:name="org.mcrf.engines.source.commit" android:value="a0ff70110d5e96686ab8f4c8e1c44cd09be07a75" />
+    </application>
+</manifest>

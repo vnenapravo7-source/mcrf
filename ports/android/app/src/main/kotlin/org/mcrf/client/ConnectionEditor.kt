@@ -252,12 +252,64 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
                 scalar(extra, key, spec.first, spec.second + " Пусто — значение движка.", parent = panel)
             }
         }
-        if (node.optString("type") == "dnstt") {
+        if(node.optString("type")==MasterDnsProfile.KIND) {
+            for(key in listOf("domains","resolvers")) {
+                val array=node.optJSONArray(key)?:org.json.JSONArray()
+                val value=(0 until array.length()).joinToString("\n"){array.getString(it)}
+                val control=input(value).apply {setSingleLine(false);minLines=2;maxLines=5;gravity=android.view.Gravity.TOP}
+                field(if(key=="domains")"Домены туннеля"else"DNS-резолверы",control,if(key=="domains")"Делегированные домены MasterDnsVPN, по одному в строке. Должны обслуживаться вашим сервером."else"По одному IP:порту в строке. IPv6 — [IP]:порт. Все выбранные резолверы будут участвовать в проверке MTU; большой список увеличивает время запуска и служебный трафик.")
+                readers.add {node.put(key,org.json.JSONArray(control.text.toString().split(Regex("[\\s,;]+")).filter(String::isNotEmpty).distinct()))}
+            }
+            val keyControl=input(node.optString("encryption_key"),true)
+            field("Ключ сервера",keyControl,"Ключ MasterDnsVPN должен точно совпадать с сервером; пробелы сохраняются. Не попадает в журналы.")
+            readers.add {node.put("encryption_key",keyControl.text.toString())}
+            val methods=arrayOf("Без шифрования","XOR · слабый","ChaCha20","AES-128-GCM","AES-192-GCM","AES-256-GCM")
+            val cipher=picker(methods,node.optInt("encryption_method",5),"Метод должен совпадать с сервером. Без шифрования и XOR не защищают содержимое; ChaCha20 здесь не означает AEAD. Для нового сервера предпочтительны AES-GCM. Метод из импортированного профиля не меняется автоматически.")
+            field("Шифрование",cipher,"Выберите ровно тот метод, который настроен на сервере. Без шифрования и XOR небезопасны для незашифрованного трафика.")
+            readers.add {node.put("encryption_method",cipher.selectedItemPosition)}
+            val encoding=picker(arrayOf("Выключено","Включено"),if(node.optBoolean("base_encode_data"))1 else 0,"Дополнительное кодирование данных MasterDnsVPN; значение должно соответствовать серверу.")
+            field("Кодирование",encoding,"Не меняйте без соответствующей настройки сервера.");readers.add {node.put("base_encode_data",encoding.selectedItemPosition==1)}
+            for(key in listOf("upload_compression","download_compression")) {
+                val compression=picker(arrayOf("Без сжатия","ZSTD","LZ4","ZLIB"),node.optInt(key),"Сжатие MasterDnsVPN. Может уменьшать трафик, но увеличивает вычисления и расход батареи. Должно поддерживаться сервером.")
+                field(if(key=="upload_compression")"Сжатие отправки"else"Сжатие приёма",compression,"Согласуйте алгоритм с сервером; дополнительное сжатие не ускоряет уже сжатые видео и архивы.")
+                readers.add {node.put(key,compression.selectedItemPosition)}
+            }
+            val workers=picker((1..8).map {it.toString()}.toTypedArray(),node.optInt("workers",2)-1,"Рабочие потоки самого MasterDnsVPN, не VK TURN. По умолчанию 2. Больше потоков может повысить нагрузку на процессор и расход батареи; сервер не сможет поднять этот локальный предел.")
+            field("Рабочие потоки",workers,"Локальный предел нагрузки MasterDnsVPN, 1–8.");readers.add {node.put("workers",workers.selectedItemPosition+1)}
+        }
+        if(node.optString("type")==SstpProfile.KIND) {
+            scalar(node,"server","Адрес сервера","Домен или IP SSTP без схемы, порта и пути; порт задаётся отдельно.")
+            scalar(node,"server_port","Порт","По умолчанию 443; должен совпадать с настройками SSTP-сервера.")
+            for(key in listOf("username","password")) {
+                val control=input(node.optString(key),key=="password")
+                field(if(key=="username")"Логин"else"Пароль",control,if(key=="username")"Имя пользователя SSTP, при необходимости с доменом учётной записи. Пробелы сохраняются."else"Пароль SSTP сохраняется точно, включая пробелы, в защищённых настройках приложения.")
+                readers.add {node.put(key,control.text.toString())}
+            }
+            scalar(node,"sni","SNI","Имя из TLS-сертификата. Пусто — адрес сервера. Проверка цепочки и имени обязательна.")
+            val ca=input(node.optString("ca_certificate")).apply {setSingleLine(false);minLines=3;maxLines=6;gravity=android.view.Gravity.TOP}
+            field("Доверенный CA",ca,"Необязательные PEM-сертификаты для собственного сервера. Пусто — системные центры сертификации. Проверка имени сервера остаётся включённой.")
+            readers.add {val value=ca.text.toString().trim();if(value.isEmpty())node.remove("ca_certificate")else node.put("ca_certificate",value)}
+        }
+        if(node.optString("type")==SlipstreamProfile.KIND) {
+            scalar(node,"domain","Домен туннеля","Делегированный домен Slipstream; не адрес сайта или самого резолвера.")
+            scalar(node,"resolver","DNS-резолвер","Числовой IP:порт. Для IPv6: [IP]:порт. Другой DNS-туннель автоматически не подставляется.")
+            val certificate=input(node.optString("certificate")).apply {setSingleLine(false);minLines=3;maxLines=6;gravity=android.view.Gravity.TOP}
+            field("Сертификат сервера",certificate,"Один PEM-сертификат самого сервера. Сверьте его с владельцем: при несовпадении подключение остановится. Проверку отключить нельзя.")
+            readers.add {node.put("certificate",certificate.text.toString().trim())}
+            val current=node.optInt("keep_alive_ms",1000)
+            val intervals=(listOf(0,400,1000,5000,10000,30000,60000)+current).distinct().sorted()
+            val keepAlive=picker(intervals.map {if(it==0)"Выключено" else if(it%1000!=0)"$it мс" else "${it/1000} с"}.toTypedArray(),intervals.indexOf(current),"Пакеты поддержания Slipstream. Частые пакеты расходуют батарею и трафик; слишком большой интервал может мешать получению данных через некоторые резолверы. Выключено — без периодических keep-alive, не без служебного трафика QUIC/DNS.")
+            field("Поддержание связи",keepAlive,"По умолчанию 1 с. Меньше — чаще служебные запросы и выше расход батареи. Выключение не отменяет служебный трафик активного DNS-туннеля.")
+            readers.add {node.put("keep_alive_ms",intervals[keepAlive.selectedItemPosition])}
+            scalar(node,"username","Логин прокси","Необязательная авторизация удалённого SOCKS5 за туннелем; задаётся вместе с паролем.")
+            scalar(node,"password","Пароль прокси","Пароль удалённого SOCKS5; локальная авторизация создаётся приложением отдельно.",true)
+        }
+        if (node.optString("type") in setOf("dnstt",VayDnsProfile.KIND)) {
             val keys = arrayOf("doh", "dot", "udp")
             val selected = keys.indexOfFirst { node.has(it) && node.optString(it).isNotEmpty() }.coerceAtLeast(0)
             val kind = activity.picker(arrayOf("HTTPS / DoH", "TLS / DoT", "UDP"), selected)
             val resolver = input(node.optString(keys[selected]))
-            field("Транспорт DNS", kind, "Выбери один способ доставки зашифрованного DNSTT-туннеля к DNS-резолверу.")
+            field("Транспорт DNS", kind, "Выбери один способ доставки зашифрованного DNS-туннеля к резолверу.")
             field("Адрес резолвера", resolver, "DoH: https://домен/dns-query. DoT: домен:853. UDP: IP:53. При смене транспорта укажи соответствующий адрес.")
             readers.add { keys.forEach(node::remove); node.put(keys[kind.selectedItemPosition], resolver.text.toString().trim()) }
             scalar(node, "username", "Логин прокси", "Необязательный логин SOCKS за туннелем; задаётся вместе с паролем.")
@@ -296,7 +348,10 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
                         readers.add {obj.put(key,CarrierCaptchaMode.select(wire,control.selectedItemPosition==0))}
                     }
                     node.optString("type") == "olcrtc" && key == "options" -> Unit
-                    node.optString("type") == "dnstt" && prefix.isEmpty() && key in setOf("doh", "dot", "udp", "username", "password") -> Unit
+                    node.optString("type") in setOf("dnstt",VayDnsProfile.KIND) && prefix.isEmpty() && key in setOf("doh", "dot", "udp", "username", "password") -> Unit
+                    node.optString("type")==SlipstreamProfile.KIND&&prefix.isEmpty()&&key in setOf("domain","resolver","certificate","keep_alive_ms","username","password")->Unit
+                    node.optString("type")==SstpProfile.KIND&&prefix.isEmpty()&&key in setOf("server","server_port","username","password","sni","ca_certificate")->Unit
+                    node.optString("type")==MasterDnsProfile.KIND&&prefix.isEmpty()&&key in setOf("domains","resolvers","encryption_key","encryption_method","base_encode_data","upload_compression","download_compression","workers")->Unit
                     value is JSONObject -> visit(value, path)
                     value is org.json.JSONArray && key == "transports" -> repeat(value.length()) { i -> visit(value.getJSONObject(i), "Транспорт ${i + 1}") }
                     value is org.json.JSONArray && key == "hashes" -> {
@@ -397,6 +452,7 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         status.text = "Проверка настроек…"; status.setTextColor(Loft.MUTED)
         pendingWrites.incrementAndGet()
         worker.execute {
+            var phase=EditorSaveFailure.Phase.VALIDATE
             try {
                 CompatibilityImportValidation.editor.validateAndCommit(candidate, CompatibilityImportValidation.Validator { checked ->
                     if (!checked.needsEngine()) {
@@ -404,11 +460,16 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
                         ClientPrimarySelection.validateNative(activity.applicationContext, ProfileConfig.build(profile.toString(), true, 10808).toString(), true)
                     }
                 }) { if (current == revision.get()) {
+                    phase=EditorSaveFailure.Phase.SAVE
                     activity.catalogue.edit(entry.id, captured)
                     lastSaved = serialized
                     handler.post { if (current == revision.get()) { dirty = false; status.text = "Сохранено. Применится при следующем подключении."; status.setTextColor(Loft.MUTED) }; if (!activity.isDestroyed && !activity.isFinishing) onCommitted?.run() }
                 } }
-            } catch (_: Exception) { handler.post { if (current == revision.get()) { status.text = "Ядро отклонило настройки или сохранение не удалось. Последний корректный вариант сохранён."; status.setTextColor(Loft.ERROR) } } }
+            } catch (error: Exception) {
+                val failure=EditorSaveFailure.describe(error,phase)
+                ClientEvents.record(activity.applicationContext,"Редактор сервера",failure)
+                handler.post { if (current == revision.get()) { status.text = failure; status.setTextColor(Loft.ERROR) } }
+            }
             finally { pendingWrites.decrementAndGet() }
         }
     }

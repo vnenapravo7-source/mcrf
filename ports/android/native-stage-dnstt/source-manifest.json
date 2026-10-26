@@ -1,0 +1,134 @@
+[
+  {
+    "sha256": "fd77d45679a74e8d84899362e10f556b4d9f1a39111e9be5d7d36442ee827072",
+    "path": ".gitignore"
+  },
+  {
+    "sha256": "6490c20532b61adc59e2283f7423d5ed40662c759dd616858b8e7ebe0a0ce510",
+    "path": "CHANGELOG"
+  },
+  {
+    "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+    "path": "COPYING"
+  },
+  {
+    "sha256": "e9486d0e7ed9c51450f64998f4ba80393f98c3b38ac5f2a50e47dfe249001e74",
+    "path": "dns/dns_test.go"
+  },
+  {
+    "sha256": "ea6a4c1db070a154dee77f617b722997a21602a4e04e6d072c7c3c40d87b90a5",
+    "path": "dns/dns.go"
+  },
+  {
+    "sha256": "3f61748c29cb178e4407b3b7fd7d53844510b71255b068758f2f2672e6453163",
+    "path": "dns/fuzz.go"
+  },
+  {
+    "sha256": "008d5581d6bfdbd42c41b8e625fa51ac216a5c023f9477e2993b397d144ea3ad",
+    "path": "dnstt-client/dns_test.go"
+  },
+  {
+    "sha256": "6892ebe6a7410a453ebaeaf28b2ec8b58664ccb95bd51f4660bb595b73db5908",
+    "path": "dnstt-client/dns.go"
+  },
+  {
+    "sha256": "48fcde02de34ed04475d20c9386cbccd761321e3c08866864abde668f858874f",
+    "path": "dnstt-client/http_test.go"
+  },
+  {
+    "sha256": "e7970f49e469b0325586d33963d3629ed8630785913c8b8769cc9db8ceeb76a1",
+    "path": "dnstt-client/http.go"
+  },
+  {
+    "sha256": "31077cc3690b9a427cda437c8dd27348a9eaf34ed74c4b902708ac2819c86f82",
+    "path": "dnstt-client/main_test.go"
+  },
+  {
+    "sha256": "90084e2b0090d2105672f55825860843380f383994905cfc66a878b0810c26a4",
+    "path": "dnstt-client/main.go"
+  },
+  {
+    "sha256": "2f75b265809bf8f30f673f8e985be69fc2336e75bf1e3bb5d8ef2818418da6cf",
+    "path": "dnstt-client/mcrf_config_test.go"
+  },
+  {
+    "sha256": "0a4405e50cc00dd75aba9bc333f64cab65655750cd74452413910c02f85c8405",
+    "path": "dnstt-client/mcrf_config.go"
+  },
+  {
+    "sha256": "ad388ba712e88d69e72baf3c3e6ca4e5fdd11a8178d315c7824c171fbfca36de",
+    "path": "dnstt-client/mcrf_lifecycle_test.go"
+  },
+  {
+    "sha256": "bc4511732ca20873df25bb898411cefb0043f68cd7dc50b16ad0d01333c6cd5a",
+    "path": "dnstt-client/mcrf_lifecycle.go"
+  },
+  {
+    "sha256": "faaaa9bcab170728a930b4edfb96a616c89474953c2cb468f2ff73906c01c58a",
+    "path": "dnstt-client/tls.go"
+  },
+  {
+    "sha256": "50314f95128bd76f9e86ca563a393a0353e26ae760b331bd9f83db85b54927b9",
+    "path": "dnstt-client/utls.go"
+  },
+  {
+    "sha256": "249b05c0e2bf7f6285db73b732fa260591623112787d165fa6151e3b65b9e2fd",
+    "path": "dnstt-client/weightedlist_test.go"
+  },
+  {
+    "sha256": "b43a245ca8dbc04c20ad341563ffc262f3545ecb3c179b04c6ecaf1deacf590b",
+    "path": "dnstt-client/weightedlist.go"
+  },
+  {
+    "sha256": "778a4e16747586af33a05e177034294a91813414e3a71bcbd8e634aca27a84e8",
+    "path": "dnstt-server/main.go"
+  },
+  {
+    "sha256": "95bb5f612c30432b94d13b95cc12a9b0a50a711c386519a0d13ae3541e288df0",
+    "path": "go.mod"
+  },
+  {
+    "sha256": "ffa0fed074d63ed9c2ab31a03d3977bb6c7d55eb6bf62ca5bc942730aafda025",
+    "path": "go.sum"
+  },
+  {
+    "sha256": "a2aaa7ce95c38d5983603a1e26e4d60a7c537b87000b9712c19761cba21d8afd",
+    "path": "man/dnstt-client.1"
+  },
+  {
+    "sha256": "e455081b8aa1bd188d6474e05dd11e3b5bf5c67479158f1b09a3693645c9f9af",
+    "path": "man/dnstt-server.1"
+  },
+  {
+    "sha256": "eaa562986dd840b12d2b36f26688aedf7bb3988bc29b06936411996f287ecbc6",
+    "path": "noise/noise_test.go"
+  },
+  {
+    "sha256": "30e1cec30e7f0c5371967f8543e3a67d98ddf930fe498eb98d5691e57566e2c3",
+    "path": "noise/noise.go"
+  },
+  {
+    "sha256": "75fcc80523e2b4d0b4f6a9533058e66cb18ff0c0764d9156f1921e5ed34d5d35",
+    "path": "README"
+  },
+  {
+    "sha256": "e2700c19ed41335a61370be0b98971fadcd495112218f79f0f7a762dc49637c5",
+    "path": "TODO"
+  },
+  {
+    "sha256": "80e16984c072ddbb197ed9cd03b480c4f5ad2e15b9e68e8901187fc1cd8b7dc3",
+    "path": "turbotunnel/clientid.go"
+  },
+  {
+    "sha256": "e86fd8a716d288b4bf088cec1367e212b878af11444f756739324fad6944c825",
+    "path": "turbotunnel/consts.go"
+  },
+  {
+    "sha256": "5f89b88474d980a56c7555591673980844200dc862929aa4cb1a7f2d292e4d93",
+    "path": "turbotunnel/queuepacketconn.go"
+  },
+  {
+    "sha256": "eed357efec52b55de396cc1ce998287e2f0a7e730ce0fa53a8366145f424abd3",
+    "path": "turbotunnel/remotemap.go"
+  }
+]

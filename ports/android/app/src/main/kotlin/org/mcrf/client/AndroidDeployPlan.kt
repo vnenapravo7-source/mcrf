@@ -75,6 +75,7 @@ object AndroidDeployPlan {
                 }
                 val kind=o.optString("relay_kind","qwdtt");VkRelayProtocol.count(integer(o,"call_count",6),AndroidDeploySwg.callKind(kind));require(kind in AndroidDeploySwg.kinds)
                 val p=port("relay_port",56000);if(!AndroidDeploySwg.isCsqtt(kind)) require(p!=port("wg_port",51820))
+                if(kind=="qwdtt")require(56003 !in setOf(p,integer(o,"wg_port",51820),target.sshPort,target.panelPort)) {"Порт 56003 зарезервирован для QWDTT RAW; он не должен совпадать с TURN, WireGuard, SSH или панелью."}
                 val a=o.optJSONArray("vk_calls") ?: JSONArray()
                 AndroidDeploySwg.validateCallArray(a)
                 if(a.length()>0) VkRelayProtocol.calls((0 until a.length()).map(a::getString),AndroidDeploySwg.callKind(kind))

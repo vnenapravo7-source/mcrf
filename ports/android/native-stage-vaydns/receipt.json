@@ -1,0 +1,43 @@
+{
+  "sourceManifestSha256": "dce0f913d9936bdbb308da50fc896df1c5779abdcd9ef8a9c0c848008bbeffbb",
+  "packageVersionCode": 1,
+  "repository": "net2share/vaydns",
+  "kind": "vaydns",
+  "producerComplete": true,
+  "artifacts": [
+    {
+      "abi": "arm64-v8a",
+      "file": "arm64-v8a/libvaydns.so",
+      "elfChecked": true,
+      "bytes": 9431632,
+      "nativeExecuted": false,
+      "sha256": "94e7b5a6eededbb96e0cde48b9d1393d8e46b31d618690ded858d3ee4fb4b751"
+    },
+    {
+      "abi": "armeabi-v7a",
+      "file": "armeabi-v7a/libvaydns.so",
+      "elfChecked": true,
+      "bytes": 9125044,
+      "nativeExecuted": false,
+      "sha256": "6495ee2021d1b1883291408aab94f3af3d4c7fa24946de03d82d5310bd0048a6"
+    },
+    {
+      "abi": "x86_64",
+      "file": "x86_64/libvaydns.so",
+      "elfChecked": true,
+      "bytes": 11222248,
+      "nativeExecuted": false,
+      "sha256": "8eae4615ed55d1eb9e91a064a7af48870054d58548558a933ca0ecbee5a3098a"
+    }
+  ],
+  "commit": "a0ff70110d5e96686ab8f4c8e1c44cd09be07a75",
+  "vaydnsContract": 1,
+  "nativeExecuted": false,
+  "apkBuilt": false,
+  "hostEvidenceSha256": "ab62c0e7406b2543b78bcecf0a6f26c1bcfee0c480a06cf0c645d26b1db6421c",
+  "toolchainSha256": "21761eceb9302062c9623fb699f332c8c7fe000f15f70efe8da01a2cfbbc16b9",
+  "source": "D:/MCRF/Builds/Android/p3-vaydns-source-73c214abc62d45aba7b7aabffa974c1d/module",
+  "packageVersionName": "0.2.8-mcrf.1",
+  "sourceStable": true,
+  "state": "COMPILED_NOT_EXECUTED"
+}

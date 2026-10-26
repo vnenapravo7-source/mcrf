@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.*
 import java.nio.ByteBuffer
-import java.nio.charset.CharacterCodingException
 import java.nio.charset.CodingErrorAction
 import java.util.Locale
 import org.json.JSONObject
@@ -91,9 +90,7 @@ object SubscriptionClient {
                     return Downloaded(imported,info)
                 } finally { connection.disconnect() }
             }
-        } catch (_: SocketTimeoutException) { throw IllegalArgumentException("Сервер подписки не ответил за 30 секунд.") }
-        catch (_: CharacterCodingException) { throw IllegalArgumentException("Подписка должна содержать UTF-8 текст.") }
-        catch (_: IOException) { throw IllegalArgumentException("Не удалось загрузить подписку. Проверь соединение и адрес.") }
+        } catch (error: IOException) { throw IllegalArgumentException(SubscriptionFailure.describe(error),error) }
         throw IllegalArgumentException("Не удалось загрузить подписку.")
     }
     private fun checkActive(){if(Thread.currentThread().isInterrupted)throw InterruptedException("Загрузка подписки отменена.")}

@@ -13,6 +13,8 @@ class OptionalCoreSession private constructor(val config: JSONObject,private val
     fun isClosed():Boolean=retirement.isComplete()
     fun failureDetail(tag:String):String?=byTag[tag]?.failure()
     fun failureDetails():String=byTag.values.mapNotNull {it.failure()}.distinct().take(3).joinToString(" | ")
+    /** Persistent observation, unlike one-shot reportFailures notification delivery. */
+    fun deadTags():Set<String> = if(retirement.isRequested())emptySet() else byTag.filterValues {!it.isAlive()}.keys.toSet()
     /** A failed per-rule backend must stay failed, never silently use main. */
     fun reportFailures(notify:(String)->Unit) {
         failures.sample(byTag.filterValues {it.isAlive()}.keys,retirement.isRequested()).forEach(notify)

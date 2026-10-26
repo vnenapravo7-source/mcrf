@@ -11,6 +11,18 @@ import javax.net.ssl.HttpsURLConnection
 import java.util.UUID
 
 object EnginePackages {
+    private fun vayMetadata(data:android.os.Bundle?)=VayDnsProfile.compatible(
+        data?.getString("org.mcrf.engines.kind"),data?.getString("org.mcrf.engines.source.repository"),
+        data?.getString("org.mcrf.engines.source.commit"),data?.getInt("org.mcrf.engines.vaydns")?:0)
+    private fun slipMetadata(data:android.os.Bundle?)=SlipstreamProfile.compatible(
+        data?.getString("org.mcrf.engines.kind"),data?.getString("org.mcrf.engines.source.repository"),
+        data?.getString("org.mcrf.engines.source.commit"),data?.getInt("org.mcrf.engines.slipstream")?:0)
+    private fun sstpMetadata(data:android.os.Bundle?)=SstpProfile.compatible(
+        data?.getString("org.mcrf.engines.kind"),data?.getString("org.mcrf.engines.source.repository"),
+        data?.getString("org.mcrf.engines.source.commit"),data?.getInt("org.mcrf.engines.sstp")?:0)
+    private fun masterMetadata(data:android.os.Bundle?)=MasterDnsProfile.compatible(
+        data?.getString("org.mcrf.engines.kind"),data?.getString("org.mcrf.engines.source.repository"),
+        data?.getString("org.mcrf.engines.source.commit"),data?.getInt("org.mcrf.engines.masterdnsvpn")?:0)
     private val knownAssets=java.util.concurrent.ConcurrentHashMap<String,EnginePackage>()
     fun knownAsset(kind:String,abi:String):EnginePackage?=knownAssets["$kind/$abi"]
     fun missing(context: Context, engines: Set<String>) = engines.filterTo(linkedSetOf()) {
@@ -87,6 +99,10 @@ object EnginePackages {
         if(kind in EngineModules.primaryCores)EngineUpdatePrimary.verifyArchive(context,file,requireNotNull(kind))
         if(kind in EngineModules.packetCores)EngineUpdatePacket.verifyArchive(context,file)
         if(kind=="tgws")EngineUpdateTelegram.metadata(requireNotNull(apk.applicationInfo))
+        if(kind==VayDnsProfile.KIND)require(vayMetadata(apk.applicationInfo?.metaData)) {"Нужен отдельный совместимый модуль VayDNS с защищённым локальным интерфейсом."}
+        if(kind==SlipstreamProfile.KIND)require(slipMetadata(apk.applicationInfo?.metaData)) {"Нужен отдельный совместимый модуль Slipstream с закрытым локальным каналом и проверкой сертификата."}
+        if(kind==SstpProfile.KIND)require(sstpMetadata(apk.applicationInfo?.metaData)) {"Нужен отдельный совместимый модуль SSTP с обязательной локальной авторизацией и проверкой TLS."}
+        if(kind==MasterDnsProfile.KIND)require(masterMetadata(apk.applicationInfo?.metaData)) {"Нужен отдельный совместимый модуль MasterDnsVPN с обязательной локальной авторизацией."}
         if(kind==S3BypassProfile.KIND)require(apk.applicationInfo?.metaData?.getInt("org.mcrf.engines.s3bypass")==1&&apk.applicationInfo?.metaData?.getString("org.mcrf.engines.source.repository")==S3BypassProfile.REPOSITORY&&apk.applicationInfo?.metaData?.getString("org.mcrf.engines.source.commit")==S3BypassProfile.COMMIT) {"Нужен отдельный модуль S3 Bypass с совместимым ядром fedarisha."}
     }
     fun verifyRequirements(context: Context, file: File, engines: Set<String>) {
@@ -96,6 +112,10 @@ object EnginePackages {
         if(single in EngineModules.primaryCores){EngineUpdatePrimary.verifyArchive(context,file,requireNotNull(single));return}
         if(single in EngineModules.packetCores){EngineUpdatePacket.verifyArchive(context,file);return}
         if(single=="tgws")EngineUpdateTelegram.metadata(requireNotNull(apk.applicationInfo))
+        if(VayDnsProfile.KIND in engines)require(single==VayDnsProfile.KIND&&vayMetadata(apk.applicationInfo?.metaData)) {"Исходник или защищённый интерфейс модуля VayDNS не совпадает с MCRF."}
+        if(SlipstreamProfile.KIND in engines)require(single==SlipstreamProfile.KIND&&slipMetadata(apk.applicationInfo?.metaData)) {"Исходник или защищённый интерфейс модуля Slipstream не совпадает с MCRF."}
+        if(SstpProfile.KIND in engines)require(single==SstpProfile.KIND&&sstpMetadata(apk.applicationInfo?.metaData)) {"Исходник или защищённый интерфейс модуля SSTP не совпадает с MCRF."}
+        if(MasterDnsProfile.KIND in engines)require(single==MasterDnsProfile.KIND&&masterMetadata(apk.applicationInfo?.metaData)) {"Исходник или защищённый интерфейс модуля MasterDnsVPN не совпадает с MCRF."}
         if ("openflux" in engines) require((apk.applicationInfo?.metaData?.getInt("org.mcrf.engines.openflux") ?: 0) >= 2) { "Пакет не поддерживает текущий формат OpenFlux." }
         if (engines.any { it in SwgProfile.TYPES }) require((apk.applicationInfo?.metaData?.getInt("org.mcrf.engines.swg") ?: 0) >= 1) { "Пакет не поддерживает текущий формат SWG." }
         if("csqtt25" in engines)require(single=="csqtt25"&&apk.applicationInfo?.metaData?.getString("org.mcrf.engines.csqtt_generation")=="2.5") {"Нужен отдельный пакет CSQTT 2.5, а не старый CSQTT или общий пакет движков."}

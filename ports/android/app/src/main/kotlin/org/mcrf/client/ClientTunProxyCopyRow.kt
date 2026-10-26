@@ -1,10 +1,6 @@
 package org.mcrf.client
 
-import android.content.ClipData
-import android.content.ClipDescription
 import android.content.ClipboardManager
-import android.os.Build
-import android.os.PersistableBundle
 import android.view.Gravity
 import android.widget.LinearLayout
 
@@ -28,8 +24,7 @@ class ClientTunProxyCopyRow(private val activity: MainActivity) {
                         activity.alert("Локальный прокси","Сначала включите подключение: ссылка использует фактический порт работающего прокси.");return@setOnClickListener
                     }
                     val link=LocalProxyConfig.link(scheme,actual,store.auth())
-                    val clip=ClipData.newPlainText("MCRF · $label",link)
-                    if(Build.VERSION.SDK_INT>=33)clip.description.extras=PersistableBundle().apply {putBoolean(ClipDescription.EXTRA_IS_SENSITIVE,true)}
+                    val clip=AndroidDeployClipboard.sensitive(link,"MCRF · $label")
                     activity.getSystemService(ClipboardManager::class.java).setPrimaryClip(clip)
                     activity.toast("Ссылка $label скопирована")
                 }

@@ -18,9 +18,12 @@ object CompatibilityImportQwdtt {
     fun applyNew(source: String, defaults: (JSONObject) -> JSONObject): String = try { transform(source, defaults, 0) }
         catch (_: Exception) { throw IllegalArgumentException("Не удалось подготовить новый профиль QWDTT. Проверь формат и источник звонков; данные не добавлены.") }
     private fun policy(raw: JSONObject, defaults: (JSONObject) -> JSONObject): JSONObject? {
-        if (raw.optString("type") != "qwdtt" || raw.has("hash_source") || hasCalls(raw)) return null
-        val result = defaults(JSONObject(raw.toString()))
+        if (raw.optString("type") != "qwdtt") return null
         val output = JSONObject(raw.toString())
+        // Only new imports pass through this policy. Never migrate saved profiles.
+        if (!output.has("mode")) output.put("mode", "raw")
+        if (raw.has("hash_source") || hasCalls(raw)) return output.takeIf { it.toString() != raw.toString() }
+        val result = defaults(JSONObject(output.toString()))
         // Defaults cannot add account tokens or replace provider credentials/endpoint.
         for (key in listOf("hash_source", "hashes", "vkHashes")) if (result.has(key)) output.put(key, result.get(key))
         require(output.optString("hash_source") in setOf("manual", "auto")) { "Выбери источник звонков QWDTT." }

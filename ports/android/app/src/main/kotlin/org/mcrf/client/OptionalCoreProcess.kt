@@ -21,16 +21,27 @@ class OptionalCoreProcess private constructor(val port: Int,val username: String
     private var directory: File?=null
     private val ready=AtomicBoolean(false)
     private val closed=AtomicBoolean(false)
+    private val trustRejected=AtomicBoolean(false)
     private var failureDetail:CarrierFailureDetail?=null
     private var outputThread:Thread?=null
     private fun watch(child:Process,config:JSONObject,acceptReady:Boolean=false){
         val detail=CarrierFailureDetail(kind,config,listOf(username,password));failureDetail=detail
         ready.set(false)
-        outputThread=ChildFailureOutput.start(child.inputStream,detail){line->if(acceptReady&&line=="MCRF_READY")ready.set(true)}
+        outputThread=ChildFailureOutput.start(child.inputStream,detail){line->
+            if(acceptReady&&line=="MCRF_READY")ready.set(true)
+            if(kind=="protocols"&&CompactProtocolFailure.trustFailure(line))trustRejected.set(true)
+        }
     }
     fun failure(stage:String="работающее соединение"):String? {
         if(closed.get()||process?.isAlive!=false)return null
         return failureDetail?.describe(stage,process?.let {runCatching {it.exitValue()}.getOrNull()})
+    }
+    /** A live SDK can reject a dial/TLS handshake without exiting its listener.
+     * Attach the retained safe category when an actual transfer probe fails. */
+    fun diagnostic(stage:String):String?=failureDetail?.describe(stage,process?.takeIf {!it.isAlive}?.let {runCatching {it.exitValue()}.getOrNull()})
+    fun transferFailure(stage:String):Exception {
+        val detail=diagnostic(stage)?:"Протокольный модуль не сообщил причину."
+        return if(trustRejected.get())SecurityException(detail)else java.io.IOException(detail)
     }
     private fun checkExit(child:Process,cancelled:BooleanSupplier,stage:String) {
         val code=try{waitExit(child,cancelled,10000)}catch(error:IllegalArgumentException){
@@ -65,14 +76,14 @@ class OptionalCoreProcess private constructor(val port: Int,val username: String
     /** All upstream connections close; the service recreates with fresh credentials. */
     fun networkChanged()=close()
     companion object {
-        val kinds=setOf("xray","tls-core")
+        val kinds=setOf("xray","tls-core","protocols")
         fun packageName(kind: String):String {require(kind in kinds);return "org.mcrf.engines.${if(kind=="tls-core") "tlscore" else kind}"}
-        fun libraryName(kind: String):String {require(kind in kinds);return if(kind=="tls-core") "libtls_core.so" else "libxray.so"}
+        fun libraryName(kind: String):String {require(kind in kinds);return when(kind){"tls-core"->"libtls_core.so";"protocols"->"libprotocols.so";else->"libxray.so"}}
         private fun executable(context:Context,kind:String):File {
             val pm=context.packageManager
             val plugin=try {pm.getApplicationInfo(packageName(kind),PackageManager.GET_META_DATA)} catch(_:PackageManager.NameNotFoundException){throw IllegalArgumentException("Установи отдельный подписанный пакет $kind для архитектуры телефона.")}
-            val sourceCommit=if(kind=="xray") "e662c22ab1096883c4df200a0e8068a89da04df1" else "ebe0747b41823e02335ad3c7ae531bc577e7bc75"
-            val sourceRepository=if(kind=="xray") "throneproj/xray-core" else "throneproj/sing-box"
+            val sourceCommit=EngineModules.sourceCommit(kind)
+            val sourceRepository=EngineModules.sourceRepository(kind)
             require(plugin.enabled && plugin.metaData?.getInt("org.mcrf.engines.interface")==1 && plugin.metaData?.getString("org.mcrf.engines.kind")==kind &&
                 plugin.metaData?.getInt("org.mcrf.engines.optional-core")==1 && plugin.metaData?.getString("org.mcrf.engines.source.commit")==sourceCommit && plugin.metaData?.getString("org.mcrf.engines.source.repository")==sourceRepository &&
                 pm.checkSignatures(context.packageName,plugin.packageName)==PackageManager.SIGNATURE_MATCH) {"Подпись, исходник или интерфейс optional core не совпадает с MCRF."}
@@ -97,9 +108,14 @@ class OptionalCoreProcess private constructor(val port: Int,val username: String
             };errors.join(250)
             require(descriptorExit==0) {detail.describe("проверка интерфейса движка",descriptorExit)};reader.join(1000)
             require(!reader.isAlive && bytes.size() in 1..8192) {"Некорректный descriptor optional core."}
-            val descriptor=JSONObject(bytes.toString("UTF-8"));val upstream=if(kind=="xray") "e662c22ab1096883c4df200a0e8068a89da04df1" else "ebe0747b41823e02335ad3c7ae531bc577e7bc75"
-            val ingress=if(kind=="xray") "authenticated-loopback-socks5-tcp-udp" else "authenticated-loopback-socks5-tcp"
+            val descriptor=JSONObject(bytes.toString("UTF-8"));val upstream=EngineModules.sourceCommit(kind)
+            val ingress=EngineModules.ingress(kind)
             require(descriptor.getInt("api")==1 && descriptor.getString("kind")==kind && descriptor.getString("upstream")==upstream && descriptor.getString("ingress")==ingress) {"Обнови optional core: несовместимый API или исходник."}
+            if(kind=="protocols"){
+                val required=setOf("tuic","anytls","naive-cronet","ssh-host-key","udp-authenticated-source-port-v1","android-child-physical-network-v1")
+                val values=descriptor.getJSONArray("capabilities")
+                require(required.all {need->(0 until values.length()).any {values.getString(it)==need}}){"Протокольный модуль не подтверждает исходные протоколы и защищённый UDP."}
+            }
             if(certificateStore!=null){val capabilities=descriptor.getJSONArray("capabilities");require((0 until capabilities.length()).any {capabilities.getString(it)=="certificate-store"}) {"Обнови TLS core для выбранного CA store."}}
             if(serverDns){val capabilities=descriptor.getJSONArray("capabilities");require((0 until capabilities.length()).any {capabilities.getString(it)=="server-address-dns-v1"}) {"Обнови внешний движок для передачи выбранного DNS адресов серверов."}}
             OptionalCoreTermination.release(child,false)
@@ -115,7 +131,7 @@ class OptionalCoreProcess private constructor(val port: Int,val username: String
         /** vpn=true requires the service to exclude this application's UID from
          * TUN. A subprocess cannot use the in-process libbox FD protector. */
         fun start(context:Context,request:OptionalCoreConfig.Request,cancelled:BooleanSupplier,vpn:Boolean,vpnUidBypassConfigured:Boolean):OptionalCoreProcess {
-            require(!vpn || vpnUidBypassConfigured) {"VPN должен исключить UID приложения для сетевых сокетов optional core."}
+            require(!vpn || vpnUidBypassConfigured || request.kind=="protocols"&&request.physicalNetworkHandle?.let {it>0}==true) {"VPN должен исключить UID приложения либо явно привязать протокольный модуль к физической сети."}
             val binary=executable(context,request.kind)
             describe(binary,request.kind,cancelled,request.certificateStore,request.serverDns!=null)
             val port=ServerSocket(0,1,InetAddress.getByName("127.0.0.1")).use {it.localPort}

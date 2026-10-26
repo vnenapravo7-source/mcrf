@@ -9,10 +9,15 @@ import org.json.JSONObject
  * Existing human WG precedence is preserved: installed sing-box handles WG.
  * The compact packet-pipe role is not an excuse to override that precedence. */
 internal class NativeRouteDispatchPlan private constructor(private val captured:List<Binding>) {
-    class Binding internal constructor(val id:String,val host:String,private val profile:String,tags:List<String>,outbound:JSONObject) {
+    class Binding internal constructor(val id:String,val host:String,private val profile:String,tags:List<String>,outbound:JSONObject,
+        private val assistedOriginal:ServerImport.Server?=null) {
         val tags:List<String> = java.util.Collections.unmodifiableList(tags.toList())
         private val node=JSONObject(outbound.toString()).apply {remove("tag")}
         fun secretProfile():String=profile
+        fun assistedEntry():ServerImport.Server?=assistedOriginal?.let {entry->
+            ServerImport.Server(original=entry.original,name=entry.name,protocol=entry.protocol,host=entry.host,port=entry.port,
+                outbound=JSONObject(requireNotNull(entry.outbound).toString()),endpoint=null,configuration=null,profileDns=entry.profileDns.toList())
+        }
         internal fun matches(value:JSONObject):Boolean {
             val actual=JSONObject(value.toString()).apply {remove("tag")}
             // Generated server bootstrap belongs to dispatcher preparation, not
@@ -110,7 +115,7 @@ internal class NativeRouteDispatchPlan private constructor(private val captured:
             "udp_disable_domain_unmapping","udp_connect","udp_timeout","tls_fragment","tls_fragment_fallback_delay","tls_record_fragment","tls_spoof","tls_spoof_method")
         fun forSteer(main:ServerImport.Server,additional:RouteServerPlan,optional:OptionalCoreSettings=OptionalCoreSettings(),
                      core:CoreTuningSettings?=null):NativeRouteDispatchPlan {
-            require(SteerProbePlan.supports(main)){"Основной сервер нельзя точно запустить через Steer."}
+            require(SteerAutomaticPool.compatible(main)){"Основной сервер нельзя точно запустить через Steer."}
             fun module(entry:ServerImport.Server):OptionalCoreConfig.Request?=entry.outbound?.let {node->
                 if(core==null)OptionalCoreConfig.prepare(node,optional)else OptionalCoreTuning.prepare(node,optional,core).request
             }
@@ -121,7 +126,7 @@ internal class NativeRouteDispatchPlan private constructor(private val captured:
                 // protocol module. Leave that exact node to OptionalCorePlan;
                 // never roundtrip its TLS/Xray extensions through a Steer URI.
                 if(entry.id!=main.id&&module(entry)!=null)return
-                if(!SteerProbePlan.supports(entry)){
+                if(!SteerProbePlan.supports(entry)&&!CompactProtocolPolicy.eligible(entry)){
                     require(entry.carrier!=null||WgAddonPolicy.isWireGuard(entry.protocol)||
                         entry.protocol in dispatcherProtocols&&entry.outbound?.optString("type")==entry.protocol){
                         "Протокол сервера «${entry.name}» не поддержан выбранным Steer; другой протокол автоматически не подставляется."
@@ -137,7 +142,15 @@ internal class NativeRouteDispatchPlan private constructor(private val captured:
             capture(main,ServerImport.tag(main))
             additional.entries.forEach {capture(it,RouteServerPlan.tag(it.id))}
             require(all.size in 1..8){"До 8 серверов Steer одновременно в правилах, включая основной."}
-            val bindings=all.values.map {(entry,tags)->Binding(entry.id,entry.host,SteerProbePlan.profile(entry),tags,requireNotNull(entry.outbound))}
+            val bindings=all.values.map {(entry,tags)->
+                val assisted=CompactProtocolPolicy.eligible(entry)
+                // A compact protocol has no native Steer URI until its owned
+                // child supplies fresh authenticated ingress. Never use its
+                // original unsupported URI as a pretend native profile.
+                Binding(entry.id,entry.host,if(assisted)""else SteerProbePlan.profile(entry),tags,requireNotNull(entry.outbound),
+                    if(assisted)ServerImport.Server(original=entry.original,name=entry.name,protocol=entry.protocol,host=entry.host,port=entry.port,
+                        outbound=JSONObject(requireNotNull(entry.outbound).toString()),endpoint=null,configuration=null,profileDns=entry.profileDns.toList())else null)
+            }
             return NativeRouteDispatchPlan(bindings)
         }
     }

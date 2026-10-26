@@ -231,7 +231,7 @@ class MainActivity : Activity() {
             if(UsageFeatures.visible("Главная",UsageFeaturesUi.selected(this)))navigate("Главная")
         }else {
             if(UsageFeatures.whitelists(UsageFeaturesUi.selected(this)))navigate(ClientSettingsNavigation.WHITELISTS)
-            alert("Возможны белые списки","Google и GitLab не ответили напрямую. Возможно, сейчас работают белые списки; также проверь наличие сети. Текущее подключение не изменено.")
+            alert("Возможны белые списки","Оба выбранных сайта не ответили напрямую. Возможно, сейчас работают белые списки; также проверь наличие сети. Текущее подключение не изменено.")
         }
     }
     private val scrollPositions = mutableMapOf<String, Int>()
@@ -265,7 +265,10 @@ class MainActivity : Activity() {
             if(engineImport.state==null&&!onboardingVisible){AppUpdates.offerPending(this@MainActivity);EngineStartupUpdates.offerPending(this@MainActivity)}
             // Native automatic deadlines can expire while this prompt is visible.
             // Retire that window so it cannot starve later live challenges.
-            carrierChallengePromptId?.let {id->if(CarrierChallenge.get(id)==null)carrierChallengeDialog?.dismiss()}
+            carrierChallengePromptId?.let {id->
+                val live=if(id.startsWith("openflux:"))OpenFluxVerificationRequests.registry.get(id.removePrefix("openflux:"))!=null else CarrierChallenge.get(id)!=null
+                if(!live)carrierChallengeDialog?.dismiss()
+            }
             if(carrierChallengeDialog?.isShowing!=true&&!onboardingVisible)CarrierChallenge.unopened()?.let { request ->
                 request.opened=true
                 carrierChallengePromptId=request.id
@@ -274,6 +277,27 @@ class MainActivity : Activity() {
                     .setPositiveButton("Открыть") { _, _ -> startActivity(Intent(this@MainActivity,CarrierCaptchaActivity::class.java).putExtra("request",request.id)) }
                     .setOnCancelListener { if(!CarrierChallenge.respondAsync(request.id,"error:cancelled"))request.opened=false }.show().also {dialog->
                         dialog.setOnDismissListener {if(carrierChallengePromptId==request.id){carrierChallengeDialog=null;carrierChallengePromptId=null}}
+                    }
+            }
+            if(carrierChallengeDialog?.isShowing!=true&&!onboardingVisible)OpenFluxVerificationRequests.registry.unopened(includeInline=true,includeHttp=OpenFluxHttpVerificationPolicy.productionEnabled)?.let {request->
+                request.opened.set(true)
+                val promptId="openflux:${request.id}"
+                carrierChallengePromptId=promptId
+                fun cancelFlux(){OpenFluxVerificationRequests.registry.cancel(request.id);OpenFluxVerificationUi.cancel(this@MainActivity,request.id)}
+                carrierChallengeDialog=ThemedDialogBuilder(this@MainActivity).setTitle("Проверка OpenFlux")
+                    .setMessage(if(request.http) "Скрипт запросил свою страницу проверки.\n\nСтраница открывается вручную в отдельном окне. Запросы передаются только текущему обработчику ядра; прямой доступ страницы к сети отключён. Внешние ресурсы и cookie-сессии не поддерживаются. Ответ передаётся отдельной кнопкой; выход отменяет проверку."
+                        else if(request.inline) "Провайдер запросил встроенную проверку.\n\nСтраница открывается вручную в отдельном окне без доступа к сети. Ответ передаётся только кнопкой «Отправить». При выходе из окна незавершённая проверка отменяется; потребуется новый запрос."
+                        else "Провайдер запросил ручную проверку.\n\nСайт: ${request.page.origin}\n\nВ отдельном окне сначала можно проверить адрес, затем открыть страницу.")
+                    .setNegativeButton("Отмена"){_,_->cancelFlux()}
+                    .setPositiveButton("Открыть"){_,_->
+                        try{startActivity(OpenFluxVerificationUi.intent(this@MainActivity,request.id,request.inline,request.http))}
+                        catch(_:Exception){
+                            if(request.http){cancelFlux();alert("OpenFlux","Не удалось открыть окно текущей проверки. Нужен новый запрос; повторное открытие старой страницы запрещено.")}
+                            else{OpenFluxVerificationRequests.registry.reopenAfterRecreate(request.id);alert("OpenFlux","Не удалось открыть окно текущей проверки. Запрос сохранён до истечения его времени.")}
+                        }
+                    }
+                    .setOnCancelListener{cancelFlux()}.show().also {dialog->
+                        dialog.setOnDismissListener {if(carrierChallengePromptId==promptId){carrierChallengeDialog=null;carrierChallengePromptId=null}}
                     }
             }
             handler.postDelayed(this, 750)
@@ -488,6 +512,12 @@ class MainActivity : Activity() {
         }
         visit(root)
         return candidates.sortedWith(compareByDescending<TextView>{SettingsSearchIndex.hitCount(query,it.text.toString())}.thenBy {it.text.length}).firstOrNull()
+    }
+    /** A catalogue mutation must refresh even when navigation would keep the same tab. */
+    fun showImportedConnections(entries:List<ServerImport.Server>) {
+        reconcileSelection(true)
+        val destination=ConnectionSections.importDestination(entries)
+        if(ConnectionSections.needsNavigation(destination,current))navigate(requireNotNull(destination))else render()
     }
     fun navigate(name: String) {
         // Re-selecting an already visible tab is not a refresh. Keep the same
@@ -848,7 +878,7 @@ class MainActivity : Activity() {
         link(ClientSettingsNavigation.VK,"Привязка аккаунта и количество звонков")
         link(ClientSettingsNavigation.UPDATES,"Версия ${BuildConfig.VERSION_NAME} · приложение и движки")
         link(ClientSettingsNavigation.ADVANCED,"TUN, TLS, Multiplex, QUIC, дополнительные DNS и прокси")
-        val empty=text("Ничего не найдено. Проверь запрос или выбор функций в «Минимализме».",12,Loft.MUTED).apply {visibility=View.GONE}
+        val empty=text("Ничего не найдено. Проверь запрос или выбор функций в «Скрыть разделы».",12,Loft.MUTED).apply {visibility=View.GONE}
         results.addView(empty)
         search.addTextChangedListener(object:android.text.TextWatcher {
             override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int){}
@@ -960,8 +990,10 @@ class MainActivity : Activity() {
         }
     }
     private fun settingsDns() {
-        val dns = try { DnsEditor(this, routing.snapshot().getJSONObject("globalDns")) } catch (_: Exception) { page.addView(text("Не удалось прочитать настройки DNS. Бэкап и остальные настройки доступны ниже.", 14, Loft.ERROR)); null }
+        val editing = try { val snapshot=routing.snapshotWithGeneration();DnsEditor(this,snapshot.first.getJSONObject("globalDns")) to snapshot.second } catch (_: Exception) { page.addView(text("Не удалось прочитать настройки DNS. Бэкап и остальные настройки доступны ниже.", 14, Loft.ERROR)); null }
+        val dns=editing?.first
         if(dns!=null){
+        val generation=requireNotNull(editing).second
         val dnsStatus = text("Сохраняется автоматически · применяется при подключении.", 11, Loft.MUTED)
         val card = card().apply {tag="dns-settings";setPadding(dp(14),dp(12),dp(14),dp(12))}
         card.addView(text("DNS трафика VPN", 16, Loft.INK)); card.addView(dns.view, space(6,6)); card.addView(dnsStatus)
@@ -973,9 +1005,15 @@ class MainActivity : Activity() {
             if (!dnsDraft.changed(setting)) return@Runnable
             val requested = revision
             worker.execute {
-                try { routing.updateDns(setting); dnsDraft.saved(setting)
+                try {
+                    DnsConfig.build(setting,"chosen","bootstrap")
+                    routing.editInGeneration(generation){it.put("globalDns",JSONObject(setting.toString()))};dnsDraft.saved(setting)
                     ui { if (revision == requested) { dnsStatus.text = "DNS сохранён · применится при следующем подключении"; dnsStatus.setTextColor(Loft.MUTED) } }
-                } catch (_: Exception) { ui { dnsStatus.text = "Не удалось сохранить DNS. Предыдущие настройки сохранены."; dnsStatus.setTextColor(Loft.ERROR) } }
+                } catch (error: Exception) {
+                    val detail=EditorSaveFailure.describe(error,EditorSaveFailure.Phase.SAVE)
+                    ClientEvents.record(this,"DNS",detail)
+                    ui { if(revision==requested){dnsStatus.text=detail;dnsStatus.setTextColor(Loft.ERROR)} }
+                }
             }
         }
         dns.onChange { revision++; handler.removeCallbacks(saveDns); handler.postDelayed(saveDns, 350) }
@@ -1093,7 +1131,7 @@ class MainActivity : Activity() {
                 if(BsAutoSelectionPolicy.selected(prefs)==BsAutoSelectionPolicy.OFF&&sectionEntries.none {it.id==manual}){
                     alert("Автовыбор выключен","Сначала выберите сервер ${if(whitelists)"БС"else"VPN"} вручную.");return
                 }
-                val allowed=sectionEntries.filter {ClientPrimarySelection.selected(this)!="steer"||SteerProbePlan.supports(it)}
+                val allowed=sectionEntries.filter {ClientPrimarySelection.selected(this)!="steer"||SteerAutomaticPool.compatible(it)}
                 val preferred=if(prefs.getBoolean(BsDetectionMonitor.KEY,false)&&BsAutoSelectionPolicy.selected(prefs)!=BsAutoSelectionPolicy.OFF)BsAutoSelectionPolicy.startup(
                     allowed,catalogue.probes(),System.currentTimeMillis(),whitelists,recent,manual)?.id?:selected else if(BsAutoSelectionPolicy.selected(prefs)==BsAutoSelectionPolicy.OFF)manual else selected
                 val start=SectionConnectSelection.start(catalogue.entries(),preferred,whitelists,false,false,catalogue.probes())!!
@@ -1175,8 +1213,9 @@ class MainActivity : Activity() {
                         ui {busy=false;connect?.isEnabled=true;val consent=VpnService.prepare(this);if(consent!=null)startActivityForResult(consent,1)else launchConnection()}
                         return@execute
                     }
-                    if(RouteServerPlan.activeIds(routing.snapshot()).isNotEmpty()){
-                        val preparation=NativeRoutePreparation.capture(this,entry,routing.snapshot(),catalogue.entries())
+                    val boundRoutes=RoutingConnectionBinding.prepare(this,routing.snapshot(),catalogue.entries(),entry.carrier!=null,catalogue.probes())
+                    if(RouteServerPlan.activeIds(boundRoutes).isNotEmpty()){
+                        val preparation=NativeRoutePreparation.capture(this,entry,boundRoutes,catalogue.entries())
                         val number=ClientTunStore(this).load().choosePort()
                         preparation.validate(this,true,number,java.util.function.BooleanSupplier {isDestroyed||isFinishing})
                         val content=preparation.source().toString()
@@ -1187,11 +1226,19 @@ class MainActivity : Activity() {
                     }
                     val result=ClientPrimarySelection.steerSnapshot(this,routing.snapshot(),vpn)
                     require(result.supported) {ClientPrimarySelection.steerFailure(result)}
+                    if(CompactProtocolPolicy.eligible(entry))CompactProtocolSession.preflight(this,entry,routing.snapshot())
                     if(!ConnectionStartPolicy.skipTemporarySteerWorker(automatic,RouteServerPlan.activeIds(routing.snapshot()).isNotEmpty())) {
                     val session=ClientPrimaryWorker.connect(this,"steer",System.nanoTime().coerceAtLeast(1),null)
                     try {
                         entry=(autoPool?.candidates?:listOf(entry)).firstOrNull {candidate->
-                            session.validate(SteerProbePlan.profile(candidate),result.settingsJson!!,org.mcrf.engine.spi.v1.Engine.Mode.VPN).supported
+                            val effective=if(CompactProtocolPolicy.eligible(candidate)){
+                                val request=CompactProtocolSession.preflight(this,candidate,routing.snapshot())
+                                OptionalCoreProcess.check(this,request,java.util.function.BooleanSupplier{isDestroyed||isFinishing})
+                                // Validation only. No listener, protocol login, stored
+                                // profile rewrite or guessed connectivity proof.
+                                CompactProtocolPolicy.effective(candidate,10900,java.util.UUID.randomUUID().toString(),java.util.UUID.randomUUID().toString())
+                            }else candidate
+                            session.validate(SteerProbePlan.profile(effective),result.settingsJson!!,org.mcrf.engine.spi.v1.Engine.Mode.VPN).supported
                         }?:throw IllegalArgumentException("Steer не поддерживает параметры отмеченных серверов. Отметки и выбор движка не изменены.")
                     }finally{session.close()}
                     }
@@ -1205,18 +1252,19 @@ class MainActivity : Activity() {
                 val number=diagnosticPort?:tunSettings.choosePort()
                 var content = raw
                 if (!diagnostic && catalogue.entries().isEmpty() && prefs.getBoolean("catalogueProfile", false)) throw IllegalArgumentException("Добавь или выбери подключение в разделе «Серверы».")
-                val routes = if (diagnostic) null else routing.snapshot()
+                val routes = if (diagnostic) null else RoutingConnectionBinding.prepare(this,routing.snapshot(),catalogue.entries(),whitelists,catalogue.probes())
                 if (!diagnostic && catalogue.entries().isNotEmpty()) {
-                    val chosen = findSelected()
+                    val boundPrimary=if(RoutingConnectionBinding.enabled(routes!!))(routes.optJSONObject(RoutingConnectionBinding.DEFAULT)?.let{RouteServerPlan.ids(it).firstOrNull()}?:RouteServerPlan.activeIds(routes).firstOrNull())?.let{id->catalogue.entries().firstOrNull{it.id==id}}else null
+                    val chosen = boundPrimary?:findSelected()
                     if (!automatic && chosen?.carrier != null) {
                         NativeCarrier.executable(this, EngineModules.carrierKind(chosen.carrier))
                         NativeCarrier.requireOptions(this,chosen.carrier)
                     }
                     val policy=sectionPolicy
-                    val pool = ConnectionSections.entries(if (automatic) catalogue.startupEntries(policy,refresh=true) else catalogue.entries(),whitelists)
+                    val pool = if(boundPrimary!=null)listOf(boundPrimary)else ConnectionSections.entries(if (automatic) catalogue.startupEntries(policy,refresh=true) else catalogue.entries(),whitelists)
                     if (automatic && pool.isEmpty()) throw IllegalArgumentException("В этом разделе нет отмеченных совместимых серверов для автовыбора. Отметь хотя бы один сервер нужного раздела.")
-            val generated = if(automatic&&policy==AutoSelection.BS_ENGINES) BsPlan.build(pool,prefs.getInt("interval",60),AutoSelectionDeviation.millis(prefs),"Cloudflare")
-                else ServerImport.build(pool, selected, automatic, prefs.getInt("interval", 60), AutoSelectionDeviation.millis(prefs), "Cloudflare")
+                    val generated = if(boundPrimary==null&&automatic&&policy==AutoSelection.BS_ENGINES) BsPlan.build(pool,prefs.getInt("interval",60),AutoSelectionDeviation.millis(prefs),"Cloudflare")
+                        else ServerImport.build(pool, boundPrimary?.id?:selected, boundPrimary==null&&automatic, prefs.getInt("interval", 60), AutoSelectionDeviation.millis(prefs), "Cloudflare")
                     if (automatic || chosen == null || chosen.configuration == null) DnsConfig.applyGenerated(generated, routes!!.getJSONObject("globalDns"))
                     content = generated.toString()
                 }
@@ -1406,9 +1454,21 @@ class MainActivity : Activity() {
         }}catch(_:java.util.concurrent.RejectedExecutionException){completed?.run()}
     }
     @JvmOverloads fun run(operation: Operation, rebuild: Boolean = true, completed: Runnable? = null) {
+        if (isFinishing || isDestroyed) { completed?.run(); return }
         if (working()) { completed?.run(); return }; busy = true
-        worker.execute { try { val message = operation.run(); ui { busy = false; if (rebuild) render(); completed?.run(); toast(message) } }
-            catch (error: Exception) { ui { busy = false; render(); completed?.run(); if (error is java.util.concurrent.CancellationException) toast(error.message.orEmpty()) else alert("Настройки", if (error is IllegalArgumentException) error.message.orEmpty() else "Не удалось сохранить настройки. Исходные данные не изменены.") } } }
+        try { worker.execute { try { val message = operation.run(); ui { busy = false; if (rebuild) render(); completed?.run(); toast(message) } }
+            catch (error: Exception) { ui { busy = false; render(); completed?.run(); if (error is java.util.concurrent.CancellationException) toast(error.message.orEmpty()) else alert("Настройки", if (error is IllegalArgumentException) error.message.orEmpty() else "Не удалось завершить операцию. Обновите раздел и проверьте текущие данные перед повтором.") } } } }
+        catch (_: java.util.concurrent.RejectedExecutionException) {
+            busy = false; completed?.run()
+            if (!isFinishing && !isDestroyed) toast("Операция не запущена. Откройте раздел повторно.")
+        }
+    }
+    /** Keep editor drafts on failure or busy rejection; cleanup still runs on every completion. */
+    fun runAfterSuccess(operation: Operation, rebuild: Boolean, onSuccess: Runnable, completed: Runnable? = null) {
+        val outcome = OperationSuccessGate()
+        run(Operation { outcome.execute { operation.run() } }, rebuild, Runnable {
+            outcome.complete({ onSuccess.run() }, { completed?.run() })
+        })
     }
     // Pool persistence must block competing edits, not masquerade as a VPN connection.
     private var poolSaveBusy=false
@@ -1463,7 +1523,7 @@ class MainActivity : Activity() {
             }, false) } else file?.delete()
         }
         if (request == 8 && result == RESULT_OK && data?.data != null) BackupUi(this).restore(data.data!!)
-        if (request == 3 && result == RESULT_OK && data?.data != null) { val uri = data.data!!; var imported = ""; run(Operation { val bytes = contentResolver.openInputStream(uri)?.use(ImportIO::read) ?: throw IllegalArgumentException("Не удалось прочитать файл."); imported = String(bytes, Charsets.UTF_8); "Файл прочитан" }, false, Runnable { if (imported.isNotBlank()) importDialog(imported) }) }
+        if (request == 3 && result == RESULT_OK && data?.data != null) { val uri = data.data!!; var imported = ""; run(Operation { imported = contentResolver.openInputStream(uri)?.use(ImportIO::readText) ?: throw IllegalArgumentException("Не удалось прочитать файл."); "Файл прочитан" }, false, Runnable { if (imported.isNotBlank()) importDialog(imported) }) }
     }
     override fun onSaveInstanceState(state: Bundle) { state.putString("page", current);state.putString("connectionPage",lastConnectionPage); state.putString("settingsOrigin",settingsOrigin);state.putString("advancedOrigin",advancedOrigin);state.putBoolean("settingsDirectEntry",settingsDirectEntry);state.putBoolean("returnToDeployVk",returnToDeployVk);state.putString("selectedDeployRecipe",selectedDeployRecipe); state.putInt("scroll", activeScroll?.scrollY ?: 0); state.putString("backupPath", pendingBackupPath); super.onSaveInstanceState(state) }
     private fun screenState():ScreenState {activeScroll?.let {scrollPositions[current]=it.scrollY};return ScreenState(current,scrollPositions.toMap(),engineImport.state,pendingConfigLink,settingsOrigin,settingsDirectEntry,lastConnectionPage,advancedOrigin)}
@@ -1498,7 +1558,10 @@ class MainActivity : Activity() {
         startupAccessPending=null;startupAccessWorker.shutdownNow()
         // An unchosen prompt is not a solved/cancelled challenge. A replacement
         // Activity may offer it again; never retain a window from the old owner.
-        carrierChallengePromptId?.let {CarrierChallenge.get(it)?.opened=false}
+        carrierChallengePromptId?.let {id->
+            if(id.startsWith("openflux:"))OpenFluxVerificationRequests.registry.reopenAfterRecreate(id.removePrefix("openflux:"))
+            else CarrierChallenge.get(id)?.opened=false
+        }
         carrierChallengeDialog?.dismiss();carrierChallengeDialog=null;carrierChallengePromptId=null
         routingScreenCache.clear();warpController?.detach();warpController=null;deployUi?.detach();deployUi=null;ProbeCoordinator.unobserve(probeRefresh);handler.removeCallbacksAndMessages(null);worker.shutdown();probeWorker.shutdown();super.onDestroy()
     }

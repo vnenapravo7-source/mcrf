@@ -1,0 +1,116 @@
+{"Time":"2026-10-24T11:28:06.4659835+03:00","Action":"start","Package":"masterdnsvpn-go/internal/client"}
+{"Time":"2026-10-24T11:28:06.4659835+03:00","Action":"start","Package":"masterdnsvpn-go/internal/config"}
+{"Time":"2026-10-24T11:28:06.5353378+03:00","Action":"start","Package":"masterdnsvpn-go/mcrf-integration"}
+{"Time":"2026-10-24T11:28:06.8579558+03:00","Action":"run","Package":"masterdnsvpn-go/internal/config","Test":"TestMcrfMasterStrictConfigDoesNotExposeCliPaths"}
+{"Time":"2026-10-24T11:28:06.8579558+03:00","Action":"output","Package":"masterdnsvpn-go/internal/config","Test":"TestMcrfMasterStrictConfigDoesNotExposeCliPaths","Output":"=== RUN   TestMcrfMasterStrictConfigDoesNotExposeCliPaths\n"}
+{"Time":"2026-10-24T11:28:06.8579558+03:00","Action":"output","Package":"masterdnsvpn-go/internal/config","Test":"TestMcrfMasterStrictConfigDoesNotExposeCliPaths","Output":"--- PASS: TestMcrfMasterStrictConfigDoesNotExposeCliPaths (0.00s)\n"}
+{"Time":"2026-10-24T11:28:06.8579558+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/config","Test":"TestMcrfMasterStrictConfigDoesNotExposeCliPaths","Elapsed":0}
+{"Time":"2026-10-24T11:28:06.8579558+03:00","Action":"run","Package":"masterdnsvpn-go/internal/config","Test":"TestMcrfMasterPrivateConfigForcesAuthAndNoPersistence"}
+{"Time":"2026-10-24T11:28:06.8579558+03:00","Action":"output","Package":"masterdnsvpn-go/internal/config","Test":"TestMcrfMasterPrivateConfigForcesAuthAndNoPersistence","Output":"=== RUN   TestMcrfMasterPrivateConfigForcesAuthAndNoPersistence\n"}
+{"Time":"2026-10-24T11:28:06.8646589+03:00","Action":"output","Package":"masterdnsvpn-go/internal/config","Test":"TestMcrfMasterPrivateConfigForcesAuthAndNoPersistence","Output":"--- PASS: TestMcrfMasterPrivateConfigForcesAuthAndNoPersistence (0.01s)\n"}
+{"Time":"2026-10-24T11:28:06.8646589+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/config","Test":"TestMcrfMasterPrivateConfigForcesAuthAndNoPersistence","Elapsed":0.01}
+{"Time":"2026-10-24T11:28:06.8646589+03:00","Action":"run","Package":"masterdnsvpn-go/internal/config","Test":"TestMcrfMasterRejectsAmbiguousOrUnspecifiedEncryption"}
+{"Time":"2026-10-24T11:28:06.8646589+03:00","Action":"output","Package":"masterdnsvpn-go/internal/config","Test":"TestMcrfMasterRejectsAmbiguousOrUnspecifiedEncryption","Output":"=== RUN   TestMcrfMasterRejectsAmbiguousOrUnspecifiedEncryption\n"}
+{"Time":"2026-10-24T11:28:06.8651731+03:00","Action":"output","Package":"masterdnsvpn-go/internal/config","Test":"TestMcrfMasterRejectsAmbiguousOrUnspecifiedEncryption","Output":"--- PASS: TestMcrfMasterRejectsAmbiguousOrUnspecifiedEncryption (0.00s)\n"}
+{"Time":"2026-10-24T11:28:06.8651731+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/config","Test":"TestMcrfMasterRejectsAmbiguousOrUnspecifiedEncryption","Elapsed":0}
+{"Time":"2026-10-24T11:28:06.8651731+03:00","Action":"output","Package":"masterdnsvpn-go/internal/config","Output":"PASS\n"}
+{"Time":"2026-10-24T11:28:06.8684677+03:00","Action":"output","Package":"masterdnsvpn-go/internal/config","Output":"ok  \tmasterdnsvpn-go/internal/config\t0.402s\n"}
+{"Time":"2026-10-24T11:28:06.8684677+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/config","Elapsed":0.402}
+{"Time":"2026-10-24T11:28:06.9438396+03:00","Action":"run","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMasterAdapterUsesTheOwnerContext"}
+{"Time":"2026-10-24T11:28:06.9438396+03:00","Action":"output","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMasterAdapterUsesTheOwnerContext","Output":"=== RUN   TestMcrfMasterAdapterUsesTheOwnerContext\n"}
+{"Time":"2026-10-24T11:28:06.9443518+03:00","Action":"output","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMasterAdapterUsesTheOwnerContext","Output":"--- PASS: TestMcrfMasterAdapterUsesTheOwnerContext (0.00s)\n"}
+{"Time":"2026-10-24T11:28:06.9443518+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMasterAdapterUsesTheOwnerContext","Elapsed":0}
+{"Time":"2026-10-24T11:28:06.9443518+03:00","Action":"run","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMasterServerCannotRaiseTheAndroidWorkerLimit"}
+{"Time":"2026-10-24T11:28:06.9443518+03:00","Action":"output","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMasterServerCannotRaiseTheAndroidWorkerLimit","Output":"=== RUN   TestMcrfMasterServerCannotRaiseTheAndroidWorkerLimit\n"}
+{"Time":"2026-10-24T11:28:06.9443518+03:00","Action":"output","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMasterServerCannotRaiseTheAndroidWorkerLimit","Output":"--- PASS: TestMcrfMasterServerCannotRaiseTheAndroidWorkerLimit (0.00s)\n"}
+{"Time":"2026-10-24T11:28:06.9443518+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMasterServerCannotRaiseTheAndroidWorkerLimit","Elapsed":0}
+{"Time":"2026-10-24T11:28:06.9443518+03:00","Action":"run","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMasterConnectionReleasesItsSlotOnlyOnce"}
+{"Time":"2026-10-24T11:28:06.9443518+03:00","Action":"output","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMasterConnectionReleasesItsSlotOnlyOnce","Output":"=== RUN   TestMcrfMasterConnectionReleasesItsSlotOnlyOnce\n"}
+{"Time":"2026-10-24T11:28:06.9443518+03:00","Action":"output","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMasterConnectionReleasesItsSlotOnlyOnce","Output":"--- PASS: TestMcrfMasterConnectionReleasesItsSlotOnlyOnce (0.00s)\n"}
+{"Time":"2026-10-24T11:28:06.9443518+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMasterConnectionReleasesItsSlotOnlyOnce","Elapsed":0}
+{"Time":"2026-10-24T11:28:06.9443518+03:00","Action":"run","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMasterOwnerCancellationClosesIdleHandshake"}
+{"Time":"2026-10-24T11:28:06.9443518+03:00","Action":"output","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMasterOwnerCancellationClosesIdleHandshake","Output":"=== RUN   TestMcrfMasterOwnerCancellationClosesIdleHandshake\n"}
+{"Time":"2026-10-24T11:28:06.9453831+03:00","Action":"output","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMasterOwnerCancellationClosesIdleHandshake","Output":"--- PASS: TestMcrfMasterOwnerCancellationClosesIdleHandshake (0.00s)\n"}
+{"Time":"2026-10-24T11:28:06.9453831+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMasterOwnerCancellationClosesIdleHandshake","Elapsed":0}
+{"Time":"2026-10-24T11:28:06.9453831+03:00","Action":"run","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMaster512ClientsQueueInsteadOfReset"}
+{"Time":"2026-10-24T11:28:06.9453831+03:00","Action":"output","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMaster512ClientsQueueInsteadOfReset","Output":"=== RUN   TestMcrfMaster512ClientsQueueInsteadOfReset\n"}
+{"Time":"2026-10-24T11:28:07.083356+03:00","Action":"output","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMaster512ClientsQueueInsteadOfReset","Output":"--- PASS: TestMcrfMaster512ClientsQueueInsteadOfReset (0.14s)\n"}
+{"Time":"2026-10-24T11:28:07.083356+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/client","Test":"TestMcrfMaster512ClientsQueueInsteadOfReset","Elapsed":0.14}
+{"Time":"2026-10-24T11:28:07.083356+03:00","Action":"output","Package":"masterdnsvpn-go/internal/client","Output":"PASS\n"}
+{"Time":"2026-10-24T11:28:07.0844275+03:00","Action":"run","Package":"masterdnsvpn-go/mcrf-integration","Test":"TestMcrfMasterOwnedEncryptedDNSAndSOCKSData"}
+{"Time":"2026-10-24T11:28:07.0844275+03:00","Action":"output","Package":"masterdnsvpn-go/mcrf-integration","Test":"TestMcrfMasterOwnedEncryptedDNSAndSOCKSData","Output":"=== RUN   TestMcrfMasterOwnedEncryptedDNSAndSOCKSData\n"}
+{"Time":"2026-10-24T11:28:07.0875797+03:00","Action":"output","Package":"masterdnsvpn-go/internal/client","Output":"ok  \tmasterdnsvpn-go/internal/client\t0.622s\n"}
+{"Time":"2026-10-24T11:28:07.0875797+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/client","Elapsed":0.622}
+{"Time":"2026-10-24T11:28:08.2697524+03:00","Action":"output","Package":"masterdnsvpn-go/mcrf-integration","Test":"TestMcrfMasterOwnedEncryptedDNSAndSOCKSData","Output":"--- PASS: TestMcrfMasterOwnedEncryptedDNSAndSOCKSData (1.19s)\n"}
+{"Time":"2026-10-24T11:28:08.2697524+03:00","Action":"pass","Package":"masterdnsvpn-go/mcrf-integration","Test":"TestMcrfMasterOwnedEncryptedDNSAndSOCKSData","Elapsed":1.19}
+{"Time":"2026-10-24T11:28:08.2697524+03:00","Action":"run","Package":"masterdnsvpn-go/mcrf-integration","Test":"TestMcrfMasterLocalRejectionDoesNotOpenRemoteSOCKS"}
+{"Time":"2026-10-24T11:28:08.2697524+03:00","Action":"output","Package":"masterdnsvpn-go/mcrf-integration","Test":"TestMcrfMasterLocalRejectionDoesNotOpenRemoteSOCKS","Output":"=== RUN   TestMcrfMasterLocalRejectionDoesNotOpenRemoteSOCKS\n"}
+{"Time":"2026-10-24T11:28:09.2051626+03:00","Action":"output","Package":"masterdnsvpn-go/mcrf-integration","Test":"TestMcrfMasterLocalRejectionDoesNotOpenRemoteSOCKS","Output":"--- PASS: TestMcrfMasterLocalRejectionDoesNotOpenRemoteSOCKS (0.94s)\n"}
+{"Time":"2026-10-24T11:28:09.2051626+03:00","Action":"pass","Package":"masterdnsvpn-go/mcrf-integration","Test":"TestMcrfMasterLocalRejectionDoesNotOpenRemoteSOCKS","Elapsed":0.94}
+{"Time":"2026-10-24T11:28:09.2051626+03:00","Action":"output","Package":"masterdnsvpn-go/mcrf-integration","Output":"PASS\n"}
+{"Time":"2026-10-24T11:28:09.2132563+03:00","Action":"output","Package":"masterdnsvpn-go/mcrf-integration","Output":"ok  \tmasterdnsvpn-go/mcrf-integration\t2.678s\n"}
+{"Time":"2026-10-24T11:28:09.2137417+03:00","Action":"pass","Package":"masterdnsvpn-go/mcrf-integration","Elapsed":2.678}
+{"Time":"2026-10-24T11:28:09.8017568+03:00","Action":"start","Package":"masterdnsvpn-go/internal/security"}
+{"Time":"2026-10-24T11:28:09.8131387+03:00","Action":"start","Package":"masterdnsvpn-go/internal/vpnproto"}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"run","Package":"masterdnsvpn-go/internal/security","Test":"TestCodecRoundTrip"}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"output","Package":"masterdnsvpn-go/internal/security","Test":"TestCodecRoundTrip","Output":"=== RUN   TestCodecRoundTrip\n"}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"output","Package":"masterdnsvpn-go/internal/security","Test":"TestCodecRoundTrip","Output":"--- PASS: TestCodecRoundTrip (0.00s)\n"}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/security","Test":"TestCodecRoundTrip","Elapsed":0}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"run","Package":"masterdnsvpn-go/internal/security","Test":"TestCodecRejectsInvalidCiphertext"}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"output","Package":"masterdnsvpn-go/internal/security","Test":"TestCodecRejectsInvalidCiphertext","Output":"=== RUN   TestCodecRejectsInvalidCiphertext\n"}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"output","Package":"masterdnsvpn-go/internal/security","Test":"TestCodecRejectsInvalidCiphertext","Output":"--- PASS: TestCodecRejectsInvalidCiphertext (0.00s)\n"}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/security","Test":"TestCodecRejectsInvalidCiphertext","Elapsed":0}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"run","Package":"masterdnsvpn-go/internal/security","Test":"TestCodecXORChangesData"}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"output","Package":"masterdnsvpn-go/internal/security","Test":"TestCodecXORChangesData","Output":"=== RUN   TestCodecXORChangesData\n"}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"output","Package":"masterdnsvpn-go/internal/security","Test":"TestCodecXORChangesData","Output":"--- PASS: TestCodecXORChangesData (0.00s)\n"}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/security","Test":"TestCodecXORChangesData","Elapsed":0}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"run","Package":"masterdnsvpn-go/internal/security","Test":"TestCodecEncodeDecodeLowerBase32RoundTrip"}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"output","Package":"masterdnsvpn-go/internal/security","Test":"TestCodecEncodeDecodeLowerBase32RoundTrip","Output":"=== RUN   TestCodecEncodeDecodeLowerBase32RoundTrip\n"}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"output","Package":"masterdnsvpn-go/internal/security","Test":"TestCodecEncodeDecodeLowerBase32RoundTrip","Output":"--- PASS: TestCodecEncodeDecodeLowerBase32RoundTrip (0.00s)\n"}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/security","Test":"TestCodecEncodeDecodeLowerBase32RoundTrip","Elapsed":0}
+{"Time":"2026-10-24T11:28:10.1297772+03:00","Action":"output","Package":"masterdnsvpn-go/internal/security","Output":"PASS\n"}
+{"Time":"2026-10-24T11:28:10.1323495+03:00","Action":"output","Package":"masterdnsvpn-go/internal/security","Output":"ok  \tmasterdnsvpn-go/internal/security\t0.331s\n"}
+{"Time":"2026-10-24T11:28:10.1323495+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/security","Elapsed":0.331}
+{"Time":"2026-10-24T11:28:10.1753984+03:00","Action":"run","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestIsPackableControlPacketIncludesSmallSocksResults"}
+{"Time":"2026-10-24T11:28:10.1753984+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestIsPackableControlPacketIncludesSmallSocksResults","Output":"=== RUN   TestIsPackableControlPacketIncludesSmallSocksResults\n"}
+{"Time":"2026-10-24T11:28:10.1753984+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestIsPackableControlPacketIncludesSmallSocksResults","Output":"--- PASS: TestIsPackableControlPacketIncludesSmallSocksResults (0.00s)\n"}
+{"Time":"2026-10-24T11:28:10.1753984+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestIsPackableControlPacketIncludesSmallSocksResults","Elapsed":0}
+{"Time":"2026-10-24T11:28:10.1753984+03:00","Action":"run","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestParseSessionInitPacket"}
+{"Time":"2026-10-24T11:28:10.1753984+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestParseSessionInitPacket","Output":"=== RUN   TestParseSessionInitPacket\n"}
+{"Time":"2026-10-24T11:28:10.1753984+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestParseSessionInitPacket","Output":"--- PASS: TestParseSessionInitPacket (0.00s)\n"}
+{"Time":"2026-10-24T11:28:10.1753984+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestParseSessionInitPacket","Elapsed":0}
+{"Time":"2026-10-24T11:28:10.1753984+03:00","Action":"run","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestParseStreamDataPacket"}
+{"Time":"2026-10-24T11:28:10.1753984+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestParseStreamDataPacket","Output":"=== RUN   TestParseStreamDataPacket\n"}
+{"Time":"2026-10-24T11:28:10.1753984+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestParseStreamDataPacket","Output":"--- PASS: TestParseStreamDataPacket (0.00s)\n"}
+{"Time":"2026-10-24T11:28:10.1753984+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestParseStreamDataPacket","Elapsed":0}
+{"Time":"2026-10-24T11:28:10.1753984+03:00","Action":"run","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestParseRejectsInvalidCheckByte"}
+{"Time":"2026-10-24T11:28:10.1753984+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestParseRejectsInvalidCheckByte","Output":"=== RUN   TestParseRejectsInvalidCheckByte\n"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestParseRejectsInvalidCheckByte","Output":"--- PASS: TestParseRejectsInvalidCheckByte (0.00s)\n"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestParseRejectsInvalidCheckByte","Elapsed":0}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"run","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestParseFromLabels"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestParseFromLabels","Output":"=== RUN   TestParseFromLabels\n"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestParseFromLabels","Output":"--- PASS: TestParseFromLabels (0.00s)\n"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestParseFromLabels","Elapsed":0}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"run","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestPreparePayloadCompressesSupportedPacket"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestPreparePayloadCompressesSupportedPacket","Output":"=== RUN   TestPreparePayloadCompressesSupportedPacket\n"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestPreparePayloadCompressesSupportedPacket","Output":"--- PASS: TestPreparePayloadCompressesSupportedPacket (0.00s)\n"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestPreparePayloadCompressesSupportedPacket","Elapsed":0}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"run","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestPreparePayloadSkipsUnsupportedPacket"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestPreparePayloadSkipsUnsupportedPacket","Output":"=== RUN   TestPreparePayloadSkipsUnsupportedPacket\n"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestPreparePayloadSkipsUnsupportedPacket","Output":"--- PASS: TestPreparePayloadSkipsUnsupportedPacket (0.00s)\n"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestPreparePayloadSkipsUnsupportedPacket","Elapsed":0}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"run","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestInflatePayloadRoundTrip"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestInflatePayloadRoundTrip","Output":"=== RUN   TestInflatePayloadRoundTrip\n"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestInflatePayloadRoundTrip","Output":"--- PASS: TestInflatePayloadRoundTrip (0.00s)\n"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestInflatePayloadRoundTrip","Elapsed":0}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"run","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestSessionAcceptClientPolicyRoundTrip"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestSessionAcceptClientPolicyRoundTrip","Output":"=== RUN   TestSessionAcceptClientPolicyRoundTrip\n"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestSessionAcceptClientPolicyRoundTrip","Output":"--- PASS: TestSessionAcceptClientPolicyRoundTrip (0.00s)\n"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestSessionAcceptClientPolicyRoundTrip","Elapsed":0}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"run","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestSessionAcceptPayloadRoundTrip"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestSessionAcceptPayloadRoundTrip","Output":"=== RUN   TestSessionAcceptPayloadRoundTrip\n"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestSessionAcceptPayloadRoundTrip","Output":"--- PASS: TestSessionAcceptPayloadRoundTrip (0.00s)\n"}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/vpnproto","Test":"TestSessionAcceptPayloadRoundTrip","Elapsed":0}
+{"Time":"2026-10-24T11:28:10.1759114+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Output":"PASS\n"}
+{"Time":"2026-10-24T11:28:10.1785288+03:00","Action":"output","Package":"masterdnsvpn-go/internal/vpnproto","Output":"ok  \tmasterdnsvpn-go/internal/vpnproto\t0.365s\n"}
+{"Time":"2026-10-24T11:28:10.1791804+03:00","Action":"pass","Package":"masterdnsvpn-go/internal/vpnproto","Elapsed":0.366}

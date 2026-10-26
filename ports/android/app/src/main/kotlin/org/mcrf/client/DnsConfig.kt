@@ -59,6 +59,7 @@ object DnsConfig {
                 "Адрес DNS должен совпадать с выбранным протоколом, без пароля и параметров."
             }
             host = uri.host.replace("[", "").replace("]", ""); server = host
+            require(uri.port == -1 || uri.port in 1..65535) { "Порт DNS: от 1 до 65535." }
             if (uri.port > 0) port = uri.port
             val uriPath = uri.rawPath.orEmpty()
             if (type in setOf("https", "h3")) { if (uriPath.isNotEmpty() && uriPath != "/") path = uriPath }

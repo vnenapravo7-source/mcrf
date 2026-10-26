@@ -1,0 +1,705 @@
+{
+  "compilerExecuted": false,
+  "testsExecuted": false,
+  "recoveredInventorySha256": "b748521aac3360be7699e6a37db8af9f41bd99e3c112f28b153725c156bb7750",
+  "originalInventorySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "depInfo": [
+    {
+      "sha256": "af6f25dbccf671f4db39d0bea0583dfa60e6f55cea08c2a6dcdfe8c5c27e4c0b",
+      "file": "rust-target\\aarch64-linux-android\\release\\slipstream-client.d"
+    },
+    {
+      "sha256": "8f2aa05b09e191385f77a009a9f9976ae8644248c3498b11419d159d69277b53",
+      "file": "rust-target\\aarch64-linux-android\\release\\slipstream-server.d"
+    },
+    {
+      "sha256": "4a3088835dfaf4977d0aed2551c8a96e48084642aec73428d8a7b853fb1b4a89",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\anstream-8318377c9745c640.d"
+    },
+    {
+      "sha256": "503019e6eabf56e66e8475a9c7ca45454128fe14fc7d08c5dbeb45f26ade69ea",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\anstyle_parse-ee5c2a7aa235bc8a.d"
+    },
+    {
+      "sha256": "07e66af0a299728d1e4512d49a5b24b4d8ef3ccdda0955be086f3f731e6d6355",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\anstyle_query-40d1e86e51680c0c.d"
+    },
+    {
+      "sha256": "c7f38f8adb60e95da851db62c0e62700de1754c3fa6c02354aaf652864a697cf",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\anstyle-3298b6f864c8d8ac.d"
+    },
+    {
+      "sha256": "fe83d4dd3fb95fd946a82a0526adfdddf828ec6ca0141953eb2a7950e2f36a93",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\bitflags-34297ce39cfeb67d.d"
+    },
+    {
+      "sha256": "b02804356753bc0ec03a7830be345813b0412b3f5b65695fbf78705a12a0061f",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\bytes-514ad410fface4a2.d"
+    },
+    {
+      "sha256": "0144a39f43ab666b19871933e5275947141263f442028293828340545e2dbf54",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\cfg_if-fcef66f1db092edd.d"
+    },
+    {
+      "sha256": "2cc7c44efcfa11cd2ee7ec2b02ef18d49710aac79cba38d6a199379749a002d4",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\clap_builder-7d35ef755bbf5f9e.d"
+    },
+    {
+      "sha256": "9594a7751719ccafeb845139a56ebc20ff8e0b8d66510c672f9d2dec77991dc0",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\clap_lex-dca3340df71f784f.d"
+    },
+    {
+      "sha256": "cc4164837cfbb4144ed08cadbec8e1b639d137f698cc90cc4f9eb07ec67d2548",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\clap-4b10c9e850c2175b.d"
+    },
+    {
+      "sha256": "6769e441ef69a489485b03a345c676731bd9132f6fe028d198c0e1f8c4f6bd8a",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\colorchoice-41d53df3b34dc60d.d"
+    },
+    {
+      "sha256": "da6b38a089c340ab6f10bfc2645f334dc0a96345cee3f40e393e73457a5899ea",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\deranged-70701c2a4ae6ed5d.d"
+    },
+    {
+      "sha256": "d04440efcc45812aa98ff7c03cbf5b5b5fd5759129ed53f717740b407eb39ab9",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\foreign_types_shared-35985012f7ae18b0.d"
+    },
+    {
+      "sha256": "a8bcb6eaa561d040a393d3481721a5233a507b0ae3c8b52d3944b5eebe7413b8",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\foreign_types-06aa61c0f939fb49.d"
+    },
+    {
+      "sha256": "f9571067ff9a70f09805c6e643a1bff2f0f921e6f79a9f9ec6846efd560b041e",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\is_terminal_polyfill-4aa48d4b1b009720.d"
+    },
+    {
+      "sha256": "21b4a2dbcb2dea560842041ee96480e3113a0d98b0023121ce5656161b34f98e",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\itoa-efe7dc5efb8a1ee6.d"
+    },
+    {
+      "sha256": "68441d6b70e193d3fd993b75ac77d9c0bfe57d180096a66b344f2139b42e99bd",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\lazy_static-8c81f3235c0d435e.d"
+    },
+    {
+      "sha256": "ad3cfc41bdd3c74c7bd9ed525018287d91698f79ae14f1afb30cd3981053d194",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\libc-3bf7196793fd0781.d"
+    },
+    {
+      "sha256": "2cb53d8d100ebaec7714fda1e58f0cc18d25545f100ffe09cbf720f2eb1f43c2",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\log-bb4a49eca4f1ecb1.d"
+    },
+    {
+      "sha256": "5fa7cfc816759c2235caa83843dd294d3ac43bab8a03213f73e5fecfc714f1bb",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\matchers-67a8e80fefd619e6.d"
+    },
+    {
+      "sha256": "72df858e81c4339a62b95362eec64741340427bedf514871e652707bacc89eed",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\mio-024361eb6554054d.d"
+    },
+    {
+      "sha256": "cc22e164d47c2a3714e2980c3c8e4f6cad199a23a58d392f04bdf73ae830da2a",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\nu_ansi_term-b16dd1324780bfba.d"
+    },
+    {
+      "sha256": "a9e3306e8ca11af999d00a15ceb2a0bfbfc04d9667060b61d80ef6709c43dc06",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\num_conv-9894cb1aacfc2feb.d"
+    },
+    {
+      "sha256": "64210880db317c145a8f4ea498b81d2fa3f1fa18d686b2c459cc4fd9ecbbb08f",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\once_cell-919ff8b990086b9f.d"
+    },
+    {
+      "sha256": "8bd880db6ef3af3f6107c2facda9958d56a0f7da3355980d130300484fe15b31",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\openssl_sys-dc6be33aae43d3af.d"
+    },
+    {
+      "sha256": "e1f82454b90f359cc7cbea08078c1956fc121bae153974912d0e806604b56e5f",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\openssl-4b2a8631c4a94345.d"
+    },
+    {
+      "sha256": "824db4eed4d6e06aa707fdc4c82427ee87a12c9e76ba645a4c264f448cb7743a",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\pin_project_lite-dc25e3af24bcae3a.d"
+    },
+    {
+      "sha256": "61af636162789f0d43c33800c7d4981bda57bb722f448a56125759df49ed30fe",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\powerfmt-3944a9370b154b52.d"
+    },
+    {
+      "sha256": "bb5670f58de18a0ca9d6cf0911a1f6e992278ea2e4f893d006af0a0df7535a4b",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\regex_automata-9555a7858c6c9b75.d"
+    },
+    {
+      "sha256": "b29a64992b82fb75c428f96baccfc76aa7a5c9dbc6cbb4ee668be6681d0c177c",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\regex_syntax-3ab848fe0d8ff8b5.d"
+    },
+    {
+      "sha256": "d72067c8bc021e96e19405515c77a55aa46ed9f5663e2aa0fed6b9f59a0b40c5",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\sharded_slab-70a46dc4ae697599.d"
+    },
+    {
+      "sha256": "86b6e691904580e8f5cf431be50e2d8593e1173e77bb4e44afe19d536bef31bd",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\slipstream_client-4856382e4a340267.d"
+    },
+    {
+      "sha256": "876f6290ed51e1511dac4717ff08a585d9859956eafd5fdbc896ee580bf0a112",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\slipstream_core-18ec8bdd3dc24dc4.d"
+    },
+    {
+      "sha256": "2ec0660e64facaf28d48e4977ed04e4aeb2fe3abf68884122c7620a07f21c54a",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\slipstream_dns-d94f344e2569fa37.d"
+    },
+    {
+      "sha256": "3ea92046b2c909f1510c13715f8fb085c33ebe653099ab4f4ae567361f1aa266",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\slipstream_ffi-88c2ddfb8b7e3e39.d"
+    },
+    {
+      "sha256": "9c00b0928cad1e52684a7c7434ca4869370a183a793e4beeadb9f00d86ce106a",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\slipstream_server-aa2e282da75bf875.d"
+    },
+    {
+      "sha256": "4da56b1a0ab3e26b68ca31036b2303c489bbfdff8c4791294dc5b5e2b1580b65",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\smallvec-01f39f384a637449.d"
+    },
+    {
+      "sha256": "42bf6d90997114eb929c79f5558e4e6763fb6efea7b8bb74b13f12418be71880",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\socket2-d68c92e981643477.d"
+    },
+    {
+      "sha256": "c49b35b2a26a46d310597dbe00e0ade0bce9d90551a317173ae2b246c8e5d5b3",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\strsim-c4b37a600ef067ea.d"
+    },
+    {
+      "sha256": "691c89b684eae4fa2c685d0e60bb6ab8a195947ca23af8fbfe4c166c17a3d84d",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\thread_local-3b2eb9ce61567056.d"
+    },
+    {
+      "sha256": "00e45c7e2b3f353addf83610b7484b73c0fc8ac365cb8caa2f02e616ebfe08be",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\time_core-22289d5935df63c9.d"
+    },
+    {
+      "sha256": "add8919c05d3a26ce9ee55afe557e449adeacf874d6e3cb50e5126cf6e256760",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\time-e52b33b165e6d743.d"
+    },
+    {
+      "sha256": "a9162d0bacb4ec649557798df41699c2c202f6fbd76e6e5bd1b5854162e5f383",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\tokio-9a79cdf897dc5921.d"
+    },
+    {
+      "sha256": "a05647f639b7bfc5ab8ae57bb29a8444e19b5333d21f19f1f13a5637705a7f03",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\tracing_core-e0c85873d749fcf5.d"
+    },
+    {
+      "sha256": "c51301368589b242845e9edaa810e768e217b7b04cd76d388d41664dee071813",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\tracing_log-60b376cb7a989ba4.d"
+    },
+    {
+      "sha256": "16b4b8070289c8471f17aaa7a4f985a9387ff0fa6d641f41af3950ed8e7dee8b",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\tracing_subscriber-c958db33d81fc8d2.d"
+    },
+    {
+      "sha256": "5a685192854459633ef9ecb3067207b9e632ae5644daae890456f44a65f83881",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\tracing-ca84718cfb16094a.d"
+    },
+    {
+      "sha256": "4f82a2ace8713bbac6866fb525e5ec1971a48034b94b5e5874d7b48c377ea42f",
+      "file": "rust-target\\aarch64-linux-android\\release\\deps\\utf8parse-b47e6d71e1d3f27a.d"
+    },
+    {
+      "sha256": "5c51257951daf47a30c48c299fd0b198a0528e3208b5cf26889bda8f99f11fe8",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\slipstream-client.d"
+    },
+    {
+      "sha256": "5491cb3ca9bb0cf96478a83716e72f72fdba5c7cdaef48564b06acc11d9cb198",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\slipstream-server.d"
+    },
+    {
+      "sha256": "6f4ad0513e86c5715ae695825656bb2a5cfd55591435f404ddaf385a94229fc1",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\anstream-e508c4ed2831c587.d"
+    },
+    {
+      "sha256": "a345a8b75ae8e9bfa41ec6b03f47b2700bbe506f7f1f0e3492d84241f917a666",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\anstyle_parse-d4e7a6d2fad4f4b5.d"
+    },
+    {
+      "sha256": "405ca22cb93cd22afb660e945086f448060ea50eba49840a675ed2b6f436452c",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\anstyle_query-daa5cf06950a7a51.d"
+    },
+    {
+      "sha256": "8a83e7dd027e8d327e9b34755b05e926bdec288799f4cf273c40b15767a51cd5",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\anstyle-a1e55621f4f3f22f.d"
+    },
+    {
+      "sha256": "96156ef00297c515fb39151cbb11e693d57aa133a82a3b5f32a1f93101a45cf6",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\bitflags-4560bcd4de30753b.d"
+    },
+    {
+      "sha256": "57da3190ef653312b311f303144d1290933ff298edcd0e4f8ad3cdc7e833c8ef",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\bytes-f826d8d0b369b168.d"
+    },
+    {
+      "sha256": "54a818cc182ae383ce0eca9009dc0198c34f6cc51b03d20cc84775c20fec34a1",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\cfg_if-3027620ad607e58a.d"
+    },
+    {
+      "sha256": "5523d4a3710a65043d5d15e04297f512c33298814896924987c50f5647ed2078",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\clap_builder-0cee025134426a8d.d"
+    },
+    {
+      "sha256": "df30819e9d0031977d5a5a4027d324a4a4b02ef5b3a31b343f909b5ba0f23990",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\clap_lex-1bcc5d11e62323f2.d"
+    },
+    {
+      "sha256": "2adfe2b78a6964d3c197dc632edd256fd055f36f790e123b0673ee1009a4c28e",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\clap-eeaf1b414654a80f.d"
+    },
+    {
+      "sha256": "5084d45a65df0689827453b0f13e1d2a456ce510f73ad54359696ad9bfe6d59f",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\colorchoice-2c4a3a69a23211e5.d"
+    },
+    {
+      "sha256": "ec9641041c1092404e35fc276159d8efbeda3cf082d1eda4b74214aa0e6556f6",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\deranged-fbae6b9f38836dee.d"
+    },
+    {
+      "sha256": "c44298e8dadf57a3219487351b4b713d9c44978d8d48e39e87fe8b357c6af6a9",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\foreign_types_shared-c2980e888c4870ec.d"
+    },
+    {
+      "sha256": "300275a6b47c4edfa08f2000622aab09aaa9859d42396bbb1fd9bd32df672aa2",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\foreign_types-88a90f9a17780b69.d"
+    },
+    {
+      "sha256": "941acecbff2a2570775b3d3fc35db1f3ad7c127850187dc523ab10c061180779",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\is_terminal_polyfill-738aa2cca432c0c8.d"
+    },
+    {
+      "sha256": "87b2524df23228c75bc432758feb53e9e35f89245559b66a65bee32450a680d9",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\itoa-0a128369e93807e6.d"
+    },
+    {
+      "sha256": "5b5e16cb6376e52710008a205fcb7027b4e1234b5b4445446d6a8e7d4cd7390f",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\lazy_static-ab40667d0f970859.d"
+    },
+    {
+      "sha256": "2d23678216515a0f6dcf5dc7be8ecbc4ec683bb82129591adebd694c7364c3fb",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\libc-886ab4a7f2e05436.d"
+    },
+    {
+      "sha256": "68f4273c09cf9d054f0f0ac660b65972d0ed46d8bbe22bc2fbfe9495c1ab7c0d",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\log-89fe755a42a0c25d.d"
+    },
+    {
+      "sha256": "61077d294d1319ec21c504957a23d351042e1122ad1f80ddc1345454ccb99dc1",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\matchers-9f82ed0daf67f261.d"
+    },
+    {
+      "sha256": "a357aa1d47fc7b591f2bbc2f28e7bfb33adc8c4ba4a594eb5c623e4aeab1a51b",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\mio-e55861f855621ab2.d"
+    },
+    {
+      "sha256": "63d904d1d528f130487643d02cc03eb3df80ed1d1ddffb3546f33d80f58ae471",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\nu_ansi_term-2f150335bc42dcda.d"
+    },
+    {
+      "sha256": "70856bd9c4d0ef47a5d57a8eb8887ba784a806e6de6b56ea949b0fec5149cde5",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\num_conv-5d892fb1213eb91a.d"
+    },
+    {
+      "sha256": "47831e6aaae1f2c306cc8847bfa58c56ac43bb12fbed58696192f012ca435c28",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\once_cell-ff773c1ee280ab1d.d"
+    },
+    {
+      "sha256": "f5ace0a25b170c9e13692b735aea91ecfd40b944026c1ec6891992a6bf44bb12",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\openssl_sys-05eb44e746394f30.d"
+    },
+    {
+      "sha256": "1ecdf50ccadaafb37ed8d2e149770fb1f6a157a0f4195ca2138e00aa52918392",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\openssl-3c8b1455a6c818ca.d"
+    },
+    {
+      "sha256": "3c45156f31ee44e0e6f6504955380d7ded1d84e53b03a1b66d585858f9ee807e",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\pin_project_lite-76f0f79fbcec9e84.d"
+    },
+    {
+      "sha256": "265f1d9a24a6bc63840c95636a305253138d0d9fa2f6ac4ea23d36d1f56e8e5c",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\powerfmt-bea6e7fde06ce456.d"
+    },
+    {
+      "sha256": "06651b6c4202f5359dbeec0924db2ff5207282cb0d24543624aa9a68e1f25c31",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\regex_automata-bded9dd3315c0af3.d"
+    },
+    {
+      "sha256": "b431f4572b246b25f6d8f8fefa81d121f96090b7fa6c0a8be9b23fb5a9a79465",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\regex_syntax-947e85c8f992e305.d"
+    },
+    {
+      "sha256": "16f37132e4b0f73176eb3044078464402602fa2a935dc87a05c437b9ccf7a138",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\sharded_slab-cda9f2e6a979f487.d"
+    },
+    {
+      "sha256": "559c5e9b968d54a8e69ad97275e2984b7614a6b62d4d12b1fe9b2168e38ebf83",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\slipstream_client-e55cfa6bf8e065fb.d"
+    },
+    {
+      "sha256": "8acecff85e387b841ca537e99293faaa14de29d1053dbbf6065c80b1a3401ab3",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\slipstream_core-b1657e49eb58cb14.d"
+    },
+    {
+      "sha256": "804566ae34eb6e992bc6ef62b6f580b0e0e54906e4c841a3e3e8357f3542df49",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\slipstream_dns-acba31c5f780a02d.d"
+    },
+    {
+      "sha256": "23a559f1f7aeff8d2225f36a827ae15a9bb3840e2a860a101fb9360aadb1c816",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\slipstream_ffi-3e26e63f08454961.d"
+    },
+    {
+      "sha256": "2f015747bdbf34980e630c3e514d711d4c92944f923e5ced1583e9415abf83a2",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\slipstream_server-90ba7209e65b24bb.d"
+    },
+    {
+      "sha256": "c94f45a898ef19c5605110e81fa968bf69beb52c74511d8155c201d83fdea0d0",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\smallvec-a580a24358322bef.d"
+    },
+    {
+      "sha256": "9d110b390b4fa56d81446620fc9df34d28a8a6ebd8477e788c45ac2317119edb",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\socket2-52e451bce0130a19.d"
+    },
+    {
+      "sha256": "bb53a1c3ede719f9a26676cb852efa8edf2d96561e250880b52dea1560c392bb",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\strsim-56cbabf71cc9a432.d"
+    },
+    {
+      "sha256": "371a6cb0526f88e7074cbc4b31964ffe0cd794089786c2771224317d77d54262",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\thread_local-b6285b52296c5c3d.d"
+    },
+    {
+      "sha256": "febfe35dbb473ce2a37d248442f09e3eef6c0f54052e5b4c4998fc4d562d9666",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\time_core-1ea15a553afcaad9.d"
+    },
+    {
+      "sha256": "320fd8d5f98c8a5053e5451308d7ddc213f7fb2ea8c07591dfe31075ee1dd829",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\time-bd81665bd6fdbfd4.d"
+    },
+    {
+      "sha256": "465570970d15c624354e4cce3f00ad070e5ab9bd41e74a0da7b14866e1ae7a19",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\tokio-cd9da17c7cdcf1fd.d"
+    },
+    {
+      "sha256": "353e6b0f67c73fdefb26e98a3a0df4925a15f4d2e4368bb34d7b68a4ed936d00",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\tracing_core-973b2518f9941536.d"
+    },
+    {
+      "sha256": "c8b03392073a0a56200ccf27aff210c751e560e7c2cc6bb28fded7f12ba8384f",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\tracing_log-95988f3648e491ea.d"
+    },
+    {
+      "sha256": "c8074c6a018523162aae851fa6bbb73a074487b97a153ed37dc59dd7bf077bb1",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\tracing_subscriber-48bd6e942dda07fb.d"
+    },
+    {
+      "sha256": "ca4cdb77cb2489b12e443f305bd37624ce312c7adf14e34a3b8ba9fd764ea0e8",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\tracing-3551c1c4ad33e44a.d"
+    },
+    {
+      "sha256": "4ccff034bdb617d0842448389cc30d1697a269c925348119d2b03c1525041e18",
+      "file": "rust-target\\armv7-linux-androideabi\\release\\deps\\utf8parse-352625cf270eba74.d"
+    },
+    {
+      "sha256": "35c147a58e0b9ae6dbd7a65b881eb186874e487f91821d78c4f6d78f8d1020e9",
+      "file": "rust-target\\release\\build\\libc-fad84bf39f7bd7c7\\build_script_build-fad84bf39f7bd7c7.d"
+    },
+    {
+      "sha256": "a175b9922e29abfbf8d1a0ad45eb9fc37078bb364b7cfd8560625060f68d952a",
+      "file": "rust-target\\release\\build\\openssl-664775dfa3e32d67\\build_script_build-664775dfa3e32d67.d"
+    },
+    {
+      "sha256": "ae9ed694020dd82dc310a23a6a28d297e4dcaf42448b07f9f9e7c040f58e6ab0",
+      "file": "rust-target\\release\\build\\openssl-sys-8be5d5864e96c3d2\\build_script_main-8be5d5864e96c3d2.d"
+    },
+    {
+      "sha256": "779563bebe581e178e5e8971af58eaf4023f3aa6597973db58d7109fb4bf939d",
+      "file": "rust-target\\release\\build\\proc-macro2-c782a51bcd3445f7\\build_script_build-c782a51bcd3445f7.d"
+    },
+    {
+      "sha256": "73e0323538dddc67dcbe9bafb1396681574f4fce17820e93ba45a73f47745c05",
+      "file": "rust-target\\release\\build\\quote-149324e236153126\\build_script_build-149324e236153126.d"
+    },
+    {
+      "sha256": "389ff4bc61801429137e6b54110ff950ae728910173179dd3201569189e637d3",
+      "file": "rust-target\\release\\build\\slipstream-ffi-68240bde2b60b23c\\build_script_build-68240bde2b60b23c.d"
+    },
+    {
+      "sha256": "5d4d9fcf614da3b02d237d847d8c51d440befcd80faa61922d8be2fd0542eda5",
+      "file": "rust-target\\release\\deps\\cc-7a27188a5efcaf62.d"
+    },
+    {
+      "sha256": "883793c9a49903ad404ae1e693a2a6d5b0eea8bc2792133747b3a7f8a1a06fad",
+      "file": "rust-target\\release\\deps\\clap_derive-88ca1d6b8b00de19.d"
+    },
+    {
+      "sha256": "941241a71375fb562cbb2368de25a36cf59fe27ab22b63bbaec564721437a00c",
+      "file": "rust-target\\release\\deps\\find_msvc_tools-459192728bc2bb44.d"
+    },
+    {
+      "sha256": "19a67dca3554a5efb2b384de0942e7642aa1308b69437ffa6be13948e6e19a25",
+      "file": "rust-target\\release\\deps\\heck-43ce512722e8be40.d"
+    },
+    {
+      "sha256": "4b1218e2d8d3bcb746b4ca1b5053a2db500c8b6d7702c817adabe5af1f3a1112",
+      "file": "rust-target\\release\\deps\\num_conv-7f861d4f8b1d0a64.d"
+    },
+    {
+      "sha256": "f3d06008342ba243d5c151860fb918d0c92b9e1494b6823503611084cde9269c",
+      "file": "rust-target\\release\\deps\\openssl_macros-64bb9e36d58e6286.d"
+    },
+    {
+      "sha256": "e91cd17cb1d7e2ca4adf95696178f8e689cc175af430ebc596c32a053410f409",
+      "file": "rust-target\\release\\deps\\openssl_src-bb74c7b26ef05019.d"
+    },
+    {
+      "sha256": "34c1bdd1b9d6168af39a5916edc7d1994b1df7540391fe0ef29d31bef455b608",
+      "file": "rust-target\\release\\deps\\pkg_config-2cb301a32491ad72.d"
+    },
+    {
+      "sha256": "436d357b10a5632eb1b7b1c70ee675a5f2b821ab92d06ebddb3f3dabeed15a2f",
+      "file": "rust-target\\release\\deps\\proc_macro2-14a0b5c00de149b2.d"
+    },
+    {
+      "sha256": "2f297753d936b1703ac1b8ddfdbb636930d791932a3b7bd885519157ac2f9208",
+      "file": "rust-target\\release\\deps\\quote-c2449fb22b4f7ae8.d"
+    },
+    {
+      "sha256": "529d973483bee1f77023ef8f663b7158cbe15d1a9ee07a3f5dbd0e18597aee7b",
+      "file": "rust-target\\release\\deps\\shlex-7b1a9af1dab3cfe5.d"
+    },
+    {
+      "sha256": "04ef5bcd72ea3cfa16a000738dac8e733089b1975e252c40c2602bf1a6a6c0fc",
+      "file": "rust-target\\release\\deps\\syn-1f4770194c4d499c.d"
+    },
+    {
+      "sha256": "502a3687a880ba16e2d62acf0f36054212226e5bf58d19e29a3b2e81ede10ee7",
+      "file": "rust-target\\release\\deps\\time_core-cabd6b425c27eca7.d"
+    },
+    {
+      "sha256": "8ed545608b8e32b04fee1066d40d08f70a0c274c7976d2df6d383710009b7bfc",
+      "file": "rust-target\\release\\deps\\time_macros-9e5c08dd8c4268ba.d"
+    },
+    {
+      "sha256": "c2ac17439daf2b82583e69d521815870349e1d471529f83407ea3c41448bcfb7",
+      "file": "rust-target\\release\\deps\\tokio_macros-93b8be7246fe1627.d"
+    },
+    {
+      "sha256": "32a584023d61fd3f93056b856f42c7a45af390f1b6ecb2ce35ad5e81f65a101c",
+      "file": "rust-target\\release\\deps\\tracing_attributes-62cff39fd2a45710.d"
+    },
+    {
+      "sha256": "bfdea052d72bc65c788a11ffb034d50b0dcf43cd26cbd1ae035fa149f8977b6e",
+      "file": "rust-target\\release\\deps\\unicode_ident-a70c2e6d8b42cf58.d"
+    },
+    {
+      "sha256": "dfc96bd1a994e019a4cf0a0736173c5c4ed6209a9b7cec45e662ca514c64ba63",
+      "file": "rust-target\\release\\deps\\vcpkg-8dfc7940ca4fcac5.d"
+    },
+    {
+      "sha256": "29e4c42b47092e6492ce6a9fccc88fb418fd453905822e13221c8306e9cc08cb",
+      "file": "rust-target\\x86_64-linux-android\\release\\slipstream-client.d"
+    },
+    {
+      "sha256": "b3b23a39d5b15fb9434fc4e06c11603b44163507a56178b79d01f6a9af339495",
+      "file": "rust-target\\x86_64-linux-android\\release\\slipstream-server.d"
+    },
+    {
+      "sha256": "0e33b75b602d9a8ddc1aa4c9d1538f8d3e969c5f8addfb2555b9fbf50671735e",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\anstream-a28ca3388691eca6.d"
+    },
+    {
+      "sha256": "e20255c8bfeb61f0a93ebf254d56b29ec982749695fdc2851f4392aa31d56c1c",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\anstyle_parse-8e0f1735ee9443e2.d"
+    },
+    {
+      "sha256": "8471f6110dae44f0fbc0c6dcf1bec5a6c8492187c636164156100310c161c633",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\anstyle_query-c10bdbf57c639544.d"
+    },
+    {
+      "sha256": "63658a6788285438edafba5ac2a78e56ef48b9f77b936ecf8c76d56bf1154e5b",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\anstyle-98e577be9a080e57.d"
+    },
+    {
+      "sha256": "9d43d509683b73e588b6628d016aecd73777a24d08375f0d48bab6717d0b48ad",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\bitflags-4f993fcdeb5074f0.d"
+    },
+    {
+      "sha256": "bccaa9ecb6bf774742467da28f9dc6104c6ad393a13a3d586f70fd8eee0acc99",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\bytes-9cf82ba84a0f389c.d"
+    },
+    {
+      "sha256": "19b05a76e54916ff7a1ce5d2152ed213b7e17ef0c848ee1e5826b9407f643b4d",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\cfg_if-7897779c6939434f.d"
+    },
+    {
+      "sha256": "d61114ace5e178190a379cab29f757840961dba2cbc0815634af51c6fb2734a2",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\clap_builder-971676a516c846ae.d"
+    },
+    {
+      "sha256": "6b1a40b75640fc25d84e9a626ad759353348644f365f6026f422aa9662e8b007",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\clap_lex-da91486f26a0806f.d"
+    },
+    {
+      "sha256": "3a206a685cfbcf955ee3c72fe23995b1c7dc8e32fde01938e76af29cb83c48bf",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\clap-50e3fff0ef0305d2.d"
+    },
+    {
+      "sha256": "ae96a698f43c633a36ec4a3b1e2c58470c2258a728efed5f8e366b128858f135",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\colorchoice-8bc7e05d6603eb5b.d"
+    },
+    {
+      "sha256": "b681fa0848a845ca7c2220a4269bada388acbcf9933a68d1d8044de517bbd2ca",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\deranged-0c501d9df083fe60.d"
+    },
+    {
+      "sha256": "add8b7771ac5c000682ab317f510d21e2c6b45b6b9f50afa895b9f3bd05de9b2",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\foreign_types_shared-0438eb58810ef6b7.d"
+    },
+    {
+      "sha256": "0a621c205fb435d03194a1795b0b8ace137f16fc8ba5c3c91bb649bc7f4c8fee",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\foreign_types-a062f0c4960321d0.d"
+    },
+    {
+      "sha256": "44059237eace5e208d9f409fef25ea218e22013535eba5705b3ed8ce1bf7c40b",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\is_terminal_polyfill-5ceab618b9c3c211.d"
+    },
+    {
+      "sha256": "1600c05997e06df544353e654e5b662b4ac42d77e7197ad101f06c09bed81c92",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\itoa-57a40c149b232f18.d"
+    },
+    {
+      "sha256": "0422d4d10ad55c591f22a28bb6fb7ea2903c84dd1eb03551763918c757baac1e",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\lazy_static-bb75fe6512187238.d"
+    },
+    {
+      "sha256": "4d83c5fe9968dda7f298d04e9335d4594d49f15176974a4eebb62533b434ae31",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\libc-ccfd0cdb38201510.d"
+    },
+    {
+      "sha256": "01ea609f4443d59d3c27ab6b0f5e3e3544d54c0a808974e6ab7f432cde376850",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\log-35ce207770625d75.d"
+    },
+    {
+      "sha256": "54a62f788d32487d2435c920ed83caf1b84b51a62a08f3f666630f6bdbf3e8d8",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\matchers-f159501b78afabe8.d"
+    },
+    {
+      "sha256": "5450002dca9717a05a10576e11f7d4cb24cd46f1ca1effb8a86c1c6c49643d33",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\mio-c977cf2c9bd454b5.d"
+    },
+    {
+      "sha256": "fa835d0575c7436d3247720429b9fd5e0b762018031eb5fe08948f5f387ec69c",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\nu_ansi_term-fc9f469095a0d872.d"
+    },
+    {
+      "sha256": "6308db7470bac5179b9630d17e5dfb22126e961aed47dd5c4ad98e49386c40f9",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\num_conv-5d3f765005ae203c.d"
+    },
+    {
+      "sha256": "52c7df11c717bc930515152c0e9975e3474ea8111fd5bf5db4eb3bfd4e767782",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\once_cell-11588eea11e1f535.d"
+    },
+    {
+      "sha256": "7ce9bfc932849466c1a07fed938ad45b8549ebaae8638decccebffb477a04989",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\openssl_sys-1215c1d68e03c22c.d"
+    },
+    {
+      "sha256": "4e47b4d1bc260e50c9873039cc763a97937c37c6aab444ab65b4102748d28a99",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\openssl-bc04ec7cbbd9bc53.d"
+    },
+    {
+      "sha256": "eccf6734728c96ad2c34d026a85abb5be0c1185f4020ec9edd46cba0bd367c12",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\pin_project_lite-6ecda22b2b48744a.d"
+    },
+    {
+      "sha256": "c5376404455fea1be45e78181d44d1f845309328cbf92050cbff64276845d723",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\powerfmt-9cd8ba32004a1cb0.d"
+    },
+    {
+      "sha256": "c2d22fed9bd8c30f5b119760b722714c7690889721225c8eecee212d197c80ea",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\regex_automata-46bd334dfe192672.d"
+    },
+    {
+      "sha256": "b45efaea1c7b4bacf0e36be2be1f19df39102b947b15a204b4de7440716baf62",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\regex_syntax-7c41dbad000603f0.d"
+    },
+    {
+      "sha256": "1910f0d4563e0dee11eee03593f512e360cbcab2a81070979c640c91b370dd13",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\sharded_slab-ea0678460998b3d2.d"
+    },
+    {
+      "sha256": "dbeeec6216f28593b6ba39e534f5434de655d869d44c4db84507ff67f9d47ff2",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\slipstream_client-a2020bd855bc2adf.d"
+    },
+    {
+      "sha256": "8a6b549db4029e7489f39ed466dee0e14bf77afacb1a1642c78e60886c49c425",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\slipstream_core-42dd632cbce7416a.d"
+    },
+    {
+      "sha256": "cb7404780369ed383384340a02c9ec682f9f39cade69cb7c5b89b71689cac3ee",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\slipstream_dns-8a37d6583cff7062.d"
+    },
+    {
+      "sha256": "e7e2bde4e49267e54897beeaa5950fe73d20d336397d962b72c2576114815fb0",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\slipstream_ffi-8fa99b68adfef311.d"
+    },
+    {
+      "sha256": "86058a41cf3839d0565343ded36370f1bc0f1cfd0a713f5210d2c8f0afe2ce97",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\slipstream_server-85e081fda2b7d107.d"
+    },
+    {
+      "sha256": "46284fd7a5ffdcf38e550fce4cbc0e280c8432de149bef0d05201e64b7839399",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\smallvec-2feccd211fa49b6f.d"
+    },
+    {
+      "sha256": "1bcec1c43006ef1e90c4459aec59bd0eedaa14a1e5189832659d30b51e625859",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\socket2-247071a73347f5b4.d"
+    },
+    {
+      "sha256": "093c74504684ab04bfe8764cf091dd3e39ca6d2920103eebb87211d93a0da32c",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\strsim-36454747caa6419d.d"
+    },
+    {
+      "sha256": "7ef4f25c96714799ab11f69a8c50428430cceff393735e4e2b9e2544c7d8598f",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\thread_local-d5b2698f22e25b26.d"
+    },
+    {
+      "sha256": "9cd8998fd30b11bf95705b817c208baa92002774a100ee24dd0bce3969b3a984",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\time_core-197c7ed630c0bea6.d"
+    },
+    {
+      "sha256": "fe3284dce37cbe9afcb0e0ea661e644db82cb0f63e3dbca08bec3bd5474fb0d5",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\time-595e0b478991d1da.d"
+    },
+    {
+      "sha256": "a4ce9dc7fece1f56b41ba7632365f622f1eb11d4b9f1034eea0c0453a5fc5291",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\tokio-152e2aba2f003598.d"
+    },
+    {
+      "sha256": "869f80f6e9583433cf9fcf28e7d6f497585fc5125f7572bbc97926342255dc2c",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\tracing_core-b2999164360cf872.d"
+    },
+    {
+      "sha256": "967fc835d60b8273cdce0b4998bfa5dadfff4dc3c974e9aa8ce2b5467f096e97",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\tracing_log-5a2d7613a78226ef.d"
+    },
+    {
+      "sha256": "d20ea4b068f9a85e4e745d00f1a90f4f1610cdd93196604c41edbccf48f30819",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\tracing_subscriber-0433c35a676fcae6.d"
+    },
+    {
+      "sha256": "bf12f2416f0e125d969bc0e7a820700c3f080e4686e571bf92b20916eaab377c",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\tracing-68cea5def95d3bc5.d"
+    },
+    {
+      "sha256": "b6d5b8079d66cf10ac244be8070f2a286e2edadac81079d1bca387cc9624be23",
+      "file": "rust-target\\x86_64-linux-android\\release\\deps\\utf8parse-fa6d07380fa3c188.d"
+    }
+  ],
+  "linkedModules": 63
+}

@@ -1,0 +1,8 @@
+=== RUN   TestMcrfSlipstreamParentDeathStopsCore
+--- PASS: TestMcrfSlipstreamParentDeathStopsCore (0.06s)
+=== RUN   TestMcrfSlipstreamStdinEOFStopsCore
+--- PASS: TestMcrfSlipstreamStdinEOFStopsCore (0.06s)
+=== RUN   TestMcrfSlipstreamOriginalCServerInterop
+MCRF_READY
+--- PASS: TestMcrfSlipstreamOriginalCServerInterop (3.32s)
+PASS

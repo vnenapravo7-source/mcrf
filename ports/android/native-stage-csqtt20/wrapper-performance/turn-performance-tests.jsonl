@@ -1,0 +1,20 @@
+{"Time":"2026-10-24T11:35:36.5902464+03:00","Action":"start","Package":"wg-turn-client"}
+{"Time":"2026-10-24T11:35:37.6554737+03:00","Action":"run","Package":"wg-turn-client","Test":"TestMcrfRawMTUOnActualBulkUpload"}
+{"Time":"2026-10-24T11:35:37.6554737+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfRawMTUOnActualBulkUpload","Output":"=== RUN   TestMcrfRawMTUOnActualBulkUpload\n"}
+{"Time":"2026-10-24T11:35:37.6639002+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfRawMTUOnActualBulkUpload","Output":"--- PASS: TestMcrfRawMTUOnActualBulkUpload (0.01s)\n"}
+{"Time":"2026-10-24T11:35:37.6639002+03:00","Action":"pass","Package":"wg-turn-client","Test":"TestMcrfRawMTUOnActualBulkUpload","Elapsed":0.01}
+{"Time":"2026-10-24T11:35:37.6639002+03:00","Action":"run","Package":"wg-turn-client","Test":"TestMcrfRawMTUCeilingPreservesSmallerServerValue"}
+{"Time":"2026-10-24T11:35:37.6639002+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfRawMTUCeilingPreservesSmallerServerValue","Output":"=== RUN   TestMcrfRawMTUCeilingPreservesSmallerServerValue\n"}
+{"Time":"2026-10-24T11:35:37.6639002+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfRawMTUCeilingPreservesSmallerServerValue","Output":"--- PASS: TestMcrfRawMTUCeilingPreservesSmallerServerValue (0.00s)\n"}
+{"Time":"2026-10-24T11:35:37.6639002+03:00","Action":"pass","Package":"wg-turn-client","Test":"TestMcrfRawMTUCeilingPreservesSmallerServerValue","Elapsed":0}
+{"Time":"2026-10-24T11:35:37.6639002+03:00","Action":"run","Package":"wg-turn-client","Test":"TestMcrfIPRelayBuffersOnOwnedSocket"}
+{"Time":"2026-10-24T11:35:37.6639002+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfIPRelayBuffersOnOwnedSocket","Output":"=== RUN   TestMcrfIPRelayBuffersOnOwnedSocket\n"}
+{"Time":"2026-10-24T11:35:37.6644157+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfIPRelayBuffersOnOwnedSocket","Output":"--- PASS: TestMcrfIPRelayBuffersOnOwnedSocket (0.00s)\n"}
+{"Time":"2026-10-24T11:35:37.6644157+03:00","Action":"pass","Package":"wg-turn-client","Test":"TestMcrfIPRelayBuffersOnOwnedSocket","Elapsed":0}
+{"Time":"2026-10-24T11:35:37.6644157+03:00","Action":"run","Package":"wg-turn-client","Test":"TestMcrfSOCKSAdmissionQueuesAndResumes"}
+{"Time":"2026-10-24T11:35:37.6644157+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfSOCKSAdmissionQueuesAndResumes","Output":"=== RUN   TestMcrfSOCKSAdmissionQueuesAndResumes\n"}
+{"Time":"2026-10-24T11:35:37.7146758+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfSOCKSAdmissionQueuesAndResumes","Output":"--- PASS: TestMcrfSOCKSAdmissionQueuesAndResumes (0.05s)\n"}
+{"Time":"2026-10-24T11:35:37.7146758+03:00","Action":"pass","Package":"wg-turn-client","Test":"TestMcrfSOCKSAdmissionQueuesAndResumes","Elapsed":0.05}
+{"Time":"2026-10-24T11:35:37.7146758+03:00","Action":"output","Package":"wg-turn-client","Output":"PASS\n"}
+{"Time":"2026-10-24T11:35:37.7189137+03:00","Action":"output","Package":"wg-turn-client","Output":"ok  \twg-turn-client\t1.129s\n"}
+{"Time":"2026-10-24T11:35:37.7189137+03:00","Action":"pass","Package":"wg-turn-client","Elapsed":1.129}

@@ -117,7 +117,8 @@ class RouteServerPlanTest {
         val config=plan.append(base(server("main")))
         val placeholder=nodes(config,"outbounds").single {it.optString("tag")==RouteServerPlan.tag(carrier.id)}
         assertEquals("127.0.0.1",placeholder.getString("server"));assertEquals(1,placeholder.getInt("server_port"))
-        assertEquals("socks",placeholder.getString("type"));assertFalse(placeholder.has("password"))
+        assertEquals("socks",placeholder.getString("type"));assertEquals("5",placeholder.getString("version"))
+        assertTrue(placeholder.getString("username").isNotBlank());assertTrue(placeholder.getString("password").isNotBlank())
         assertEquals(RouteServerPlan.tag(wg.id),nodes(config,"endpoints").single().getString("tag"))
         assertEquals(1,nodes(config,"inbounds").count {it.optString("type")=="tun"})
     }

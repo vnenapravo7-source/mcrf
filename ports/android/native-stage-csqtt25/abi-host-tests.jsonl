@@ -1,0 +1,56 @@
+{"Time":"2026-10-24T11:52:14.6338365+03:00","Action":"start","Package":"wg-turn-client"}
+{"Time":"2026-10-24T11:52:14.6338365+03:00","Action":"start","Package":"wg-turn-client/internal/csqtt25"}
+{"Time":"2026-10-24T11:52:14.9741047+03:00","Action":"run","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiActualArtifacts"}
+{"Time":"2026-10-24T11:52:14.9741047+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiActualArtifacts","Output":"=== RUN   Test25AdditionalAbiActualArtifacts\n"}
+{"Time":"2026-10-24T11:52:14.9741047+03:00","Action":"run","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiActualArtifacts/arm64-v8a"}
+{"Time":"2026-10-24T11:52:14.9741047+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiActualArtifacts/arm64-v8a","Output":"=== RUN   Test25AdditionalAbiActualArtifacts/arm64-v8a\n"}
+{"Time":"2026-10-24T11:52:14.9793192+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiActualArtifacts/arm64-v8a","Output":"--- PASS: Test25AdditionalAbiActualArtifacts/arm64-v8a (0.01s)\n"}
+{"Time":"2026-10-24T11:52:14.9793192+03:00","Action":"pass","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiActualArtifacts/arm64-v8a","Elapsed":0.01}
+{"Time":"2026-10-24T11:52:14.9793192+03:00","Action":"run","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiActualArtifacts/armeabi-v7a"}
+{"Time":"2026-10-24T11:52:14.9793192+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiActualArtifacts/armeabi-v7a","Output":"=== RUN   Test25AdditionalAbiActualArtifacts/armeabi-v7a\n"}
+{"Time":"2026-10-24T11:52:14.983452+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiActualArtifacts/armeabi-v7a","Output":"--- PASS: Test25AdditionalAbiActualArtifacts/armeabi-v7a (0.00s)\n"}
+{"Time":"2026-10-24T11:52:14.983452+03:00","Action":"pass","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiActualArtifacts/armeabi-v7a","Elapsed":0}
+{"Time":"2026-10-24T11:52:14.983452+03:00","Action":"run","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiActualArtifacts/x86_64"}
+{"Time":"2026-10-24T11:52:14.983452+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiActualArtifacts/x86_64","Output":"=== RUN   Test25AdditionalAbiActualArtifacts/x86_64\n"}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiActualArtifacts/x86_64","Output":"--- PASS: Test25AdditionalAbiActualArtifacts/x86_64 (0.01s)\n"}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"pass","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiActualArtifacts/x86_64","Elapsed":0.01}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiActualArtifacts","Output":"--- PASS: Test25AdditionalAbiActualArtifacts (0.02s)\n"}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"pass","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiActualArtifacts","Elapsed":0.02}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"run","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiDescriptorsAreExactAndDistinct"}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiDescriptorsAreExactAndDistinct","Output":"=== RUN   Test25AdditionalAbiDescriptorsAreExactAndDistinct\n"}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiDescriptorsAreExactAndDistinct","Output":"--- PASS: Test25AdditionalAbiDescriptorsAreExactAndDistinct (0.00s)\n"}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"pass","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiDescriptorsAreExactAndDistinct","Elapsed":0}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"run","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiAndroidMustMatchWrapperArchitecture"}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiAndroidMustMatchWrapperArchitecture","Output":"=== RUN   Test25AdditionalAbiAndroidMustMatchWrapperArchitecture\n"}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiAndroidMustMatchWrapperArchitecture","Output":"--- PASS: Test25AdditionalAbiAndroidMustMatchWrapperArchitecture (0.00s)\n"}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"pass","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiAndroidMustMatchWrapperArchitecture","Elapsed":0}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"run","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiHeaderInspectionRejectsMalformedOrOtherGenerations"}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiHeaderInspectionRejectsMalformedOrOtherGenerations","Output":"=== RUN   Test25AdditionalAbiHeaderInspectionRejectsMalformedOrOtherGenerations\n"}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiHeaderInspectionRejectsMalformedOrOtherGenerations","Output":"--- PASS: Test25AdditionalAbiHeaderInspectionRejectsMalformedOrOtherGenerations (0.00s)\n"}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"pass","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiHeaderInspectionRejectsMalformedOrOtherGenerations","Elapsed":0}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"run","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiRejectsCorrectHeaderWithWrongContent"}
+{"Time":"2026-10-24T11:52:14.9896841+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiRejectsCorrectHeaderWithWrongContent","Output":"=== RUN   Test25AdditionalAbiRejectsCorrectHeaderWithWrongContent\n"}
+{"Time":"2026-10-24T11:52:15.0090967+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiRejectsCorrectHeaderWithWrongContent","Output":"--- PASS: Test25AdditionalAbiRejectsCorrectHeaderWithWrongContent (0.02s)\n"}
+{"Time":"2026-10-24T11:52:15.0098913+03:00","Action":"pass","Package":"wg-turn-client/internal/csqtt25","Test":"Test25AdditionalAbiRejectsCorrectHeaderWithWrongContent","Elapsed":0.02}
+{"Time":"2026-10-24T11:52:15.0098913+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Output":"PASS\n"}
+{"Time":"2026-10-24T11:52:15.0124602+03:00","Action":"output","Package":"wg-turn-client/internal/csqtt25","Output":"ok  \twg-turn-client/internal/csqtt25\t0.379s\n"}
+{"Time":"2026-10-24T11:52:15.0124602+03:00","Action":"pass","Package":"wg-turn-client/internal/csqtt25","Elapsed":0.379}
+{"Time":"2026-10-24T11:52:15.6827294+03:00","Action":"run","Package":"wg-turn-client","Test":"TestMcrfRawMTUOnActualBulkUpload"}
+{"Time":"2026-10-24T11:52:15.6827294+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfRawMTUOnActualBulkUpload","Output":"=== RUN   TestMcrfRawMTUOnActualBulkUpload\n"}
+{"Time":"2026-10-24T11:52:15.6933294+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfRawMTUOnActualBulkUpload","Output":"--- PASS: TestMcrfRawMTUOnActualBulkUpload (0.01s)\n"}
+{"Time":"2026-10-24T11:52:15.6933294+03:00","Action":"pass","Package":"wg-turn-client","Test":"TestMcrfRawMTUOnActualBulkUpload","Elapsed":0.01}
+{"Time":"2026-10-24T11:52:15.6933294+03:00","Action":"run","Package":"wg-turn-client","Test":"TestMcrfRawMTUCeilingPreservesSmallerServerValue"}
+{"Time":"2026-10-24T11:52:15.6933294+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfRawMTUCeilingPreservesSmallerServerValue","Output":"=== RUN   TestMcrfRawMTUCeilingPreservesSmallerServerValue\n"}
+{"Time":"2026-10-24T11:52:15.6933294+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfRawMTUCeilingPreservesSmallerServerValue","Output":"--- PASS: TestMcrfRawMTUCeilingPreservesSmallerServerValue (0.00s)\n"}
+{"Time":"2026-10-24T11:52:15.6933294+03:00","Action":"pass","Package":"wg-turn-client","Test":"TestMcrfRawMTUCeilingPreservesSmallerServerValue","Elapsed":0}
+{"Time":"2026-10-24T11:52:15.6933294+03:00","Action":"run","Package":"wg-turn-client","Test":"TestMcrfIPRelayBuffersOnOwnedSocket"}
+{"Time":"2026-10-24T11:52:15.6933294+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfIPRelayBuffersOnOwnedSocket","Output":"=== RUN   TestMcrfIPRelayBuffersOnOwnedSocket\n"}
+{"Time":"2026-10-24T11:52:15.6938624+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfIPRelayBuffersOnOwnedSocket","Output":"--- PASS: TestMcrfIPRelayBuffersOnOwnedSocket (0.00s)\n"}
+{"Time":"2026-10-24T11:52:15.6938624+03:00","Action":"pass","Package":"wg-turn-client","Test":"TestMcrfIPRelayBuffersOnOwnedSocket","Elapsed":0}
+{"Time":"2026-10-24T11:52:15.6938624+03:00","Action":"run","Package":"wg-turn-client","Test":"TestMcrfSOCKSAdmissionQueuesAndResumes"}
+{"Time":"2026-10-24T11:52:15.6938624+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfSOCKSAdmissionQueuesAndResumes","Output":"=== RUN   TestMcrfSOCKSAdmissionQueuesAndResumes\n"}
+{"Time":"2026-10-24T11:52:15.7444323+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfSOCKSAdmissionQueuesAndResumes","Output":"--- PASS: TestMcrfSOCKSAdmissionQueuesAndResumes (0.05s)\n"}
+{"Time":"2026-10-24T11:52:15.7444323+03:00","Action":"pass","Package":"wg-turn-client","Test":"TestMcrfSOCKSAdmissionQueuesAndResumes","Elapsed":0.05}
+{"Time":"2026-10-24T11:52:15.7444323+03:00","Action":"output","Package":"wg-turn-client","Output":"PASS\n"}
+{"Time":"2026-10-24T11:52:15.7486689+03:00","Action":"output","Package":"wg-turn-client","Output":"ok  \twg-turn-client\t1.115s\n"}
+{"Time":"2026-10-24T11:52:15.7486689+03:00","Action":"pass","Package":"wg-turn-client","Elapsed":1.115}

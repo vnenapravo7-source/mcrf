@@ -1,0 +1,20 @@
+{"Time":"2026-10-24T11:49:29.2125071+03:00","Action":"start","Package":"wg-turn-client"}
+{"Time":"2026-10-24T11:49:30.1405442+03:00","Action":"run","Package":"wg-turn-client","Test":"TestMcrfRawMTUCeilingPreservesSmallerServerValue"}
+{"Time":"2026-10-24T11:49:30.1405442+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfRawMTUCeilingPreservesSmallerServerValue","Output":"=== RUN   TestMcrfRawMTUCeilingPreservesSmallerServerValue\n"}
+{"Time":"2026-10-24T11:49:30.1405442+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfRawMTUCeilingPreservesSmallerServerValue","Output":"--- PASS: TestMcrfRawMTUCeilingPreservesSmallerServerValue (0.00s)\n"}
+{"Time":"2026-10-24T11:49:30.1405442+03:00","Action":"pass","Package":"wg-turn-client","Test":"TestMcrfRawMTUCeilingPreservesSmallerServerValue","Elapsed":0}
+{"Time":"2026-10-24T11:49:30.1405442+03:00","Action":"run","Package":"wg-turn-client","Test":"TestMcrfIPRelayBuffersOnOwnedSocket"}
+{"Time":"2026-10-24T11:49:30.1405442+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfIPRelayBuffersOnOwnedSocket","Output":"=== RUN   TestMcrfIPRelayBuffersOnOwnedSocket\n"}
+{"Time":"2026-10-24T11:49:30.1410554+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfIPRelayBuffersOnOwnedSocket","Output":"--- PASS: TestMcrfIPRelayBuffersOnOwnedSocket (0.00s)\n"}
+{"Time":"2026-10-24T11:49:30.1410554+03:00","Action":"pass","Package":"wg-turn-client","Test":"TestMcrfIPRelayBuffersOnOwnedSocket","Elapsed":0}
+{"Time":"2026-10-24T11:49:30.1410554+03:00","Action":"run","Package":"wg-turn-client","Test":"TestMcrfSOCKSAdmissionQueuesAndResumes"}
+{"Time":"2026-10-24T11:49:30.1410554+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfSOCKSAdmissionQueuesAndResumes","Output":"=== RUN   TestMcrfSOCKSAdmissionQueuesAndResumes\n"}
+{"Time":"2026-10-24T11:49:30.1916441+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfSOCKSAdmissionQueuesAndResumes","Output":"--- PASS: TestMcrfSOCKSAdmissionQueuesAndResumes (0.05s)\n"}
+{"Time":"2026-10-24T11:49:30.1916441+03:00","Action":"pass","Package":"wg-turn-client","Test":"TestMcrfSOCKSAdmissionQueuesAndResumes","Elapsed":0.05}
+{"Time":"2026-10-24T11:49:30.1916441+03:00","Action":"run","Package":"wg-turn-client","Test":"TestMcrfWdtt512ClientsAndOverflowBackpressure"}
+{"Time":"2026-10-24T11:49:30.1916441+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfWdtt512ClientsAndOverflowBackpressure","Output":"=== RUN   TestMcrfWdtt512ClientsAndOverflowBackpressure\n"}
+{"Time":"2026-10-24T11:49:30.3959233+03:00","Action":"output","Package":"wg-turn-client","Test":"TestMcrfWdtt512ClientsAndOverflowBackpressure","Output":"--- PASS: TestMcrfWdtt512ClientsAndOverflowBackpressure (0.20s)\n"}
+{"Time":"2026-10-24T11:49:30.3959233+03:00","Action":"pass","Package":"wg-turn-client","Test":"TestMcrfWdtt512ClientsAndOverflowBackpressure","Elapsed":0.2}
+{"Time":"2026-10-24T11:49:30.3959233+03:00","Action":"output","Package":"wg-turn-client","Output":"PASS\n"}
+{"Time":"2026-10-24T11:49:30.4026484+03:00","Action":"output","Package":"wg-turn-client","Output":"ok  \twg-turn-client\t1.190s\n"}
+{"Time":"2026-10-24T11:49:30.4026484+03:00","Action":"pass","Package":"wg-turn-client","Elapsed":1.19}

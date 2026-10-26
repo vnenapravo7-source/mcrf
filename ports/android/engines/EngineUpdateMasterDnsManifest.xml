@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data android:name="org.mcrf.engines.masterdnsvpn" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.source.repository" android:value="masterking32/MasterDnsVPN" />
+        <meta-data android:name="org.mcrf.engines.source.commit" android:value="acbf1c61f90786f41b975d2e2f616afbce292b29" />
+    </application>
+</manifest>

@@ -1,0 +1,31 @@
+=== RUN   TestMcrfSlipstreamStrictConfigAndMandatoryLeaf
+--- PASS: TestMcrfSlipstreamStrictConfigAndMandatoryLeaf (0.00s)
+=== RUN   TestMcrfSlipstreamRejectDuplicateAndTrailingConfig
+--- PASS: TestMcrfSlipstreamRejectDuplicateAndTrailingConfig (0.00s)
+=== RUN   TestMcrfSlipstreamEndpointAndKeepAliveBounds
+--- PASS: TestMcrfSlipstreamEndpointAndKeepAliveBounds (0.00s)
+=== RUN   TestMcrfSlipstreamParentDeathStopsCore
+    process_linux_test.go:168: owned wrapper failed before ready
+--- FAIL: TestMcrfSlipstreamParentDeathStopsCore (0.01s)
+=== RUN   TestMcrfSlipstreamStdinEOFStopsCore
+    process_linux_test.go:181: owned wrapper failed before ready
+--- FAIL: TestMcrfSlipstreamStdinEOFStopsCore (0.01s)
+=== RUN   TestMcrfSlipstreamUnauthenticatedClientCannotOpenRemoteStream
+    relay_linux_test.go:80: listen unix /data/local/tmp/ms30a56ffca899/mcrf-slip-3381525085/peer.sock: bind: permission denied
+--- FAIL: TestMcrfSlipstreamUnauthenticatedClientCannotOpenRemoteStream (0.00s)
+=== RUN   TestMcrfSlipstreamPrivateRelayPreservesHalfClose
+    relay_linux_test.go:108: listen unix /data/local/tmp/ms30a56ffca899/mcrf-slip-1605351783/peer.sock: bind: permission denied
+--- FAIL: TestMcrfSlipstreamPrivateRelayPreservesHalfClose (0.00s)
+=== RUN   TestMcrfSlipstreamCancellationClosesPendingRemoteAuth
+    relay_linux_test.go:153: listen unix /data/local/tmp/ms30a56ffca899/mcrf-slip-4148258728/peer.sock: bind: permission denied
+--- FAIL: TestMcrfSlipstreamCancellationClosesPendingRemoteAuth (0.00s)
+=== RUN   TestMcrfSlipstreamOwnedWireData
+    wire_linux_test.go:186: tunnel stopped before ready: BACKEND_EXIT_1
+--- FAIL: TestMcrfSlipstreamOwnedWireData (0.05s)
+=== RUN   TestMcrfSlipstreamOriginalCServerInterop
+    wire_linux_test.go:191: tunnel stopped before ready: BACKEND_EXIT_1
+--- FAIL: TestMcrfSlipstreamOriginalCServerInterop (0.05s)
+=== RUN   TestMcrfSlipstreamWrongLeafStopsBeforeRemoteSOCKS
+    wire_linux_test.go:272: pin mismatch not preserved: BACKEND_EXIT_1
+--- FAIL: TestMcrfSlipstreamWrongLeafStopsBeforeRemoteSOCKS (0.01s)
+FAIL

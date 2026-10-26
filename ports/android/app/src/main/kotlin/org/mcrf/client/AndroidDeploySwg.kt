@@ -8,7 +8,7 @@ object AndroidDeploySwg {
     val kinds=listOf("qwdtt","wdtt","csqtt","csqtt25")
     fun isCsqtt(kind:String)=kind in setOf("csqtt","csqtt25")
     fun callKind(kind:String)=if(kind=="csqtt25")"csqtt"else kind
-    fun label(kind:String)=when(kind){"csqtt"->"CSQTT 2.1.9";"csqtt25"->"CSQTT 2.5";else->kind.uppercase()}
+    fun label(kind:String)=when(kind){"qwdtt"->"QWDTT · RAW";"csqtt"->"CSQTT 2.1.9";"csqtt25"->"CSQTT 2.5";else->kind.uppercase()}
     fun validateCallArray(calls:JSONArray) {
         require(calls.toString().toByteArray(Charsets.UTF_8).size<=65536) {"Список звонков больше 64 КБ"}
         repeat(calls.length()){require(calls.get(it) is String && calls.getString(it).length<=1024)}
@@ -17,14 +17,14 @@ object AndroidDeploySwg {
         JSONArray(previous.toString()).apply {
             if((0 until length()).none {getJSONObject(it).optString("kind")=="csqtt25"}){
                 val occupied=(0 until length()).flatMap {index->listOf("relay_port","wg_port").map {getJSONObject(index).optString(it)}}.toSet()
-                var relay=56003;while(relay.toString() in occupied)relay+=10
+                var relay=56004;while(relay.toString() in occupied)relay+=10
                 var wg=51823;while(wg.toString() in occupied||wg==relay)wg+=10
                 put(JSONObject().put("kind","csqtt25").put("enabled",false).put("relay_port",relay.toString()).put("wg_port",wg.toString()).put("call_count",6).put("vk_calls",JSONArray()))
             }
         }
     } ?: JSONArray().apply {
         val legacy=options.optString("relay_kind","qwdtt")
-        val reserved=mutableSetOf(options.optString("relay_port","56000"),options.optString("wg_port","51820"))
+        val reserved=mutableSetOf(options.optString("relay_port","56000"),options.optString("wg_port","51820"),"56003")
         fun available(start:Int):String {var port=start;while(port.toString() in reserved)port+=10;return port.toString().also(reserved::add)}
         kinds.forEachIndexed { index,kind ->
             val selected=kind==legacy
@@ -54,7 +54,7 @@ object AndroidDeploySwg {
         val all=drafts(options);validateDrafts(all,true)
         val selected=(0 until all.length()).map(all::getJSONObject).filter {it.getBoolean("enabled")}
         require(selected.isNotEmpty()) {"Выберите хотя бы один протокол SWG"}
-        val ports=hashSetOf<Int>()
+        val ports=hashSetOf<Int>().apply {if(selected.any {it.getString("kind")=="qwdtt"})add(56003)}
         return selected.map { raw -> JSONObject(raw.toString()).apply {
             for(key in if(isCsqtt(getString("kind")))listOf("relay_port") else listOf("relay_port","wg_port")) {
                 val port=get(key).toString().toIntOrNull()
@@ -63,7 +63,9 @@ object AndroidDeploySwg {
             }
         } }
     }
-    fun ports(options:JSONObject)=profiles(options).flatMap { p -> listOf(p.getInt("relay_port")) + if(isCsqtt(p.getString("kind")))emptyList() else listOf(p.getInt("wg_port")) }
+    fun ports(options:JSONObject)=profiles(options).flatMap { p -> listOf(p.getInt("relay_port")) +
+        (if(isCsqtt(p.getString("kind")))emptyList() else listOf(p.getInt("wg_port"))) +
+        (if(p.getString("kind")=="qwdtt")listOf(56003)else emptyList()) }
     fun validateCalls(options:JSONObject) {
         val used=hashSetOf<String>()
         profiles(options).forEach { p ->

@@ -1,0 +1,59 @@
+name: Node release
+
+# Publishes the exit-node core that deploy/node-install.sh installs (built
+# with -tags exitnode, without the desktop wizard and its pinned script). The
+# build is reproducible (same Go, -trimpath, no VCS stamp, empty build id),
+# so its hashes must equal the ones pinned in the script; a mismatch fails
+# the job instead of publishing binaries no install would accept.
+on:
+  push:
+    tags:
+      - "node-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Build core binaries
+        run: |
+          mkdir -p dist
+          for a in amd64 arm64 arm; do
+            CGO_ENABLED=0 GOOS=linux GOARCH=$a GOARM=7 go build -trimpath -buildvcs=false -tags exitnode \
+              -ldflags="-s -w -buildid=" -o dist/openflux-linux-$a .
+          done
+          cd dist && sha256sum openflux-linux-* > SHA256SUMS && cat SHA256SUMS
+
+      - name: Check against deploy/node-install.sh
+        run: |
+          grep -q "^CORE_VERSION=\"${GITHUB_REF_NAME}\"" deploy/node-install.sh \
+            || { echo "::error::CORE_VERSION in deploy/node-install.sh is not ${GITHUB_REF_NAME}"; exit 1; }
+          for a in amd64 arm64 arm; do
+            want=$(sed -n "s/^SHA_$a=\"\(.*\)\"/\1/p" deploy/node-install.sh)
+            got=$(sha256sum dist/openflux-linux-$a | cut -d' ' -f1)
+            [ "$want" = "$got" ] \
+              || { echo "::error::openflux-linux-$a: built $got, node-install.sh pins $want"; exit 1; }
+          done
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # What the node runs: the newest released section of CHANGELOG.md.
+          {
+            echo "Ядро выходной ноды для мастера «Своя нода» в OpenFlux (десктоп и Android). Хеши сверены с deploy/node-install.sh."
+            echo
+            awk 'index($0, "## [")==1 { if (f) exit; if (index($0, "Unreleased") == 0) { f = 1; print "## Ядро " substr($0, 4) }; next } f' CHANGELOG.md
+          } > notes.md
+          gh release create "$GITHUB_REF_NAME" dist/openflux-linux-* dist/SHA256SUMS \
+            --title "OpenFlux node $GITHUB_REF_NAME" \
+            --notes-file notes.md

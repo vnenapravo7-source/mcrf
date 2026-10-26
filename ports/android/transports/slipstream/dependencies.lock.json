@@ -1,0 +1,12 @@
+{
+  "picoquic": {"repository":"Mygod/slipstream-picoquic","commit":"d4a865c54929cfeb2a61902a0340b8758ad5492e"},
+  "picotls": {"repository":"h2o/picotls","commit":"5a4461d8a3948d9d26bf861e7d90cb80d8093515"},
+  "opensslSource": {"crate":"openssl-src","version":"300.6.0+3.6.2","sha256":"a8e8cbfd3a4a8c8f089147fd7aaa33cf8c7450c4d09f8f80698a0cf093abeff4","url":"https://static.crates.io/crates/openssl-src/openssl-src-300.6.0%2B3.6.2.crate"},
+  "windowsMakePackages": [
+    {"file":"mingw-w64-x86_64-make-4.4.1-5-any.pkg.tar.zst","sha256":"c19e7caf09bbc89b2730556b2da73004118d4e1f967a685cc48524c7ff80d864","source":"https://packages.msys2.org/packages/mingw-w64-x86_64-make"},
+    {"file":"mingw-w64-x86_64-gettext-runtime-1.0-1-any.pkg.tar.zst","sha256":"be68d7f260633284b910c588c6d82ee304a81c8817a686d2cd9df83f872c27af","source":"https://packages.msys2.org/packages/mingw-w64-x86_64-gettext-runtime"},
+    {"file":"mingw-w64-x86_64-libiconv-1.19-1-any.pkg.tar.zst","sha256":"21e334d0911f25de75d3e18e0697648bcecfa9658256d600cad0827d719c2f35","source":"https://packages.msys2.org/packages/mingw-w64-x86_64-libiconv"},
+    {"file":"mingw-w64-x86_64-libgcc-16.2.0-6-any.pkg.tar.zst","sha256":"e0815432c4225892b0eef57055fe507fa0b9a036436f046605f6629696bd1b88","source":"https://packages.msys2.org/packages/mingw-w64-x86_64-libgcc"},
+    {"file":"mingw-w64-x86_64-libwinpthread-14.0.0.r532.gdbbc8e99d-1-any.pkg.tar.zst","sha256":"231511bb8a0e9be168930cec1ce55b2896b3120516cb9d452811dbd335a3c539","source":"https://packages.msys2.org/packages/mingw-w64-x86_64-libwinpthread"}
+  ]
+}

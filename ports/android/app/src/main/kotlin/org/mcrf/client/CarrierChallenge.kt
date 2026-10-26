@@ -73,7 +73,10 @@ object CarrierChallenge {
     fun nativeTimeoutMillis(kind:String,mode:String,nativeId:String=""):Long {
         // New QWDTT waiter IDs denote the adapter retaining upstream10/60/120s.
         // Do not impose a changed native contract on installed untagged modules.
-        val originalBudgets=kind=="csqtt"||kind=="qwdtt"&&nativeId.matches(Regex("[0-9a-f]{32}"))
+        // All three pinned Rust generations use the same 10/60/120-second
+        // waiter budgets. Their dedicated modules preserve the tagged id48
+        // contract; CSQTT 2.5 is a different implementation and stays separate.
+        val originalBudgets=kind in setOf("csqtt","csqtt20","csqtt215")||kind=="qwdtt"&&nativeId.matches(Regex("[0-9a-f]{32}"))
         return when {
             mode=="auto"&&kind=="wdtt"->24000
             mode=="auto"&&originalBudgets->9000
@@ -138,7 +141,7 @@ object CarrierChallenge {
     internal fun scopedExpirySupported(kind:String,id:String):Boolean=when(kind) {
         "wdtt"->id.matches(Regex("[0-9]{1,10}-[0-9]{1,20}"))
         "qwdtt"->id.matches(Regex("[0-9a-f]{32}"))
-        "csqtt"->id.matches(Regex("[0-9a-f]{48}"))
+        "csqtt","csqtt20","csqtt215"->id.matches(Regex("[0-9a-f]{48}"))
         else->false
     }
     fun remove(id:String){requests.remove(id)?.let(::retire)}

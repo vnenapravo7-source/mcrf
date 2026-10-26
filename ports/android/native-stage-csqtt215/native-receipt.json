@@ -1,0 +1,44 @@
+{
+  "state": "COMPILED_NOT_EXECUTED",
+  "generation": "2.1.5",
+  "engine": "csqtt215",
+  "revision": "de7afc23cec7481f98845bf24fc8943af19b4cf8",
+  "source": "D:\\MCRF\\Builds\\Android\\csqtt-historical-533a6b5342d0408bacd44d6497f6c23c\\source",
+  "stage": "D:/MCRF/Builds/Android/csqtt-historical-533a6b5342d0408bacd44d6497f6c23c",
+  "sourceStable": true,
+  "executed": false,
+  "adapterSha256": "6fe50657a641cb4740140c0b4b6290adf073000916bd01ced94138eb1fdf7d70",
+  "artifacts": [
+    {
+      "bytes": 8881120,
+      "elfPIE": true,
+      "alignment": 16384,
+      "file": "D:\\MCRF\\Builds\\Android\\csqtt-historical-533a6b5342d0408bacd44d6497f6c23c\\candidates\\arm64-v8a\\libcsqtt_transport.so",
+      "sha256": "9b6fee2cb979bd2aef69ee30a8e2c807420d996d9f4b38f34ce39813777c11ab",
+      "abi": "arm64-v8a"
+    },
+    {
+      "bytes": 6462288,
+      "elfPIE": true,
+      "alignment": 16384,
+      "file": "D:\\MCRF\\Builds\\Android\\csqtt-historical-533a6b5342d0408bacd44d6497f6c23c\\candidates\\armeabi-v7a\\libcsqtt_transport.so",
+      "sha256": "d8562d61f766d577e0db2191ee43c2e6f89b4b5aac4a34681d7a47d61534be22",
+      "abi": "armeabi-v7a"
+    },
+    {
+      "bytes": 10493144,
+      "elfPIE": true,
+      "alignment": 16384,
+      "file": "D:\\MCRF\\Builds\\Android\\csqtt-historical-533a6b5342d0408bacd44d6497f6c23c\\candidates\\x86_64\\libcsqtt_transport.so",
+      "sha256": "b836f02593e4bd2d803abcafd405641bd0c13a685ecbfe9d6a131f4f57f1cb84",
+      "abi": "x86_64"
+    }
+  ],
+  "retainedDependencyLock": {
+    "newResolution": false,
+    "origin": "D:\\MCRF\\Builds\\Android\\csqtt-historical-db036f84df62467685febedacc310516",
+    "sha256": "06a9e1ad1553274872a67f6611a35031178cd4c2b6c386680eb4312ad06ea34d"
+  },
+  "currentABI": null,
+  "transportOnly": true
+}

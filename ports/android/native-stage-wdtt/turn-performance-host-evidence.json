@@ -1,0 +1,17 @@
+{
+  "kind": "wdtt",
+  "nativeExecuted": false,
+  "sourceManifestSha256": "05cc0459aed5a9d2482d870e35195ee0928f5899103ac29520c22a7de36db113",
+  "failures": 0,
+  "state": "PASS_P3_TURN_PERFORMANCE_HOST",
+  "toolchainSha256": "21761eceb9302062c9623fb699f332c8c7fe000f15f70efe8da01a2cfbbc16b9",
+  "skipped": 0,
+  "logSha256": "611a14a12ebfee755e1805b10658a5f0b352d4cf2aeb8d2cfdd73e764adbffe5",
+  "cases": [
+    "TestMcrfRawMTUCeilingPreservesSmallerServerValue",
+    "TestMcrfIPRelayBuffersOnOwnedSocket",
+    "TestMcrfSOCKSAdmissionQueuesAndResumes",
+    "TestMcrfWdtt512ClientsAndOverflowBackpressure"
+  ],
+  "retainedTestsReplayed": false
+}

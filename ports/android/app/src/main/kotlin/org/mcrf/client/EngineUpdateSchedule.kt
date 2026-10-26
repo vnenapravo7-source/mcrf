@@ -10,7 +10,7 @@ import android.os.Handler
 import android.os.Looper
 
 object EngineUpdateSchedule {
-    const val JOB = 2402
+    const val JOB = BackgroundJobIds.ENGINES
     const val INTERVAL = 6 * 3_600_000L
     fun schedule(context: Context) {
         val scheduler = context.getSystemService(JobScheduler::class.java)
@@ -29,20 +29,21 @@ object EngineUpdateSchedule {
 class EngineUpdateService : JobService() {
     private val handler = Handler(Looper.getMainLooper())
     private var generation = 0
+    private var ownedRun:EngineUpdateRun?=null
     override fun onStartJob(params: JobParameters): Boolean {
         if (!EngineUpdates.automaticEligible(this)) return false
-        if (!EngineUpdates.check(this, true)) return false
+        val attempt=EngineUpdates.checkScheduled(this)?:return false
+        ownedRun=attempt
         val token = ++generation
         handler.post(object : Runnable {
             override fun run() {
                 if (token != generation) return
-                val phase = EngineUpdates.snapshot(this@EngineUpdateService).phase
-                if (EngineUpdates.isBusy()) handler.postDelayed(this, 1000)
-                else jobFinished(params, phase == EngineUpdatePolicy.Phase.ERROR)
+                if (attempt.active) handler.postDelayed(this, 1000)
+                else {ownedRun=null;jobFinished(params,attempt.retry)}
             }
         })
         return true
     }
-    override fun onStopJob(params: JobParameters): Boolean { generation++; EngineUpdates.stopDownload(); return EngineUpdates.automatic(this) }
-    override fun onDestroy() { generation++; handler.removeCallbacksAndMessages(null); super.onDestroy() }
+    override fun onStopJob(params: JobParameters): Boolean { generation++;ownedRun?.cancel();ownedRun=null;return EngineUpdates.automaticEligible(this) }
+    override fun onDestroy() { generation++;ownedRun?.cancel();ownedRun=null;handler.removeCallbacksAndMessages(null);super.onDestroy() }
 }

@@ -1,0 +1,13 @@
+=== RUN   TestMcrfSlipstreamParentDeathStopsCore
+    process_linux_test.go:168: owned wrapper failed before ready
+--- FAIL: TestMcrfSlipstreamParentDeathStopsCore (20.07s)
+=== RUN   TestMcrfSlipstreamStdinEOFStopsCore
+    process_linux_test.go:181: owned wrapper failed before ready
+--- FAIL: TestMcrfSlipstreamStdinEOFStopsCore (20.09s)
+=== RUN   TestMcrfSlipstreamOwnedWireData
+    wire_linux_test.go:186: tunnel stopped before ready: TUNNEL_AUTHENTICATION_OR_NETWORK
+--- FAIL: TestMcrfSlipstreamOwnedWireData (20.09s)
+=== RUN   TestMcrfSlipstreamOriginalCServerInterop
+    wire_linux_test.go:191: tunnel stopped before ready: TUNNEL_AUTHENTICATION_OR_NETWORK
+--- FAIL: TestMcrfSlipstreamOriginalCServerInterop (20.08s)
+FAIL

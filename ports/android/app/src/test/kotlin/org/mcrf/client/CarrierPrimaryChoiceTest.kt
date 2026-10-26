@@ -11,7 +11,7 @@ class CarrierPrimaryChoiceTest {
             assertFalse(CarrierPrimaryChoice.required(null,kind))
             assertTrue(CarrierPrimaryChoice.explanation(kind).contains("не изменятся без твоего подтверждения"))
         }
-        for(kind in listOf("wireguard","awg","dnstt","olcrtc","unknown"))assertFalse(CarrierPrimaryChoice.required("steer",kind))
+        for(kind in listOf("wireguard","awg","unknown"))assertFalse(CarrierPrimaryChoice.required("steer",kind))
         assertThrows(IllegalArgumentException::class.java){CarrierPrimaryChoice.explanation("untrusted-password")}
     }
 }

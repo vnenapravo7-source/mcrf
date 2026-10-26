@@ -138,16 +138,23 @@ class VkRelayAccount(private val store: VkRelayPersistence,
             store.update("vkCallGroups") { it.put(groupId,JSONObject().put("owner",session.optString("user")).put("kind",kind).put("count",count).put("createdAt",System.currentTimeMillis()).put("hashes",JSONArray())) }
         }
         val hashes=(0 until cached.length()).map(cached::getString).toMutableList()
+        fun checkRequestSession() {
+            val latest=store.get("vk")
+            check(latest.optString("token")==token&&latest.optString("user")==session.optString("user")) {"Аккаунт VK изменился; создание звонков остановлено"}
+            check(latest.optLong("expires")>System.currentTimeMillis()+60_000) {"Откройте VK и подтвердите вход"}
+            check(latest.optLong("retryAfter")<=System.currentTimeMillis()) {"VK ограничил запросы; используйте ручные ссылки или повторите позже"}
+        }
         while(hashes.size < count) {
             check(!cancelled() && !Thread.currentThread().isInterrupted) { "Создание звонков остановлено" }
             if(hashes.isNotEmpty()) pause(2000)
             check(!cancelled() && !Thread.currentThread().isInterrupted) { "Создание звонков остановлено" }
+            checkRequestSession()
             val first=callRequest?.invoke(token) ?: request(token)
             val json=if(callRequest==null)VkApiChallenge.continueOnce(first,{challenge->
                 store.verifyCaptcha(challenge.url,cancelled)
             }) {fields->
                 check(!cancelled()&&!Thread.currentThread().isInterrupted) {"Создание звонков остановлено"}
-                check(store.get("vk").optString("token")==token) {"Аккаунт VK изменился; создание звонков остановлено"}
+                checkRequestSession()
                 request(token,fields)
             }else first
             json.optJSONObject("error")?.let { error ->
@@ -166,7 +173,8 @@ class VkRelayAccount(private val store: VkRelayPersistence,
                 val a=otherGroups.getJSONObject(id).getJSONArray("hashes");(0 until a.length()).any { a.getString(it)==hash }
             }) { "VK вернул звонок другой группы; создание остановлено без повторного запроса" }
             store.update("vkCallGroups") { latest ->
-                check(store.get("vk").optString("token")==token) { "Аккаунт VK изменился во время создания звонков" }
+                val latestSession=store.get("vk")
+                check(latestSession.optString("token")==token&&latestSession.optString("user")==session.optString("user")) { "Аккаунт VK изменился во время создания звонков" }
                 val current=latest.getJSONObject(groupId)
                 check(current.optString("owner")==session.optString("user")) { "Аккаунт группы звонков изменился" }
                 current.put("hashes",JSONArray(hashes))

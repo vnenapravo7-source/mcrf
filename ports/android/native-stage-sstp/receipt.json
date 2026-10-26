@@ -1,0 +1,43 @@
+{
+  "packageVersionCode": 1,
+  "toolchainSha256": "21761eceb9302062c9623fb699f332c8c7fe000f15f70efe8da01a2cfbbc16b9",
+  "sourceManifestSha256": "06118e5dfe3a0255255bd17af410f29bfa388411052a72dca12860e14346c382",
+  "hostEvidenceSha256": "2d03faa5da03003496e199b164119199fafe30d13b3a1a6c296f27c2f473495b",
+  "repository": "ttrroyy/qThroneMobile",
+  "kind": "sstp",
+  "apkBuilt": false,
+  "source": "D:/MCRF/Builds/Android/p4-sstp-source-b672418473e54a958ada7f44767073a5/module",
+  "commit": "8463d3397b0a8522f92811f5c0698679ab8efc77",
+  "producerComplete": true,
+  "artifacts": [
+    {
+      "elfChecked": true,
+      "file": "arm64-v8a/libsstp.so",
+      "sha256": "04948110f1c52ec8ba7a722350af439cba9e29475c30f60b326daf6804377e02",
+      "bytes": 9013520,
+      "abi": "arm64-v8a",
+      "nativeExecuted": false
+    },
+    {
+      "elfChecked": true,
+      "file": "armeabi-v7a/libsstp.so",
+      "sha256": "d320085c76cff34590f118d8546273ac96b7efbe2dcf314b15bd45c96801d3bb",
+      "bytes": 8661596,
+      "abi": "armeabi-v7a",
+      "nativeExecuted": false
+    },
+    {
+      "elfChecked": true,
+      "file": "x86_64/libsstp.so",
+      "sha256": "fb9ff5c479ae8d9b75fe436b1f2f26716c73981e94ac3d3c76324216f4df23a2",
+      "bytes": 9655240,
+      "abi": "x86_64",
+      "nativeExecuted": false
+    }
+  ],
+  "sstpContract": 1,
+  "state": "COMPILED_NOT_EXECUTED",
+  "sourceStable": true,
+  "nativeExecuted": false,
+  "packageVersionName": "sstp-8463d33-mcrf.1"
+}
