@@ -208,7 +208,10 @@ def publish():
                 plan['previousParent']=plan['parent']; plan['parent']=remote_parent
                 save(STAGE/'plan.json',plan)
             assert set(git('diff','--cached','--name-only').splitlines())=={r['path'] for r in plan['changedSourceFiles']}
-            tree = git('write-tree')
+            # Untouched blobs are already present on the server; do not fetch
+            # every Windows binary merely to write a partial-clone source tree.
+            # All newly indexed blobs were independently SHA-verified above.
+            tree = git('write-tree','--missing-ok')
             commit = git('-c','user.name=MCRF maintenance','-c','user.email=mcrf-maintenance@users.noreply.github.com','commit-tree',tree,'-p',plan['parent'],'-m','feat(android): publish frozen 10060 routing binding and OpenFlux 0.16 sources')
             receipt['commit']=commit; save(receipt_path,receipt)
         commit=receipt['commit']
@@ -222,10 +225,10 @@ def publish():
             if found:
                 release=found[0]; assert release['draft'] and release['target_commitish']==commit
             else:
-                release=api('releases',{'tag_name':TAG,'target_commitish':commit,'name':'MCRF Android 0.7.1','body':(STAGE/'release-notes.txt').read_text(encoding='utf-8'),'draft':True,'prerelease':True,'make_latest':'false'})
+                release=api('releases',{'tag_name':TAG,'target_commitish':commit,'name':'MCRF Android 0.7.1','body':(STAGE/'release-notes.txt').read_text(encoding='utf-8'),'draft':True,'prerelease':False,'make_latest':'false'})
             receipt['releaseId']=release['id']; save(receipt_path,receipt)
         release=api('releases/'+str(receipt['releaseId']))
-        assert release['target_commitish']==commit and release['prerelease']
+        assert release['target_commitish']==commit and not release['prerelease']
         for row in plan['appAssets']:
             existing=[a for a in release['assets'] if a['name']==row['name']]
             if not existing:
@@ -267,8 +270,8 @@ def publish():
         assert current['body']==before['body'] and after['draft']==before['draft'] and after['prerelease']==before['prerelease']
         save(STAGE/'catalogue-after.json',after)
         receipt['state']='CATALOGUE_VERIFIED_PUBLISHING_APP'; save(receipt_path,receipt)
-        final=api('releases/'+str(receipt['releaseId']),{'draft':False,'prerelease':True,'make_latest':'false'},method='PATCH')
-        assert not final['draft'] and final['prerelease']
+        final=api('releases/'+str(receipt['releaseId']),{'draft':False,'prerelease':False,'make_latest':'false'},method='PATCH')
+        assert not final['draft'] and not final['prerelease']
         assert api('releases/latest')['id']==read(STAGE/'latest-before.json')['id'], 'Windows latest pointer changed'
         save(STAGE/'release-after.json',final)
         receipt.update(state='PUBLISHED_METADATA_VERIFIED',published=True,url=final['html_url'],separateEngineModules=4,windowsLatestPreserved=True)
@@ -279,7 +282,7 @@ def publish():
 
 def verify():
     plan=read(STAGE/'plan.json'); release=api('releases/tags/'+TAG); cat=api('releases/tags/'+CAT)
-    assert not release['draft'] and release['prerelease']
+    assert not release['draft'] and not release['prerelease']
     results=[]
     # Hash actual anonymous public downloads, not only server metadata.
     for row in plan['appAssets']+plan['modules']+[plan['engineSource']]:
