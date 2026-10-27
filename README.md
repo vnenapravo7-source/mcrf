@@ -7,10 +7,10 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | Платформа | Версия |
 | --- | --- |
 | Windows x64 | [1.2](https://github.com/vnenapravo7-source/mcrf/releases/tag/v1.2) |
-| Android 10+ | [0.7.1](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.7.1) |
+| Android 10+ | [0.7.2](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.7.2) |
 | Linux | В разработке |
 
-Для Android скачайте [универсальный APK 0.7.1](https://github.com/vnenapravo7-source/mcrf/releases/download/android-v0.7.1/mcrf-android-universal-release.apk). Движки устанавливаются отдельно под архитектуру устройства из [единого каталога](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1), включая OpenFlux **0.16.0**. [Матрица проверки и ограничения](docs/ANDROID-STATUS.md).
+Для Android скачайте [универсальный APK 0.7.2](https://github.com/vnenapravo7-source/mcrf/releases/download/android-v0.7.2/mcrf-android-universal-release.apk). Движки устанавливаются отдельно под архитектуру устройства из [единого каталога](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1), включая OpenFlux **0.16.0**. [Матрица проверки и ограничения](docs/ANDROID-STATUS.md).
 
 ### Движки и протоколы
 
@@ -53,7 +53,7 @@ APK — размер загрузки для Android arm64, округлённы
 <details>
 <summary>Показать план и статусы по приоритетам</summary>
 
-Актуализация: **26 октября 2026**. Подробности проверок и оставшиеся ограничения — в [отдельной матрице](docs/ANDROID-STATUS.md).
+Актуализация: **28 октября 2026**. Подробности проверок и оставшиеся ограничения — в [отдельной матрице](docs/ANDROID-STATUS.md).
 
 | Приоритет | Задача | Статус |
 | --- | --- | --- |
