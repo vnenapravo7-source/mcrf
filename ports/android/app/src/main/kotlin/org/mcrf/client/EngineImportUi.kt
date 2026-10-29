@@ -33,6 +33,9 @@ class EngineImportUi(private val activity: MainActivity) {
         var checkForUpdate=false
         var downloadApproved=false
         var automaticInstall=false
+        var permissionDownloadApproved=false
+        internal val permissionReturn=EngineInstallPermission.ReturnGate()
+        var batchInstall=false
         var installRequest=0
         @Volatile var file: File? = null
         @Volatile var missing: Set<String> = emptySet()
@@ -43,6 +46,7 @@ class EngineImportUi(private val activity: MainActivity) {
     }
     var state: State? = null; private set
     private var dialog: AlertDialog? = null
+    private var ownerResumed=false
     private val handler = Handler(Looper.getMainLooper())
     fun show(initial: String, prepareImmediately: Boolean = false) {
         if (state != null) return
@@ -61,6 +65,14 @@ class EngineImportUi(private val activity: MainActivity) {
             return
         }
         require(kind in EngineModules.allKinds);val updateRequested=checkForUpdate;if(state==null)attach(State("").apply {requestedEngine=kind;this.checkForUpdate=updateRequested;prepareOnOpen=true})
+    }
+    fun showEngines(kinds:Set<String>){
+        require(kinds.isNotEmpty()&&kinds.all {it in EngineModules.allKinds})
+        if(state==null)attach(State("").apply {
+            requestedUpdates=kinds.toCollection(linkedSetOf())
+            batchInstall=true
+            prepareOnOpen=true
+        })
     }
     private fun required(pending:State):Set<String> {
         pending.requestedUpdates?.let {return it}
@@ -98,10 +110,17 @@ class EngineImportUi(private val activity: MainActivity) {
         }catch(_:Exception){pending.error="Не удалось подтвердить установку нужной версии движка. Подключения не добавлены.";pending.phase="error"}
         finally{executor.shutdown()}}
     }
+    private fun permissionReturned(pending:State,allowed:Boolean) {
+        pending.automaticInstall=allowed&&pending.downloadApproved
+        pending.phase=EngineInstallPermission.resumePhase(allowed,pending.file?.isFile==true)
+        if(!allowed)pending.downloadApproved=false
+    }
     fun attach(pending: State) = with(activity) {
         state = pending
+        // Retained state may attach after onResume while the catalogue loads.
+        if(ownerResumed)resumed()
         if (pending.phase == "installing") installed(pending)
-        if (pending.phase == "permission" && packageManager.canRequestPackageInstalls()) pending.phase = "install-ready"
+        // Permission return can arrive via the result callback or an OEM onResume.
         val input = editor("HTTPS-подписка, ссылки или конфигурация").apply { minLines = 4; maxLines = 8; setText(pending.source) }
         val message = text("", 13, Loft.MUTED)
         val progress = ProgressBar(this@with, null, android.R.attr.progressBarStyleHorizontal).apply { max = 1000 }
@@ -139,7 +158,7 @@ class EngineImportUi(private val activity: MainActivity) {
             override fun afterTextChanged(s: android.text.Editable?) = Unit
         })
         val moduleOnly=pending.moduleOnly
-        val window = ThemedDialogBuilder(this@with).setTitle(if(moduleOnly) "Добавить движок" else "Добавить подключения").setView(ScrollView(this@with).apply { addView(holder) })
+        val window = ThemedDialogBuilder(this@with).setTitle(if(pending.batchInstall) "Установить ${required(pending).size} движка" else if(moduleOnly) "Добавить движок" else "Добавить подключения").setView(ScrollView(this@with).apply { addView(holder) })
             .setNegativeButton("Отмена", null).setPositiveButton("Добавить", null).create()
         dialog = window
         fun background(operation: () -> Unit) {
@@ -165,26 +184,51 @@ class EngineImportUi(private val activity: MainActivity) {
                 if (!pending.cancelled.get()) { pending.count = plan.commit(connections); pending.phase = "done" }
             }
         }
+        fun requestInstallPermission() {
+            pending.permissionDownloadApproved=pending.downloadApproved
+            pending.error=""
+            pending.phase="permission"
+            pending.permissionReturn.launched()
+            try {
+                startActivityForResult(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")), 9)
+            } catch (_:Exception) {
+                pending.permissionReturn.consume(false)
+                permissionReturned(pending,false)
+                pending.error="Не удалось открыть настройки Android. Разрешите установку из этого источника для MCRF в настройках приложений и нажмите «Повторить»."
+            }
+        }
+        fun download() {
+            pending.downloadApproved=true;pending.automaticInstall=true
+            // Ask before downloading APK bytes, including every package in a batch.
+            if(!packageManager.canRequestPackageInstalls()){requestInstallPermission();return}
+            pending.phase="downloading";val context=applicationContext
+            background {
+                pending.file=EnginePackages.download(context,requireNotNull(pending.asset),{pending.cancelled.get()},{pending.received=it})
+                EnginePackages.verifyRequirements(context,requireNotNull(pending.file),setOf(requireNotNull(pending.asset?.engine)))
+                pending.phase="install-ready"
+            }
+        }
         fun install() {
+            // Permission can be revoked while downloading or while installation is deferred.
+            if(!packageManager.canRequestPackageInstalls()){requestInstallPermission();return}
             val file = requireNotNull(pending.file)
             if(active()||ProbeCoordinator.measurements!=null){pending.phase="deferred-install";return}
             if(pending.asset?.engine==WgAddonPolicy.KIND)ClientPrimarySelection.requireCompactDownloadAllowed(this@with)
-            EnginePackages.verifyArchive(this@with,file,pending.asset?.engine)
+            EnginePackages.verifyArchive(this@with,file,pending.asset?.engine,pending.asset?.versionCode)
             EnginePackages.verifyRequirements(this@with,file,required(pending).intersect(setOfNotNull(pending.asset?.engine)))
-            if (!packageManager.canRequestPackageInstalls()) {
-                pending.phase = "permission"
-                startActivityForResult(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")), 9)
-            } else {
-                val expected=requireNotNull(pending.asset)
-                val lease=EngineUpdateGate.beginMutation(this@with,"engine_import","apk",requireNotNull(expected.engine),expected.sha256,expected.bytes)
-                    ?: run{pending.phase="deferred-install";return}
-                pending.phase = "installing"
-                pending.installRequest=lease.pending.requestCode
-                @Suppress("DEPRECATION") val intent = Intent(Intent.ACTION_INSTALL_PACKAGE)
-                    .setDataAndType(Uri.parse("content://$packageName.engine-package/${file.name}"), "application/vnd.android.package-archive")
-                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION).putExtra(Intent.EXTRA_RETURN_RESULT, true)
-                try{startActivityForResult(intent,pending.installRequest)}catch(e:Exception){EngineUpdateGate.complete(this@with,lease.pending.token){true};throw e}
-            }
+            val expected=requireNotNull(pending.asset)
+            val lease=EngineUpdateGate.beginMutation(this@with,"engine_import","apk",requireNotNull(expected.engine),expected.sha256,expected.bytes)
+                ?: run{pending.phase="deferred-install";return}
+            pending.phase = "installing"
+            pending.installRequest=lease.pending.requestCode
+            @Suppress("DEPRECATION") val intent = Intent(Intent.ACTION_INSTALL_PACKAGE)
+                .setDataAndType(Uri.parse("content://$packageName.engine-package/${file.name}"), "application/vnd.android.package-archive")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION).putExtra(Intent.EXTRA_RETURN_RESULT, true)
+            try{startActivityForResult(intent,pending.installRequest)}catch(e:Exception){EngineUpdateGate.complete(this@with,lease.pending.token){true};throw e}
+        }
+        fun installFailed(error:Exception) {
+            pending.error=if(error is IllegalArgumentException)error.message.orEmpty()else"Не удалось открыть установщик Android."
+            pending.phase="error"
         }
         window.setOnShowListener {
             window.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
@@ -200,7 +244,8 @@ class EngineImportUi(private val activity: MainActivity) {
                             CompatibilityImportUi.importEncrypted(this@with,encrypted){plain->show(plain,true)}
                             return@setOnClickListener
                         }
-                        pending.downloadApproved=false
+                        pending.downloadApproved=pending.batchInstall
+                        pending.automaticInstall=pending.batchInstall
                         pending.file?.delete();pending.file=null;pending.assets=emptyList();pending.asset=null;pending.received=0
                         pending.error = ""; pending.phase = "preparing"; val value = input.text.toString(); pending.source = value; val context = applicationContext
                         val selectedVersions=pending.csqttChoices;val existing=catalogue.entries().associateBy {it.id}
@@ -225,16 +270,12 @@ class EngineImportUi(private val activity: MainActivity) {
                             else {if(pending.assets.isEmpty()){pending.assets=EnginePackages.published(pending.missing);pending.asset=pending.assets.first()};pending.phase="download-ready"}
                         }
                     }
-                    "download-ready" -> {
-                        pending.downloadApproved=true;pending.automaticInstall=true
-                        pending.phase = "downloading"; val context = applicationContext
-                        background {
-                            pending.file = EnginePackages.download(context, requireNotNull(pending.asset), { pending.cancelled.get() }, { pending.received = it })
-                            EnginePackages.verifyRequirements(context, requireNotNull(pending.file), setOf(requireNotNull(pending.asset?.engine)))
-                            pending.phase = "install-ready"
-                        }
+                    "download-ready" -> download()
+                    "permission-denied" -> {
+                        pending.downloadApproved=pending.permissionDownloadApproved
+                        if(packageManager.canRequestPackageInstalls())permissionReturned(pending,true)else requestInstallPermission()
                     }
-                    "install-ready", "permission", "installing" -> try { install() } catch (_: Exception) { pending.error = "Не удалось открыть установщик Android."; pending.phase = "error" }
+                    "install-ready" -> try { install() } catch (error:Exception) { installFailed(error) }
                     "accept-ready" -> if(!moduleOnly)accept()else pending.phase="loaded"
                 }
             }
@@ -248,6 +289,10 @@ class EngineImportUi(private val activity: MainActivity) {
         handler.post(object : Runnable {
             override fun run() {
                 if (isFinishing || isDestroyed || !window.isShowing || state !== pending) return
+                // Consume this transition on the UI thread before rendering the download offer.
+                // A denial has its own phase and can only retry through an explicit tap.
+                if(pending.phase=="download-ready")pending.phase=EngineInstallPermission.beforeOfferPhase(pending.phase,packageManager.canRequestPackageInstalls())
+                if(pending.phase=="permission-required")requestInstallPermission()
                 val phase = pending.phase; input.isEnabled = phase in setOf("input", "error","csqtt-version")
                 renderCsqtt()
                 for(index in 0 until csqttRow.childCount)csqttRow.getChildAt(index).isEnabled=phase=="csqtt-version"
@@ -257,8 +302,8 @@ class EngineImportUi(private val activity: MainActivity) {
                 progress.isIndeterminate = phase != "downloading"
                 progress.progress = ((pending.received * 1000) / (pending.asset?.bytes ?: 1)).toInt()
                 val button = window.getButton(AlertDialog.BUTTON_POSITIVE)
-                button.isEnabled = phase in setOf("input", "error", "csqtt-version", "download-ready", "install-ready", "permission", "accept-ready")
-                button.text = when (phase) { "csqtt-version"->"Продолжить"; "download-ready" -> EngineImportPresentation.button(moduleOnly); "install-ready", "permission", "installing" -> if(moduleOnly) "Установить" else "Установить и добавить"; "error" -> "Повторить"; else -> if(moduleOnly) "Проверить" else "Добавить" }
+                button.isEnabled = phase in setOf("input", "error", "csqtt-version", "download-ready", "install-ready", "permission-denied", "accept-ready")
+                button.text = when (phase) { "csqtt-version"->"Продолжить"; "download-ready" -> EngineImportPresentation.button(moduleOnly); "install-ready", "permission", "installing" -> if(moduleOnly) "Установить" else "Установить и добавить"; "error", "permission-denied" ->"Повторить"; "input" -> if(pending.batchInstall) "Установить ${required(pending).size} движка" else if(moduleOnly) "Проверить" else "Добавить"; else -> if(moduleOnly) "Проверить" else "Добавить" }
                 val asset = pending.asset
                 message.text = when (phase) {
                     "csqtt-version"->"Версию сервера нельзя однозначно определить по этой ссылке. Параметр v=2 — это формат ссылки, а не версия CSQTT.\n\nВыберите версию для каждого подключения. Уточнить её можно у владельца сервера. Без выбора импорт и загрузка движка не начнутся."
@@ -266,7 +311,8 @@ class EngineImportUi(private val activity: MainActivity) {
                     "download-ready", "downloading", "install-ready" -> {
                         EngineImportPresentation.summary(pending.assets.mapNotNull {it.engine?.let(CsqttGenerations::engineLabel)},TrafficState.bytes(pending.assets.sumOf {it.bytes}),asset?.engine?.let(CsqttGenerations::engineLabel),if(phase=="downloading")TrafficState.bytes(pending.received)else null)
                     }
-                    "permission" -> if(moduleOnly) "Разреши установку для MCRF в системном окне." else "Разреши установку для MCRF в системном окне. Ссылки пока не добавлены."
+                    "permission" -> if(pending.downloadApproved) "Разрешите MCRF установку из этого источника в настройках Android и вернитесь в приложение. Загрузка и установка продолжатся автоматически." else "Разрешите MCRF установку из этого источника в настройках Android и вернитесь в приложение, чтобы выбрать установку движка."
+                    "permission-denied" -> pending.error.ifEmpty {"Разрешение на установку не выдано. Загрузка и установка остановлены. Нажмите «Повторить», чтобы открыть настройки Android."}
                     "installing" -> if(moduleOnly) "Подтверди установку пакета в окне Android." else "Подтверди установку пакета в окне Android. Ссылки пока не добавлены."
                     "checking-install" -> "Проверяем установленную версию движка…"
                     "deferred-install" -> "Пакет проверен. Установка начнётся после отключения VPN/прокси и завершения замера. Android запросит подтверждение."
@@ -277,7 +323,7 @@ class EngineImportUi(private val activity: MainActivity) {
                 if (phase == "download-ready"&&pending.downloadApproved) window.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
                 if (phase == "install-ready"&&pending.automaticInstall&&!active()&&ProbeCoordinator.measurements==null) {
                     pending.automaticInstall=false
-                    try {install()}catch(_:Exception){pending.error="Не удалось открыть установщик Android.";pending.phase="error"}
+                    try {install()}catch(error:Exception){installFailed(error)}
                 }
                 if (phase == "deferred-install"&&!active()&&ProbeCoordinator.measurements==null) pending.phase="install-ready"
                 if (phase == "accept-ready") {if(!moduleOnly)accept()else pending.phase="loaded"}
@@ -289,6 +335,7 @@ class EngineImportUi(private val activity: MainActivity) {
                 if (phase == "loaded") {
                     EngineUpdateSchedule.schedule(this@with)
                     pending.file?.delete(); state = null
+                    if(moduleOnly)engineInstallConfirmed(pending.requestedEngine)
                     if(!moduleOnly)showImportedConnections(pending.plan?.entries.orEmpty())else render()
                     toast(if(!moduleOnly)"Добавлено: ${pending.count}"else"Установка движков подтверждена");window.dismiss();return
                 }
@@ -296,13 +343,19 @@ class EngineImportUi(private val activity: MainActivity) {
             }
         })
     }
+    fun paused() { ownerResumed=false;state?.permissionReturn?.paused() }
+    fun resumed() {
+        ownerResumed=true
+        val pending=state?:return
+        if(pending.phase=="permission"&&pending.permissionReturn.consume(true))
+            permissionReturned(pending,activity.packageManager.canRequestPackageInstalls())
+    }
     fun returned(request: Int,resultCode:Int?=null) {
         if(EngineUpdateGate.isInstallerRequest(request)&&resultCode!=null)EngineUpdates.installerReturned(activity,request,resultCode)
         val pending = state ?: return
-        if (request == 9) {
+        if (request == 9 && pending.phase=="permission" && pending.permissionReturn.consume(false)) {
             val allowed=activity.packageManager.canRequestPackageInstalls()
-            pending.automaticInstall=allowed&&pending.downloadApproved
-            pending.phase=if(allowed)"install-ready"else"permission"
+            permissionReturned(pending,allowed)
         }
         if (request == pending.installRequest&&request!=0) installed(pending)
     }

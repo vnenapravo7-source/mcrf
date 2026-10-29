@@ -1,6 +1,17 @@
 import java.security.MessageDigest
 
 plugins { id("com.android.application") }
+providers.gradleProperty("release073Receipt").orNull?.let {path->
+    val proof=groovy.json.JsonSlurper().parse(file(path)) as Map<*,*>
+    require(proof["authority"]=="human-20261029-publish-0.7.3"&&proof["state"]=="SOURCE_READY")
+    require(proof["versionCode"].toString()=="10063"&&proof["versionName"]=="0.7.3")
+    require(proof["scope"]=="installer-hardening-20261029"&&proof["releaseType"]=="release"&&proof["nativeUnchanged"]==true)
+}
+providers.gradleProperty("release072Receipt").orNull?.let {path->
+    val proof=groovy.json.JsonSlurper().parse(file(path)) as Map<*,*>
+    require(proof["authority"]=="human-20261028-publish-0.7.2"&&proof["state"]=="SOURCE_READY")
+    require(proof["versionCode"].toString()=="10062"&&proof["versionName"]=="0.7.2")
+}
 providers.gradleProperty("openflux016PublicReceipt").orNull?.let {path->
     require(providers.gradleProperty("openflux016Receipt").isPresent)
     val proof=groovy.json.JsonSlurper().parse(file(path)) as Map<*,*>
@@ -201,6 +212,8 @@ android {
         minSdk = 29
         targetSdk = 34
         versionCode = when {
+            providers.gradleProperty("release073Receipt").isPresent -> 10063
+            providers.gradleProperty("release072Receipt").isPresent -> 10062
             providers.gradleProperty("openflux016PublicReceipt").isPresent -> 10061
             providers.gradleProperty("openflux016Receipt").isPresent -> 10060
             providers.gradleProperty("release07Receipt").isPresent -> 10059
@@ -212,6 +225,8 @@ android {
             else -> 10047
         }
         versionName = when {
+            providers.gradleProperty("release073Receipt").isPresent -> "0.7.3"
+            providers.gradleProperty("release072Receipt").isPresent -> "0.7.2"
             providers.gradleProperty("openflux016PublicReceipt").isPresent -> "0.7.1"
             providers.gradleProperty("openflux016Receipt").isPresent -> "0.7.1-candidate.1"
             providers.gradleProperty("release07Receipt").isPresent -> "0.7"

@@ -8,7 +8,7 @@ import java.util.concurrent.Executors
 
 /** Opt-in only; one bounded check at a time, scoped to an unchanged live session. */
 class BsDetectionMonitor(context:Context,private val snapshot:()->Stamp?,private val switch:(Stamp)->Unit,
-    private val youtube:(Stamp,String)->DirectAccessCheck.Outcome):AutoCloseable {
+    private val youtube:(Stamp,String)->DirectAccessCheck.Outcome,private val retryVpn:(Stamp,String)->Unit):AutoCloseable {
     data class Stamp(val epoch:Long,val generation:Long,val vpnSection:Boolean,val tun:Boolean)
     private val app=context.applicationContext
     private val prefs=app.getSharedPreferences("MainActivity",Context.MODE_PRIVATE)
@@ -33,8 +33,10 @@ class BsDetectionMonitor(context:Context,private val snapshot:()->Stamp?,private
             }catch(_:Exception){null}
             main.post {
                 busy=false
-                if(!closed&&prefs.getBoolean(KEY,false)&&snapshot()==stamp&&sites()==capturedSites&&
-                    (result?.shouldSwitch(true,true,stamp.vpnSection)==true||result?.shouldReturn(true,stamp.vpnSection)==true))switch(stamp)
+                if(!closed&&prefs.getBoolean(KEY,false)&&snapshot()==stamp&&sites()==capturedSites){
+                    if(result?.needsVpnRetry(true,stamp.vpnSection)==true)retryVpn(stamp,capturedSites[2])
+                    else if(result?.shouldSwitch(true,true,stamp.vpnSection)==true||result?.shouldReturn(true,stamp.vpnSection)==true)switch(stamp)
+                }
             }
         }
     }}

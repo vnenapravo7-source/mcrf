@@ -66,6 +66,17 @@ class LogsPage(private val activity:MainActivity) {
         actions.addView(group,LinearLayout.LayoutParams(0,dp(48),1f).apply {rightMargin=dp(8)})
         actions.addView(iconButton("copy","Копировать логи").apply {tag="logs-copy";setOnClickListener {getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("MCRF · логи",LogEntries.export(shown,systemInfo())));toast("Логи и информация о системе скопированы")}},LinearLayout.LayoutParams(dp(48),dp(48)))
         page.addView(actions,space(0,16))
+        page.addView(button("Отправить логи разработчику",false).apply {
+            tag="logs-send-developer"
+            setOnClickListener {
+                isEnabled=false;text="Отправляем…"
+                val export=LogEntries.export(all,systemInfo())
+                val executor=Executors.newSingleThreadExecutor()
+                executor.execute {try {DeveloperLogDelivery.send(export);runOnUiThread {if(!isDestroyed){toast("Логи отправлены разработчику");isEnabled=true;text="Отправить логи разработчику"}}}
+                    catch(_:Exception){runOnUiThread {if(!isDestroyed){toast("Не удалось отправить логи. Повторите позже.");isEnabled=true;text="Отправить логи разработчику"}}}
+                    finally {executor.shutdown()}}
+            }
+        },LinearLayout.LayoutParams(-1,dp(48)).apply {bottomMargin=dp(14)})
         page.addView(count,space(0,18))
         val header=LinearLayout(this).apply {setPadding(dp(6),dp(8),dp(6),dp(8));setBackgroundColor(android.graphics.Color.TRANSPARENT)
             addView(text("Время",11,Loft.MUTED),LinearLayout.LayoutParams(dp(56),-2));addView(text("Тип",11,Loft.MUTED),LinearLayout.LayoutParams(dp(68),-2));addView(text("Событие",11,Loft.MUTED),LinearLayout.LayoutParams(0,-2,1f))}

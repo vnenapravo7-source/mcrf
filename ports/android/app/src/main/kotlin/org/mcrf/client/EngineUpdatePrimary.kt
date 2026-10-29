@@ -36,21 +36,21 @@ object EngineUpdatePrimary {
         return abi in abis&&entries.toSet()==abis.flatMap{a->libraries.map{"lib/$a/$it"}}.toSet()
     }
     private fun metadata(kind:String,info:ApplicationInfo,abi:String) {
-        val m=requireNotNull(info.metaData)
-        require(m.getInt("org.mcrf.engines.primary-core")==1&&m.getString("org.mcrf.engines.kind")==kind)
-        require(m.getInt("org.mcrf.engines.core-api")==m.getInt("org.mcrf.engine.core.api")&&m.getString("org.mcrf.engines.entry")==m.getString("org.mcrf.engine.entry")){"Метаданные загрузчика основного движка расходятся."}
-        require(!m.getString("org.mcrf.engines.source.repository").isNullOrBlank()&&!m.getString("org.mcrf.engines.source.version").isNullOrBlank())
-        val raw=requireNotNull(m.getString("org.mcrf.engine.abis"));val list=raw.split(',')
-        require(list.distinct().size==list.size)
-        validate(kind,info.packageName,m.getInt("org.mcrf.engine.spi.version"),m.getInt("org.mcrf.engine.core.api"),
-            m.getString("org.mcrf.engine.entry").orEmpty(),m.getString("org.mcrf.engines.source.sha256").orEmpty(),list.toSet(),abi)
+        val data=requireNotNull(info.metaData) {"Нет метаданных основного движка."}
+        val m=EngineMetadata {data.get(it)}
+        require(m.requiredInt("org.mcrf.engines.primary-core")==1&&m.requiredString("org.mcrf.engines.kind")==kind) {"Неверный тип основного движка в метаданных APK."}
+        require(m.requiredInt("org.mcrf.engines.core-api")==m.requiredInt("org.mcrf.engine.core.api")&&m.requiredString("org.mcrf.engines.entry")==m.requiredString("org.mcrf.engine.entry")){"Метаданные загрузчика основного движка расходятся."}
+        require(m.requiredString("org.mcrf.engines.source.repository").isNotBlank()&&m.requiredString("org.mcrf.engines.source.version").isNotBlank()) {"Нет сведений об исходниках основного движка."}
+        val raw=m.requiredString("org.mcrf.engine.abis");val list=raw.split(',')
+        require(list.distinct().size==list.size) {"Повторяющиеся архитектуры в метаданных основного движка."}
+        validate(kind,info.packageName,m.requiredInt("org.mcrf.engine.spi.version"),m.requiredInt("org.mcrf.engine.core.api"),
+            m.requiredString("org.mcrf.engine.entry"),m.requiredString("org.mcrf.engines.source.sha256"),list.toSet(),abi)
     }
     fun installation(context:Context,kind:String):ApplicationInfo {
         val pm=context.packageManager
-        val info=pm.getPackageInfo(contract(kind).packageName,PackageManager.GET_META_DATA or PackageManager.GET_SIGNING_CERTIFICATES)
-        val own=pm.getPackageInfo(context.packageName,PackageManager.GET_SIGNING_CERTIFICATES)
-        val signers=info.signingInfo?.apkContentsSigners?.map{it.toCharsString()}?.toSet()
-        require(!signers.isNullOrEmpty()&&signers==own.signingInfo?.apkContentsSigners?.map{it.toCharsString()}?.toSet()){"Подпись основного движка не совпадает с MCRF."}
+        val inspected=EngineSignatures.installed(pm,contract(kind).packageName)
+        val info=inspected.info
+        EngineSignerPolicy.requireSame(inspected.signers,EngineSignatures.installed(pm,context.packageName).signers)
         val app=requireNotNull(info.applicationInfo);require(app.enabled)
         require(app.minSdkVersion<=Build.VERSION.SDK_INT&&app.splitSourceDirs.isNullOrEmpty()){"Неподдержанная версия Android или отдельные split-пакеты основного движка."}
         val abi=EnginePackage.abi(Build.SUPPORTED_ABIS.toList(),Process.is64Bit())
@@ -60,7 +60,7 @@ object EngineUpdatePrimary {
         return app
     }
     fun verifyArchive(context:Context,file:File,kind:String) {
-        val app=requireNotNull(context.packageManager.getPackageArchiveInfo(file.path,PackageManager.GET_META_DATA)?.applicationInfo)
+        val app=requireNotNull(EngineSignatures.archive(context.packageManager,file.absolutePath)?.info?.applicationInfo) {"Не удалось прочитать метаданные APK основного движка."}
         // Archive ApplicationInfo.packageName is available without loading any module code.
         val abi=EnginePackage.abi(Build.SUPPORTED_ABIS.toList(),Process.is64Bit())
         metadata(kind,app,abi);verifyNative(file,kind,abi)
@@ -69,5 +69,6 @@ object EngineUpdatePrimary {
         val entries=zip.entries().asSequence().filter{!it.isDirectory&&it.name.startsWith("lib/")}.map{it.name}.toList()
         require(validNativeEntries(kind,abi,entries)){"Неожиданные библиотеки основного движка или отсутствует ABI."}
         require(zip.getEntry("classes.dex")!=null){"Нет адаптера основного движка."}
+        EngineArchivePolicy.requireElfLibraries(zip)
     }
 }

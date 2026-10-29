@@ -34,8 +34,8 @@ class BsDetectionPolicyTest {
             assertFalse(result.shouldSwitch(true,true,true))
         }
     }
-    @Test fun youtubeFailureOnVpnCanSelectBsEvenWithDirectResponses(){
+    @Test fun thirdFailureRequiresVpnRetryBeforeBs(){
         val result=DirectAccessCheck.Result(RESPONSE,RESPONSE,NO_RESPONSE)
-        assertTrue(result.shouldSwitch(true,true,true));assertFalse(result.shouldSwitch(true,true,false))
+        assertFalse(result.shouldSwitch(true,true,true));assertTrue(result.needsVpnRetry(true,true));assertFalse(result.needsVpnRetry(true,false))
     }
 }

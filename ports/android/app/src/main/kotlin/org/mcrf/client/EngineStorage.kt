@@ -39,23 +39,35 @@ object EngineStorage {
             else File(plugin.nativeLibraryDir).listFiles().orEmpty().filter{it.name.endsWith(".so")&&it.isFile}
         Size(plugin.packageName,apks.sumOf{it.length()},libraries.sumOf{it.length()},allocated(apks+libraries))
     }catch(_:Exception){null}
+    fun removableKinds(activity:MainActivity,kinds:Collection<String>)=kinds.filter {kind->size(activity,kind)?.packageId?.let {it!=EngineModules.LEGACY}==true}.distinctBy {size(activity,it)!!.packageId}
+    fun launchRemoval(activity:MainActivity,kind:String):Int? {
+        val size=size(activity,kind)?:return null
+        if(size.packageId==EngineModules.LEGACY)return null
+        if(activity.active()||ProbeCoordinator.measurements!=null){activity.alert("Удаление движка","Сначала отключи VPN/прокси и останови замер серверов.");return null}
+        // Reconcile a completed installer before reporting the global gate as busy.
+        runCatching {EngineUpdates.confirmPendingReceipt(activity)}
+        val lease=EngineUpdateGate.beginMutation(activity,"engine_remove","remove",kind)
+            ?:run{activity.alert("Удаление движка","Другая установка или удаление ещё не завершены в Android.");return null}
+        return try{
+            @Suppress("DEPRECATION") val intent=Intent(Intent.ACTION_UNINSTALL_PACKAGE,Uri.parse("package:${size.packageId}"))
+                .putExtra(Intent.EXTRA_RETURN_RESULT,true)
+            activity.startActivityForResult(intent,lease.pending.requestCode)
+            lease.pending.requestCode
+        }catch(error:Exception){EngineUpdateGate.complete(activity,lease.pending.token){true};activity.alert("Удаление движка","Не удалось открыть системное окно удаления.");null}
+    }
+    fun removeAll(activity:MainActivity,kinds:Collection<String>,label:String){
+        val removable=removableKinds(activity,kinds)
+        if(removable.isEmpty()){activity.alert("Удаление движков","Установленных отдельных движков в этой группе нет.");return}
+        ThemedDialogBuilder(activity).setTitle("Удалить $label?")
+            .setMessage("Будут удалены отдельные пакеты: ${removable.size}. Подключения и настройки MCRF сохранятся. Android попросит подтвердить удаление каждого пакета.")
+            .setNegativeButton("Отмена",null).setPositiveButton("Удалить"){_,_->activity.startBulkEngineRemoval(removable)}.show()
+    }
     fun remove(activity:MainActivity,kind:String){
         val size=size(activity,kind)?:return
         if(size.packageId==EngineModules.LEGACY){activity.alert("Старый пакет","Сначала установи отдельный пакет ${kind.uppercase()}. Общий старый пакет не позволяет удалить только один движок.");return}
         if(activity.active()||ProbeCoordinator.measurements!=null){activity.alert("Удаление движка","Сначала отключи VPN/прокси и останови замер серверов.");return}
         ThemedDialogBuilder(activity).setTitle("Удалить ${kind.uppercase()}?")
             .setMessage("APK и библиотеки на устройстве: ${format(activity,size.bytes)}.\n\nОстальные движки и сохранённые подключения останутся. Для нового подключения через этот движок потребуется повторная загрузка.")
-            .setNegativeButton("Отмена",null).setPositiveButton("Удалить"){_,_->try{
-                // The dialog can stay open while another process starts a probe/core.
-                // Acquire the same durable mutation barrier immediately before Android consent.
-                if(activity.active()||ProbeCoordinator.measurements!=null){activity.alert("Удаление движка","Сначала отключи VPN/прокси и останови замер серверов.");return@setPositiveButton}
-                val lease=EngineUpdateGate.beginMutation(activity,"engine_remove","remove",kind)
-                    ?:run{activity.alert("Удаление движка","Движок занят соединением, замером или другой установкой.");return@setPositiveButton}
-                try{
-                    @Suppress("DEPRECATION") val intent=Intent(Intent.ACTION_UNINSTALL_PACKAGE,Uri.parse("package:${size.packageId}"))
-                        .putExtra(Intent.EXTRA_RETURN_RESULT,true)
-                    activity.startActivityForResult(intent,lease.pending.requestCode)
-                }catch(error:Exception){EngineUpdateGate.complete(activity,lease.pending.token){true};throw error}
-            }catch(_:Exception){activity.alert("Удаление движка","Не удалось открыть системное окно удаления.")}}.show()
+            .setNegativeButton("Отмена",null).setPositiveButton("Удалить"){_,_->launchRemoval(activity,kind)}.show()
     }
 }

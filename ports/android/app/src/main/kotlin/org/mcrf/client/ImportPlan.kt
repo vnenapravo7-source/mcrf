@@ -35,6 +35,10 @@ class ImportPlan private constructor(
         return ImportPlan(manual,subscriptions,resolved,edits,newOnlyEdits)
     }
     companion object {
+        fun combine(plans:List<ImportPlan>):ImportPlan {
+            require(plans.isNotEmpty())
+            return ImportPlan(plans.joinToString("\n"){it.manual},plans.flatMap {it.subscriptions.entries}.associate {it.toPair()},plans.flatMap {it.entries})
+        }
         fun prepare(value: String, fetch: (String) -> SubscriptionClient.Downloaded): ImportPlan {
             require(value.toByteArray(Charsets.UTF_8).size <= ServerImport.MAX_BYTES) { "Импорт больше 4 МБ." }
             val source = CompatibilityImportLinks.unwrapDocument(value.trim())

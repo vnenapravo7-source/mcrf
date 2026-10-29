@@ -58,7 +58,7 @@ object EngineUpdatePrimaryUi {
                 tag="primary-choice-action-$kind"
                 isEnabled=(!selected||reconfirm)&&(!installed||host!=null)
                 setOnClickListener{
-                    if(!installed){installEngine(kind);return@setOnClickListener}
+                    if(!installed){if(firstLaunch&&host!=null)installPrimaryEngine(kind)else installEngine(kind);return@setOnClickListener}
                     ThemedDialogBuilder(this@with).setTitle("Выбрать $label?")
                         .setMessage(PrimaryCorePresentation.confirmation(kind))
                         .setNegativeButton("Отмена",null).setPositiveButton("Выбрать"){_,_->try{

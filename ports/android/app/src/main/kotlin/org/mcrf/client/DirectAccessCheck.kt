@@ -22,7 +22,9 @@ object DirectAccessCheck {
         val anyInternetResponse get()=google==Outcome.RESPONSE||gitlab==Outcome.RESPONSE
         val bothUnavailable get()=google==Outcome.NO_RESPONSE&&gitlab==Outcome.NO_RESPONSE
         fun shouldSwitch(enabled:Boolean,hasServers:Boolean,inVpnSection:Boolean)=
-            enabled&&hasServers&&inVpnSection&&directComplete&&(bothUnavailable||youtube==Outcome.NO_RESPONSE)
+            enabled&&hasServers&&inVpnSection&&directComplete&&bothUnavailable
+        fun needsVpnRetry(enabled:Boolean,inVpnSection:Boolean)=
+            enabled&&inVpnSection&&directComplete&&!bothUnavailable&&youtube==Outcome.NO_RESPONSE
         fun shouldReturn(enabled:Boolean,inVpnSection:Boolean)=
             enabled&&!inVpnSection&&directComplete&&anyInternetResponse
     }

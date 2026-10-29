@@ -40,20 +40,22 @@ object EngineUpdatePacket {
     fun artifactPin(context:Context):String = capture(context).apkSha256
     const val COMMIT="64065e6826ad82aa28429dd829c1c65f29b7f6c9"
     fun metadata(info:ApplicationInfo) {
-        val m=requireNotNull(info.metaData)
-        require(info.packageName==ClientPacketBackendLoader.PACKAGE && m.getInt("org.mcrf.engines.interface")==1 &&
-            m.getString("org.mcrf.engines.kind")==WgAddonPolicy.KIND && m.getInt("org.mcrf.engines.packet-core")==1 &&
-            m.getInt("org.mcrf.engine.protocol.api")==1 && m.getString("org.mcrf.engine.protocol.entry")==ClientPacketBackendLoader.ENTRY &&
-            m.getString("org.mcrf.engines.source.commit")==COMMIT) {"Несовместимый пакет WG/AWG: подпись, исходник или интерфейс."}
-        PacketRouteEnvelope.admission(m.get(PacketRouteEnvelope.BLOCK_METADATA)) // unknown declarations refuse
-        PacketManagedDnsPlan.admission(m.get(PacketManagedDnsPlan.METADATA))
-        PacketPipeAdmission.admitted(m.get(org.mcrf.engine.protocol.pipe.v1.PacketPipeBackend.METADATA))
+        val data=requireNotNull(info.metaData)
+        val m=EngineMetadata {data.get(it)}
+        require(info.packageName==ClientPacketBackendLoader.PACKAGE && m.requiredInt("org.mcrf.engines.interface")==1 &&
+            m.requiredString("org.mcrf.engines.kind")==WgAddonPolicy.KIND && m.requiredInt("org.mcrf.engines.packet-core")==1 &&
+            m.requiredInt("org.mcrf.engine.protocol.api")==1 && m.requiredString("org.mcrf.engine.protocol.entry")==ClientPacketBackendLoader.ENTRY &&
+            m.requiredString("org.mcrf.engines.source.commit")==COMMIT) {"Несовместимый пакет WG/AWG: подпись, исходник или интерфейс."}
+        PacketRouteEnvelope.admission(data.get(PacketRouteEnvelope.BLOCK_METADATA)) // unknown declarations refuse
+        PacketManagedDnsPlan.admission(data.get(PacketManagedDnsPlan.METADATA))
+        PacketPipeAdmission.admitted(data.get(org.mcrf.engine.protocol.pipe.v1.PacketPipeBackend.METADATA))
     }
     private fun native(file:File) {
         val abi=EnginePackage.abi(Build.SUPPORTED_ABIS.toList(),Process.is64Bit())
         ZipFile(file).use {zip->
             val entries=zip.entries().asSequence().filter {it.name.startsWith("lib/")&&!it.isDirectory}.map {it.name}.toList()
             require(entries==listOf("lib/$abi/libmcrfwg.so")) {"Модуль WG/AWG не подходит для этой архитектуры."}
+            EngineArchivePolicy.requireElfLibraries(zip)
         }
     }
     fun installation(context:Context):ApplicationInfo {
@@ -66,7 +68,7 @@ object EngineUpdatePacket {
         return info
     }
     fun verifyArchive(context:Context,file:File) {
-        val info=requireNotNull(context.packageManager.getPackageArchiveInfo(file.path,PackageManager.GET_META_DATA)?.applicationInfo)
+        val info=requireNotNull(EngineSignatures.archive(context.packageManager,file.absolutePath)?.info?.applicationInfo) {"Не удалось прочитать метаданные APK WG/AWG."}
         metadata(info);native(file)
     }
 }

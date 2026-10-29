@@ -7,10 +7,10 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | Платформа | Версия |
 | --- | --- |
 | Windows x64 | [1.2](https://github.com/vnenapravo7-source/mcrf/releases/tag/v1.2) |
-| Android 10+ | [0.7.2](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.7.2) |
+| Android 10+ | [0.7.3](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.7.3) |
 | Linux | В разработке |
 
-Для Android скачайте [универсальный APK 0.7.2](https://github.com/vnenapravo7-source/mcrf/releases/download/android-v0.7.2/mcrf-android-universal-release.apk). Движки устанавливаются отдельно под архитектуру устройства из [единого каталога](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1), включая OpenFlux **0.16.0**. [Матрица проверки и ограничения](docs/ANDROID-STATUS.md).
+Для Android скачайте [универсальный APK 0.7.3](https://github.com/vnenapravo7-source/mcrf/releases/download/android-v0.7.3/mcrf-android-universal-release.apk). Движки устанавливаются отдельно под архитектуру устройства из [единого каталога](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1), включая OpenFlux **0.16.0**. [Матрица проверки и ограничения](docs/ANDROID-STATUS.md).
 
 ### Движки и протоколы
 
@@ -75,6 +75,7 @@ APK — размер загрузки для Android arm64, округлённы
 | П0 | Логи и копирование отчёта | Готово |
 | П0 | Зашифрованные копии и WebDAV | Готово |
 | П0 | Обновление приложения и отдельных движков | Готово |
+| П0 | Совместимость установщика движков с Huawei/OEM, разрешения и диагностика APK | Готово |
 | П1 | Steer: маршруты, DNS, IPv6 и локальный прокси | Готово |
 | П1 | Компактный WG/AWG 3.0/3.1 | Готово |
 | П2 | DNS правил и VPN-серверов | Готово |
@@ -117,6 +118,7 @@ APK — размер загрузки для Android arm64, округлённы
 | П2 | Замена polling на событийное ожидание | высокая | Запланировано |
 | П2 | C/JNI API для reuse DNS/.srs matching | высокая | Запланировано |
 | П3 | TCP для host-owned TUN | очень высокая | Запланировано |
+
 </details>
 
 ## Windows

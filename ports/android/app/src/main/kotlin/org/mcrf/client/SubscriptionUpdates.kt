@@ -121,6 +121,10 @@ class SubscriptionUpdateService : JobService() {
             try {
                 if(fromOpen&&!SubscriptionOpenRefresh.dueNow(this))return@submit
                 val catalogue = Connections(this); catalogue.load()
+                runCatching {InviteCodeSync.refreshIfLinked(this)}.onFailure {
+                    ClientEvents.record(this,"Инвайт-код","Автосинхронизация не выполнена; сохранённые подключения оставлены без изменений. ${SubscriptionFailure.describe(it,SubscriptionFailure.Phase.FETCH)}")
+                }
+                catalogue.load()
                 val fetched = linkedMapOf<String, SubscriptionClient.Downloaded>()
                 val budget=SubscriptionPayloadBudget()
                 val snapshot = catalogue.subscriptions()

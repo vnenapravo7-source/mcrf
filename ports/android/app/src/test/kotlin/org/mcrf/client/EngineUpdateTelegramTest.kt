@@ -3,8 +3,10 @@ package org.mcrf.client
 import org.junit.Assert.*
 import org.junit.Test
 import java.net.URI
+import java.io.File
 
 class EngineUpdateTelegramTest {
+    private fun source(name:String)=listOf(File("src/main/kotlin/org/mcrf/client/$name.kt"),File("app/src/main/kotlin/org/mcrf/client/$name.kt")).first {it.isFile}.readText()
     @Test fun tgIsDedicatedAndHasOnlyPortExecutable(){
         assertEquals("org.mcrf.engines.tgws",EngineModules.packageName("tgws"))
         assertEquals(setOf("libtgws.so"),EngineModules.libraries("tgws"))
@@ -30,5 +32,11 @@ class EngineUpdateTelegramTest {
         assertEquals(EngineStorage.DisplayBytes(999,null),EngineStorage.displayBytes(999,null))
         assertEquals(EngineStorage.DisplayBytes(null,null),EngineStorage.displayBytes(null,null))
         assertEquals(EngineStorage.DisplayBytes(null,null),EngineStorage.displayBytes(0,installed.copy(apk=0,bytes=0)))
+    }
+    @Test fun engineInventoryOffersScopedBulkRemoval(){
+        val protocols=source("ProtocolsSheet");val storage=source("EngineStorage")
+        assertTrue(protocols.contains("stop-engine-processes"));assertTrue(source("MainActivity").contains("stopProcessesForEngineRemoval"))
+        assertTrue(protocols.contains("remove-additional-engines"));assertTrue(protocols.contains("remove-all-engines"))
+        assertTrue(storage.contains("confirmPendingReceipt(activity)"));assertTrue(storage.contains("Android попросит подтвердить удаление каждого пакета"))
     }
 }

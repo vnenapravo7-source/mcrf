@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "authority": "human-20261029-publish-0.7.3",
+  "state": "SOURCE_READY",
+  "versionCode": 10063,
+  "versionName": "0.7.3",
+  "releaseType": "release",
+  "tag": "android-v0.7.3",
+  "scope": "installer-hardening-20261029",
+  "nativeUnchanged": true,
+  "sourceFiles": [
+    "ports/android/app/src/main/kotlin/org/mcrf/client/MainActivity.kt",
+    "ports/android/app/src/main/kotlin/org/mcrf/client/EngineImportUi.kt",
+    "ports/android/app/src/main/kotlin/org/mcrf/client/EngineInstallPermission.kt",
+    "ports/android/app/src/main/kotlin/org/mcrf/client/EngineMetadata.kt",
+    "ports/android/app/src/main/kotlin/org/mcrf/client/EngineArchivePolicy.kt",
+    "ports/android/app/src/main/kotlin/org/mcrf/client/EnginePackages.kt",
+    "ports/android/app/src/main/kotlin/org/mcrf/client/EngineUpdatePrimary.kt",
+    "ports/android/app/src/main/kotlin/org/mcrf/client/EngineUpdatePacket.kt",
+    "ports/android/app/src/main/kotlin/org/mcrf/client/EngineUpdateTelegram.kt",
+    "ports/android/app/src/main/kotlin/org/mcrf/client/EngineSignatures.kt",
+    "ports/android/app/src/main/kotlin/org/mcrf/client/EngineSignerPolicy.kt"
+  ],
+  "releaseNotes": [
+    "Улучшена совместимость установки движков на Huawei и других устройствах с изменённой прошивкой Android.",
+    "Исправлено продолжение установки после выдачи разрешения на установку приложений.",
+    "Усилена проверка пакетов движков и добавлены понятные причины отказа установки."
+  ]
+}

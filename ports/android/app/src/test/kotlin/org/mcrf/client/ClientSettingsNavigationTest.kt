@@ -19,7 +19,8 @@ class ClientSettingsNavigationTest {
         }
     }
     @Test fun deploymentIsThirdSettingAndWhitelistsReplaceItsTab() {
-        assertEquals(ClientSettingsNavigation.DEPLOY,ClientSettingsNavigation.rootLeading[2])
+        assertEquals(ClientSettingsNavigation.INVITE,ClientSettingsNavigation.rootLeading[0])
+        assertEquals(ClientSettingsNavigation.DEPLOY,ClientSettingsNavigation.rootLeading[3])
         assertTrue(ClientSettingsNavigation.isSettings(ClientSettingsNavigation.DEPLOY))
         assertEquals(ClientSettingsNavigation.ROOT,ClientSettingsNavigation.back(ClientSettingsNavigation.DEPLOY,"Главная"))
         assertEquals(listOf("Главная",ClientSettingsNavigation.WHITELISTS,"Маршрутизация","Логи"),ClientSettingsNavigation.mainTabs)

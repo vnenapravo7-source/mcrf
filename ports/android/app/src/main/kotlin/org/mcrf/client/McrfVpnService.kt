@@ -172,7 +172,7 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
                 if(running.health(target,BsDetectionSites.url(site),2500)>=0)DirectAccessCheck.Outcome.RESPONSE
                 else DirectAccessCheck.Outcome.NO_RESPONSE
             }catch(_:Exception){DirectAccessCheck.Outcome.NO_RESPONSE}
-        })
+        },::retryThirdSiteThroughVpn)
     }
     private fun reloadBsWifiMonitor() {
         bsWifiMonitor?.close();bsWifiMonitor=null
@@ -306,6 +306,33 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         }
         catch(_:Exception){ClientEvents.record(this,"Предупреждение","Не удалось сохранить цель автоматического возврата в VPN. Текущее подключение не изменено.");false}
     }
+    /** The third-site failure first verifies another VPN path; it is not BS evidence by itself. */
+    private fun retryThirdSiteThroughVpn(stamp:BsDetectionMonitor.Stamp,site:String){
+        if(worker.isShutdown)return
+        try{worker.execute {
+            fun live()=!destroyed&&currentService===this&&epoch==stamp.epoch&&generation==stamp.generation&&preferences.getBoolean(BsDetectionMonitor.KEY,false)
+            val original=currentStart?:return@execute
+            if(!live()||original.template.has("mcrf_bs")||original.template.has("mcrf_carrier"))return@execute
+            val alternate=autoVpnTargets(null,selectedId).firstOrNull()
+            if(alternate==null){
+                val confirmed=try{core?.health(target,BsDetectionSites.url(site),2500)?.let {it>=0}==true}catch(_:Exception){false}
+                if(!confirmed&&live())switchAutomaticallyToBs(stamp)
+                return@execute
+            }
+            try{
+                status="Проверяем другой VPN-сервер…";foreground(status)
+                startSource(alternate,null,original.vpn,original.port,original.applyRoutes,stamp.epoch,true)
+                require(core?.health(target,BsDetectionSites.url(site),2500)?.let {it>=0}==true){"Другой VPN-сервер также не подтвердил контрольный сайт"}
+                ClientEvents.record(this,"Клиент","Автоопределение БС: контрольный сайт подтверждён через другой VPN-сервер; переход на БС не требуется.")
+            }catch(error:Exception){
+                ClientEvents.record(this,"Предупреждение","Автоопределение БС: повторная проверка через другой VPN не прошла: ${ClientEvents.redact(error.message)}")
+                try{
+                    startSource(original.template,original.candidate,original.vpn,original.port,original.applyRoutes,stamp.epoch,true)
+                    if(!destroyed&&epoch==stamp.epoch)switchAutomaticallyToBs(BsDetectionMonitor.Stamp(stamp.epoch,generation,true,original.vpn))
+                }catch(_:Exception){networkRecovery=original;status="Восстановление соединения…";foreground(status);retryNetworkRecovery(original)}
+            }
+        }}catch(_:java.util.concurrent.RejectedExecutionException){}
+    }
     private fun switchAutomaticallyToVpn(stamp:BsDetectionMonitor.Stamp){
         if(worker.isShutdown)return
         try{worker.execute {
@@ -335,7 +362,8 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
                     attempts++
                     try {
                         startSource(template,null,previous.vpn,previous.port,previous.applyRoutes,stamp.epoch,true)
-                        require(core?.health(target,"https://youtube.com/",2500)?.let {it>=0}==true) {"VPN пока не подтвердил ответ YouTube"}
+                        val control=BsDetectionSites.load {key,fallback->preferences.getString(key,fallback)?:fallback}[2]
+                        require(core?.health(target,BsDetectionSites.url(control),2500)?.let {it>=0}==true) {"VPN пока не подтвердил контрольный сайт"}
                         connected=true;break
                     }catch(error:Exception){
                         failure=error
@@ -613,11 +641,11 @@ class McrfVpnService : ClientPrimaryHostPlatform() {
         return template
     }
     private var autoVpnCandidateCursor=0
-    private fun autoVpnTargets(fallback:JSONObject?):List<JSONObject> {
+    private fun autoVpnTargets(fallback:JSONObject?,excludeId:String?=null):List<JSONObject> {
         val catalogue=Connections(this).apply {load()}
         val steer=ClientPrimarySelection.selected(this)=="steer"
         val binding=RoutingStore(this).apply{load()}.snapshot()
-        val pool=RoutingConnectionBinding.admitted(binding,catalogue.entries(),false).filter {AutoSelection.eligible(it,AutoSelection.LATENCY)&&(!steer||SteerProbePlan.supports(it))}
+        val pool=RoutingConnectionBinding.admitted(binding,catalogue.entries(),false).filter {it.id!=excludeId&&AutoSelection.eligible(it,AutoSelection.LATENCY)&&(!steer||SteerProbePlan.supports(it))}
         val fastest=AutoSelection.startup(pool,pool.map {it.id}.toSet(),catalogue.probes(),System.currentTimeMillis())
         val mode=BsAutoSelectionPolicy.selected(preferences)
         val ordered=BsAutoSelectionPolicy.targets(fastest,BsAutoSelectionPolicy.last(preferences,false),mode){it.id}

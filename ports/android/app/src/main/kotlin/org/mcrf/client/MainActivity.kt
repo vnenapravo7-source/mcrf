@@ -106,6 +106,9 @@ class MainActivity : Activity() {
     private var carrierChallengePromptId:String?=null
     internal val routingScreenCache=RoutingScreenCache<LinearLayout>()
     private var pendingPrimaryConnection:Boolean?=null
+    private var pendingPrimaryInstallKind:String?=null
+    private val bulkEngineRemoval=ArrayDeque<String>()
+    private var bulkEngineRemovalRequest=0
     private val primaryHost:EngineUpdatePrimaryUi.Host=object:EngineUpdatePrimaryUi.Host {
         override fun selected()=ClientPrimarySelection.selected(this@MainActivity)
         override fun confirmationRequired()=!prefs.getBoolean(ClientPrimarySelection.DUAL_CONFIRMED,false)
@@ -205,7 +208,10 @@ class MainActivity : Activity() {
     }
     private fun continueStartupChoices() {
         if(isFinishing||isDestroyed)return
-        if(ClientPrimarySelection.selected(this)==null)offerPrimaryChoice()
+        if(ClientPrimarySelection.selected(this)==null){
+            val pending=pendingPrimaryInstallKind
+            if(pending!=null&&EnginePackages.missing(this,setOf(pending)).isEmpty())engineInstallConfirmed(pending)else offerPrimaryChoice()
+        }
         else {batteryPrompt();AppUpdates.onStart(this);resumeWantedOnLaunch();checkStartupAccess()}
     }
     private fun checkStartupAccess(){
@@ -315,6 +321,7 @@ class MainActivity : Activity() {
         telegram=TelegramBridge(this){telegramControls?.update();miniature?.updateTelegram()}
         receiveConfigLink(intent)
         pendingBackupPath = state?.getString("backupPath")
+        pendingPrimaryInstallKind=prefs.getString("pendingPrimaryInstallKind",null)
         selected = prefs.getString("selected", "").orEmpty(); automatic = prefs.getBoolean("automatic", false)
         // The old standalone toggle no longer exists. Preserve a currently live
         // legacy session, but never carry its hidden flag into a new connection.
@@ -588,14 +595,20 @@ class MainActivity : Activity() {
         page.addView(modeSwitch,space(0,12))
         serversPanel = LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL; tag="home-servers"
-            addView(LinearLayout(this@MainActivity).apply {gravity=Gravity.CENTER_VERTICAL
-                addView(text("Серверы",21,Loft.INK).apply {typeface=Typeface.create("sans-serif-medium",Typeface.NORMAL)},LinearLayout.LayoutParams(0,-2,1f))
-                if(UsageFeatures.telegram(UsageFeaturesUi.selected(this@MainActivity),telegram.state.wanted,telegram.state.running))addView(iconButton("telegram","Открыть в Telegram",18).apply {tag="telegram-open";setOnClickListener {try{telegram.openTelegram()}catch(_:ActivityNotFoundException){alert("Telegram","На телефоне не найден Telegram.")}}},LinearLayout.LayoutParams(dp(48),dp(48)))
-                if(UsageFeatures.Feature.WARP in UsageFeaturesUi.selected(this@MainActivity))addView(iconButton("cloudflare","WARP · добавить сервер",22).apply {tag="warp-open";setOnClickListener {navigate("WARP")}},LinearLayout.LayoutParams(dp(48),dp(48)))
-            },space(4,4))
-            selectedServer=text(findSelected()?.takeIf {ConnectionSections.belongs(it,false)}?.name?:"VPN-сервер не выбран",11,Loft.MUTED).apply {tag="selected-server";setSingleLine(true);ellipsize=TextUtils.TruncateAt.END}
-            addView(selectedServer,space(0,8))
-        }.also { page.addView(it,space(0,72)); ServersPage(this).build(it) }
+            val overview=card().apply {
+                tag="home-servers-overview"
+                setPadding(dp(16),dp(10),dp(16),dp(12))
+                addView(LinearLayout(this@MainActivity).apply {gravity=Gravity.CENTER_VERTICAL
+                    addView(text("Серверы",21,Loft.INK).apply {typeface=Typeface.create("sans-serif-medium",Typeface.NORMAL)},LinearLayout.LayoutParams(0,-2,1f))
+                    if(UsageFeatures.telegram(UsageFeaturesUi.selected(this@MainActivity),telegram.state.wanted,telegram.state.running))addView(iconButton("telegram","Открыть в Telegram",18).apply {tag="telegram-open";setOnClickListener {try{telegram.openTelegram()}catch(_:ActivityNotFoundException){alert("Telegram","На телефоне не найден Telegram.")}}},LinearLayout.LayoutParams(dp(48),dp(48)))
+                    if(UsageFeatures.Feature.WARP in UsageFeaturesUi.selected(this@MainActivity))addView(iconButton("cloudflare","WARP · добавить сервер",22).apply {tag="warp-open";setOnClickListener {navigate("WARP")}},LinearLayout.LayoutParams(dp(48),dp(48)))
+                })
+                selectedServer=text(findSelected()?.takeIf {ConnectionSections.belongs(it,false)}?.name?:"VPN-сервер не выбран",11,Loft.MUTED).apply {tag="selected-server";setSingleLine(true);ellipsize=TextUtils.TruncateAt.END}
+                addView(selectedServer,space(0,6))
+            }
+            addView(overview,space(0,16))
+            ServersPage(this@MainActivity).build(this,controlsHost=overview)
+        }.also { page.addView(it,space(0,72)) }
         updateHomeControl()
     }
     private fun captchaChoice(entry:ServerImport.Server?):LinearLayout {
@@ -868,6 +881,7 @@ class MainActivity : Activity() {
             results.addView(row,space(0,12));rows.add(row to "$target $detail ${SettingsSearchIndex.keywords(target)}")
         }
         ClientSettingsNavigation.rootLeading.forEach {target->link(target,when(target) {
+            ClientSettingsNavigation.INVITE->"Подписка и 12 серверов по персональному коду"
             ClientSettingsNavigation.APPEARANCE->"Цвета светлой и тёмной темы"
             ClientSettingsNavigation.DNS->"DNS для VPN и прямых маршрутов"
             else->"Установка и управление сервером · SSH и панели"
@@ -902,6 +916,7 @@ class MainActivity : Activity() {
     }
     private fun settingsPage(name:String) {
         when(name) {
+            ClientSettingsNavigation.INVITE -> page.addView(InviteCodeUi(this){kinds->engineImport.showEngines(kinds)}.view(),space(0,16))
             ClientSettingsNavigation.DEPLOY -> deployment()
             ClientSettingsNavigation.OPENFLUX -> {
                 page.addView(text("Параметры применяются к выбранному подключению OpenFlux. Открытие страницы не запускает движок и не меняет активный VPN.",12,Loft.MUTED),space(0,12))
@@ -1410,6 +1425,45 @@ class MainActivity : Activity() {
         engineImport.show(initial)
     }
     fun installEngine(kind:String){if(!working())engineImport.showEngine(kind)}
+    fun installPrimaryEngine(kind:String){
+        if(working())return
+        pendingPrimaryInstallKind=kind
+        check(prefs.edit().putString("pendingPrimaryInstallKind",kind).commit())
+        engineImport.showEngine(kind)
+    }
+    fun engineInstallConfirmed(kind:String?){
+        if(kind==null||pendingPrimaryInstallKind!=kind)return
+        pendingPrimaryInstallKind=null
+        check(prefs.edit().remove("pendingPrimaryInstallKind").commit())
+        if(ClientPrimarySelection.selected(this)==null)primaryHost.selectValidated(EngineUpdatePrimary.choiceId(kind))
+    }
+    fun startBulkEngineRemoval(kinds:Collection<String>){
+        if(working()||bulkEngineRemovalRequest!=0)return
+        bulkEngineRemoval.clear();bulkEngineRemoval.addAll(kinds.distinctBy {EngineStorage.size(this,it)?.packageId})
+        continueBulkEngineRemoval()
+    }
+    fun stopProcessesForEngineRemoval(){
+        serverSwitch.cancel();handler.removeCallbacks(serverSwitchPoll)
+        ProbeCoordinator.cancel(this)
+        telegram.setEnabled(false)
+        startService(Intent(this,McrfVpnService::class.java).setAction(McrfVpnService.STOP))
+        val started=SystemClock.elapsedRealtime()
+        val check=object:Runnable{override fun run(){
+            if(!active()&&ProbeCoordinator.measurements==null&&!EngineUpdateGate.blocksUsage(this@MainActivity)){toast("Процессы движков завершены — можно удалять");render();return}
+            if(SystemClock.elapsedRealtime()-started>=15_000){alert("Процессы движков","Не все процессы освободились. Дождись завершения системной установки/удаления или остановки Android и повтори.");return}
+            handler.postDelayed(this,250)
+        }}
+        handler.post(check);toast("Завершаем процессы движков…")
+    }
+    private fun continueBulkEngineRemoval(){
+        while(bulkEngineRemoval.isNotEmpty()){
+            val kind=bulkEngineRemoval.removeFirst()
+            val request=EngineStorage.launchRemoval(this,kind)
+            if(request!=null){bulkEngineRemovalRequest=request;return}
+        }
+        bulkEngineRemovalRequest=0
+        render();toast("Удаление движков завершено")
+    }
     fun canOfferEngineUpdates()=!working()&&!isFinishing&&!isDestroyed&&hasWindowFocus()&&engineImport.state==null&&!onboardingVisible&&primaryChooser?.isShowing!=true&&carrierChallengeDialog?.isShowing!=true&&!EngineUpdates.installationPending(this)
     fun updateInstalledEngines(assets:List<EnginePackage>){
         if(working()||engineImport.state!=null)return
@@ -1511,7 +1565,9 @@ class MainActivity : Activity() {
     }
     override fun onActivityResult(request: Int, result: Int, data: Intent?) {
         super.onActivityResult(request, result, data)
-        if (request == 9 || request == 10 || EngineUpdateGate.isInstallerRequest(request)) engineImport.returned(request,result)
+        if(request==bulkEngineRemovalRequest&&request!=0){
+            worker.execute {runCatching {EngineUpdates.applyInstallerResult(applicationContext,request,result)};ui {bulkEngineRemovalRequest=0;continueBulkEngineRemoval()}}
+        }else if (request == 9 || request == 10 || EngineUpdateGate.isInstallerRequest(request)) engineImport.returned(request,result)
         if (request == 1 && result == RESULT_OK) launchConnection()
         if (request == 5 && result == RESULT_OK) { prefs.edit().putBoolean("tun", true).apply(); render(); prepareConnection(false) }
         if (request == 6 && result == RESULT_OK) data?.getStringExtra("qr")?.let { importDialog(it) }
@@ -1533,8 +1589,8 @@ class MainActivity : Activity() {
         try {super.startActivityForResult(intent,requestCode,options)}catch(error:Exception){recentsDeparture.launchFailed();throw error}
     }
     override fun onUserLeaveHint(){recentsDeparture.userLeave();super.onUserLeaveHint()}
-    override fun onResume() { super.onResume();TelemetryCadence.resumed(this);handler.removeCallbacks(recentsPrivacyCheck);recentsDeparture.resumed();animationResumed=true;(connect as? ForgeConnectionButton)?.resumeAnimation(true); telegram.bind();handler.post(refresh);EngineUpdates.recover(this);if(!loading)EngineStartupUpdates.onOpen(this);ClientBehaviorUi.applyRecents(this);if(!loading&&ClientSettingsNavigation.isSettings(current))render() }
-    override fun onPause() {TelemetryCadence.paused(this);ClientBehaviorUi.applyRecents(this);recentsDeparture.paused();animationResumed=false;(connect as? ForgeConnectionButton)?.resumeAnimation(false); telegram.unbind();pendingSettingsSave?.let { handler.removeCallbacks(it); it.run() }; handler.removeCallbacks(refresh); super.onPause();handler.postDelayed(recentsPrivacyCheck,250) }
+    override fun onResume() { super.onResume();if(::engineImport.isInitialized)engineImport.resumed();TelemetryCadence.resumed(this);handler.removeCallbacks(recentsPrivacyCheck);recentsDeparture.resumed();animationResumed=true;(connect as? ForgeConnectionButton)?.resumeAnimation(true); telegram.bind();handler.post(refresh);EngineUpdates.recover(this);if(!loading)EngineStartupUpdates.onOpen(this);ClientBehaviorUi.applyRecents(this);if(!loading&&ClientSettingsNavigation.isSettings(current))render() }
+    override fun onPause() {if(::engineImport.isInitialized)engineImport.paused();TelemetryCadence.paused(this);ClientBehaviorUi.applyRecents(this);recentsDeparture.paused();animationResumed=false;(connect as? ForgeConnectionButton)?.resumeAnimation(false); telegram.unbind();pendingSettingsSave?.let { handler.removeCallbacks(it); it.run() }; handler.removeCallbacks(refresh); super.onPause();handler.postDelayed(recentsPrivacyCheck,250) }
     override fun onStop() {
         super.onStop()
         finishHiddenUiIfLeaving()

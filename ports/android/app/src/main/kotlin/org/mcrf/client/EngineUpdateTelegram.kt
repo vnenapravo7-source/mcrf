@@ -12,23 +12,25 @@ object EngineUpdateTelegram {
         require(kind=="tgws"&&api==1&&repository==REPOSITORY&&commit==COMMIT&&cli=="port-v1"){"Несовместимый пакет Telegram WS."}
     }
     fun metadata(info:ApplicationInfo) {
-        val m=requireNotNull(info.metaData)
-        validateMetadata(m.getString("org.mcrf.engines.kind").orEmpty(),m.getInt("org.mcrf.engines.tgws"),
-            m.getString("org.mcrf.engines.source.repository").orEmpty(),m.getString("org.mcrf.engines.source.commit").orEmpty(),m.getString("org.mcrf.engines.tgws-cli").orEmpty())
+        val data=requireNotNull(info.metaData)
+        val m=EngineMetadata {data.get(it)}
+        validateMetadata(m.requiredString("org.mcrf.engines.kind"),m.requiredInt("org.mcrf.engines.tgws"),
+            m.requiredString("org.mcrf.engines.source.repository"),m.requiredString("org.mcrf.engines.source.commit"),m.requiredString("org.mcrf.engines.tgws-cli"))
     }
     fun installation(context:Context):ApplicationInfo {
         val pm=context.packageManager
-        val actual=pm.getPackageInfo(EngineModules.packageName("tgws"),PackageManager.GET_META_DATA or PackageManager.GET_SIGNING_CERTIFICATES)
-        val own=pm.getPackageInfo(context.packageName,PackageManager.GET_SIGNING_CERTIFICATES)
-        val signers=actual.signingInfo?.apkContentsSigners?.map{it.toCharsString()}?.toSet()
-        val info=requireNotNull(actual.applicationInfo)
-        require(!signers.isNullOrEmpty()&&signers==own.signingInfo?.apkContentsSigners?.map{it.toCharsString()}?.toSet()&&info.enabled&&info.metaData?.getInt("org.mcrf.engines.interface")==1)
+        val actual=EngineSignatures.installed(pm,EngineModules.packageName("tgws"))
+        EngineSignerPolicy.requireSame(actual.signers,EngineSignatures.installed(pm,context.packageName).signers)
+        val info=requireNotNull(actual.info.applicationInfo)
+        require(info.enabled&&info.minSdkVersion<=android.os.Build.VERSION.SDK_INT&&
+            EngineMetadata {info.metaData?.get(it)}.requiredInt("org.mcrf.engines.interface")==1)
         metadata(info)
         require(info.splitSourceDirs.isNullOrEmpty()){"Split-пакеты Telegram WS не поддерживаются."}
         val abi=EnginePackage.abi(android.os.Build.SUPPORTED_ABIS.toList(),android.os.Process.is64Bit())
         java.util.zip.ZipFile(info.sourceDir).use{zip->
             val entries=zip.entries().asSequence().filter{!it.isDirectory&&it.name.startsWith("lib/")}.map{it.name}.toList()
             require(EngineModules.validNativeEntries("tgws",abi,entries)){"Неожиданные библиотеки Telegram WS или отсутствует ABI."}
+            EngineArchivePolicy.requireElfLibraries(zip)
         }
         return info
     }

@@ -3,8 +3,10 @@ package org.mcrf.client
 import org.junit.Assert.*
 import org.junit.Test
 import org.json.JSONArray
+import java.io.File
 
 class EngineUpdatePrimaryTest {
+    private fun source(name:String)=listOf(File("src/main/kotlin/org/mcrf/client/$name.kt"),File("app/src/main/kotlin/org/mcrf/client/$name.kt")).first {it.isFile}.readText()
     private fun valid(kind:String="steer",spi:Int=1,api:Int=2,entry:String="org.mcrf.engines.steer.SteerEngine",hash:String="a".repeat(64),abis:Set<String> = setOf("arm64-v8a"),abi:String="arm64-v8a")=
         EngineUpdatePrimary.validate(kind,EngineUpdatePrimary.contract(kind).packageName,spi,api,entry,hash,abis,abi)
     private fun rejected(block:()->Unit){try{block();fail("Unsafe primary contract accepted")}catch(_:IllegalArgumentException){}}
@@ -63,5 +65,13 @@ class EngineUpdatePrimaryTest {
         assertEquals(EngineUpdatePresentation.Action.CANCEL,EngineUpdatePresentation.action(EngineUpdatePolicy.Phase.DOWNLOADING))
         assertEquals(EngineUpdatePresentation.Action.WAIT,EngineUpdatePresentation.action(EngineUpdatePolicy.Phase.INSTALLING))
         assertEquals(EngineUpdatePresentation.Action.CHECK,EngineUpdatePresentation.action(EngineUpdatePolicy.Phase.CURRENT))
+    }
+    @Test fun firstLaunchInstallContinuesWithTheConfirmedPrimaryChoice(){
+        assertTrue(source("EngineUpdatePrimaryUi").contains("installPrimaryEngine(kind)"))
+        assertTrue(source("MainActivity").contains("pendingPrimaryInstallKind=kind"))
+        assertTrue(source("MainActivity").contains("putString(\"pendingPrimaryInstallKind\",kind).commit()"))
+        assertTrue(source("MainActivity").contains("EnginePackages.missing(this,setOf(pending)).isEmpty()"))
+        assertTrue(source("MainActivity").contains("primaryHost.selectValidated(EngineUpdatePrimary.choiceId(kind))"))
+        assertTrue(source("EngineImportUi").contains("engineInstallConfirmed(pending.requestedEngine)"))
     }
 }

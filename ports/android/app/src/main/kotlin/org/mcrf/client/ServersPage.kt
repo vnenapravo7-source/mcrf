@@ -13,7 +13,7 @@ import org.mcrf.client.MainActivity.Operation
 
 class ServersPage(private val activity: MainActivity) {
     private val catalogue get() = activity.catalogue
-    @JvmOverloads fun build(page: LinearLayout, includeControls:Boolean=true, whitelistOnly:Boolean=false) = with(activity) {
+    @JvmOverloads fun build(page: LinearLayout, includeControls:Boolean=true, whitelistOnly:Boolean=false, controlsHost:LinearLayout=page) = with(activity) {
         val entries=ConnectionSections.entries(catalogue.entries(),whitelistOnly).filter {UsageFeatures.connection(it,UsageFeaturesUi.selected(this))}
         val actions = LinearLayout(this).apply {tag="server-actions"}
         fun action(view:View){actions.addView(view,LinearLayout.LayoutParams(0,dp(48),1f))}
@@ -46,9 +46,9 @@ class ServersPage(private val activity: MainActivity) {
         refreshIcon.isClickable=false;refreshIcon.isLongClickable=false;refreshIcon.isFocusable=false;refreshIcon.importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO
         intervalLabel.importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO
         refresh.addView(refreshIcon,LinearLayout.LayoutParams(-1,dp(34)));refresh.addView(intervalLabel,LinearLayout.LayoutParams(-1,dp(14)));intervalText();action(refresh)
-        page.addView(actions, space(0, 8))
+        controlsHost.addView(actions, space(0, 8))
         val progressLabel=text("",12,Loft.MUTED).apply { visibility=View.GONE;contentDescription="Ход проверки серверов" }
-        page.addView(progressLabel,space(0,12))
+        controlsHost.addView(progressLabel,space(0,if(controlsHost===page)12 else 0))
         section(page, "ПОДКЛЮЧЕНИЯ · ${entries.size}")
         if (entries.isEmpty()) page.addView(card().apply { addView(text("Пока нет серверов", 18, Loft.INK)); addView(text("Вставьте ссылку или подписку, либо выберите файл конфигурации.", 13, Loft.MUTED), space(8, 0)) }, space(0, 20))
         val pool = try { catalogue.autoIds() } catch (_: Exception) { emptySet() }

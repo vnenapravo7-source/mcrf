@@ -25,6 +25,11 @@ object ProtocolsSheet {
                     if(mainBytes!=null)append("MCRF с данными: ${EngineStorage.format(this@with,mainBytes)}\n")
                     append("Движки отдельно: ${EngineStorage.format(this@with,installedSizes.distinctBy{it.packageId}.sumOf{it.bytes})}")
                 },12,Loft.MUTED),space(4,12))
+                rows.addView(button("Завершить процессы для удаления движков",false).apply {tag="stop-engine-processes";setOnClickListener {stopProcessesForEngineRemoval()}},space(0,8))
+                val additional=EngineStorage.removableKinds(this@with,EngineModules.kinds+EngineModules.packetCores)
+                val all=EngineStorage.removableKinds(this@with,engines)
+                if(additional.isNotEmpty())rows.addView(button("Удалить все дополнительные движки",false).apply {tag="remove-additional-engines";setOnClickListener {EngineStorage.removeAll(this@with,additional,"все дополнительные движки")}},space(0,8))
+                if(all.isNotEmpty())rows.addView(button("Удалить вообще все движки",false).apply {tag="remove-all-engines";setOnClickListener {EngineStorage.removeAll(this@with,all,"все движки")}},space(0,12))
                 val headings=LinearLayout(this).apply {setPadding(dp(8),dp(10),dp(8),dp(10));setBackgroundColor(Loft.FIELD)}
                 headings.addView(text("Движок",11,Loft.MUTED),LinearLayout.LayoutParams(0,-2,1f));headings.addView(text("Состояние",11,Loft.MUTED),LinearLayout.LayoutParams(dp(80),-2));headings.addView(android.view.View(this),LinearLayout.LayoutParams(dp(48),1));rows.addView(headings)
                 visibleAdditional(this@with,features).filter {it.contains(query)||it=="tgws"&&"telegram".contains(query)}.forEach {kind->
