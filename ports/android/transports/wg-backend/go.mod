@@ -19,4 +19,4 @@ require (
 )
 
 // Build entry point verifies the exact source commit before using this local dependency.
-replace github.com/sagernet/wireguard-go => D:\MCRF\Projects\MCRF\work\android-upstream\sing-box-lx-mcrf-clash-20261014\submodules\wireguard-go
+replace github.com/sagernet/wireguard-go => ../../../../work/android-upstream/sing-box-lx-mcrf-clash-20261014/submodules/wireguard-go
