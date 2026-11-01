@@ -561,13 +561,26 @@
     }
   },
   "last_daily_date": "2026-10-31",
-  "observed_at": "2026-11-01T18:15:23.602726+03:00",
+  "observed_at": "2026-11-01T18:16:16.780876+03:00",
   "repository": "vnenapravo7-source/mcrf",
   "source_stats": {
     "coverage_start": "2026-11-01",
-    "days": {},
+    "days": {
+      "2026-11-01": {
+        "manual": {
+          "android": 0,
+          "engines": 0,
+          "windows": 1
+        },
+        "update": {
+          "android": 0,
+          "engines": 0,
+          "windows": 0
+        }
+      }
+    },
     "epoch": "cf0f3210-e3de-4af1-8a89-18c236098c4e",
-    "generated_at": "2026-11-01T18:15:28.903433+03:00",
+    "generated_at": "2026-11-01T18:16:22.229835+03:00",
     "started_at": "2026-11-01T18:13:14.386929+03:00"
   },
   "source_status": "available",
