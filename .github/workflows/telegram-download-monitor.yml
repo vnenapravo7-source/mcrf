@@ -19,7 +19,7 @@ jobs:
     env:
       STATE_BRANCH: telegram-monitor-state
       STATE_PATH: .github/telegram-monitor-state.json
-      STATE_LOCAL: ${{ runner.temp }}/telegram-monitor-state.json
+      STATE_LOCAL: /tmp/mcrf-telegram-monitor-state.json
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
