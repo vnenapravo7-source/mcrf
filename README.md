@@ -2,6 +2,8 @@
 
 VPN и прокси для Android и Windows с гибкой маршрутизацией и настраиваемым интерфейсом. Linux-версия в разработке.
 
+[![Всего скачиваний](https://img.shields.io/github/downloads/vnenapravo7-source/mcrf/total?label=%D1%81%D0%BA%D0%B0%D1%87%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F&style=flat-square)](https://github.com/vnenapravo7-source/mcrf/releases)
+
 ## Скачать
 
 | Платформа | Версия |
