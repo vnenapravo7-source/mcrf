@@ -154,8 +154,10 @@ def validate_state(state, repository):
         raise MonitorError("Invalid monitor state; restore it instead of resetting counters") from None
 
 
-def rows(counts):
-    return f"Windows: +{counts['windows']}\nAndroid: +{counts['android']}\nДвижки: +{counts['engines']}"
+def rows(counts, delta=True):
+    return "\n".join(f"{label}: {'+' if delta else ''}{counts[kind]}"
+                     for kind, label in (("windows", "Windows"), ("android", "Android"), ("engines", "Движки"))
+                     if not delta or counts[kind])
 
 
 def read_source_stats(url, token, now):
@@ -200,9 +202,16 @@ def read_source_stats(url, token, now):
         raise MonitorError("Source statistics response unavailable") from None
 
 
-def source_rows(counts):
-    return "\n".join(f"{label}: вручную {counts['manual'][kind]}; в приложении {counts['update'][kind]}"
-                     for kind, label in (("windows", "Windows"), ("android", "Android"), ("engines", "Движки")))
+def source_rows(counts, delta=True):
+    sections = []
+    for source, heading in (("manual", "🔗 Переходы по ссылкам"), ("update", "🔄 Запросы обновления")):
+        # Source metrics stay optional and sparse even in the daily report.
+        values = "\n".join(f"{label}: {'+' if delta else ''}{counts[source][kind]}"
+                           for kind, label in (("windows", "Windows"), ("android", "Android"), ("engines", "Движки"))
+                           if counts[source][kind])
+        if values:
+            sections.append(heading + "\n" + values)
+    return "\n\n".join(sections)
 
 
 def empty_sources():
@@ -211,55 +220,48 @@ def empty_sources():
 
 def source_day(stats, day):
     if stats is None or not date.fromisoformat(stats["coverage_start"]) <= day <= timestamp(stats["generated_at"]).astimezone(MSK).date():
-        return "Запросы по источникам: данные недоступны."
+        return ""
     entry = stats["days"].get(day.isoformat(), empty_sources())
     partial = day == timestamp(stats["started_at"]).astimezone(MSK).date()
-    return ("Запросы по источникам (отдельная метрика):\n" + source_rows(entry)
-            + ("\nНеполный первый день учёта запросов." if partial else "")
-            + "\nТолько учтённые ссылки/клиенты; запросы не означают завершённые или уникальные скачивания.")
+    text = source_rows(entry, delta=False)
+    return text + ("\nНеполные данные" if text and partial else "")
 
 
 def integrate_source(previous, state, messages, stats, now):
     """Append request statistics without assigning a source to GitHub downloads."""
     old = previous.get("source_stats") if previous else None
-    previous_status = previous.get("source_status") if previous else None
     state["source_status"] = "available" if stats else "unavailable"
-    status = "Запросы по источникам: данные недоступны."
-    changed = False
+    notice = ""
     if stats is not None:
         state["source_stats"] = stats
-        if old is None or old.get("epoch") != stats["epoch"]:
-            status = "Учёт запросов подключён: исходная точка" + (" после сброса счётчиков." if old else ".")
-        else:
+        if old is not None and old.get("epoch") == stats["epoch"]:
             delta = empty_sources()
-            reset = False
             for day, entry in stats["days"].items():
                 prior = old.get("days", {}).get(day, empty_sources())
                 for source in delta:
                     for kind in CATEGORIES:
                         difference = entry[source][kind] - prior[source][kind]
-                        reset |= difference < 0
                         delta[source][kind] += max(0, difference)
-            changed = any(value for entry in delta.values() for value in entry.values())
-            status = ("Новые учтённые запросы (отдельная метрика):\n" + source_rows(delta)
-                      + ("\nСчётчик снижался; положительные разницы приблизительны." if reset else ""))
-        status += "\nТолько учтённые ссылки/клиенты; запросы не означают завершённые или уникальные скачивания."
+            notice = source_rows(delta)
     result = []
     general_attached = False
     for message in messages:
-        match = re.search(r"итог за (\d{2}\.\d{2}\.\d{4})", message)
+        match = re.match(r"📊 За (\d{2}\.\d{2}\.\d{4})\n", message)
         if match:
             day = datetime.strptime(match.group(1), "%d.%m.%Y").date()
-            result.append(message + "\n\n" + source_day(stats, day))
-        elif "суточные данные недоступны" in message:
-            result.append(message + "\nЗапросы по источникам за этот период: данные недоступны.")
+            extra = source_day(stats, day)
+            partial = "\nНеполные данные" in message or "\nНеполные данные" in extra
+            message = message.replace("\nНеполные данные", "")
+            extra = extra.replace("\nНеполные данные", "")
+            result.append(message + ("\n\n" + extra if extra else "")
+                          + ("\nНеполные данные" if partial else ""))
+        elif message.startswith("📊 За "):
+            result.append(message)  # Retention-gap summary has no exact daily bucket.
         else:
-            result.append(message + "\n\n" + status)
+            result.append(message + ("\n\n" + notice if notice else ""))
             general_attached = True
-    status_transition = previous_status != state["source_status"]
-    epoch_changed = stats is not None and old is not None and old.get("epoch") != stats["epoch"]
-    if not general_attached and (changed or status_transition or epoch_changed):
-        result.insert(0, f"MCRF · запросы к {now.astimezone(MSK):%d.%m.%Y %H:%M} МСК\n" + status)
+    if not general_attached and notice:
+        result.insert(0, notice)
     return result
 
 
@@ -273,14 +275,7 @@ def advance(previous, snapshot, now, repository):
                  "observed_at": now.isoformat(), "assets": snapshot["assets"],
                  "stars": snapshot["stars"], "last_daily_date": (today - timedelta(days=1)).isoformat(),
                  "days": {today_key: bucket(partial=True, stars=snapshot["stars"])}}
-        totals = dict.fromkeys(CATEGORIES, 0)
-        for asset in snapshot["assets"].values():
-            totals[asset["category"]] += asset["count"]
-        return state, [f"MCRF · мониторинг включён ({now:%d.%m.%Y %H:%M} МСК)\n"
-                       "Исходные счётчики GitHub, без уведомлений о старых скачиваниях:\n"
-                       f"Windows: {totals['windows']}\nAndroid: {totals['android']}\n"
-                       f"Движки: {totals['engines']}\nЗвёзды: {snapshot['stars']}\n"
-                       "Источник скачивания: неизвестен. Суточный итог — после 12:00 МСК."]
+        return state, ["✅ Мониторинг включён"]
 
     validate_state(previous, repository)
     state = copy.deepcopy(previous)
@@ -313,34 +308,30 @@ def advance(previous, snapshot, now, repository):
     state["observed_at"] = now.isoformat()
 
     messages = []
-    if any(changes.values()) or star_delta:
-        messages.append(f"MCRF · изменения к {now:%d.%m.%Y %H:%M} МСК\n{rows(changes)}\n"
-                        f"Звёзды: {snapshot['stars']} ({star_delta:+d})\n"
-                        "Источник скачивания: неизвестен (GitHub).")
+    parts = []
+    if any(changes.values()):
+        parts.append("📥 Скачивания\n" + rows(changes))
+    if star_delta:
+        parts.append(f"⭐ Звёзды: {snapshot['stars']} ({star_delta:+d})")
+    if parts:
+        messages.append("\n".join(parts))
 
     # A late run catches up after noon. Before noon, yesterday is not yet due.
     due = today - timedelta(days=1 if now.hour >= 12 else 2)
     next_day = date.fromisoformat(state["last_daily_date"]) + timedelta(days=1)
     if next_day < earliest and next_day <= due:
         end = min(due, earliest - timedelta(days=1))
-        messages.append(f"MCRF · {next_day:%d.%m.%Y}–{end:%d.%m.%Y}: "
-                        "суточные данные недоступны (перерыв больше срока хранения 35 дней).")
+        messages.append(f"📊 За {next_day:%d.%m.%Y}–{end:%d.%m.%Y}\nНеполные данные")
         state["last_daily_date"] = end.isoformat()
         next_day = end + timedelta(days=1)
     while next_day <= due:
         entry = state["days"].get(next_day.isoformat())
         if entry is None:
             raise MonitorError("Missing daily bucket; restore monitor state")
-        flags = []
-        if entry["partial"]:
-            flags.append("неполный первый день после запуска")
-        if entry["uncertain"]:
-            flags.append("есть перерыв наблюдений; нули не доказывают отсутствие скачиваний")
-        star_count = str(entry["stars"]) if entry["stars"] is not None else "нет наблюдений"
-        messages.append(f"MCRF · итог за {next_day:%d.%m.%Y} (00:00–24:00 МСК)\n"
-                        f"{rows(entry)}\nЗвёзды: {star_count} ({entry['star_delta']:+d})\n"
-                        "Источник: неизвестен. По разнице опросов, границы суток приблизительны."
-                        + ("\n" + "; ".join(flags) + "." if flags else ""))
+        star_count = str(entry["stars"]) if entry["stars"] is not None else "—"
+        messages.append(f"📊 За {next_day:%d.%m.%Y}\n"
+                        f"{rows(entry, delta=False)}\n⭐ Звёзды: {star_count} ({entry['star_delta']:+d})"
+                        + ("\nНеполные данные" if entry["partial"] or entry["uncertain"] else ""))
         state["last_daily_date"] = next_day.isoformat()
         next_day += timedelta(days=1)
     state["days"] = {key: value for key, value in state["days"].items() if key >= earliest.isoformat()}
