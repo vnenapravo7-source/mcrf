@@ -11,11 +11,11 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 
 | Платформа | Версия |
 | --- | --- |
-| Windows x64 | [1.2](https://github.com/vnenapravo7-source/mcrf/releases/tag/v1.2) |
+| Windows x64 | [1.2](https://github.com/vnenapravo7-source/mcrf/releases/tag/v1.2) · [Скачать EXE](https://vnenapravo7.ru/mcrf-downloads/d/678292801) |
 | Android 10+ | [0.7.3](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.7.3) |
 | Linux | В разработке |
 
-Для Android скачайте [универсальный APK 0.7.3](https://github.com/vnenapravo7-source/mcrf/releases/download/android-v0.7.3/mcrf-android-universal-release.apk). Движки устанавливаются отдельно под архитектуру устройства из [единого каталога](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1), включая OpenFlux **0.16.0**. [Матрица проверки и ограничения](docs/ANDROID-STATUS.md).
+Для Android скачайте [универсальный APK 0.7.3](https://vnenapravo7.ru/mcrf-downloads/d/689482724). Движки устанавливаются отдельно под архитектуру устройства из [единого каталога](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1), включая OpenFlux **0.16.0**. [Матрица проверки и ограничения](docs/ANDROID-STATUS.md).
 
 ### Движки и протоколы
 
