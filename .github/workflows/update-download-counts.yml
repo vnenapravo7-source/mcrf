@@ -34,8 +34,7 @@ jobs:
               total: 0,
               windows: 0,
               android: 0,
-              engines: 0,
-              updated_at: new Date().toISOString()
+              engines: 0
             };
 
             for (const release of releases) {
@@ -52,9 +51,21 @@ jobs:
               }
             }
 
+            const output = '.github/download-counts.json';
+            const previous = fs.existsSync(output)
+              ? JSON.parse(fs.readFileSync(output, 'utf8'))
+              : null;
+            const unchanged = previous && ['total', 'windows', 'android', 'engines']
+              .every(key => previous[key] === counts[key]);
+            if (unchanged) {
+              core.info('Download counters are unchanged.');
+              return;
+            }
+
+            counts.updated_at = new Date().toISOString();
             fs.mkdirSync('.github', { recursive: true });
             fs.writeFileSync(
-              '.github/download-counts.json',
+              output,
               `${JSON.stringify(counts, null, 2)}\n`
             );
 
