@@ -60,6 +60,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SOURCE_STATS_URL: ${{ vars.SOURCE_STATS_URL }}
+          SOURCE_STATS_TOKEN: ${{ secrets.SOURCE_STATS_TOKEN }}
         run: python maintenance/telegram_download_monitor.py --state "$STATE_LOCAL"
 
       - name: Persist accepted observations on the state branch

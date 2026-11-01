@@ -1,0 +1,12 @@
+{
+  "android-app-0.7": {
+    "url": "https://github.com/vnenapravo7-source/mcrf/releases/download/android-v0.7/mcrf-android-universal-release.apk",
+    "platform": "android",
+    "product": "app"
+  },
+  "windows-update-1.1.2": {
+    "url": "https://github.com/vnenapravo7-source/mcrf/releases/download/v1.1.2/mcrf-app-update.zip",
+    "platform": "windows",
+    "product": "app"
+  }
+}

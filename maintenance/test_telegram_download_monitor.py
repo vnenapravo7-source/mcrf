@@ -175,5 +175,114 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(request.call_args.args[2], {"chat_id": "123", "text": "hello"})
 
 
+def raw_sources(now=START, rows=None, epoch="11111111-1111-4111-8111-111111111111", started=None):
+    return {"schema": 1, "metric": "download_requests", "completed_downloads": False,
+            "coverage": "controlled_links_and_opted_in_clients_only", "timezone": "Europe/Moscow",
+            "retention_days": 730, "counter_epoch": epoch, "started_at": (started or START).isoformat(),
+            "generated_at": now.isoformat(), "totals": [], "days": rows or []}
+
+
+def source_row(day="2026-10-01", count=1, source="manual", platform="windows", product="app"):
+    return {"day": day, "count": count, "source": source, "platform": platform, "product": product}
+
+
+def source_stats(raw, now=START):
+    with patch.object(monitor, "request_json", return_value=raw):
+        return monitor.read_source_stats(monitor.SOURCE_STATS_URL, "test-only", now)
+
+
+class SourceStatsTests(unittest.TestCase):
+    def test_fixed_https_origin_and_redirects_prevent_credential_leaks(self):
+        for url in ("http://vnenapravo7.ru/mcrf-downloads/v1/stats", "https://evil.example/v1/stats",
+                    monitor.SOURCE_STATS_URL + "?x=1", "https://vnenapravo7.ru@evil.example/mcrf-downloads/v1/stats"):
+            with patch.object(monitor, "request_json") as request:
+                with self.assertRaises(monitor.MonitorError):
+                    monitor.read_source_stats(url, "secret", START)
+                request.assert_not_called()
+        self.assertIsNone(monitor.NoRedirects().redirect_request(None, None, 302, "", {}, "https://evil.example"))
+
+    def test_source_schema_requires_request_semantics_freshness_and_unique_rows(self):
+        valid = raw_sources(rows=[source_row()])
+        for bad in ({**valid, "completed_downloads": True}, {**valid, "timezone": "UTC"},
+                    {**valid, "generated_at": (START - timedelta(hours=1)).isoformat()},
+                    {**valid, "days": [source_row(), source_row()]},
+                    {**valid, "days": [source_row(count=True)]}):
+            with self.assertRaises(monitor.MonitorError):
+                source_stats(bad)
+
+    def test_initial_request_baseline_never_spams_historical_deltas(self):
+        stats = source_stats(raw_sources(rows=[source_row(count=400)]))
+        state = {}
+        messages = monitor.integrate_source({}, state, [], stats, START)
+        self.assertEqual(len(messages), 1)
+        self.assertIn("исходная точка", messages[0])
+        self.assertNotIn("400", messages[0])
+        self.assertNotIn("test-only", json.dumps(state))
+
+    def test_request_deltas_are_separate_from_github_and_engines_combine_platforms(self):
+        old = source_stats(raw_sources(rows=[source_row(count=3)]))
+        now = START + timedelta(minutes=5)
+        stats = source_stats(raw_sources(now, rows=[source_row(count=5), source_row(source="update", count=4, platform="android"),
+                                                  source_row(source="update", count=2, product="engine"),
+                                                  source_row(source="update", count=3, platform="android", product="engine")]), now)
+        messages = monitor.integrate_source({"source_stats": old, "source_status": "available"}, {}, ["GitHub: +9; источник неизвестен"], stats, now)
+        self.assertEqual(len(messages), 1)
+        self.assertIn("GitHub: +9; источник неизвестен", messages[0])
+        self.assertIn("Windows: вручную 2; в приложении 0", messages[0])
+        self.assertIn("Android: вручную 0; в приложении 4", messages[0])
+        self.assertIn("Движки: вручную 0; в приложении 5", messages[0])
+        self.assertIn("не означают завершённые", messages[0])
+
+    def test_daily_source_moscow_zeros_are_available_only_after_collection_start(self):
+        stats = source_stats(raw_sources(START + timedelta(days=1)), START + timedelta(days=1))
+        self.assertIn("неполный", monitor.source_day(stats, START.date()).lower())
+        self.assertIn("вручную 0", monitor.source_day(stats, START.date() + timedelta(days=1)))
+        self.assertIn("недоступны", monitor.source_day(stats, START.date() - timedelta(days=1)))
+        messages = monitor.integrate_source({}, {}, ["MCRF · итог за 01.10.2026 (00:00–24:00 МСК)"], stats, START)
+        self.assertIn("Запросы по источникам (отдельная метрика)", messages[-1])
+
+    def test_epoch_reset_rebaselines_instead_of_counting_entire_new_database(self):
+        old = source_stats(raw_sources())
+        new = source_stats(raw_sources(rows=[source_row(count=600)], epoch="22222222-2222-4222-8222-222222222222"))
+        messages = monitor.integrate_source({"source_stats": old, "source_status": "available"}, {}, [], new, START)
+        self.assertEqual(len(messages), 1)
+        self.assertIn("после сброса", messages[0])
+        self.assertNotIn("600", messages[0])
+
+    def test_unavailable_transition_once_and_recovery_uses_prior_baseline(self):
+        old = source_stats(raw_sources(rows=[source_row(count=3)]))
+        state = {"source_stats": old}
+        messages = monitor.integrate_source({"source_stats": old, "source_status": "available"}, state, [], None, START)
+        self.assertIn("недоступны", messages[0])
+        self.assertEqual(state["source_stats"], old)
+        self.assertEqual(monitor.integrate_source(state, dict(state), [], None, START), [])
+        recovered = source_stats(raw_sources(rows=[source_row(count=5)]))
+        messages = monitor.integrate_source(state, {}, [], recovered, START)
+        self.assertIn("вручную 2", messages[0])
+
+    def test_service_failure_and_invalid_optional_state_do_not_block_github(self):
+        for old in (None, {"epoch": "broken", "days": "malformed"}):
+            with tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "state.json"
+                state = monitor.advance(None, snapshot(), START, REPO)[0]
+                if old:
+                    state["source_stats"] = old
+                monitor.save_state(path, state)
+                with patch.object(monitor.GitHub, "snapshot", return_value=snapshot(12)), patch.object(monitor, "read_source_stats", side_effect=monitor.MonitorError("unavailable")), patch.object(monitor, "telegram_send") as send:
+                    monitor.run(REPO, path, "fake", "fake", "fake", START + timedelta(minutes=5), monitor.SOURCE_STATS_URL, "test-only")
+                saved = json.loads(path.read_text(encoding="utf-8"))
+                self.assertEqual(saved["assets"]["1"]["count"], 12)
+                self.assertEqual(saved["source_status"], "unavailable")
+                self.assertIn("Windows: +2", send.call_args.args[2])
+                self.assertIn("недоступны", send.call_args.args[2])
+
+    def test_old_source_days_falling_out_of_retention_never_subtract_new_requests(self):
+        old = {"epoch": "same", "days": {"2026-09-01": {"manual": {"windows": 300, "android": 0, "engines": 0}, "update": dict.fromkeys(monitor.CATEGORIES, 0)}}}
+        current = source_stats(raw_sources(rows=[source_row(count=2)]))
+        current["epoch"] = "same"
+        messages = monitor.integrate_source({"source_stats": old, "source_status": "available"}, {}, [], current, START)
+        self.assertIn("Windows: вручную 2", messages[0])
+
+
 if __name__ == "__main__":
     unittest.main()

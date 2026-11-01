@@ -13,6 +13,7 @@ from pathlib import Path
 import re
 import sys
 import tempfile
+import uuid
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
@@ -20,6 +21,7 @@ MSK = timezone(timedelta(hours=3), "MSK")
 CATEGORIES = ("windows", "android", "engines")
 RETENTION_DAYS = 35
 GAP = timedelta(minutes=15)
+SOURCE_STATS_URL = "https://vnenapravo7.ru/mcrf-downloads/v1/stats"
 
 
 class MonitorError(Exception):
@@ -156,6 +158,111 @@ def rows(counts):
     return f"Windows: +{counts['windows']}\nAndroid: +{counts['android']}\nДвижки: +{counts['engines']}"
 
 
+def read_source_stats(url, token, now):
+    """Normalize the opt-in request metric; never send credentials to another host."""
+    if url != SOURCE_STATS_URL or not token:
+        raise MonitorError("Source statistics configuration unavailable")
+    raw = request_json(url, {"Authorization": f"Bearer {token}", "Accept": "application/json"}, service="Source statistics")
+    try:
+        if (type(raw["schema"]) is not int or raw["schema"] != 1
+                or raw["metric"] != "download_requests" or raw["completed_downloads"] is not False
+                or raw["coverage"] != "controlled_links_and_opted_in_clients_only"
+                or raw["timezone"] != "Europe/Moscow" or not natural(raw["retention_days"])
+                or not 1 <= raw["retention_days"] <= 730):
+            raise ValueError
+        epoch = str(uuid.UUID(raw["counter_epoch"]))
+        started = timestamp(raw["started_at"]).astimezone(MSK)
+        generated = timestamp(raw["generated_at"]).astimezone(MSK)
+        now = now.astimezone(MSK)
+        if started > generated or not -timedelta(minutes=5) <= now - generated <= GAP:
+            raise ValueError
+        if not isinstance(raw["days"], list) or len(raw["days"]) > 730 * 8:
+            raise ValueError
+        coverage_start = max(started.date(), generated.date() - timedelta(days=raw["retention_days"] - 1))
+        days = {}
+        seen = set()
+        for row in raw["days"]:
+            day = date.fromisoformat(row["day"])
+            source, platform, product = row["source"], row["platform"], row["product"]
+            key = (day, source, platform, product)
+            if (source not in ("manual", "update") or platform not in ("windows", "android")
+                    or product not in ("app", "engine") or not natural(row["count"])
+                    or not coverage_start <= day <= generated.date() or key in seen):
+                raise ValueError
+            seen.add(key)
+            if day < now.date() - timedelta(days=RETENTION_DAYS - 1):
+                continue
+            entry = days.setdefault(day.isoformat(), {"manual": dict.fromkeys(CATEGORIES, 0), "update": dict.fromkeys(CATEGORIES, 0)})
+            entry[source]["engines" if product == "engine" else platform] += row["count"]
+        return {"epoch": epoch, "started_at": started.isoformat(), "generated_at": generated.isoformat(),
+                "coverage_start": coverage_start.isoformat(), "days": days}
+    except (KeyError, TypeError, AttributeError, ValueError, MonitorError):
+        raise MonitorError("Source statistics response unavailable") from None
+
+
+def source_rows(counts):
+    return "\n".join(f"{label}: вручную {counts['manual'][kind]}; в приложении {counts['update'][kind]}"
+                     for kind, label in (("windows", "Windows"), ("android", "Android"), ("engines", "Движки")))
+
+
+def empty_sources():
+    return {source: dict.fromkeys(CATEGORIES, 0) for source in ("manual", "update")}
+
+
+def source_day(stats, day):
+    if stats is None or not date.fromisoformat(stats["coverage_start"]) <= day <= timestamp(stats["generated_at"]).astimezone(MSK).date():
+        return "Запросы по источникам: данные недоступны."
+    entry = stats["days"].get(day.isoformat(), empty_sources())
+    partial = day == timestamp(stats["started_at"]).astimezone(MSK).date()
+    return ("Запросы по источникам (отдельная метрика):\n" + source_rows(entry)
+            + ("\nНеполный первый день учёта запросов." if partial else "")
+            + "\nТолько учтённые ссылки/клиенты; запросы не означают завершённые или уникальные скачивания.")
+
+
+def integrate_source(previous, state, messages, stats, now):
+    """Append request statistics without assigning a source to GitHub downloads."""
+    old = previous.get("source_stats") if previous else None
+    previous_status = previous.get("source_status") if previous else None
+    state["source_status"] = "available" if stats else "unavailable"
+    status = "Запросы по источникам: данные недоступны."
+    changed = False
+    if stats is not None:
+        state["source_stats"] = stats
+        if old is None or old.get("epoch") != stats["epoch"]:
+            status = "Учёт запросов подключён: исходная точка" + (" после сброса счётчиков." if old else ".")
+        else:
+            delta = empty_sources()
+            reset = False
+            for day, entry in stats["days"].items():
+                prior = old.get("days", {}).get(day, empty_sources())
+                for source in delta:
+                    for kind in CATEGORIES:
+                        difference = entry[source][kind] - prior[source][kind]
+                        reset |= difference < 0
+                        delta[source][kind] += max(0, difference)
+            changed = any(value for entry in delta.values() for value in entry.values())
+            status = ("Новые учтённые запросы (отдельная метрика):\n" + source_rows(delta)
+                      + ("\nСчётчик снижался; положительные разницы приблизительны." if reset else ""))
+        status += "\nТолько учтённые ссылки/клиенты; запросы не означают завершённые или уникальные скачивания."
+    result = []
+    general_attached = False
+    for message in messages:
+        match = re.search(r"итог за (\d{2}\.\d{2}\.\d{4})", message)
+        if match:
+            day = datetime.strptime(match.group(1), "%d.%m.%Y").date()
+            result.append(message + "\n\n" + source_day(stats, day))
+        elif "суточные данные недоступны" in message:
+            result.append(message + "\nЗапросы по источникам за этот период: данные недоступны.")
+        else:
+            result.append(message + "\n\n" + status)
+            general_attached = True
+    status_transition = previous_status != state["source_status"]
+    epoch_changed = stats is not None and old is not None and old.get("epoch") != stats["epoch"]
+    if not general_attached and (changed or status_transition or epoch_changed):
+        result.insert(0, f"MCRF · запросы к {now.astimezone(MSK):%d.%m.%Y %H:%M} МСК\n" + status)
+    return result
+
+
 def advance(previous, snapshot, now, repository):
     """Pure state transition: caller persists only after all messages succeed."""
     now = now.astimezone(MSK)
@@ -263,7 +370,7 @@ def save_state(path, state):
         temporary.unlink(missing_ok=True)
 
 
-def run(repository, path, token, chat_id, github_token, now=None):
+def run(repository, path, token, chat_id, github_token, now=None, source_url="", source_token=""):
     previous = None
     if path.exists():
         try:
@@ -271,8 +378,29 @@ def run(repository, path, token, chat_id, github_token, now=None):
         except (OSError, ValueError):
             raise MonitorError("Unable to read monitor state; restore it instead of resetting") from None
         validate_state(previous, repository)
+    now = now or datetime.now(timezone.utc)
     snapshot = GitHub(repository, github_token).snapshot()
-    state, messages = advance(previous, snapshot, now or datetime.now(timezone.utc), repository)
+    state, messages = advance(previous, snapshot, now, repository)
+    if source_url or source_token:
+        try:
+            stats = read_source_stats(source_url, source_token, now)
+        except Exception:
+            # Optional service errors must not block the existing GitHub monitor or
+            # expose a bearer token via an exception/response body.
+            stats = None
+        try:
+            if (stats is not None and previous and previous.get("source_stats")
+                    and previous["source_stats"].get("epoch") == stats["epoch"]
+                    and timestamp(previous["source_stats"]["generated_at"]) > timestamp(stats["generated_at"])):
+                stats = None
+            messages = integrate_source(previous, state, messages, stats, now)
+        except Exception:
+            # A damaged optional baseline must not stop core GitHub observations.
+            if previous and "source_stats" in previous:
+                state["source_stats"] = previous["source_stats"]
+            else:
+                state.pop("source_stats", None)
+            messages = integrate_source(previous, state, messages, None, now)
     for message in messages:
         telegram_send(token, chat_id, message)
     save_state(path, state)
@@ -288,7 +416,9 @@ def main():
     if not all(values):
         parser.exit(1, "Required environment variables: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GITHUB_TOKEN\n")
     try:
-        run(args.repository, args.state, *values)
+        run(args.repository, args.state, *values,
+            source_url=os.environ.get("SOURCE_STATS_URL", "").strip(),
+            source_token=os.environ.get("SOURCE_STATS_TOKEN", "").strip())
     except MonitorError as exc:
         print(str(exc), file=sys.stderr)
         return 1

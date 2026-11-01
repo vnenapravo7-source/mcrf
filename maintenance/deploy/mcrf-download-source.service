@@ -1,0 +1,27 @@
+[Unit]
+Description=MCRF anonymous download request counters
+After=network.target
+
+[Service]
+Type=simple
+User=mcrf-downloads
+Group=mcrf-downloads
+WorkingDirectory=/opt/mcrf-downloads
+EnvironmentFile=/etc/mcrf-downloads/service.env
+ExecStart=/usr/bin/python3 /opt/mcrf-downloads/download_source_service.py --assets /etc/mcrf-downloads/assets.json --database /var/lib/mcrf-downloads/counts.sqlite3
+Restart=on-failure
+RestartSec=5
+StateDirectory=mcrf-downloads
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/mcrf-downloads
+RestrictAddressFamilies=AF_INET AF_INET6
+LimitNOFILE=256
+TasksMax=64
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target
