@@ -1,0 +1,72 @@
+name: Update download counters
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+  release:
+    types: [published, released, edited, deleted]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-download-counts
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Calculate release asset downloads
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const releases = await github.paginate(
+              github.rest.repos.listReleases,
+              { owner: context.repo.owner, repo: context.repo.repo, per_page: 100 }
+            );
+
+            const counts = {
+              total: 0,
+              windows: 0,
+              android: 0,
+              engines: 0,
+              updated_at: new Date().toISOString()
+            };
+
+            for (const release of releases) {
+              for (const asset of release.assets) {
+                const downloads = asset.download_count || 0;
+                const name = asset.name.toLowerCase();
+
+                counts.total += downloads;
+                if (name === 'mcrf.exe') counts.windows += downloads;
+                if (release.tag_name.startsWith('android-') && name.endsWith('.apk')) {
+                  counts.android += downloads;
+                }
+                if (release.tag_name.startsWith('engines-')) counts.engines += downloads;
+              }
+            }
+
+            fs.mkdirSync('.github', { recursive: true });
+            fs.writeFileSync(
+              '.github/download-counts.json',
+              `${JSON.stringify(counts, null, 2)}\n`
+            );
+
+      - name: Commit updated counters
+        shell: bash
+        run: |
+          if git diff --quiet -- .github/download-counts.json; then
+            echo "Download counters are unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/download-counts.json
+          git commit -m "chore: update download counters"
+          git push
