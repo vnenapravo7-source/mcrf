@@ -1,0 +1,569 @@
+{
+  "assets": {
+    "627008521": {
+      "category": "windows",
+      "count": 5
+    },
+    "637143797": {
+      "category": "engines",
+      "count": 8
+    },
+    "644271431": {
+      "category": "engines",
+      "count": 3
+    },
+    "644272764": {
+      "category": "engines",
+      "count": 20
+    },
+    "644272766": {
+      "category": "engines",
+      "count": 5
+    },
+    "644272938": {
+      "category": "engines",
+      "count": 3
+    },
+    "644273459": {
+      "category": "engines",
+      "count": 16
+    },
+    "644273525": {
+      "category": "engines",
+      "count": 3
+    },
+    "644273553": {
+      "category": "engines",
+      "count": 3
+    },
+    "644273946": {
+      "category": "engines",
+      "count": 2
+    },
+    "644273960": {
+      "category": "engines",
+      "count": 8
+    },
+    "644396534": {
+      "category": "windows",
+      "count": 14
+    },
+    "656838764": {
+      "category": "android",
+      "count": 3
+    },
+    "659284023": {
+      "category": "android",
+      "count": 40
+    },
+    "663311299": {
+      "category": "engines",
+      "count": 1
+    },
+    "663311304": {
+      "category": "engines",
+      "count": 1
+    },
+    "663311305": {
+      "category": "engines",
+      "count": 5
+    },
+    "664138318": {
+      "category": "windows",
+      "count": 7
+    },
+    "666444998": {
+      "category": "engines",
+      "count": 1
+    },
+    "666444999": {
+      "category": "engines",
+      "count": 2
+    },
+    "666445000": {
+      "category": "engines",
+      "count": 2
+    },
+    "666445001": {
+      "category": "engines",
+      "count": 2
+    },
+    "666445003": {
+      "category": "engines",
+      "count": 2
+    },
+    "666565616": {
+      "category": "engines",
+      "count": 3
+    },
+    "666565617": {
+      "category": "engines",
+      "count": 1
+    },
+    "666565618": {
+      "category": "engines",
+      "count": 12
+    },
+    "667012827": {
+      "category": "engines",
+      "count": 6
+    },
+    "667012828": {
+      "category": "engines",
+      "count": 15
+    },
+    "667012829": {
+      "category": "engines",
+      "count": 4
+    },
+    "667012830": {
+      "category": "engines",
+      "count": 4
+    },
+    "667012832": {
+      "category": "engines",
+      "count": 5
+    },
+    "667012896": {
+      "category": "engines",
+      "count": 1
+    },
+    "667094406": {
+      "category": "engines",
+      "count": 3
+    },
+    "667094449": {
+      "category": "engines",
+      "count": 2
+    },
+    "667094559": {
+      "category": "engines",
+      "count": 2
+    },
+    "667094620": {
+      "category": "engines",
+      "count": 8
+    },
+    "667094639": {
+      "category": "engines",
+      "count": 2
+    },
+    "667094662": {
+      "category": "engines",
+      "count": 3
+    },
+    "667094666": {
+      "category": "engines",
+      "count": 5
+    },
+    "667094668": {
+      "category": "engines",
+      "count": 5
+    },
+    "667094675": {
+      "category": "engines",
+      "count": 2
+    },
+    "667094680": {
+      "category": "engines",
+      "count": 2
+    },
+    "667097097": {
+      "category": "windows",
+      "count": 13
+    },
+    "667135634": {
+      "category": "engines",
+      "count": 2
+    },
+    "667135657": {
+      "category": "engines",
+      "count": 94
+    },
+    "667135659": {
+      "category": "engines",
+      "count": 11
+    },
+    "667135662": {
+      "category": "engines",
+      "count": 3
+    },
+    "667136355": {
+      "category": "engines",
+      "count": 8
+    },
+    "669006395": {
+      "category": "windows",
+      "count": 14
+    },
+    "669046098": {
+      "category": "android",
+      "count": 27
+    },
+    "669046101": {
+      "category": "android",
+      "count": 31
+    },
+    "669047464": {
+      "category": "android",
+      "count": 1
+    },
+    "669047468": {
+      "category": "android",
+      "count": 3
+    },
+    "669339038": {
+      "category": "engines",
+      "count": 7
+    },
+    "669339039": {
+      "category": "engines",
+      "count": 2
+    },
+    "669428073": {
+      "category": "windows",
+      "count": 16
+    },
+    "669564260": {
+      "category": "engines",
+      "count": 4
+    },
+    "669564264": {
+      "category": "engines",
+      "count": 3
+    },
+    "669637933": {
+      "category": "engines",
+      "count": 3
+    },
+    "669637943": {
+      "category": "engines",
+      "count": 2
+    },
+    "669711988": {
+      "category": "engines",
+      "count": 4
+    },
+    "669711989": {
+      "category": "engines",
+      "count": 2
+    },
+    "670210352": {
+      "category": "engines",
+      "count": 1
+    },
+    "670210359": {
+      "category": "engines",
+      "count": 2
+    },
+    "670210520": {
+      "category": "engines",
+      "count": 150
+    },
+    "676472314": {
+      "category": "android",
+      "count": 5
+    },
+    "676472316": {
+      "category": "android",
+      "count": 12
+    },
+    "676473072": {
+      "category": "engines",
+      "count": 9
+    },
+    "676473181": {
+      "category": "engines",
+      "count": 1
+    },
+    "676473271": {
+      "category": "engines",
+      "count": 1
+    },
+    "676473438": {
+      "category": "engines",
+      "count": 2
+    },
+    "676473543": {
+      "category": "engines",
+      "count": 2
+    },
+    "676473758": {
+      "category": "engines",
+      "count": 2
+    },
+    "676474004": {
+      "category": "engines",
+      "count": 1
+    },
+    "676474230": {
+      "category": "engines",
+      "count": 1
+    },
+    "676474384": {
+      "category": "engines",
+      "count": 4
+    },
+    "676474495": {
+      "category": "engines",
+      "count": 1
+    },
+    "676474662": {
+      "category": "engines",
+      "count": 1
+    },
+    "676474783": {
+      "category": "engines",
+      "count": 1
+    },
+    "676475041": {
+      "category": "engines",
+      "count": 4
+    },
+    "676475192": {
+      "category": "engines",
+      "count": 1
+    },
+    "676475346": {
+      "category": "engines",
+      "count": 1
+    },
+    "676475513": {
+      "category": "engines",
+      "count": 1
+    },
+    "676475600": {
+      "category": "engines",
+      "count": 3
+    },
+    "676475703": {
+      "category": "engines",
+      "count": 1
+    },
+    "676475814": {
+      "category": "engines",
+      "count": 1
+    },
+    "676475973": {
+      "category": "engines",
+      "count": 1
+    },
+    "676476083": {
+      "category": "engines",
+      "count": 3
+    },
+    "676476300": {
+      "category": "engines",
+      "count": 3
+    },
+    "676476397": {
+      "category": "engines",
+      "count": 1
+    },
+    "676476569": {
+      "category": "engines",
+      "count": 1
+    },
+    "676476670": {
+      "category": "engines",
+      "count": 4
+    },
+    "676476771": {
+      "category": "engines",
+      "count": 1
+    },
+    "676476956": {
+      "category": "engines",
+      "count": 1
+    },
+    "676477158": {
+      "category": "engines",
+      "count": 1
+    },
+    "676477301": {
+      "category": "engines",
+      "count": 17
+    },
+    "676477440": {
+      "category": "engines",
+      "count": 2
+    },
+    "676477553": {
+      "category": "engines",
+      "count": 1
+    },
+    "676477678": {
+      "category": "engines",
+      "count": 1
+    },
+    "676477835": {
+      "category": "engines",
+      "count": 3
+    },
+    "676477975": {
+      "category": "engines",
+      "count": 1
+    },
+    "676478122": {
+      "category": "engines",
+      "count": 1
+    },
+    "676478266": {
+      "category": "engines",
+      "count": 2
+    },
+    "676478399": {
+      "category": "engines",
+      "count": 4
+    },
+    "676478537": {
+      "category": "engines",
+      "count": 1
+    },
+    "676478600": {
+      "category": "engines",
+      "count": 1
+    },
+    "676478708": {
+      "category": "engines",
+      "count": 1
+    },
+    "676478802": {
+      "category": "engines",
+      "count": 2
+    },
+    "676478917": {
+      "category": "engines",
+      "count": 1
+    },
+    "676478974": {
+      "category": "engines",
+      "count": 1
+    },
+    "676479108": {
+      "category": "engines",
+      "count": 1
+    },
+    "676479220": {
+      "category": "engines",
+      "count": 10
+    },
+    "676479376": {
+      "category": "engines",
+      "count": 1
+    },
+    "676479522": {
+      "category": "engines",
+      "count": 1
+    },
+    "676479727": {
+      "category": "engines",
+      "count": 1
+    },
+    "676479851": {
+      "category": "engines",
+      "count": 23
+    },
+    "676479972": {
+      "category": "engines",
+      "count": 1
+    },
+    "676480117": {
+      "category": "engines",
+      "count": 2
+    },
+    "676480838": {
+      "category": "engines",
+      "count": 0
+    },
+    "678202881": {
+      "category": "android",
+      "count": 14
+    },
+    "678203021": {
+      "category": "android",
+      "count": 8
+    },
+    "678204918": {
+      "category": "engines",
+      "count": 24
+    },
+    "678205137": {
+      "category": "engines",
+      "count": 6
+    },
+    "678205450": {
+      "category": "engines",
+      "count": 3
+    },
+    "678205768": {
+      "category": "engines",
+      "count": 2
+    },
+    "678206011": {
+      "category": "engines",
+      "count": 2
+    },
+    "678231035": {
+      "category": "engines",
+      "count": 19
+    },
+    "678231351": {
+      "category": "engines",
+      "count": 6
+    },
+    "678231660": {
+      "category": "engines",
+      "count": 2
+    },
+    "678232339": {
+      "category": "engines",
+      "count": 2
+    },
+    "678232593": {
+      "category": "engines",
+      "count": 2
+    },
+    "678232729": {
+      "category": "engines",
+      "count": 1
+    },
+    "678292801": {
+      "category": "windows",
+      "count": 16
+    },
+    "683144865": {
+      "category": "android",
+      "count": 6
+    },
+    "683144869": {
+      "category": "android",
+      "count": 13
+    },
+    "689482723": {
+      "category": "android",
+      "count": 8
+    },
+    "689482724": {
+      "category": "android",
+      "count": 19
+    }
+  },
+  "days": {
+    "2026-11-01": {
+      "android": 0,
+      "engines": 0,
+      "partial": true,
+      "star_delta": 0,
+      "stars": 13,
+      "uncertain": false,
+      "windows": 0
+    }
+  },
+  "last_daily_date": "2026-10-31",
+  "observed_at": "2026-11-01T18:08:48.973818+03:00",
+  "repository": "vnenapravo7-source/mcrf",
+  "stars": 13,
+  "started_at": "2026-11-01T18:08:48.973818+03:00",
+  "version": 1
+}
