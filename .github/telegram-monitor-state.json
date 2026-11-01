@@ -561,8 +561,16 @@
     }
   },
   "last_daily_date": "2026-10-31",
-  "observed_at": "2026-11-01T18:09:28.130171+03:00",
+  "observed_at": "2026-11-01T18:15:23.602726+03:00",
   "repository": "vnenapravo7-source/mcrf",
+  "source_stats": {
+    "coverage_start": "2026-11-01",
+    "days": {},
+    "epoch": "cf0f3210-e3de-4af1-8a89-18c236098c4e",
+    "generated_at": "2026-11-01T18:15:28.903433+03:00",
+    "started_at": "2026-11-01T18:13:14.386929+03:00"
+  },
+  "source_status": "available",
   "stars": 13,
   "started_at": "2026-11-01T18:08:48.973818+03:00",
   "version": 1
