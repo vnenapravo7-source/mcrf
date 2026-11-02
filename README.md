@@ -1,6 +1,6 @@
 # MCRF
 
-VPN и прокси для Android и Windows с гибкой маршрутизацией и настраиваемым интерфейсом. Linux-версия в разработке.
+VPN и прокси для Android и Windows с гибкой маршрутизацией и настраиваемым интерфейсом. Linux и iOS версия в разработке.
 
 [![Все файлы](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvnenapravo7-source%2Fmcrf%2Fmain%2F.github%2Fdownload-counts.json&query=%24.total&label=downloads%20total&color=555&style=flat-square)](https://github.com/vnenapravo7-source/mcrf/releases)
 [![Windows](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvnenapravo7-source%2Fmcrf%2Fmain%2F.github%2Fdownload-counts.json&query=%24.windows&label=downloads%20Windows&color=0078d4&style=flat-square)](https://github.com/vnenapravo7-source/mcrf/releases)
@@ -15,8 +15,6 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | Android 10+ | [0.7.3 — текущий опубликованный выпуск](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.7.3) |
 | iOS | В разработке |
 | Linux | В разработке |
-
-Текущий опубликованный Android: [универсальный APK 0.7.3](https://vnenapravo7.ru/mcrf-downloads/d/689482724).
 
 
 ### Движки и протоколы
