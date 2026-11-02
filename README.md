@@ -117,7 +117,6 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | 49 | П4 | Расширенное управление серверами и автодеплой S3 Bypass | Отложено | Существующие серверы и подключения S3 Bypass сохранены. |
 | 50 | П4 | Автодеплой: полная провайдерская и UI-матрица | Частично | Ранее принятые ручные/именованные установки сохранены; внешние сценарии и CAPTCHA требуют проверки. |
 
-Границы проверок: [матрица Android](docs/ANDROID-STATUS.md), [руководство](docs/ANDROID-GUIDE.md). Предметные локальные материалы: `ports/android/coordination/current-csqtt-20261102.md`, `csqtt-unified-migration-handoff-20261102.md`, `diagnostics-runtime-handoff-20261102.md`, `startup-resume-performance-20261102.md`. Исторические требования и закрытия сохраняются в локальных `coverage.json`, `change-set-2026-10-14-18.json` и `remaining-pool-2026-10-15.json`. Замечания review Steer требуют сверки с текущим кодом и не объявляются подтверждёнными дефектами.
 
 </details>
 
