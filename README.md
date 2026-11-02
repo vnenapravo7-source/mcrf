@@ -13,12 +13,11 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | --- | --- |
 | Windows x64 | [1.2](https://github.com/vnenapravo7-source/mcrf/releases/tag/v1.2) · [Скачать EXE](https://vnenapravo7.ru/mcrf-downloads/d/678292801) |
 | Android 10+ | [0.7.3 — текущий опубликованный выпуск](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.7.3) |
-| Android 2.0 / 10065 | Подготовка выпуска |
+| iOS | В разработке |
 | Linux | В разработке |
 
 Текущий опубликованный Android: [универсальный APK 0.7.3](https://vnenapravo7.ru/mcrf-downloads/d/689482724).
 
-Целевой выпуск Android — **2.0 / 10065**, тег `android-v2.0`, APK `mcrf-android-<ABI>-2.0.apk`; публикация этой ветки ещё не выполнена. После публикации APK будет доступен на [странице 2.0](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v2.0). Движки устанавливаются отдельно под архитектуру устройства из [единого каталога](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1), включая OpenFlux **0.16.0**. [Матрица проверки и ограничения](docs/ANDROID-STATUS.md).
 
 ### Движки и протоколы
 
@@ -37,7 +36,7 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | [WarpScout](https://github.com/vernette/warpscout)<br><sub>Сторонний</sub> | Поиск WARP-подключений | 7,0 |
 | [Zapret](native/zapret-engine/README.md) / [ByeDPI](https://github.com/hufrea/byedpi) · ByeTube<br><sub>Windows: Zapret — расширение MCRF; ByeDPI — сторонний</sub> | Обход DPI: TCP / UDP и локальный SOCKS-прокси | В приложении Windows |
 
-APK — размер загрузки для Android arm64, округлённый до 0,1 МБ (1 МБ = 1 000 000 байт), по проверенным пакетам каталога 0.7. После установки размер больше. SS — Shadowsocks, HY / HY2 — Hysteria / Hysteria2, WG / AWG — WireGuard / AmneziaWG. [Версии CSQTT, SWG и ограничения проверки](docs/ANDROID-GUIDE.md#версии-csqtt-и-swg).
+SS — Shadowsocks, HY / HY2 — Hysteria / Hysteria2, WG / AWG — WireGuard / AmneziaWG.
 
 ## Возможности
 
