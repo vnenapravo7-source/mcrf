@@ -19,23 +19,22 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 
 ### Движки и протоколы
 
-| Движок | Протоколы | APK, МБ |
+| Движок | Протоколы и назначение | Размер, МБ |
 | --- | --- | --- |
-| [sing-box-lx](https://github.com/Leadaxe/sing-box-lx)<br><sub>Кастомная сборка MCRF</sub> | VLESS / REALITY, VMess, Trojan, SS, HY / HY2<br>TUIC, AnyTLS, Naive, SSH, HTTP(S), SOCKS5, WG / AWG | 30,5 |
-| [Steer 0.3.3](https://github.com/splify2/steer)<br><sub>Доработанный порт MCRF, модуль 16</sub> | VLESS / REALITY, VMess, Trojan, SS, HY2<br>HTTP(S), SOCKS4 / 4a / 5 | 10,4 |
-| [Компактный WG/AWG](ports/android/transports/wg-backend/)<br><sub>Модуль MCRF на базе wireguard-go</sub> | WireGuard, AmneziaWG 3.0 / 3.1 | 3,5 |
-| [Telegram WS](https://github.com/y0sy4/telegram-proxy)<br><sub>Сторонний, адаптирован для MCRF</sub> | SOCKS5 → WebSocket для Telegram | 4,3 |
-| **BS — общий пакет MCRF**<br><sub>Один общий исполняемый модуль и транспортная библиотека вместо повторной загрузки для каждого варианта</sub> | CSQTT 2.0 / 2.1.5 / 2.1.9; SWG Panel 2.5.1 / 2.5.2 / 2.5.3; QWDTT | 10,6 arm64 |
-| [Отдельные TURN-пакеты](ports/android/transports/transport-lock.json)<br><sub>Совместимые резервные варианты и дополнительные транспорты</sub> | CSQTT 2.0 / 2.1.5 / 2.1.9 / 2.5, SWG Panel 2.5.1 / 2.5.2 / 2.5.3, Rebirth 2.5; WDTT, QWDTT и OLCRTC | CSQTT: 12,7–13,1<br>WDTT: 9,2<br>QWDTT: 8,7<br>OLCRTC: 13,0 |
-| [OpenFlux 0.17.1](https://github.com/p1neappleXpress/OpenFlux)<br><sub>Модуль из оригинального репозитория; JS-транспорты обновляются из [OpenFluxTransports](https://github.com/p1neappleXpress/OpenFluxTransports)</sub> | Зашифрованный Session/Direct и документные транспорты; UDP-транспорт FluxFast | — |
-| [DNSTT](ports/android/transports/dnstt/) / [VayDNS](https://github.com/net2share/vaydns) / [SlipStream](https://github.com/EndPositive/slipstream)<br><sub>Отдельные адаптированные модули</sub> | DNS-туннели; VayDNS 0.2.8; SlipStream — совместимый backend Mygod/slipstream-rust 0.1.1 | DNSTT: 5,8<br>VayDNS: 5,7<br>SlipStream: 7,6 |
-| [MasterDnsVPN](https://github.com/masterking32/MasterDnsVPN) / [SSTP](https://github.com/ttrroyy/qThroneMobile/tree/8463d3397b0a8522f92811f5c0698679ab8efc77/carriers/sstp)<br><sub>Отдельные адаптированные модули</sub> | DNS-туннель / SSTP | 4,0 / 5,4 |
-| [Модуль дополнительных протоколов — APK ARM64](https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-engine-protocols-arm64-v8a-release.apk)<br><sub>Отдельный пакет MCRF</sub> | TUIC, AnyTLS, NaiveProxy, SSH | 21,1 |
-| [Xray](https://github.com/throneproj/xray-core) / [TLScore](https://github.com/throneproj/sing-box)<br><sub>Сторонние форки с адаптацией MCRF</sub> | Xray: VLESS / REALITY, VMess, Trojan, SS, HTTP / SOCKS<br>TLScore: VLESS, VMess, Trojan, HTTP / SOCKS + TLS fragmentation / tricks | Xray: 14,1<br>TLScore: 15,3 |
+| [sing-box-lx](https://github.com/Leadaxe/sing-box-lx)<br><sub>Кастомная сборка MCRF</sub> | VLESS / REALITY, VMess, Trojan, Shadowsocks, Hysteria / Hysteria 2<br>TUIC, AnyTLS, NaiveProxy, SSH, HTTP / HTTPS, SOCKS5, WireGuard / AmneziaWG | 30,5 |
+| [Steer 0.3.3](https://github.com/splify2/steer)<br><sub>Доработанный порт MCRF, модуль 16</sub> | VLESS / REALITY, VMess, Trojan, Shadowsocks, Hysteria 2<br>HTTP / HTTPS, SOCKS4 / 4a / 5 | 10,4 |
+| [Компактный WireGuard / AmneziaWG](ports/android/transports/wg-backend/)<br><sub>Модуль MCRF на базе wireguard-go</sub> | WireGuard, AmneziaWG 3.0 / 3.1 | 3,5 |
+| [Telegram-прокси через WebSocket](https://github.com/y0sy4/telegram-proxy)<br><sub>Сторонний, адаптирован для MCRF</sub> | SOCKS5 → WebSocket для Telegram | 4,3 |
+| **Общий пакет MCRF для белых списков**<br><sub>Один общий исполняемый модуль и транспортная библиотека вместо повторной загрузки для каждого варианта</sub> | CSQTT 2.0 / 2.1.5 / 2.1.9; панель SWG 2.5.1 / 2.5.2 / 2.5.3; QWDTT | 10,6 arm64 |
+| [Отдельные TURN-пакеты](ports/android/transports/transport-lock.json)<br><sub>Совместимые резервные варианты и дополнительные транспорты</sub> | CSQTT 2.0 / 2.1.5 / 2.1.9 / 2.5, панель SWG 2.5.1 / 2.5.2 / 2.5.3, Rebirth 2.5; WDTT, QWDTT и OLCRTC | CSQTT: 12,7–13,1<br>WDTT: 9,2<br>QWDTT: 8,7<br>OLCRTC: 13,0 |
+| [OpenFlux 0.17.1](https://github.com/p1neappleXpress/OpenFlux)<br><sub>Модуль из оригинального репозитория; JS-транспорты обновляются из [OpenFluxTransports](https://github.com/p1neappleXpress/OpenFluxTransports)</sub> | Зашифрованный Session/Direct и документные транспорты; транспорт FluxFast через протокол пользовательских датаграмм | — |
+| [DNSTT](ports/android/transports/dnstt/) / [VayDNS](https://github.com/net2share/vaydns) / [SlipStream](https://github.com/EndPositive/slipstream)<br><sub>Отдельные адаптированные модули</sub> | Туннели системы доменных имён; VayDNS 0.2.8; SlipStream — совместимый модуль Mygod/slipstream-rust 0.1.1 | DNSTT: 5,8<br>VayDNS: 5,7<br>SlipStream: 7,6 |
+| [MasterDnsVPN](https://github.com/masterking32/MasterDnsVPN) / [SSTP](https://github.com/ttrroyy/qThroneMobile/tree/8463d3397b0a8522f92811f5c0698679ab8efc77/carriers/sstp)<br><sub>Отдельные адаптированные модули</sub> | Туннель системы доменных имён / защищённый туннель SSTP | 4,0 / 5,4 |
+| [Дополнительные протоколы — установочный пакет для Android, ARM64](https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-engine-protocols-arm64-v8a-release.apk)<br><sub>Отдельный пакет MCRF</sub> | TUIC, AnyTLS, NaiveProxy, SSH | 21,1 |
+| [Xray](https://github.com/throneproj/xray-core) / [TLScore](https://github.com/throneproj/sing-box)<br><sub>Сторонние форки с адаптацией MCRF</sub> | Xray: VLESS / REALITY, VMess, Trojan, Shadowsocks, HTTP / SOCKS<br>TLScore: VLESS, VMess, Trojan, HTTP / SOCKS и обход фильтрации TLS | Xray: 14,1<br>TLScore: 15,3 |
 | [WarpScout](https://github.com/vernette/warpscout)<br><sub>Сторонний</sub> | Поиск WARP-подключений | 7,0 |
-| [Zapret](native/zapret-engine/README.md) / [ByeDPI](https://github.com/hufrea/byedpi) · ByeTube<br><sub>Windows: Zapret — расширение MCRF; ByeDPI — сторонний</sub> | Обход DPI: TCP / UDP и локальный SOCKS-прокси | В приложении Windows |
+| [Zapret](native/zapret-engine/README.md) / [ByeDPI](https://github.com/hufrea/byedpi) · ByeTube<br><sub>Windows: Zapret — расширение MCRF; ByeDPI — сторонний</sub> | Обход глубокой фильтрации трафика: TCP / UDP и локальный SOCKS-прокси | В приложении Windows |
 
-SS — Shadowsocks, HY / HY2 — Hysteria / Hysteria2, WG / AWG — WireGuard / AmneziaWG.
 
 ## Возможности
 
