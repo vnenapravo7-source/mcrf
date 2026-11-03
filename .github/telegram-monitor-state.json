@@ -258,7 +258,7 @@
     },
     "670210520": {
       "category": "engines",
-      "count": 164
+      "count": 168
     },
     "676472314": {
       "category": "android",
@@ -570,7 +570,7 @@
     },
     "2026-11-03": {
       "android": 1,
-      "engines": 0,
+      "engines": 4,
       "partial": false,
       "star_delta": 0,
       "stars": 13,
@@ -578,8 +578,8 @@
       "windows": 0
     }
   },
-  "last_daily_date": "2026-11-01",
-  "observed_at": "2026-11-03T05:26:13.111698+03:00",
+  "last_daily_date": "2026-11-02",
+  "observed_at": "2026-11-03T12:58:04.343164+03:00",
   "repository": "vnenapravo7-source/mcrf",
   "source_stats": {
     "coverage_start": "2026-11-01",
@@ -610,7 +610,7 @@
       }
     },
     "epoch": "cf0f3210-e3de-4af1-8a89-18c236098c4e",
-    "generated_at": "2026-11-03T05:26:22.874716+03:00",
+    "generated_at": "2026-11-03T12:58:10.442722+03:00",
     "started_at": "2026-11-01T18:13:14.386929+03:00"
   },
   "source_status": "available",
