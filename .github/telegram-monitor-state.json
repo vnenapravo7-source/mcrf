@@ -178,7 +178,7 @@
     },
     "667135657": {
       "category": "engines",
-      "count": 99
+      "count": 100
     },
     "667135659": {
       "category": "engines",
@@ -258,7 +258,7 @@
     },
     "670210520": {
       "category": "engines",
-      "count": 171
+      "count": 177
     },
     "676472314": {
       "category": "android",
@@ -270,7 +270,7 @@
     },
     "676473072": {
       "category": "engines",
-      "count": 10
+      "count": 11
     },
     "676473181": {
       "category": "engines",
@@ -382,7 +382,7 @@
     },
     "676477301": {
       "category": "engines",
-      "count": 17
+      "count": 19
     },
     "676477440": {
       "category": "engines",
@@ -446,7 +446,7 @@
     },
     "676479220": {
       "category": "engines",
-      "count": 10
+      "count": 11
     },
     "676479376": {
       "category": "engines",
@@ -506,7 +506,7 @@
     },
     "678231035": {
       "category": "engines",
-      "count": 19
+      "count": 20
     },
     "678231351": {
       "category": "engines",
@@ -538,7 +538,7 @@
     },
     "683144869": {
       "category": "android",
-      "count": 13
+      "count": 14
     },
     "689482723": {
       "category": "android",
@@ -546,7 +546,7 @@
     },
     "689482724": {
       "category": "android",
-      "count": 29
+      "count": 31
     }
   },
   "days": {
@@ -578,8 +578,8 @@
       "windows": 0
     },
     "2026-11-04": {
-      "android": 3,
-      "engines": 6,
+      "android": 6,
+      "engines": 18,
       "partial": false,
       "star_delta": 0,
       "stars": 12,
@@ -588,7 +588,7 @@
     }
   },
   "last_daily_date": "2026-11-03",
-  "observed_at": "2026-11-04T12:56:33.505086+03:00",
+  "observed_at": "2026-11-04T20:56:18.437145+03:00",
   "repository": "vnenapravo7-source/mcrf",
   "source_stats": {
     "coverage_start": "2026-11-01",
@@ -619,7 +619,7 @@
       }
     },
     "epoch": "cf0f3210-e3de-4af1-8a89-18c236098c4e",
-    "generated_at": "2026-11-04T12:56:39.581414+03:00",
+    "generated_at": "2026-11-04T20:56:27.813325+03:00",
     "started_at": "2026-11-01T18:13:14.386929+03:00"
   },
   "source_status": "available",
