@@ -603,10 +603,19 @@
       "stars": 12,
       "uncertain": true,
       "windows": 2
+    },
+    "2026-11-07": {
+      "android": 0,
+      "engines": 0,
+      "partial": false,
+      "star_delta": 0,
+      "stars": 12,
+      "uncertain": true,
+      "windows": 0
     }
   },
   "last_daily_date": "2026-11-05",
-  "observed_at": "2026-11-06T23:37:20.361500+03:00",
+  "observed_at": "2026-11-07T03:21:47.792198+03:00",
   "repository": "vnenapravo7-source/mcrf",
   "source_stats": {
     "coverage_start": "2026-11-01",
