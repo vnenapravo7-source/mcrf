@@ -1,9 +1,8 @@
 # MCRF
 
-VPN и прокси для Android и Windows с гибкой маршрутизацией и настраиваемым интерфейсом. Linux и iOS версия в разработке.
+VPN и прокси для Android с гибкой маршрутизацией и настраиваемым интерфейсом. Linux и iOS версия в разработке.
 
 [![Все файлы](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvnenapravo7-source%2Fmcrf%2Fmain%2F.github%2Fdownload-counts.json&query=%24.total&label=downloads%20total&color=555&style=flat-square)](https://github.com/vnenapravo7-source/mcrf/releases)
-[![Windows](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvnenapravo7-source%2Fmcrf%2Fmain%2F.github%2Fdownload-counts.json&query=%24.windows&label=downloads%20Windows&color=0078d4&style=flat-square)](https://github.com/vnenapravo7-source/mcrf/releases)
 [![Android](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvnenapravo7-source%2Fmcrf%2Fmain%2F.github%2Fdownload-counts.json&query=%24.android&label=downloads%20Android&color=3ddc84&style=flat-square)](https://github.com/vnenapravo7-source/mcrf/releases)
 [![Движки](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvnenapravo7-source%2Fmcrf%2Fmain%2F.github%2Fdownload-counts.json&query=%24.engines&label=downloads%20engines&color=8a2be2&style=flat-square)](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1)
 
@@ -11,7 +10,6 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 
 | Платформа | Версия |
 | --- | --- |
-| Windows x64 | [1.2](https://github.com/vnenapravo7-source/mcrf/releases/tag/v1.2) · [Скачать EXE](https://vnenapravo7.ru/mcrf-downloads/d/678292801) |
 | Android 10+ | [0.7.3 — текущий опубликованный выпуск](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.7.3) |
 | iOS | В разработке |
 | Linux | В разработке |
@@ -33,7 +31,6 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 | [Дополнительные протоколы — установочный пакет для Android, ARM64](https://github.com/vnenapravo7-source/mcrf/releases/download/engines-2026-10-13-1/mcrf-engine-protocols-arm64-v8a-release.apk)<br><sub>Отдельный пакет MCRF</sub> | TUIC, AnyTLS, NaiveProxy, SSH | 21,1 |
 | [Xray](https://github.com/throneproj/xray-core) / [TLScore](https://github.com/throneproj/sing-box)<br><sub>Сторонние форки с адаптацией MCRF</sub> | Xray: VLESS / REALITY, VMess, Trojan, Shadowsocks, HTTP / SOCKS<br>TLScore: VLESS, VMess, Trojan, HTTP / SOCKS и обход фильтрации TLS | Xray: 14,1<br>TLScore: 15,3 |
 | [WarpScout](https://github.com/vernette/warpscout)<br><sub>Сторонний</sub> | Поиск WARP-подключений | 7,0 |
-| [Zapret](native/zapret-engine/README.md) / [ByeDPI](https://github.com/hufrea/byedpi) · ByeTube<br><sub>Windows: Zapret — расширение MCRF; ByeDPI — сторонний</sub> | Обход глубокой фильтрации трафика: TCP / UDP и локальный SOCKS-прокси | В приложении Windows |
 
 
 ## Возможности
@@ -43,7 +40,6 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 - **Маршрутизация под свои задачи:** домены, IP, приложения, GeoIP/GeoSite, сервисные списки, приоритеты и отдельный DNS. Действия — напрямую, VPN или блокировка.
 - **Большой выбор протоколов и движков:** VLESS, VMess, Trojan, Shadowsocks, Hysteria/2, WireGuard/AmneziaWG, HTTP/SOCKS5; дополнительные TURN- и DNS-транспорты. Возможности конкретного протокола зависят от выбранного движка.
 - **Telegram WS-прокси**, WARP и локальный HTTP/SOCKS5 с авторизацией.
-- **На Windows:** Zapret/ByeTube, редактор и генератор стратегий, игровые профили и маршрутизация обхода по приложениям.
 
 ## Android в действии
 
@@ -53,16 +49,12 @@ VPN и прокси для Android и Windows с гибкой маршрутиз
 
 Записи настоящего приложения с существующими серверами. [Разделы и скриншоты подробнее](docs/ANDROID-GUIDE.md).
 
-## Windows
+## Версия для ПК
 
-![Windows — главная](docs/screenshots/home-windows-1.1.png)
-
-![Windows — конструктор](docs/screenshots/constructor-windows-1.1.png)
-
-[Все разделы Windows](docs/WINDOWS-GUIDE.md).
+[Отдельный репозиторий MCRF для Windows](https://github.com/vnenapravo7-source/mcrf-desktop).
 
 ## Документация
 
-[Android](docs/ANDROID-GUIDE.md) · [Windows](docs/WINDOWS-GUIDE.md) · [Сборка](docs/BUILD.md) · [Исходники](docs/DEVELOPMENT.md) · [Сообщить об ошибке](https://github.com/vnenapravo7-source/mcrf/issues)
+[Android](docs/ANDROID-GUIDE.md) · [Исходники](docs/DEVELOPMENT.md) · [Сообщить об ошибке](https://github.com/vnenapravo7-source/mcrf/issues)
 
 Исходники, лицензии и контрольные суммы приложены к релизам.

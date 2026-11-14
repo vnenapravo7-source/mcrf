@@ -20,7 +20,7 @@ literal = re.search(r'internal val provisioning = """\n(.*?)\n"""\.trimIndent\(\
 literal = literal.replace("${'$'}", "$")
 embedded = types.ModuleType("mcrf_provision")
 exec(compile(literal, "AndroidDeployScripts.provisioning", "exec"), embedded.__dict__)
-fixture = (root / "wpf/tests/ProvisioningChecks20261013.py").read_text(encoding="utf-8-sig")
+fixture = (root / "ports/android/app/src/test/fixtures/ProvisioningChecks20261013.py").read_text(encoding="utf-8-sig")
 fixture = re.sub(r'source = pathlib\.Path.*?spec\.loader\.exec_module\(p\)', 'p = embedded', fixture, count=1, flags=re.S)
 # Windows fixtures use the older common comma serializer. Preserve their API checks,
 # but decode Android exports using each original protocol's separator rules.
@@ -34,7 +34,7 @@ def android_hashes(link, kind):
     decoded = urllib.parse.unquote_plus(raw)
     return decoded.splitlines() if kind == "qwdtt" else decoded.split(",")
 suite_module = types.ModuleType("AndroidDeployProvisioningFixtures")
-suite_module.__dict__.update(embedded=embedded, android_hashes=android_hashes, __file__=str(root / "wpf/tests/ProvisioningChecks20261013.py"))
+suite_module.__dict__.update(embedded=embedded, android_hashes=android_hashes, __file__=str(root / "ports/android/app/src/test/fixtures/ProvisioningChecks20261013.py"))
 exec(compile(fixture, "AndroidDeployProvisioningFixtures", "exec"), suite_module.__dict__)
 qr_exports = []
 class AndroidOriginalCodecTests(unittest.TestCase):

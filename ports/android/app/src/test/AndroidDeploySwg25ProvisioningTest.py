@@ -15,10 +15,10 @@ source = root / 'ports/android/app/src/main/kotlin/org/mcrf/client/AndroidDeploy
 literal = re.search(r'internal val provisioning = """\n(.*?)\n"""\.trimIndent\(\)', source.read_text(encoding='utf-8-sig'), re.S).group(1)
 embedded = types.ModuleType('mcrf_provision')
 exec(compile(literal.replace("${'$'}", '$'), 'AndroidDeployScripts.provisioning', 'exec'), embedded.__dict__)
-fixture = (root / 'wpf/tests/ProvisioningChecks20261013.py').read_text(encoding='utf-8-sig')
+fixture = (root / 'ports/android/app/src/test/fixtures/ProvisioningChecks20261013.py').read_text(encoding='utf-8-sig')
 fixture = re.sub(r'source = pathlib\.Path.*?spec\.loader\.exec_module\(p\)', 'p = embedded', fixture, count=1, flags=re.S)
 fixtures = types.ModuleType('OwnedPanelFixtures')
-fixtures.__dict__.update(embedded=embedded, __file__=str(root / 'wpf/tests/ProvisioningChecks20261013.py'))
+fixtures.__dict__.update(embedded=embedded, __file__=str(root / 'ports/android/app/src/test/fixtures/ProvisioningChecks20261013.py'))
 exec(compile(fixture, 'OwnedPanelFixtures', 'exec'), fixtures.__dict__)
 
 class Swg25Tests(unittest.TestCase):
