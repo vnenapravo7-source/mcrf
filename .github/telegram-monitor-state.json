@@ -546,7 +546,7 @@
     },
     "689482724": {
       "category": "android",
-      "count": 39
+      "count": 40
     },
     "747860791": {
       "category": "android",
@@ -989,7 +989,7 @@
       "windows": 2
     },
     "2026-11-15": {
-      "android": 0,
+      "android": 1,
       "engines": 3,
       "partial": false,
       "star_delta": 0,
@@ -999,7 +999,7 @@
     }
   },
   "last_daily_date": "2026-11-13",
-  "observed_at": "2026-11-15T04:05:08.907822+03:00",
+  "observed_at": "2026-11-15T10:48:49.485155+03:00",
   "repository": "vnenapravo7-source/mcrf",
   "source_stats": {
     "coverage_start": "2026-11-01",
