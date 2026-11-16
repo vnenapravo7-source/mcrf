@@ -1,7 +1,7 @@
 {
   "apk": {
-    "sha256": "7bdee699f5de199be946b8d4e2d91a50d4295a0c8bc54fa68030eafd7ebe24f0",
-    "bytes": 20822149
+    "sha256": "8255585f7c2fc5c6d65c562d34c21995691676bd76c4d8ddbbfa0f63b85f9803",
+    "bytes": 20822085
   },
   "libbox": {
     "destination": "ports/android/app/libs/libbox.aar",

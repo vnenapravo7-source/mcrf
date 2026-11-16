@@ -9,7 +9,7 @@
     {
       "path": "beta-build-inputs.json",
       "size": 838,
-      "sha256": "f0133bf1fc5a532cdfa596f992fbdcbe36e472e5c13fed4b1023dcc050cba614"
+      "sha256": "9af2106e5825995566661c9e53604c86786ad2fb241d0fd0f8804dbd58109eb6"
     },
     {
       "path": "ports/android/android-core-lock.json",
