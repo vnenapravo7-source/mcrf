@@ -1,4 +1,4 @@
-# Android beta 2.0.0-beta.10177 source candidate
+# Android beta 2.0.0-beta.10178 source
 
 This bundle captures the Android Main inputs and matching app resources for the universal beta APK. Protocol engine packages have separate source provenance. The source manifest records each included input. A clean replay is required to claim an exact source-to-APK match.
 

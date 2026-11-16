@@ -330,7 +330,7 @@ android {
         minSdk = 29
         targetSdk = 34
         versionCode = when {
-            mobileBetaBuild -> 10177
+            mobileBetaBuild -> 10178
             intermediateBuildCode!=null -> intermediateBuildCode
             providers.gradleProperty("release08Receipt").isPresent -> 10065
             providers.gradleProperty("release073Receipt").isPresent -> 10063
@@ -346,7 +346,7 @@ android {
             else -> 10065
         }
         versionName = when {
-            mobileBetaBuild -> "2.0.0-beta.10177"
+            mobileBetaBuild -> "2.0.0-beta.10178"
             intermediateBuildCode!=null -> "2.0-preview.$intermediateBuildCode"
             providers.gradleProperty("release08Receipt").isPresent -> "2.0"
             providers.gradleProperty("release073Receipt").isPresent -> "0.7.3"

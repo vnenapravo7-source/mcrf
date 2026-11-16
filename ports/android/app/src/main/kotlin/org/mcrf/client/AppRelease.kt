@@ -12,7 +12,7 @@ data class AppRelease(val asset: EnginePackage, val prerelease: Boolean, val not
             val notes=linkedMapOf<String,String>()
             repeat(releases.length()) { i ->
                 val release=releases.optJSONObject(i)?:return@repeat;val tag=release.optString("tag_name")
-                if(!release.optBoolean("draft")&&(!release.optBoolean("prerelease")||beta&&tag==MobileBetaUpdates.TAG)&&tag.startsWith("android-v")&&
+                if(!release.optBoolean("draft")&&(!release.optBoolean("prerelease")||beta&&MobileBetaUpdates.isBetaTag(tag))&&tag.startsWith("android-v")&&
                     AppUpdatePresentation.newer(tag,installed)&&!AppUpdatePresentation.newer(tag,found.asset.version)) {
                     notes.putIfAbsent(tag,release.optString("body").take(6000).ifBlank {"Исправления и улучшения приложения."})
                 }
@@ -37,7 +37,7 @@ data class AppRelease(val asset: EnginePackage, val prerelease: Boolean, val not
             for(release in ordered) {
                 val tag=release.optString("tag_name")
                 val preview=release.optBoolean("prerelease")
-                if(!tag.startsWith("android-v")||preview&&(!beta||tag!=MobileBetaUpdates.TAG||offline))continue
+                if(!tag.startsWith("android-v")||preview&&(!beta||!MobileBetaUpdates.isBetaTag(tag)||offline))continue
                 val assets=release.optJSONArray("assets")?:continue
                 // Prefer one real universal main APK, even when a legacy alias appears first.
                 val name=if(preview) MobileBetaUpdates.APP_ASSET else if(offline) {

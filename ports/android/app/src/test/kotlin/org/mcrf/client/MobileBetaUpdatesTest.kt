@@ -14,6 +14,7 @@ class MobileBetaUpdatesTest {
             val beta=asset(MobileBetaUpdates.TAG,engine)
             assertTrue(MobileBetaUpdates.allows(beta,true))
             assertFalse(MobileBetaUpdates.allows(beta,false))
+            assertFalse(MobileBetaUpdates.allows(asset("android-v2.0.0-beta.10178",engine),false))
         }
     }
 
