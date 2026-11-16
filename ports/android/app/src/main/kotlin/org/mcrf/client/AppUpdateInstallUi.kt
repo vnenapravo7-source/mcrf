@@ -17,7 +17,7 @@ internal object AppUpdateInstallUi {
     fun isShowing()=dialog?.isShowing==true
     fun close(activity:MainActivity){if(owner===activity)dialog?.dismiss()}
     fun show(activity:MainActivity,release:AppRelease) {
-        if(isShowing())return
+        if(isShowing()||!MobileBetaUpdates.allows(activity,release.asset))return
         val cancelled=AtomicBoolean(false)
         var ready:File?=null;var handedOff=false
         val body=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL;setPadding(activity.dp(20),activity.dp(12),activity.dp(20),activity.dp(12))}
@@ -37,7 +37,7 @@ internal object AppUpdateInstallUi {
             window.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled=false
             Thread({try{
                 var last=-1
-                val file=AppUpdateDownload.download(activity.applicationContext,release.asset,cancelled::get){received->
+                val file=AppUpdateDownload.download(activity.applicationContext,release.asset,{cancelled.get()||!MobileBetaUpdates.allows(activity,release.asset)}){received->
                     val percent=(received*100/release.asset.bytes).toInt()
                     if(percent!=last){last=percent;ui{progress.progress=percent;status.text="Скачивание: $percent% · ${TrafficState.bytes(received)} / ${TrafficState.bytes(release.asset.bytes)}"}}
                 }
@@ -51,6 +51,7 @@ internal object AppUpdateInstallUi {
         }
         window.show()
         window.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if(!MobileBetaUpdates.allows(activity,release.asset)){window.dismiss();return@setOnClickListener}
             val file=ready
             if(file==null){download();return@setOnClickListener}
             if(!activity.packageManager.canRequestPackageInstalls()){
@@ -63,6 +64,7 @@ internal object AppUpdateInstallUi {
                 AppUpdateDownload.verify(activity.applicationContext,file,release.asset)
                 ui{
                     try{
+                        MobileBetaUpdates.requireAllowed(activity,release.asset)
                         @Suppress("DEPRECATION") val intent=Intent(Intent.ACTION_INSTALL_PACKAGE)
                             .setDataAndType(Uri.parse("content://${activity.packageName}.engine-package/${file.name}"),"application/vnd.android.package-archive")
                             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

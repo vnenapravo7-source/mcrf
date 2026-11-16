@@ -89,6 +89,7 @@ object EngineStartupUpdates {
             return c.inputStream.use {JSONArray(String(ImportIO.read(it),Charsets.UTF_8))}
         }finally{c.disconnect()}
     }
+    internal fun discardBetaOffers(){pending=pending.filter {MobileBetaUpdates.allows(it,false)}}
     fun offerPending(activity:MainActivity) {
         if(pending.isEmpty()||isShowing()||AppUpdates.blocksOtherPrompt()||!activity.canOfferEngineUpdates())return
         val assets=pending.filter {it.version!=MobileBetaUpdates.TAG||activity.prefs.getBoolean(MobileBetaUpdates.KEY,false)};pending=emptyList()

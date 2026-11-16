@@ -16,6 +16,10 @@ internal object EngineUpdateInventoryUi {
             isChecked=prefs.getBoolean(MobileBetaUpdates.KEY,false)
             setOnCheckedChangeListener {_, enabled->
                 prefs.edit().putBoolean(MobileBetaUpdates.KEY,enabled).apply()
+                if(!enabled){
+                    AppUpdates.discardBetaOffer()
+                    EngineStartupUpdates.discardBetaOffers()
+                }
                 render()
             }
         })

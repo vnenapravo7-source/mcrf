@@ -199,18 +199,28 @@ class EngineImportUi(private val activity: MainActivity) {
                 pending.error="Не удалось открыть настройки Android. Разрешите установку из этого источника для MCRF в настройках приложений и нажмите «Повторить»."
             }
         }
+        fun rejectDisabledBeta():Boolean {
+            val asset=pending.asset?:return false
+            if(MobileBetaUpdates.allows(this@with,asset))return false
+            pending.file?.delete();pending.file=null
+            pending.automaticInstall=false;pending.downloadApproved=false;pending.stopDeadline=0
+            pending.error=MobileBetaUpdates.DISABLED;pending.phase="error"
+            return true
+        }
         fun download() {
+            if(rejectDisabledBeta())return
             pending.downloadApproved=true;pending.automaticInstall=true
             // Ask before downloading APK bytes, including every package in a batch.
             if(!packageManager.canRequestPackageInstalls()){requestInstallPermission();return}
             pending.phase="downloading";val context=applicationContext
             background {
-                pending.file=EnginePackages.download(context,requireNotNull(pending.asset),{pending.cancelled.get()},{pending.received=it})
+                pending.file=EnginePackages.download(context,requireNotNull(pending.asset),{pending.cancelled.get()||!MobileBetaUpdates.allows(context,requireNotNull(pending.asset))},{pending.received=it})
                 EnginePackages.verifyRequirements(context,requireNotNull(pending.file),setOf(requireNotNull(pending.asset?.engine)))
                 pending.phase="install-ready"
             }
         }
         fun install() {
+            if(rejectDisabledBeta())return
             // Permission can be revoked while downloading or while installation is deferred.
             if(!packageManager.canRequestPackageInstalls()){requestInstallPermission();return}
             val file = requireNotNull(pending.file)
@@ -279,6 +289,7 @@ class EngineImportUi(private val activity: MainActivity) {
                     }
                     "install-ready" -> try { install() } catch (error:Exception) { installFailed(error) }
                     "deferred-install" -> {
+                        if(rejectDisabledBeta())return@setOnClickListener
                         stopOwnedEngineProcesses()
                         pending.stopDeadline=android.os.SystemClock.elapsedRealtime()+15_000
                         pending.automaticInstall=true

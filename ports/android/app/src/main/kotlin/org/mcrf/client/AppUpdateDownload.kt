@@ -29,6 +29,7 @@ internal object AppUpdateDownload {
         AppUpdateSafety.validate(context.packageName,apk.packageName,expected.version,apk.versionName,own.longVersionCode,apk.longVersionCode,signers(own),signers(apk))
     }
     fun download(context:Context,expected:EnginePackage,cancelled:()->Boolean,progress:(Long)->Unit):File {
+        MobileBetaUpdates.requireAllowed(context,expected)
         require(expected.engine==null&&expected.url.host=="github.com"&&expected.url.path.startsWith("/${EnginePackage.REPOSITORY}/releases/download/android-v")){"Некорректный источник обновления приложения."}
         VersionArchive.capture(context,context.packageName)
         DownloadSourceReporting.tryReport(expected.url)

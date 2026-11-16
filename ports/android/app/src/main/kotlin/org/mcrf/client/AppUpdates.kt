@@ -10,6 +10,7 @@ object AppUpdates {
     private var started=false
     private var pending:AppRelease?=null
     private var shownDialog:AlertDialog?=null
+    internal fun discardBetaOffer(){if(pending?.asset?.version==MobileBetaUpdates.TAG)pending=null}
     fun blocksOtherPrompt()=pending!=null||shownDialog?.isShowing==true||AppUpdateInstallUi.isShowing()||EngineUpdateMigrationUi.isShowing()
     private fun releases():JSONArray {
         val all=JSONArray()

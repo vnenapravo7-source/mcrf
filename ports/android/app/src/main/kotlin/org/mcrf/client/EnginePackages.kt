@@ -110,6 +110,7 @@ object EnginePackages {
         expected.matchesInstalled(apk.length()){apk.inputStream()}
     }catch(_:Exception){false}
     fun download(context: Context, expected: EnginePackage, cancelled: () -> Boolean, progress: (Long) -> Unit): File {
+        MobileBetaUpdates.requireAllowed(context,expected)
         expected.engine?.let {kind->val id=EngineModules.packageName(kind)
             try {context.packageManager.getApplicationInfo(id,0);VersionArchive.capture(context,id)}
             catch(_:PackageManager.NameNotFoundException){ /* first installation has no prior version */ }
