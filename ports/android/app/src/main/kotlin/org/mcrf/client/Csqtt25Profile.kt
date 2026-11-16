@@ -1,0 +1,133 @@
+package org.mcrf.client
+
+import org.json.JSONArray
+import org.json.JSONObject
+import java.net.URI
+import java.net.URLDecoder
+
+/** Separate generation: never send these options through the legacy SWG normalizer. */
+object Csqtt25Profile {
+    const val GENERATION="2.5"
+    const val ENGINE="csqtt25"
+    const val IMPLEMENTATION="swg-panel-2.5.1"
+    internal fun srtpMode(input:JSONObject):String {
+        if(!input.has("srtp_mode"))return "auto"
+        val mode=input.get("srtp_mode")
+        require(mode is String&&mode in setOf("auto","wrap-srtp","dtls-srtp")) {"Некорректный режим SRTP CSQTT 2.5."}
+        // Full generation AUTO may fall back to a legacy protocol without SRTP
+        // options. Until that projection can preserve the mode, reject it explicitly.
+        require(mode=="auto"||!CsqttGenerations.automatic(input)) {"Для явного режима SRTP выберите CSQTT 2.5, а не автоопределение поколений."}
+        return mode
+    }
+    fun isProfile(raw:JSONObject)=raw.optString("type")=="csqtt"&&raw.opt("csqtt_generation")==GENERATION
+    private fun decode(value:String)=URLDecoder.decode(value.replace("+","%2B"),"UTF-8")
+    private fun clean(value:String,max:Int,empty:Boolean=false):String=value.also {
+        require((empty||it.isNotEmpty())&&it.toByteArray(Charsets.UTF_8).size<=max&&it.none {c->c.isISOControl()||c=='|'})
+    }
+    private fun endpoint(host:String,port:Int):String {
+        require(host.isNotEmpty()&&host.length<=253&&port in 1..65535)
+        val address="${if(':' in host)"[$host]"else host}:$port"
+        val uri=URI("udp://$address")
+        require(uri.host!=null&&uri.rawUserInfo==null&&uri.rawPath.isNullOrEmpty()&&uri.rawQuery==null&&uri.rawFragment==null)
+        return address
+    }
+    private fun hash(value:String):String {
+        val text=if(value.startsWith("https://",true)) {
+            val uri=URI(value)
+            require(uri.scheme=="https"&&uri.host in setOf("vk.com","vk.ru","m.vk.com","m.vk.ru")&&uri.userInfo==null&&uri.port==-1&&uri.path.startsWith("/call/join/"))
+            decode(uri.rawPath.substringAfter("/call/join/").trimEnd('/'))
+        }else value
+        require(text.matches(Regex("[A-Za-z0-9_+/-]{16,4094}={0,2}")))
+        return text
+    }
+    fun encryptedLink(source:String):ServerImport.Server {
+        try {
+        val uri=URI(Csqtt25Envelope.decode(source).link)
+        val fields=CsqttLinkQuery.parse(uri.rawQuery)
+        require(decode(fields.getValue("v"))=="2")
+        val node=JSONObject().put("type","csqtt").put("csqtt_generation",GENERATION)
+            .put("csqtt_implementation","compatible-2.5")
+            .put("server",decode(fields.getValue("host"))).put("server_port",decode(fields.getValue("peer")).toInt())
+            .put("password",decode(fields.getValue("password"))).put("name",fields["name"]?.let(::decode)?:"CSQTT 2.5")
+            .put("link_workers",fields["workers"]?.let {decode(it).toInt()}?:0)
+        fields["hashes"]?.let {raw->node.put("hashes",JSONArray(raw.split('+').map(::decode)))}
+        fields["token"]?.let {node.put("vk_token",decode(it)).put("vk_hash_mode","auto_js")}
+        return fromJson(source,node)
+        }catch(_:Exception){throw IllegalArgumentException("Некорректная ссылка CSQTT 2.5. Проверь формат, потоки и источник звонков; старый движок не будет использован.")}
+    }
+    fun fromJson(source:String,input:JSONObject):ServerImport.Server {
+        try {
+            require(source.toByteArray(Charsets.UTF_8).size<=65536&&input.toString().toByteArray(Charsets.UTF_8).size<=65536&&isProfile(input))
+            val allowed=setOf("type","csqtt_generation","name","server","server_port","password","hashes","vk_token","vk_hash_mode",
+                "workers","link_workers","allow_hash_redistribution","captcha_mode","vk_auth_mode","obfs","fingerprint","turn_transport","srtp_mode","gooby_enabled","gooby_strategy",
+                "custom_turn_ips","client_ids","generation","salt","device_id","outbound_tag","probe_only","csqtt_implementation",CarrierStreamDefaults.OVERRIDE,CsqttGenerations.SELECTION,CsqttGenerations.EPOCH)
+            require(input.keys().asSequence().all {it in allowed})
+            val host=clean(input.getString("server"),253);val port=input.get("server_port").toString().toInt();endpoint(host,port)
+            val password=clean(input.getString("password"),1024)
+            val name=clean(input.optString("name","CSQTT 2.5").ifBlank {"CSQTT 2.5"},256)
+            val calls=when(val values=input.opt("hashes")) {
+                is JSONArray->(0 until values.length()).map {hash(values.getString(it))}
+                null,JSONObject.NULL->emptyList()
+                else->values.toString().split(Regex("[,;\\s]+")).filter(String::isNotEmpty).map(::hash)
+            }
+                .distinct()
+            val token=clean(input.optString("vk_token"),4096,true)
+            val hashMode=input.optString("vk_hash_mode",if(token.isNotEmpty())"auto_js"else"manual")
+            require(if(hashMode=="manual")calls.isNotEmpty()&&token.isEmpty() else hashMode=="auto_js"&&calls.isEmpty()&&token.isNotEmpty())
+            fun number(key:String,fallback:Int)=if(input.has(key))input.get(key).toString().toInt()else fallback
+            val implementation=CsqttGenerations.implementation(input)
+            // Older MCRF drafts used the prerelease's step 9. Keep their exact
+            // explicit count through the panel's exact-workers ingress rather
+            // than rejecting the entire encrypted server catalogue on upgrade.
+            val previous=number("workers",0)
+            val migrated=!input.has("csqtt_implementation")&&previous in 9..99&&previous%9==0&&previous%10!=0
+            val fixed=number("link_workers",0).let {if(it==0&&migrated)previous else it};require(fixed==0||fixed in 3..100)
+            val workers=if(fixed>0)fixed else number("workers",if(hashMode=="manual"&&calls.size==1)10 else 20)
+            require(workers in 3..100&&(fixed>0||workers%10==0))
+            fun flag(key:String):Boolean {val value=input.opt(key);require(value==null||value is Boolean);return value==true}
+            val redistribute=flag("allow_hash_redistribution")
+            require(CsqttSwgVersions.needsNewRuntime(input)||fixed>0||redistribute||hashMode=="auto_js"||workers<=calls.size*10)
+            fun option(key:String,fallback:String,values:Set<String>)=input.optString(key,fallback).also {require(it in values)}
+            val mode=option("captcha_mode","auto",setOf("auto","wv","rjs"))
+            val auth=option("vk_auth_mode",if(hashMode=="auto_js")"auto_js"else"vkcalls",setOf("vkcalls","legacy","auto_js"))
+            require(auth!="auto_js"||hashMode=="auto_js")
+            val ips=input.optJSONArray("custom_turn_ips")?.let {a->(0 until a.length()).map {a.getString(it)}}?:emptyList()
+            require(ips.size<=256&&ips.distinct().size==ips.size)
+            ips.forEach {ip->val literal=RouteRules.literal(ip);require(literal!=null&&!literal.isAnyLocalAddress&&!literal.isLoopbackAddress&&!literal.isMulticastAddress)}
+            val node=JSONObject().put("type","csqtt").put("csqtt_generation",GENERATION).put("csqtt_implementation",implementation).put("name",name).put("server",host).put("server_port",port)
+                .put("password",password).put("hashes",JSONArray(calls)).put("vk_hash_mode",hashMode).put("workers",workers).put("link_workers",fixed)
+                .put("allow_hash_redistribution",redistribute).put("captcha_mode",mode).put("vk_auth_mode",auth)
+                .put("obfs",option("obfs","unified",setOf("unified","audio","video"))).put("fingerprint",clean(input.optString("fingerprint","chrome"),64,true))
+                .put("turn_transport",option("turn_transport","udp",setOf("udp","tcp"))).put("custom_turn_ips",JSONArray(ips))
+            // Omission retains native AUTO and the old profile/private-config shape.
+            // Explicit values are strict: null, coercions, aliases and empty strings must not silently select AUTO.
+            if(input.has("srtp_mode")) {
+                node.put("srtp_mode",srtpMode(input))
+            }
+            CsqttGooby.copy(input,node)
+            if(token.isNotEmpty())node.put("vk_token",token)
+            for(key in listOf("client_ids","salt","device_id"))input.optString(key).takeIf(String::isNotEmpty)?.let {node.put(key,clean(it,if(key=="client_ids")4096 else if(key=="salt")1024 else 256))}
+            if(input.has("generation")){val generation=input.get("generation").toString().toInt();require(generation>=0);node.put("generation",generation)}
+            if(input.has(CarrierStreamDefaults.OVERRIDE)){node.put(CarrierStreamDefaults.OVERRIDE,input.get(CarrierStreamDefaults.OVERRIDE));CarrierStreamDefaults.validateOverride(node)}
+            CsqttGenerations.copySelection(input,node)
+            return ServerImport.Server(source,name,"csqtt",host,port,null,null,null,node)
+        }catch(_:Exception){throw IllegalArgumentException("Некорректный профиль CSQTT 2.5. Проверь версию, потоки и источник звонков; старый движок не будет использован.")}
+    }
+    fun privateConfig(input:JSONObject,udpPort:Int,socksPort:Int,user:String,password:String,installation:String):JSONObject {
+        val p=fromJson("private-csqtt25",input).carrier!!
+        require(udpPort in 1..65535&&socksPort in 1..65535)
+        clean(user,255);clean(password,255);clean(installation,256)
+        return JSONObject(p.toString()).apply {
+            // AUTO is the native default, including old wrappers which reject or
+            // ignore unknown fields. Do not require a new module for this default.
+            if(srtpMode(p)=="auto")remove("srtp_mode")
+            CsqttGooby.runtime(this)
+            listOf("type","name","server","server_port","link_workers","csqtt_implementation",CarrierStreamDefaults.OVERRIDE,CsqttGenerations.SELECTION,CsqttGenerations.EPOCH).forEach(::remove)
+            // Old wrappers reject this field; the capability gate runs before launch.
+            if(CsqttSwgVersions.needsNewRuntime(p))put("csqtt_implementation",CsqttSwgVersions.nativeImplementation(p))
+            put("peer",endpoint(p.getString("server"),p.getInt("server_port"))).put("listen","127.0.0.1:$udpPort")
+            put("socks","127.0.0.1:$socksPort").put("socks_user",user).put("socks_pass",password)
+            put("device_id",p.optString("device_id").ifEmpty {installation}).put("exact_workers",p.getInt("link_workers")>0)
+        }
+    }
+}

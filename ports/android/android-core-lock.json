@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "repository": "Leadaxe/sing-box-lx",
+  "tag": "v1.14.2-lx.11",
+  "commit": "3d3d3db3a2ccef3b1a8eb71b831ed2461c54b94d",
+  "version": "1.14.2-lx.11-mcrf-clash.1",
+  "file": "libbox-1.14.2-lx.11-mcrf-clash.1.aar",
+  "sha256": "cc8089f5ac7731c0b18b4d41ee0baf9a6171f2283781e00850649d4eb16f9678",
+  "bytes": 88565759,
+  "provenance": "native-core/build.ps1: unmodified exact upstream source and four pinned Go submodules; original feature tags plus with_clash_api",
+  "toolchain": { "go": "1.26.8", "gomobile": "github.com/sagernet/gomobile v0.1.13", "ndk": "28.2.13676358", "androidApi": 24 },
+  "submodules": {
+    "submodules/gvisor": "117243aa02fa2915cb53d1d4549bfca3a3ebf238",
+    "submodules/sing-tun": "6f56eca9cb2e81d1c233b6104618ff30500e9f39",
+    "submodules/utls": "59e89bb121d8cc7a0a1c87a930864122b5685d00",
+    "submodules/wireguard-go": "64065e6826ad82aa28429dd829c1c65f29b7f6c9"
+  },
+  "static_gates": { "public_java_api_compatible_classes": 180, "arm64_and_x86_64_elf_load_alignment": 16384, "armeabi_v7a_elf_load_alignment": 4096 },
+  "acceptance": "candidate_for_device_verification; not a published release or a claim of Android runtime acceptance"
+}

@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data android:name="org.mcrf.engines.csqtt_generation" android:value="@string/mcrf_csqtt_generation" />
+        <meta-data android:name="org.mcrf.engines.source.commit" android:value="@string/mcrf_csqtt_revision" />
+        <meta-data android:name="org.mcrf.engines.csqtt_historical_options" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.csqtt_captcha_ids" android:value="1" />
+    </application>
+</manifest>

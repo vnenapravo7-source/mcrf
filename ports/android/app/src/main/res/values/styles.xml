@@ -1,0 +1,36 @@
+<resources>
+    <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#006F72</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:statusBarColor">#F1F2EF</item>
+        <item name="android:navigationBarColor">#FCFDFA</item>
+        <item name="android:windowBackground">#F1F2EF</item>
+        <item name="android:colorBackground">#F1F2EF</item>
+        <item name="android:textColorPrimary">#1E292A</item>
+        <item name="android:textColorSecondary">#596767</item>
+        <item name="android:alertDialogTheme">@style/McrfDialog</item>
+    </style>
+    <style name="McrfDialog" parent="android:style/Theme.Material.Light.Dialog.Alert">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#006F72</item>
+        <item name="android:colorBackground">#FCFDFA</item>
+        <item name="android:windowBackground">@drawable/dialog_surface</item>
+        <item name="android:textColorPrimary">#1E292A</item>
+        <item name="android:textColorSecondary">#596767</item>
+        <item name="android:windowMinWidthMajor">94%</item>
+        <item name="android:windowMinWidthMinor">94%</item>
+    </style>
+    <style name="AppThemeDark" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item><item name="android:colorAccent">#5ECFC6</item>
+        <item name="android:windowLightStatusBar">false</item><item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowBackground">#141A1C</item><item name="android:statusBarColor">#141A1C</item><item name="android:navigationBarColor">#20292C</item>
+        <item name="android:textColorPrimary">#EDF5F3</item><item name="android:textColorSecondary">#ACBCBB</item><item name="android:alertDialogTheme">@style/McrfDialogDark</item>
+    </style>
+    <style name="McrfDialogDark" parent="android:style/Theme.Material.Dialog.Alert">
+        <item name="android:fontFamily">sans</item><item name="android:colorAccent">#5ECFC6</item><item name="android:colorBackground">#20292C</item>
+        <item name="android:windowBackground">@drawable/dialog_surface_dark</item><item name="android:textColorPrimary">#EDF5F3</item><item name="android:textColorSecondary">#ACBCBB</item>
+        <item name="android:windowMinWidthMajor">94%</item><item name="android:windowMinWidthMinor">94%</item>
+    </style>
+</resources>

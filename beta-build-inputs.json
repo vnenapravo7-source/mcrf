@@ -1,0 +1,27 @@
+{
+  "apk": {
+    "sha256": "6071017b22263380c2d3700239da9cab32c7fb61d57ea491341557ccc31ab60f",
+    "bytes": 20820641
+  },
+  "libbox": {
+    "destination": "ports/android/app/libs/libbox.aar",
+    "sha256": "cc8089f5ac7731c0b18b4d41ee0baf9a6171f2283781e00850649d4eb16f9678",
+    "bytes": 88565759,
+    "upstreamCommit": "3d3d3db3a2ccef3b1a8eb71b831ed2461c54b94d",
+    "tag": "v1.14.2-lx.11"
+  },
+  "router": {
+    "x86_64": {
+      "sha256": "ad14c62a6a1f9070a68338b814a73b1a7c2802bc5b5eebe600cc4a06597ee1f1",
+      "bytes": 5568928
+    },
+    "arm64-v8a": {
+      "sha256": "3509688275aa2df3321697819ded4c18a663c09e17f74e707724fba990df075b",
+      "bytes": 4775048
+    },
+    "armeabi-v7a": {
+      "sha256": "3fbb226acbd0a38ef5358b9d3d424f0e7e398a5e7b945c4dbaf59d0f079670bc",
+      "bytes": 3580232
+    }
+  }
+}
