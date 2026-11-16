@@ -988,8 +988,8 @@
     },
     {
       "path": "ports/android/app/src/main/kotlin/org/mcrf/client/AppUpdateInstallUi.kt",
-      "size": 5688,
-      "sha256": "9ac525eafbb796fa7dcfbd3770e89748ddbf6e1b762cc1df3b5602ff166fdc4b"
+      "size": 5610,
+      "sha256": "d9f98c03d66ff180675b5e753d6bb36bc3e80c4c811afef546f5069dd3d9794e"
     },
     {
       "path": "ports/android/app/src/main/kotlin/org/mcrf/client/AppUpdatePresentation.kt",
