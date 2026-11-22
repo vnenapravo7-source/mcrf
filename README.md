@@ -49,11 +49,21 @@ VPN и прокси для Android с гибкой маршрутизацией 
 
 ## Android в действии
 
-| Подключение и отключение | Оформление | Функции | Разделы |
-| --- | --- | --- | --- |
-| <img src="docs/screenshots/android-connection.gif" alt="Подключение и отключение" width="220"> | <img src="docs/screenshots/android-appearance.gif" alt="Оформление и смена анимации" width="220"> | <img src="docs/screenshots/android-functionality.gif" alt="БС, серверы и маршруты" width="220"> | <img src="docs/screenshots/android-sections.gif" alt="Настройки, DNS, прокси и движки" width="220"> |
+Android **2.0** на телефоне: текущий интерфейс, сохранённые серверы и настройки.
 
-Записи настоящего приложения с существующими серверами. [Разделы и скриншоты подробнее](docs/ANDROID-GUIDE.md).
+### Скриншоты
+
+| Главная и серверы | Маршруты | Оформление | Настройки | Anubis |
+| --- | --- | --- | --- | --- |
+| <img src="docs/screenshots/android-home-2.0.png" alt="Android 2.0 — главная и серверы" width="180"> | <img src="docs/screenshots/android-routes-2.0.png" alt="Android 2.0 — маршруты" width="180"> | <img src="docs/screenshots/android-appearance-2.0.png" alt="Android 2.0 — оформление" width="180"> | <img src="docs/screenshots/android-settings-2.0.png" alt="Android 2.0 — настройки" width="180"> | <img src="docs/screenshots/android-anubis-2.0.png" alt="Android 2.0 — anubis" width="180"> |
+
+### Короткие записи
+
+| Серверы | Оформление | Маршруты и Anubis | Настройки |
+| --- | --- | --- | --- |
+| <img src="docs/screenshots/android-home-2.0.gif" alt="Android 2.0 — серверы" width="220"> | <img src="docs/screenshots/android-appearance-2.0.gif" alt="Android 2.0 — оформление" width="220"> | <img src="docs/screenshots/android-functions-2.0.gif" alt="Android 2.0 — маршруты и anubis" width="220"> | <img src="docs/screenshots/android-sections-2.0.gif" alt="Android 2.0 — настройки" width="220"> |
+
+Каждый GIF — **6,8 секунды, 25 кадров/с**, без ускорения. [Разделы и скриншоты подробнее](docs/ANDROID-GUIDE.md).
 
 ## Версия для ПК
 
