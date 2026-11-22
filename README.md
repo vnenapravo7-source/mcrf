@@ -1,6 +1,6 @@
 # MCRF
 
-VPN и прокси для Android с гибкой маршрутизацией и настраиваемым интерфейсом. Linux и iOS версия в разработке.
+VPN и прокси для Android с гибкой маршрутизацией и настраиваемым интерфейсом. Версия для iOS в разработке.
 
 [![Все файлы](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvnenapravo7-source%2Fmcrf%2Fmain%2F.github%2Fdownload-counts.json&query=%24.total&label=downloads%20total&color=555&style=flat-square)](https://github.com/vnenapravo7-source/mcrf/releases)
 [![Android](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvnenapravo7-source%2Fmcrf%2Fmain%2F.github%2Fdownload-counts.json&query=%24.android&label=downloads%20Android&color=3ddc84&style=flat-square)](https://github.com/vnenapravo7-source/mcrf/releases)
@@ -12,7 +12,6 @@ VPN и прокси для Android с гибкой маршрутизацией 
 | --- | --- |
 | Android 10+ | [2.0 — стабильный выпуск](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v2.0.0) · [универсальный APK](https://github.com/vnenapravo7-source/mcrf/releases/download/android-v2.0.0/mcrf-android-universal-release.apk) |
 | iOS | В разработке |
-| Linux | В разработке |
 
 
 Универсальный APK поддерживает ARM64, ARMv7 и x86_64. При первом запуске приложение предложит скачать sing-box или Steer. Дополнительные движки загружаются по мере необходимости под архитектуру устройства. [Опубликованный каталог движков](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-engines-v2.0.0).
