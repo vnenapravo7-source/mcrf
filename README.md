@@ -4,18 +4,18 @@ VPN и прокси для Android с гибкой маршрутизацией 
 
 [![Все файлы](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvnenapravo7-source%2Fmcrf%2Fmain%2F.github%2Fdownload-counts.json&query=%24.total&label=downloads%20total&color=555&style=flat-square)](https://github.com/vnenapravo7-source/mcrf/releases)
 [![Android](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvnenapravo7-source%2Fmcrf%2Fmain%2F.github%2Fdownload-counts.json&query=%24.android&label=downloads%20Android&color=3ddc84&style=flat-square)](https://github.com/vnenapravo7-source/mcrf/releases)
-[![Движки](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvnenapravo7-source%2Fmcrf%2Fmain%2F.github%2Fdownload-counts.json&query=%24.engines&label=downloads%20engines&color=8a2be2&style=flat-square)](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1)
+[![Движки](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fvnenapravo7-source%2Fmcrf%2Fmain%2F.github%2Fdownload-counts.json&query=%24.engines&label=downloads%20engines&color=8a2be2&style=flat-square)](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-engines-v2.0.0)
 
 ## Скачать
 
 | Платформа | Версия |
 | --- | --- |
-| Android 10+ | [2.0 — стабильный выпуск](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v2.0.0) · [универсальный APK](https://github.com/vnenapravo7-source/mcrf/releases/download/android-v2.0.0/mcrf-android-universal-release.apk) |
+| Android 10+ | [2.0.1 — стабильный выпуск](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v2.0.1) · [универсальный APK](https://github.com/vnenapravo7-source/mcrf/releases/download/android-v2.0.1/mcrf-android-universal-release.apk) |
 | iOS | В разработке |
 | Linux | В разработке |
 
 
-Универсальный APK поддерживает ARM64, ARMv7 и x86_64. При первом запуске приложение предложит скачать sing-box или Steer. Дополнительные движки загружаются по мере необходимости под архитектуру устройства. [Опубликованный каталог движков](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1).
+Универсальный APK поддерживает ARM64, ARMv7 и x86_64. При первом запуске приложение предложит скачать sing-box или Steer. Дополнительные движки загружаются по мере необходимости под архитектуру устройства. [Опубликованный каталог движков](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-engines-v2.0.0).
 
 ### Бета-канал Android
 
@@ -26,7 +26,7 @@ VPN и прокси для Android с гибкой маршрутизацией 
 | Движок | Протоколы и назначение | Размер, МБ |
 | --- | --- | --- |
 | [sing-box-lx](https://github.com/Leadaxe/sing-box-lx)<br><sub>Кастомная сборка MCRF</sub> | VLESS / REALITY, VMess, Trojan, Shadowsocks, Hysteria / Hysteria 2<br>TUIC, AnyTLS, NaiveProxy, SSH, HTTP / HTTPS, SOCKS5, WireGuard / AmneziaWG | 30,5 |
-| [Steer 0.3.3](https://github.com/splify2/steer)<br><sub>Доработанный порт MCRF, модуль 16</sub> | VLESS / REALITY, VMess, Trojan, Shadowsocks, Hysteria 2<br>HTTP / HTTPS, SOCKS4 / 4a / 5 | 10,4 |
+| [Steer 0.3.3](https://github.com/splify2/steer)<br><sub>Доработанный порт MCRF, модуль 18</sub> | VLESS / REALITY, VMess, Trojan, Shadowsocks, Hysteria 2<br>HTTP / HTTPS, SOCKS4 / 4a / 5 | 10,4 |
 | [Компактный WireGuard / AmneziaWG](ports/android/transports/wg-backend/)<br><sub>Модуль MCRF на базе wireguard-go</sub> | WireGuard, AmneziaWG 3.0 / 3.1 | 3,5 |
 | [Telegram-прокси через WebSocket](https://github.com/y0sy4/telegram-proxy)<br><sub>Сторонний, адаптирован для MCRF</sub> | SOCKS5 → WebSocket для Telegram | 4,3 |
 | **Общий пакет MCRF для белых списков**<br><sub>Один общий исполняемый модуль и транспортная библиотека вместо повторной загрузки для каждого варианта</sub> | CSQTT 2.0 / 2.1.5 / 2.1.9; панель SWG 2.5.1 / 2.5.2 / 2.5.3; QWDTT | 10,6 arm64 |
