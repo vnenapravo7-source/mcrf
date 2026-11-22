@@ -10,10 +10,12 @@ VPN и прокси для Android с гибкой маршрутизацией 
 
 | Платформа | Версия |
 | --- | --- |
-| Android 10+ | [0.7.3 — текущий опубликованный выпуск](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v0.7.3) |
+| Android 10+ | [2.0 — стабильный выпуск](https://github.com/vnenapravo7-source/mcrf/releases/tag/android-v2.0.0) · [универсальный APK](https://github.com/vnenapravo7-source/mcrf/releases/download/android-v2.0.0/mcrf-android-universal-release.apk) |
 | iOS | В разработке |
 | Linux | В разработке |
 
+
+Универсальный APK поддерживает ARM64, ARMv7 и x86_64. При первом запуске приложение предложит скачать sing-box или Steer. Дополнительные движки загружаются по мере необходимости под архитектуру устройства. [Опубликованный каталог движков](https://github.com/vnenapravo7-source/mcrf/releases/tag/engines-2026-10-13-1).
 
 ### Бета-канал Android
 
