@@ -37,29 +37,20 @@ VPN и прокси для Android с гибкой маршрутизацией 
 
 ## Возможности
 
-- **Автоопределение БС на Android:** регулярная проверка доступности сети и автоматическое переключение VPN ↔ белые списки с уведомлением. Включается отдельно.
-- **Гибкий дизайн:** светлая и тёмная темы, свои цвета, узоры, значки, минимализм, рандомайзер и анимации подключения.
-- **Маршрутизация под свои задачи:** домены, IP, приложения, GeoIP/GeoSite, сервисные списки, приоритеты и отдельный DNS. Действия — напрямую, VPN или блокировка.
-- **Большой выбор протоколов и движков:** VLESS, VMess, Trojan, Shadowsocks, Hysteria/2, WireGuard/AmneziaWG, HTTP/SOCKS5; дополнительные TURN- и DNS-транспорты. Возможности конкретного протокола зависят от выбранного движка.
-- **Telegram WS-прокси**, WARP и локальный HTTP/SOCKS5 с авторизацией.
+- **Протоколы и автономные движки:** VLESS, VMess, Trojan, Shadowsocks, Hysteria 2, WG/AWG, прокси и БС-транспорты — CSQTT, WDTT, QWDTT, OLCRTC, OpenFlux и другие. Каждый движок работает независимо.
+- **Облегчённый пакет БС:** одна установка для CSQTT 2.0 / 2.1.5 / 2.1.9, SWG 2.5.1–2.5.3 и QWDTT с автоопределением поколения. Автоматическое переключение между VPN и БС.
+- **Anubis:** включение и отключение VPN для выбранных приложений, заморозка приложений через Shizuku или встроенные инструменты MCRF.
+- **Гибкая маршрутизация:** домены, IP, GeoIP/GeoSite и приложения — через VPN, напрямую или в блокировку. Отдельный DNS, готовый список российских приложений и предупреждение об их работе через VPN с настройкой в один клик. Отдельные серверы и движки для маршрутов — в планах.
+- **Конфигурации и резервирование:** Happ, Incy, Clash/Mihomo, резервные цепочки и исключения автовыбора.
+- **Android и Windows:** Telegram WS и WARP на Android; Zapret и ByeTube с автоподбором и мастером настройки на Windows.
+- **Android TV:** тот же универсальный APK, управление пультом и передача подключений с телефона по коду.
+- **Контроль и диагностика:** статистика серверов, монитор нагрузки, энергосбережение, лимиты трафика, захват IP, диагностика соединения и история изменений.
 
 ## Android в действии
 
-Android **2.0** на телефоне: текущий интерфейс, сохранённые серверы и настройки.
-
-### Скриншоты
-
-| Главная и серверы | Маршруты | Оформление | Настройки | Anubis |
-| --- | --- | --- | --- | --- |
-| <img src="docs/screenshots/android-home-2.0.png" alt="Android 2.0 — главная и серверы" width="180"> | <img src="docs/screenshots/android-routes-2.0.png" alt="Android 2.0 — маршруты" width="180"> | <img src="docs/screenshots/android-appearance-2.0.png" alt="Android 2.0 — оформление" width="180"> | <img src="docs/screenshots/android-settings-2.0.png" alt="Android 2.0 — настройки" width="180"> | <img src="docs/screenshots/android-anubis-2.0.png" alt="Android 2.0 — anubis" width="180"> |
-
-### Короткие записи
-
-| Серверы | Оформление | Маршруты и Anubis | Настройки |
-| --- | --- | --- | --- |
-| <img src="docs/screenshots/android-home-2.0.gif" alt="Android 2.0 — серверы" width="220"> | <img src="docs/screenshots/android-appearance-2.0.gif" alt="Android 2.0 — оформление" width="220"> | <img src="docs/screenshots/android-functions-2.0.gif" alt="Android 2.0 — маршруты и anubis" width="220"> | <img src="docs/screenshots/android-sections-2.0.gif" alt="Android 2.0 — настройки" width="220"> |
-
-Каждый GIF — **6,8 секунды, 25 кадров/с**, без ускорения. [Разделы и скриншоты подробнее](docs/ANDROID-GUIDE.md).
+| Запуск и серверы | Российские приложения и маршруты | Оформление |
+| --- | --- | --- |
+| <img src="docs/screenshots/android-startup-full.gif" alt="Запуск приложения и выбор сервера" width="260"> | <img src="docs/screenshots/android-ruapp-full.gif" alt="Предупреждение о российских приложениях и настройка маршрутов" width="260"> | <img src="docs/screenshots/android-appearance-full.gif" alt="Настройки оформления" width="260"> |
 
 ## Версия для ПК
 
