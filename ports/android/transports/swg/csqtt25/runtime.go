@@ -3,13 +3,13 @@ package csqtt25
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -24,15 +24,16 @@ const NativeBytes int64 = 9306144
 // satisfy the new adapter. APK signature/package trust remains the Android host's gate.
 type Runtime struct{ path string }
 
-func (r Runtime) String() string { return "CSQTT25Runtime(arm64,verified)" }
+func (r Runtime) String() string { return "CSQTT25Runtime(verified)" }
 
 func LoadRuntime(path string) (*Runtime, error) {
-	invalid := errors.New("CSQTT 2.5 native artifact does not match the pinned swg-panel 2.5.1 arm64 release")
-	if filepath.Base(path) != "libcsqtt25_transport.so" {
+	invalid := errors.New("CSQTT 2.5 native artifact does not match its pinned SWG release or this Android ABI")
+	name := filepath.Base(path)
+	if name != "libcsqtt25_transport.so" && name != "libcsqtt252_transport.so" {
 		return nil, invalid
 	}
 	info, err := os.Lstat(path)
-	if err != nil || !info.Mode().IsRegular() || info.Size() != NativeBytes {
+	if err != nil || !info.Mode().IsRegular() || info.Size() < 20 {
 		return nil, invalid
 	}
 	file, err := os.Open(path)
@@ -41,15 +42,20 @@ func LoadRuntime(path string) (*Runtime, error) {
 	}
 	defer file.Close()
 	var header [20]byte
-	if _, err = io.ReadFull(file, header[:]); err != nil || string(header[:4]) != "\x7fELF" || header[4] != 2 || header[5] != 1 || binary.LittleEndian.Uint16(header[18:]) != 183 {
+	if _, err = io.ReadFull(file, header[:]); err != nil {
+		return nil, invalid
+	}
+	spec, ok := nativeForHeader(header[:], runtime.GOOS, runtime.GOARCH)
+	if ok && name == "libcsqtt252_transport.so" { spec, ok = newNativeForABI(spec.abi) }
+	if !ok || info.Size() != spec.bytes {
 		return nil, invalid
 	}
 	if _, err = file.Seek(0, io.SeekStart); err != nil {
 		return nil, invalid
 	}
 	hash := sha256.New()
-	size, err := io.Copy(hash, io.LimitReader(file, NativeBytes+1))
-	if err != nil || size != NativeBytes || hex.EncodeToString(hash.Sum(nil)) != NativeSHA256 {
+	size, err := io.Copy(hash, io.LimitReader(file, spec.bytes+1))
+	if err != nil || size != spec.bytes || hex.EncodeToString(hash.Sum(nil)) != spec.sha256 {
 		return nil, invalid
 	}
 	resolved, err := filepath.Abs(path)

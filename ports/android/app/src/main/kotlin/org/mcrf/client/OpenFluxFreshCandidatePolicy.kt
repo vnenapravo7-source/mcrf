@@ -16,7 +16,7 @@ internal object OpenFluxFreshCandidatePolicy {
     fun callerAllowed(packageName: String, versionCode: Long) = packageName == "org.mcrf.p3test" && versionCode >= 10056
     fun admits(value: Descriptor) = value.packageName == PACKAGE && value.versionCode == 13L && value.versionName == VERSION_NAME &&
         value.enabled && value.sameSigners && value.singleApk && value.kind == "openflux" && value.repository == REPOSITORY &&
-        value.version == OpenFluxProfile.FRESH_VERSION && value.commit == OpenFluxProfile.FRESH_COMMIT && value.overlay == "" &&
+        value.version == "v0.13.0" && value.commit == "4f9c786cdd1d9fcd0c133e2e0fec0c5a12522610" && value.overlay == "" &&
         value.interfaceVersion == 1 && value.carrier >= 2 && value.verification == 1 && value.observation == 1 &&
         value.scriptUpdater == 1 && value.diagnostic == 0
     fun validExpected(value: Expected, supportedAbis: Set<String>, is64Bit: Boolean): Boolean =

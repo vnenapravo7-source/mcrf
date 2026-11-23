@@ -18,7 +18,11 @@ class AndroidDeploySwg25Test {
         repeat(3){assertEquals(old.getJSONObject(it).toString(),upgraded.getJSONObject(it).toString())}
         val modern=upgraded.getJSONObject(3)
         assertFalse(modern.getBoolean("enabled"));assertEquals("csqtt25",modern.getString("kind"))
-        assertEquals("56033",modern.getString("relay_port"))
+        // Migration chooses free listeners; it does not reserve a particular numeric slot.
+        val occupied=(0 until old.length()).flatMap {i->listOf("relay_port","wg_port").map {old.getJSONObject(i).getInt(it)}}.toSet()+56003
+        val relay=modern.getInt("relay_port");val wg=modern.getInt("wg_port")
+        assertTrue(relay in 1024..65535 && relay !in occupied)
+        assertTrue(wg in 1024..65535 && wg !in occupied && wg!=relay)
         assertEquals("51853",modern.getString("wg_port"))
         assertEquals(upgraded.toString(),AndroidDeploySwg.drafts(JSONObject().put("swg_profiles",upgraded)).toString())
     }

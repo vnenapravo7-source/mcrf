@@ -120,6 +120,7 @@ class PacketManagedDnsRuntime(
                 val size=try{input.readUnsignedShort()}catch(_:java.io.EOFException){return};require(size in 12..4096){"PACKET_DNS_CLIENT_FRAME"}
                 val query=ByteArray(size);input.readFully(query);verify(caller)
                 val reply=resolve(query,caller);verify(caller);output.writeShort(reply.size);output.write(reply);output.flush()
+                observeReply(query,reply,caller)
             }
         }catch(_:Exception){}finally{lifetime.cancel(false);try{socket.close()}finally{untrack(socket)}}
     }
@@ -130,7 +131,21 @@ class PacketManagedDnsRuntime(
             val maximum=minOf(q.udpLimit,original.mtu-(if(address.address.size==4)28 else 48))
             if(reply.size>maximum)reply=PacketDnsWire.reply(query,0,truncated=true)
             socket.send(DatagramPacket(reply,reply.size,address,port))
+            observeReply(query,reply,caller)
         }catch(_:Exception){}
+    }
+    private fun observeReply(query:ByteArray,reply:ByteArray,caller:Caller) {
+        // Reuse a delivered DNS answer already handled by this runtime; no new query/capture.
+        runCatching {
+            val observer=platform as? ObservedDnsMetadata?:return
+            verify(caller)
+            val connection=Platform.ConnectionQuery(caller.mapped.protocol,caller.mapped.source,
+                caller.mapped.sourcePort,caller.mapped.destination,53)
+            val now=SystemClock.elapsedRealtime()
+            PacketDnsWire.observedAddresses(query,reply).forEach {
+                observer.observedDns(generation,connection,caller.uid,it.domain,it.ip,it.ttlMs,now)
+            }
+        }
     }
     private fun admitted(address:InetAddress):Boolean {
         if(address.isAnyLocalAddress||address.isMulticastAddress||address==RouteRules.literal(ManagedDnsPacketBackend.ALIAS4)||address==RouteRules.literal(ManagedDnsPacketBackend.ALIAS6))return false

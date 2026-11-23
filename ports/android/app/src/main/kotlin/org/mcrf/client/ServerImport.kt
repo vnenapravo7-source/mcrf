@@ -15,7 +15,10 @@ object ServerImport {
         @JvmField val original: String, @JvmField val name: String, @JvmField val protocol: String,
         @JvmField val host: String, @JvmField val port: Int, @JvmField val outbound: JSONObject?,
         @JvmField val endpoint: JSONObject?, @JvmField val configuration: JSONObject?, @JvmField val carrier: JSONObject? = null,
-        @JvmField val profileDns: List<String> = emptyList()
+        @JvmField val profileDns: List<String> = emptyList(),
+        /** Catalogue section, independent of the transport implementation. */
+        @JvmField val whitelists: Boolean = carrier != null,
+        @JvmField val routingRules:String?=null
     ) {
         @JvmField val id = MessageDigest.getInstance("SHA-256").digest(original.toByteArray(Charsets.UTF_8)).joinToString("") { String.format(Locale.ROOT, "%02x", it.toInt() and 255) }
         fun needsEngine() = protocol in setOf("openflux", "csqtt", "wdtt", "qwdtt", "olcrtc", "dnstt",VayDnsProfile.KIND,SlipstreamProfile.KIND,SstpProfile.KIND,MasterDnsProfile.KIND,S3BypassProfile.KIND)
@@ -23,8 +26,18 @@ object ServerImport {
             return (if(protocol==S3BypassProfile.KIND)"S3 Bypass"else protocol.uppercase(Locale.ROOT)) + if(carrier?.let(Csqtt25Profile::isProfile)==true) " · 2.5" else if (transport.isEmpty()) "" else " · ${transport.uppercase(Locale.ROOT)}" }
     }
     @JvmStatic fun read(source: String): List<Server> = readDocument(source, 0)
+    data class SubscriptionEntries(val servers:List<Server>,val skipped:Int)
+    /** Only subscription entries are recoverable; document and resource limits stay fatal. */
+    fun readSubscription(source:String):SubscriptionEntries {
+        var skipped=0
+        val servers=readDocument(source,0){skipped++}.filter {entry->
+            if(entry.needsEngine()&&entry.carrier==null){skipped++;false}else true
+        }
+        require(servers.isNotEmpty()) {"В подписке нет поддерживаемых подключений. Старые данные сохранены."}
+        return SubscriptionEntries(servers,skipped)
+    }
     @JvmStatic fun readNew(source: String, defaults: (JSONObject) -> JSONObject): List<Server> = read(CompatibilityImportQwdtt.applyNew(source, defaults))
-    private fun readDocument(source: String, depth: Int): List<Server> {
+    private fun readDocument(source: String, depth: Int, skipped:(()->Unit)?=null): List<Server> {
         require(depth <= 8) { "Слишком глубокая вложенность импорта." }
         require(source.toByteArray(Charsets.UTF_8).size <= MAX_BYTES) { "Импорт больше 4 МБ." }
         var text = CompatibilityImportLinks.unwrapDocument(source.trim()).replace(Regex("(?im)^qwdtt:config\\?"), "qwdtt://config?"); if (text.isEmpty()) return emptyList()
@@ -69,12 +82,16 @@ object ServerImport {
         val entries = mutableListOf<Server>(); val ids = hashSetOf<String>()
         text.lines().forEachIndexed { i, raw -> val line = raw.trim()
             if (line.isNotEmpty() && !line.startsWith('#')) {
+                try {
                 if (CompatibilityImportCsqttLegacy.isLegacy(line)) {
                     val supplied = CompatibilityImportCsqttLegacy.raw(line)
                     require(CompatibilityImportQwdtt.hasCalls(supplied)) { "Ссылка CSQTT распознана, но не содержит звонков. Добавь ручные ссылки или хеши VK-звонков; вход в VK не требуется." }
                 }
-                try { val entry = link(line); if (ids.add(entry.id)) entries.add(entry) }
-                catch (_: Exception) { throw IllegalArgumentException("Некорректное подключение в строке ${i+1}. Проверь формат ссылки и обязательные поля.") }
+                val entry = link(line); if (ids.add(entry.id)) entries.add(entry)
+                } catch (error: Exception) {
+                    if(skipped==null)throw IllegalArgumentException("Некорректное подключение в строке ${i+1}. Проверь формат ссылки и обязательные поля.",error)
+                    skipped()
+                }
                 // Match the existing JSON collection bound before retaining a
                 // potentially huge plaintext subscription. Hashes inside a
                 // single server are not counted here; duplicate IDs stay one entry.

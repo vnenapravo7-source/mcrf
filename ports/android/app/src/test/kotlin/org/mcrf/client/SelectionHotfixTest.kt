@@ -53,9 +53,13 @@ class SelectionHotfixTest {
     }
     @Test fun allVisualConnectEntrypointsDelegateWithoutOldWhitelistSelectionGuard() {
         val main=source("MainActivity")
-        val whitelist=main.substringAfter("private fun whiteLists()").substringBefore("private fun toggleConnection()")
-        assertTrue(whitelist.contains("connect=connectionButton {toggleConnection()}"))
-        assertFalse(whitelist.contains("toast(\"Выбери подключение"))
+        val home=main.substringAfter("private fun home(whitelists:Boolean=false)").substringBefore("private fun serversPage()")
+        assertTrue(home.contains("val orbitToggle=orbit&&ConnectionAppearance.isToggle(style)"))
+        assertTrue(home.contains("connect=if(sideOnly||orbit&&!orbitToggle)null else connectionButton {toggleConnection()}"))
+        assertTrue(main.contains("internal fun toggleOrbitServer(id:String)"))
+        assertTrue(main.contains("if(!active()&&selected==id)toggleConnection()"))
+        assertTrue(main.contains("private fun whiteLists()=home(whitelists=true)"))
+        assertFalse(home.contains("toast(\"Выбери подключение"))
         val edge=main.substringAfter("private fun toggleEdgeConnection").substringBefore("private fun connectionTargetView")
         assertFalse(edge.contains("toast(\"Выбери подключение"))
         assertTrue(edge.contains("prepareConnection(false,requestedWhitelists=whitelists)"))
@@ -66,7 +70,7 @@ class SelectionHotfixTest {
         val select=main.substringAfter("fun select(id: String)").substringBefore("fun setAutomatic")
         assertFalse(select.contains("render("))
         assertTrue(select.contains("ServerTapPolicy.action("))
-        assertTrue(select.contains("serverSwitch.request(id,entry.carrier!=null"))
+        assertTrue(select.contains("serverSwitch.request(id,entry.whitelists"))
         assertTrue(select.contains(".setAction(McrfVpnService.STOP).putExtra(ServerSwitchTransition.EXTRA,request.token)"))
         val rows=source("ServerRow")
         assertTrue(rows.contains("setOnClickListener {onSelect.run()}"))
@@ -80,6 +84,10 @@ class SelectionHotfixTest {
         assertTrue(main.contains("ClientPrimarySelection.validateNative(this,prepared.toString(),vpn)"))
         val service=source("McrfVpnService").substringAfter("if (intent.action != START)").substringBefore("return START_STICKY")
         assertTrue(service.indexOf("closeCore()")>=0)
-        assertTrue(service.indexOf("startSource(")>service.indexOf("closeCore()"))
+        val start=service.indexOf("startVpnWithBsPreflight(")
+        assertTrue(start>service.indexOf("closeCore()"))
+        assertTrue(service.indexOf("if (vpn && VpnService.prepare(this) != null)") in 0 until start)
+        val preflight=source("McrfVpnService").substringAfter("private fun startVpnWithBsPreflight(").substringBefore("private fun startSource(")
+        assertTrue(preflight.contains("startVpn={startSource(source,null,vpn,port,applyRoutes,requested,false)}"))
     }
 }

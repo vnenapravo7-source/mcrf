@@ -54,14 +54,15 @@ object ClientSteerVpnDeviceChecks {
     @JvmStatic fun run(context: Context, temporary: File, passed: Consumer<String>) = runMode(context,temporary,passed,false)
     @JvmStatic fun runP1(context: Context, temporary: File, passed: Consumer<String>) = runMode(context,temporary,passed,true)
     @JvmStatic fun runP1Proxy(context:Context,temporary:File,passed:Consumer<String>) = runMode(context,temporary,passed,true,true)
-    private fun runMode(context: Context, temporary: File, passed: Consumer<String>, p1:Boolean, proxy:Boolean=false) {
-        try { runChecked(context, temporary, passed,p1,proxy) }
+    @JvmStatic fun runP1ProxyStrict(context:Context,temporary:File,passed:Consumer<String>) = runMode(context,temporary,passed,true,true,true)
+    private fun runMode(context: Context, temporary: File, passed: Consumer<String>, p1:Boolean, proxy:Boolean=false, strictOwner:Boolean=false) {
+        try { runChecked(context, temporary, passed,p1,proxy,strictOwner) }
         catch (error: Throwable) {
             val code = error.message?.takeIf { it.matches(Regex("STEER_[A-Z0-9_]+")) } ?: "STEER_PRIVATE_FIXTURE_FAILED"
             throw IllegalStateException(code) // No cause: malformed private input/URI exceptions may contain credentials.
         }
     }
-    private fun runChecked(context: Context, temporary: File, passed: Consumer<String>,p1:Boolean,proxy:Boolean) {
+    private fun runChecked(context: Context, temporary: File, passed: Consumer<String>,p1:Boolean,proxy:Boolean,strictOwner:Boolean) {
         val app = context.applicationContext
         check(BuildConfig.DEBUG && Looper.myLooper() != Looper.getMainLooper() && Application.getProcessName() == app.packageName) { "STEER_DEBUG_MAIN_BACKGROUND_REQUIRED" }
         check(VpnService.prepare(app) == null) { "STEER_EXISTING_VPN_CONSENT_REQUIRED" }
@@ -72,7 +73,10 @@ object ClientSteerVpnDeviceChecks {
             temporary.canonicalFile == root && root.isDirectory && !Files.isSymbolicLink(temporary.toPath()) &&
             !Files.isSymbolicLink(root.toPath()) && root.list()?.toSet() == setOf("steer-fixture-input.json")) { "STEER_PRIVATE_INPUT_DIRECTORY" }
         val input = privateJson(File(root, "steer-fixture-input.json"), root)
-        require(input.keys().asSequence().toSet() == (if(p1)setOf("schema", "peer", "snapshot","moduleSha256")+(if(proxy)setOf("helperSha256")else emptySet()) else setOf("schema", "peer", "snapshot"))) { "STEER_INPUT_FIELDS" }
+        val inputFields = if(strictOwner)setOf("schema","peer","moduleSha256","helperSha256")
+            else if(p1)setOf("schema","peer","snapshot","moduleSha256")+(if(proxy)setOf("helperSha256")else emptySet())
+            else setOf("schema","peer","snapshot")
+        require(input.keys().asSequence().toSet()==inputFields) { "STEER_INPUT_FIELDS" }
         require(input.opt("schema") is Int && input.getInt("schema") == (if(p1)2 else 1)) { "STEER_INPUT_SCHEMA" }
         val peer = input.getJSONObject("peer")
         require(peer.keys().asSequence().toSet() == setOf("schema", "uri", "listenIpv4", "listenPort", "targetIpv4", "targetPort", "nonce", "path", "payloadHex", "deadlineSeconds", "maxConnections") &&
@@ -98,7 +102,7 @@ object ClientSteerVpnDeviceChecks {
         val hex = peer.getString("payloadHex")
         require(hex.matches(Regex("[0-9a-f]{192}"))) { "STEER_OWNED_96_BYTE_PAYLOAD_REQUIRED" }
         val payload = hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
-        val full = input.getJSONObject("snapshot")
+        val full = if(strictOwner)ClientSteerFixture.p1ProxySnapshot(nonce)else input.getJSONObject("snapshot")
         val tlsProtocol=if(p1&&!proxy)full.getJSONObject("routing").getJSONObject("globalDns").getString("protocol").takeIf {it in setOf("DoT","DoH")}else null
         val projected = SteerMcrfSnapshotAdapter.convert(full.toString())
         require(projected.supported && projected.settingsJson != null) { "STEER_CANONICAL_FULL_SNAPSHOT_REJECTED" }
@@ -118,6 +122,7 @@ object ClientSteerVpnDeviceChecks {
         EngineUpdatePrimary.installation(app, "steer")
         @Suppress("DEPRECATION") val installed = app.packageManager.getPackageInfo("org.mcrf.engines.steer", 0)
         if(!p1)require(installed.longVersionCode == 5L) { "STEER_REVIEWED_INSTALLED_VERSION5_REQUIRED" }
+        if(strictOwner)require(installed.longVersionCode >= 18L) { "STEER_STRICT_OWNER_MODULE_CAPABILITY_VERSION" }
         val pinnedModule=if(p1)input.getString("moduleSha256").also {
             require(it.matches(Regex("[0-9a-f]{64}"))&&ClientPrimaryWorkerWire.hashFile(File(requireNotNull(installed.applicationInfo).sourceDir))==it) {"STEER_P1_MODULE_PIN"}
             // The following REAL isolated validate/tunPlan independently demand
@@ -185,6 +190,8 @@ object ClientSteerVpnDeviceChecks {
                 .put("original", original).put("snapshot", full).put("dialIpv4", host)))
                 .put("url", health).put("timeout", 8000)
             if(proxy)serviceInput.put("p1OwnerHelperSha256",helperSha)
+            if(strictOwner)serviceInput.put("p1SteerStrictOwner",JSONObject()
+                .put("directory",root.name).put("createdElapsed",SystemClock.elapsedRealtime()).put("moduleSha256",pinnedModule))
             fixture.writeText(serviceInput.toString(), Charsets.UTF_8)
             stage = "START"
             attemptedStart = true
@@ -200,6 +207,9 @@ object ClientSteerVpnDeviceChecks {
             }) { "STEER_ACTUAL_SERVICE_OR_CALLBACK_WIRE_NOT_READY" }
             val actual = requireNotNull(run)
             actual.assertCurrent(cm)
+            if(strictOwner)verify(actual.worker.primaryOwnerIsolationSupported&&
+                ClientPrimaryVpnDeviceChecks.strictScopeInstalled(actual.service,actual.tun),
+                "Strict Steer signed module acknowledged owner-isolation capability on the actual TUN")
             require(actual.tun.fileDescriptor.valid() && !McrfVpnService.nativeVpnExclusion &&
                 if(proxy)McrfVpnService.localProxyPort in 1024..65535 else McrfVpnService.localProxyPort==0)
             val iface = requireNotNull(cm.getLinkProperties(actual.network)?.interfaceName)

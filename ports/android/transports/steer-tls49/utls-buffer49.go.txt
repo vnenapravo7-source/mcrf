@@ -1,0 +1,58 @@
+// MCRF private overlay for refraction-networking/utls aa6edf4b11af (BSD-3-Clause).
+// Added to the frozen private module clone, NEVER to the shared module cache.
+package tls
+
+// Removing the wire extension alone leaves preset ALPN in Config/Hello. Keep
+// all three views consistent, including an explicit empty list. Otherwise later
+// TLS checks can treat a protocol that was never offered as an offered one.
+func (c *UConn) MCRFExplicitALPN49(protocols []string) {
+	p := make([]string, len(protocols))
+	copy(p, protocols)
+	c.config.NextProtos = p
+	c.HandshakeState.Hello.AlpnProtocols = append([]string{}, p...)
+}
+
+// The native Go identity has no Extensions slice. Calling the preset-only
+// marshaller would remove all its real Go TLS extensions.
+func (c *UConn) MCRFMarshalHello49() error {
+	if c.ClientHelloID != HelloGolang {
+		return c.MarshalClientHello()
+	}
+	hello := c.HandshakeState.Hello.getPrivatePtr()
+	hello.original = nil
+	raw, err := hello.marshal()
+	if err != nil {
+		return err
+	}
+	c.HandshakeState.Hello.Raw = raw
+	return nil
+}
+
+// MCRFBuffered49 reports a usable complete record, not a partial record header.
+// rxDirect is a Vision receive-direction transition; TLS writes stay active.
+func (c *Conn) MCRFBuffered49(rxDirect bool) bool {
+	c.in.Lock()
+	defer c.in.Unlock()
+	if c.input.Len() > 0 {
+		return true
+	}
+	b := c.rawInput.Bytes()
+	if rxDirect {
+		return len(b) > 0
+	}
+	return len(b) >= 5 && len(b) >= 5+(int(b[3])<<8|int(b[4]))
+}
+
+// MCRFTakePending49 drains decrypted plaintext before unread raw wire bytes.
+// The native caller enables this ONLY after a received Vision DIRECT command.
+// Keep the underlying TLS connection and its write direction alive.
+func (c *Conn) MCRFTakePending49(dst []byte) int {
+	c.in.Lock()
+	defer c.in.Unlock()
+	n, _ := c.input.Read(dst)
+	if n < len(dst) {
+		m, _ := c.rawInput.Read(dst[n:])
+		n += m
+	}
+	return n
+}

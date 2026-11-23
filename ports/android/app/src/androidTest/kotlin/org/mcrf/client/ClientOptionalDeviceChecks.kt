@@ -26,7 +26,7 @@ object ClientOptionalDeviceChecks {
             val request=OptionalCoreConfig.Request(kind,output)
             OptionalCoreProcess.check(context,request,BooleanSupplier {false})
             passed.accept("$kind actual Android binary accepts its supported fixture configuration")
-            val child=OptionalCoreProcess.start(context,request,BooleanSupplier {false},false,false)
+            val child=OptionalCoreProcess.start(context,request,BooleanSupplier {false},false,false,strictIngress=false)
             val port=child.port
             try {
                 check(child.isAlive()&&NativeCarrier.socksReady(port,child.username,child.password))

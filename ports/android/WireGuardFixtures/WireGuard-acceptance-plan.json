@@ -1,0 +1,43 @@
+{
+  "scope": "IDs12/30/31; photo19 WARP subsection; final phone operations owned exclusively by coordinator",
+  "model_command": "powershell -File ports/android/WireGuardFixtures/WireGuard-model-tests.ps1",
+  "native_command": "powershell -File ports/android/WireGuardFixtures/WireGuard-native-tests.ps1",
+  "local_peer_command": {
+    "cwd": "ports/android/WireGuardFixtures",
+    "command": "go run -mod=readonly -ldflags=-checklinkname=0 ./cmd/WireGuardPeer -version awg2 -endpoint <local/private IP reachable by coordinator test client> -output <new private absolute directory>",
+    "protocols": [
+      "wg",
+      "awg1",
+      "awg2"
+    ],
+    "behavior": "Fresh private keys, ephemeral UDP, exclusive client.conf. ready event returns nonce-path url +url_ipv6 +expected_body; both HTTP listeners inside tunnel; correct path only200. STOP/5min closes server/device and emits sanitized closed handshake/RX/TX/request/body-byte receipt. No raw IPC/private-key output. Keep stdin open."
+  },
+  "required_exact_libbox_gates": [
+    "Import generated client.conf using WireGuardProfile/ServerImport; assert all keys/AllowedIPs/profileDns/native fields survive share, link and QR roundtrip. Use coordinator's own libbox isolated probe (no second tunnel implementation in production).",
+    "Libbox.checkConfig on WG, AWG1, AWG2, AWG3 header key, AWG3 ranged keepalive, AWG3.1 flags/timers, CPS, invalid CPS, invalid reversed ranges and too-short S1-S4 with header key. Unsupported capabilities must raise a readable error, never silently downgrade.",
+    "For WG/AWG1/AWG2, connect candidate via actual Android libbox to local fixture peer and fetch returned internal HTTP URL. Compare random expected_body exactly. This is private test traffic, not Internet/WARP proof.",
+    "Repeat in proxy and VPN modes; stop/restart; Wi-Fi/mobile/network-change; background/Doze; revoke permission; assert port/process/TUN cleanup and no stale auto selection. Do not interrupt existing user VPN/probe; coordinate test window centrally.",
+    "Verify allowed routes, IPv4/IPv6, DNS profile override against selected DNS policy and direct/bypass priorities; test unreachable peer/incorrect key/incorrect obfuscation and cancellation. Local peer intentionally exposes HTTP only, not a DNS service.",
+    "AWG3/3.1 live peer is NOT provided by WarpScout's older pinned v0.2.20 library. Coordinator must use its already pinned exact sing-box-lx native implementation on both fixture sides or explicitly authorized compatible test peer, without changing app backend or transport pins. Retain gate pending until true handshake/body evidence exists."
+  ],
+  "warp_flow": [
+    "Register only on user action after provider terms, via WarpOperations.register(WarpScanner). No account registration was performed by this owner.",
+    "Use WarpOperations.scan with Options from WarpSettingsStore. Supply TunnelTrace that builds an isolated probe for exactly candidate config and requests HTTPS https://www.cloudflare.com/cdn-cgi/trace through that probe; close candidate in finally. Never use system/direct fetch and never disconnect user's active VPN to probe.",
+    "Test WG/AWG/auto, any/foreign/fixed country, excluded DME, extended search, unavailable country, corrupted result, module missing/signature/ABI error, cancel, retry and deletion while scan is running.",
+    "Only Verified result is eligible for replacement: under coordinator operation/generation guard, confirm previous ID still exists, catalogue.saveWarp(verified.account,verified.server.original,previousId), update selection to returned new ID. A failed or cancelled trace retains original selected profile and account.",
+    "Encrypted catalogue already owns account/key storage and deletes linked account on local profile removal. Register warpOptions backup validator before backup/restore; confirm local/WebDAV roundtrip and old-backup defaults. Local deletion must not claim remote Cloudflare revocation."
+  ],
+  "evidence_required": [
+    "Native core version/hash/build tag",
+    "APK ABI/hash",
+    "Generated fixture key provenance without publishing private keys",
+    "Handshake and byte-counter evidence",
+    "Exact expected HTTP body",
+    "Country/colo/warp trace fields",
+    "Failure/cancel preserved catalogue/selection",
+    "Encrypted backup roundtrip",
+    "UI light/dark/small-screen/autosave"
+  ],
+  "limits": "Loopback Go fixtures prove pinned WarpScout WG/AWG1/2 handshake, HTTP transfer and down/up; they do not prove Android libbox, provider WARP availability, external DNS or AWG3/3.1 compatibility.",
+  "coordinator_android_probe_hook": "Off main thread, no catalogue write: val entry=ServerImport.read(privateFixtureConf).single(); val result=ProbeCoordinator.measure(context,listOf(entry),ready.url,ProbeCoordinator.cancellationToken()); require(result[entry.id] != null && result[entry.id]!! >= 0). Repeat ready.url_ipv6. Coordinator only, shared probe idle. Exact Android core hash/ABI plus closed peer receipt handshake_observed=true, rx_bytes>0, tx_bytes>0, http_requests>=2 and body bytes>=2*expected_body.length prove tunnel traffic. Probe alone does NOT verify VPN routes/DNS/lifecycle."
+}

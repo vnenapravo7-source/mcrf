@@ -67,6 +67,9 @@ func run() int {
 	if err != nil {
 		return fail("OLC_CONFIG_REJECTED")
 	}
+	if err := configureUnderlay(); err != nil {
+		return fail("OLC_PHYSICAL_NETWORK_REJECTED")
+	}
 	log.SetOutput(io.Discard)
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
 	defer cancel()

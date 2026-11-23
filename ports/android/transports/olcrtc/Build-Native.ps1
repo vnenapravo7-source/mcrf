@@ -17,7 +17,7 @@ function Assert-Source {
  }
 }
 Assert-Source
-$taskRequired=@('TestMcrfOlcStrictPrivateSchema','TestMcrfOlcTransportOptionsPreserveOriginalMapping','TestMcrfOlcStopCancelsTheOwnedListener','TestMcrfOlcEOFIsCancellationWithoutReady','TestMcrfOlcStartupFailureIsNotSwallowed','TestShutdownClosesLinkAndConn','TestShutdownWaitsForTrackedGoroutines')
+$taskRequired=@('TestMcrfOlcStrictPrivateSchema','TestMcrfOlcTransportOptionsPreserveOriginalMapping','TestMcrfOlcStopCancelsTheOwnedListener','TestMcrfOlcEOFIsCancellationWithoutReady','TestMcrfOlcStartupFailureIsNotSwallowed','TestMcrfOlcPhysicalNetworkAdmission','TestShutdownClosesLinkAndConn','TestShutdownWaitsForTrackedGoroutines','TestMcrfOlcSocks5OfferedMethods')
 $taskHost=Get-Content -LiteralPath $HostEvidence -Raw|ConvertFrom-Json
 if($taskHost.state -cne 'PASS_P3_OLCRTC_HOST' -or $taskHost.sourceManifestSha256 -cne $taskPrepared.manifestSha256 -or $taskHost.failures -ne 0 -or $taskHost.skipped -ne 0 -or @($taskRequired|Where-Object {$_ -cnotin $taskHost.cases}).Count){throw 'All new OLCRTC config/auth/lifecycle checks required'}
 $taskLog=Join-Path (Split-Path $HostEvidence) 'olcrtc-host-tests.jsonl'

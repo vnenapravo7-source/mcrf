@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/mcrf_widget_surface"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_background" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingBottom="4dp">
+
+        <LinearLayout
+            android:id="@+id/mcrf_widget_power_target"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:contentDescription="@string/widget_connect"
+            android:foreground="@drawable/widget_header_focus"
+            android:gravity="center_vertical"
+            android:importantForAccessibility="yes"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp">
+
+            <TextView
+                android:id="@+id/mcrf_widget_status"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:importantForAccessibility="no"
+                android:maxLines="2"
+                android:text="@string/widget_offline"
+                android:textColor="#F3F1FA"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <FrameLayout
+                android:layout_width="58dp"
+                android:layout_height="28dp"
+                android:importantForAccessibility="no">
+
+                <ImageView
+                    android:id="@+id/mcrf_widget_matrix"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:importantForAccessibility="no"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/widget_matrix_off" />
+
+                <ProgressBar
+                    android:id="@+id/mcrf_widget_progress"
+                    style="@android:style/Widget.Material.ProgressBar.Small"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:importantForAccessibility="no"
+                    android:indeterminate="true"
+                    android:indeterminateTint="#886DD3"
+                    android:visibility="invisible" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="8dp">
+
+            <ListView
+                android:id="@+id/mcrf_widget_server_list"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:divider="@android:color/transparent"
+                android:dividerHeight="2dp"
+                android:drawSelectorOnTop="true"
+                android:listSelector="@drawable/widget_press"
+                android:scrollbarStyle="insideInset" />
+
+            <TextView
+                android:id="@+id/mcrf_widget_empty"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:paddingHorizontal="6dp"
+                android:text="@string/widget_server_empty"
+                android:textColor="#BCB8CB"
+                android:textSize="13sp"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginHorizontal="8dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/mcrf_widget_detection_row"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="3dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="2"
+                android:text="@string/widget_detection"
+                android:textColor="#BCB8CB"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/mcrf_widget_auto_row"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="2"
+                android:text="@string/widget_auto"
+                android:textColor="#AC9DFF"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

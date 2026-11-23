@@ -27,6 +27,7 @@ internal object MasterDnsFailure {
             "MASTERDNS_CODEC"->"Не удалось подготовить выбранный метод шифрования MasterDnsVPN."
             "MASTERDNS_ENDPOINT_MAP"->"Не удалось составить пары доменов и DNS-резолверов MasterDnsVPN."
             "MASTERDNS_NETWORK_TIMEOUT"->"Истекло время сетевой операции MasterDnsVPN."
+            "MASTERDNS_UNDERLAY_BIND"->"Не удалось привязать MasterDnsVPN к физической сети."
             "MASTERDNS_LOCAL_LISTENER"->"Не удалось открыть локальный SOCKS-вход MasterDnsVPN."
             "MASTERDNS_LOCAL_UDP"->"Не удалось открыть локальный UDP-сокет для DNS-туннеля MasterDnsVPN."
             "MASTERDNS_RUNTIME"->"Оригинальный движок MasterDnsVPN завершился с ошибкой; смотрите последний этап подключения."

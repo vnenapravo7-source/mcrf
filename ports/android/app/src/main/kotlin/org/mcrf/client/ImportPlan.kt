@@ -5,10 +5,25 @@ class ImportPlan private constructor(
     val manual: String, val subscriptions: Map<String, SubscriptionClient.Downloaded>,
     val entries: List<ServerImport.Server>,
     private val versionEdits:Map<String,org.json.JSONObject> = emptyMap(),
-    private val newOnlyEdits:Map<String,org.json.JSONObject> = emptyMap()
+    private val newOnlyEdits:Map<String,org.json.JSONObject> = emptyMap(),
+    private val tvProfile: TvTransferredProfile? = null
 ) {
-    val engines: Set<String> = entries.filter { it.needsEngine() }.mapTo(linkedSetOf()) { it.carrier?.let(EngineModules::carrierKind)?:it.protocol }
-    fun commit(catalogue: Connections) = catalogue.importFetched(manual, subscriptions,versionEdits,newOnlyEdits)
+    val engines: Set<String> = requiredEngines(entries)
+    fun withRoutingChoices(choices:Map<String,String>,existing:Set<String>):ImportPlan {
+        val edits=newOnlyEdits.toMutableMap()
+        val versions=versionEdits.toMutableMap()
+        val prepared=entries.map {entry->
+            if(entry.protocol!="csqtt"||entry.id in existing)return@map entry
+            val choice=choices[entry.id]?.takeIf(ServerRoutingMode::valid)?:throw ServerRoutingMode.Required()
+            val options=org.json.JSONObject((versions[entry.id]?:edits[entry.id]?:org.json.JSONObject()).toString()).put(ServerRoutingMode.KEY,choice)
+            if(entry.id in versions)versions[entry.id]=options else edits[entry.id]=options
+            ConnectionEdits.apply(entry,options)
+        }
+        return ImportPlan(manual,subscriptions,prepared,versions,edits,tvProfile)
+    }
+    fun commit(catalogue: Connections) = tvProfile?.let(catalogue::importTvProfile)
+        ?: catalogue.importFetched(manual, subscriptions,versionEdits,newOnlyEdits)
+    fun commitInvite(catalogue:Connections)=catalogue.replaceInvite(entries,versionEdits,newOnlyEdits)
     /** Subscription URLs bypass the manual source transformer. Keep provider IDs/links,
      * and persist a local RAW default only for entries newly added by this transaction. */
     fun withNewQwdttDefaults(existing:Set<String>):ImportPlan {
@@ -35,6 +50,13 @@ class ImportPlan private constructor(
         return ImportPlan(manual,subscriptions,resolved,edits,newOnlyEdits)
     }
     companion object {
+        fun requiredEngines(entries:List<ServerImport.Server>):Set<String> = entries.filter {it.needsEngine()}.flatMapTo(linkedSetOf()){entry->entry.carrier?.let {if(it.optString("type")=="csqtt")CsqttGenerations.requiredEngines(it)else setOf(EngineModules.carrierKind(it))}?:setOf(entry.protocol)}
+        internal fun forTv(profile: TvTransferredProfile): ImportPlan {
+            val entry = profile.parse()
+            require(!entry.needsEngine() || entry.carrier != null)
+            return ImportPlan(profile.original, emptyMap(), listOf(entry), tvProfile = profile)
+        }
+        fun empty()=ImportPlan("",emptyMap(),emptyList())
         fun combine(plans:List<ImportPlan>):ImportPlan {
             require(plans.isNotEmpty())
             return ImportPlan(plans.joinToString("\n"){it.manual},plans.flatMap {it.subscriptions.entries}.associate {it.toPair()},plans.flatMap {it.entries})

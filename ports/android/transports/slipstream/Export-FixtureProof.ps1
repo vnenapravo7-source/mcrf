@@ -7,7 +7,9 @@ $taskRoot=(Resolve-Path $NativeStage).Path
 if($taskRoot.Replace([char]92,[char]47) -cnotmatch '^D:/MCRF/Builds/Android/p3-slipstream-native-[a-f0-9]{32}$'){throw 'Exact owned native stage required'}
 $taskProof=Get-Content "$taskRoot/receipt.json" -Raw|ConvertFrom-Json -AsHashtable
 $taskEvidence=Get-Content "$taskRoot/fixture-evidence.json" -Raw|ConvertFrom-Json -AsHashtable
-if($taskProof.state -cne 'COMPILED_OWNED_FIXTURE_VERIFIED' -or !$taskProof.producerComplete -or $taskProof.fixtureEvidenceSha256 -cne (Hash "$taskRoot/fixture-evidence.json") -or $taskEvidence.cases.Count -ne 11){throw 'All actual eleven cases required before evidence export'}
+$taskExpected=if($taskProof.androidPhysicalSocketBinding){12}else{11}
+if($taskProof.state -cne 'COMPILED_OWNED_FIXTURE_VERIFIED' -or !$taskProof.producerComplete -or $taskProof.fixtureEvidenceSha256 -cne (Hash "$taskRoot/fixture-evidence.json") -or $taskEvidence.cases.Count -ne $taskExpected){throw 'All required actual cases must pass before evidence export'}
+if($taskProof.androidPhysicalSocketBinding -and 'TestMcrfSlipstreamOwnedWirePhysicalNetwork' -cnotin $taskEvidence.cases){throw 'Physical network binding evidence required'}
 if(Test-Path "$taskRoot/slipstream-tests.jsonl"){throw 'Never overwrite a completed aggregate proof'}
 $taskFound=@{};$taskLedger=@()
 foreach($attempt in $taskEvidence.attempts){

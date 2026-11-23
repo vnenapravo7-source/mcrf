@@ -9,6 +9,11 @@ data class RouteEditorDraft(val initial:JSONObject,val apps:Set<String>,val addr
     fun content(edited:String?,selectedApps:Set<String>)=(edited?:addresses)+selectedApps.joinToString(separator="\napp:",prefix=if(selectedApps.isEmpty())""else"\napp:")
     companion object {
         const val INLINE_LIMIT=16384
+        fun validateGeo(text:String,state:JSONObject) {
+            val groups=RouteRules.parse(text)
+            if("youtube" in groups.getValue("geoip")&&GeoDataConfig.value(state).optString("source")!="custom")
+                throw IllegalArgumentException("geoip:youtube — не категория стандартной GeoIP. Для YouTube укажите geosite:youtube; для IP страны — geoip:ru.")
+        }
         fun prepare(value:JSONObject):RouteEditorDraft {
             val initial=JSONObject(value.toString());val text=initial.getString("text")
             val apps=RouteRules.parse(text).getValue("package_name").toSet()

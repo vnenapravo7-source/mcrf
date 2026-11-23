@@ -4,6 +4,10 @@ object AppUpdatePresentation {
     private val version=Regex("^(?:android-)?v?(\\d+)\\.(\\d+)(?:\\.(\\d+))?(?:-([0-9A-Za-z.-]+))?(?:\\+[0-9A-Za-z.-]+)?$")
     private fun parsed(value:String)=value.takeIf{it.length<=128}?.let{version.matchEntire(it)}
     fun valid(value:String)=parsed(value)!=null
+    fun progressPercent(received: Long, total: Long): Int {
+        if (total <= 0L) return 0
+        return (received.coerceIn(0L, total).toDouble() * 100 / total).toInt()
+    }
     fun newer(remote:String,installed:String):Boolean {
         val a=parsed(remote)?:return false;val b=parsed(installed)?:return false
         for(i in 1..3){val c=a.groupValues[i].ifEmpty{"0"}.toBigInteger().compareTo(b.groupValues[i].ifEmpty{"0"}.toBigInteger());if(c!=0)return c>0}

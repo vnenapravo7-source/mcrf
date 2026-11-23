@@ -1,0 +1,9 @@
+{
+  "kind": "published factual cryptographic test-vector bytes",
+  "source": "https://www.rfc-editor.org/rfc/rfc9001.html#name-client-initial",
+  "section": "A.2",
+  "bytes": 1200,
+  "sha256": "73fa0210cb4a5a17dc10b9dc98e5cc359ba1c20fe7c0e93a9e1dcb473c37e097",
+  "sourceHtmlSha256": "81d9f0bf8474cb174ccf927ad69e612aad09847b19bd69c3a3683b7cb1ff9144",
+  "notice": "RFC 9001: Copyright (c) 2021 IETF Trust and the persons identified as the document authors; legal provisions https://trustee.ietf.org/license-info"
+}

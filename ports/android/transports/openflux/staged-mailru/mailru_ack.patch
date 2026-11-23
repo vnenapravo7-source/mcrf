@@ -1,0 +1,20 @@
+diff --git a/transport/mailru/mailru.go b/transport/mailru/mailru.go
+index 06868b4..be0b8bf 100644
+--- a/transport/mailru/mailru.go
++++ b/transport/mailru/mailru.go
+@@ -489,6 +489,7 @@ func (t *MailruDocsTransport) writerLoop() {
+ 		// its text against the document model (unlike cursor/saveChanges, which it
+ 		// now rejects). We tag the base64 payload so our frames are told apart from
+ 		// a human's chat and from the server's echo of our own messages.
++		if !mcrfMailruWriteReady(session) { time.Sleep(15 * time.Millisecond); continue }
+ 		payload := chatDataTag + base64.StdEncoding.EncodeToString(pending)
+ 		msg := fmt.Sprintf(`42["message",{"type":"message","message":%q}]`, payload)
+ 		if err := session.safeWrite(websocket.TextMessage, []byte(msg)); err != nil {
+@@ -612,6 +613,7 @@ func BuildSaveChanges(userID string) []byte {
+ }
+ 
+ func (t *MailruDocsTransport) handleMessage(session *DocSession, data []byte) {
++	if mcrfMailruAuthChanges(session, data) { return }
+ 	text := string(data)
+ 
+ 	if text == "2" {

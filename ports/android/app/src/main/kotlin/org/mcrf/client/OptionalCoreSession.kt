@@ -5,7 +5,8 @@ import org.json.JSONObject
 import java.util.function.BooleanSupplier
 
 /** Owned orchestration for a full config. Main retains this alongside its libbox instance. */
-class OptionalCoreSession private constructor(val config: JSONObject,private val byTag: Map<String,OptionalCoreProcess>):AutoCloseable {
+class OptionalCoreSession private constructor(val config: JSONObject,private val byTag: Map<String,OptionalCoreProcess>,val physicalNetworkHandle:Long?):AutoCloseable {
+    val requiresUidBypass:Boolean get()=physicalNetworkHandle==null
     private val workers=byTag.values.toList()
     private val failures=RouteWorkerFailures(byTag.keys)
     private val retirement=OptionalCoreRetirement(workers.asReversed())
@@ -23,19 +24,26 @@ class OptionalCoreSession private constructor(val config: JSONObject,private val
     fun networkChanged()=close()
     companion object {
         fun check(context: Context,plan: OptionalCorePlan,cancelled: BooleanSupplier) = plan.preflight(cancelled) { OptionalCoreProcess.check(context,it.request,cancelled) }
-        fun start(context: Context,plan: OptionalCorePlan,cancelled: BooleanSupplier,vpn: Boolean,vpnUidBypassConfigured: Boolean):OptionalCoreSession {
+        internal fun requireStrictIngress(context:Context,plan:OptionalCorePlan) {
+            plan.entries().map {it.request.kind}.distinct().forEach {OptionalCoreProcess.requireStrictIngress(context,it)}
+        }
+        fun start(context: Context,plan: OptionalCorePlan,cancelled: BooleanSupplier,vpn: Boolean,vpnUidBypassConfigured: Boolean,
+                  physicalNetworkHandle:Long?=null,strictIngress:Boolean):OptionalCoreSession {
             // Check every required module/config before starting even the first listener.
-            check(context,plan,cancelled)
+            plan.preflight(cancelled) {
+                OptionalCoreProcess.check(context,it.request.copy(physicalNetworkHandle=physicalNetworkHandle),cancelled,strictIngress)
+            }
             val workers=mutableListOf<OptionalCoreProcess>();val bridges=linkedMapOf<String,JSONObject>()
             val byTag=linkedMapOf<String,OptionalCoreProcess>()
             try {
                 plan.entries().forEach {entry ->
                     require(!cancelled.asBoolean) { "Запуск optional core отменён." }
-                    val worker=OptionalCoreProcess.start(context,entry.request,cancelled,vpn,vpnUidBypassConfigured)
+                    val request=entry.request.copy(physicalNetworkHandle=physicalNetworkHandle)
+                    val worker=OptionalCoreProcess.start(context,request,cancelled,vpn,vpnUidBypassConfigured,strictIngress)
                     workers.add(worker);byTag[entry.tag]=worker;bridges[entry.tag]=worker.bridgeOutbound(entry.tag)
                 }
                 require(!cancelled.asBoolean) { "Запуск optional core отменён." }
-                return OptionalCoreSession(plan.replace(bridges),byTag.toMap())
+                return OptionalCoreSession(plan.replace(bridges),byTag.toMap(),physicalNetworkHandle)
             } catch(error:Throwable) {
                 OptionalCoreRetirement.fail(error,OptionalCoreRetirement(workers.asReversed()))
             }

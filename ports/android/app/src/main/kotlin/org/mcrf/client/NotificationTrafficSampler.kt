@@ -18,6 +18,7 @@ internal class NotificationTrafficSampler(private val context:Context,private va
     private val active:()->Boolean,private val sample:()->Unit,private val publish:()->Unit):AutoCloseable {
     private val prefs=context.getSharedPreferences("MainActivity",Context.MODE_PRIVATE)
     private val power=context.getSystemService(PowerManager::class.java)
+    private val usagePreferences = ServerUsage.preferences(context)
     @Volatile private var interactive=power?.isInteractive?:true
     private val revision=AtomicLong()
     @Volatile private var closed=false
@@ -25,9 +26,17 @@ internal class NotificationTrafficSampler(private val context:Context,private va
     private var previous=Long.MIN_VALUE
     private var registered=false
     private val tick=Runnable {poll()}
-    private fun interval()=NotificationTrafficSettings.load(prefs).interval(TelemetryCadence.uiVisible(),interactive)
+    private fun interval(): Long? {
+        val settings = NotificationTrafficSettings.load(prefs)
+        val visible = TelemetryCadence.uiVisible()
+        return if (!settings.enabled && ServerUsage.enabled(context)) settings.copy(enabled = true).interval(visible, interactive)
+        else settings.interval(visible, interactive)
+    }
     private val preferenceListener=SharedPreferences.OnSharedPreferenceChangeListener {_,key->
-        if(key in NotificationTrafficSettings.keys)main.post {arm(force=true)}
+        if(key in NotificationTrafficSettings.keys) main.post {arm(force=true)}
+    }
+    private val usagePreferenceListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == ServerUsage.ENABLED) main.post { arm(force = true) }
     }
     // A wake and Activity.onResume may arrive together. Recalculate the due
     // time on presence changes; only wake explicitly forces a fresh sample.
@@ -43,7 +52,9 @@ internal class NotificationTrafficSampler(private val context:Context,private va
             else @Suppress("DEPRECATION") context.registerReceiver(receiver,filter)
             registered=true
             interactive=power?.isInteractive?:true
-            prefs.registerOnSharedPreferenceChangeListener(preferenceListener);TelemetryCadence.observe(presence)
+            prefs.registerOnSharedPreferenceChangeListener(preferenceListener)
+            usagePreferences.registerOnSharedPreferenceChangeListener(usagePreferenceListener)
+            TelemetryCadence.observe(presence)
             main.post {arm(force=true)}
         }catch(error:Exception){close();throw error}
     }
@@ -67,7 +78,9 @@ internal class NotificationTrafficSampler(private val context:Context,private va
     override fun close(){
         if(closed)return
         closed=true;revision.incrementAndGet();main.removeCallbacks(tick)
-        prefs.unregisterOnSharedPreferenceChangeListener(preferenceListener);TelemetryCadence.unobserve(presence)
+        prefs.unregisterOnSharedPreferenceChangeListener(preferenceListener)
+        usagePreferences.unregisterOnSharedPreferenceChangeListener(usagePreferenceListener)
+        TelemetryCadence.unobserve(presence)
         if(registered){runCatching {context.unregisterReceiver(receiver)};registered=false}
     }
 }

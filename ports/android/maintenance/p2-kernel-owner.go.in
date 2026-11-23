@@ -1,0 +1,29 @@
+package PACKAGE
+
+import (
+    "bufio"
+    "fmt"
+    "os"
+    "strings"
+    "testing"
+)
+
+// Test-only owner gate. No native/library entry point or installed app changes.
+func TestMain(m *testing.M) {
+    if role := os.Getenv("MCRF_P2_GROUP_FIXTURE"); role == "root" || role == "leaf" {
+        os.Exit(m.Run()) // Exact fixture children retain their private stdin protocol.
+    }
+    nonce := os.Getenv("MCRF_P2_KERNEL_NONCE")
+    if len(nonce) != 32 || strings.Trim(nonce,"0123456789abcdef") != "" { os.Exit(81) }
+    stat, err := os.ReadFile("/proc/self/stat")
+    if err != nil { os.Exit(82) }
+    parts := strings.Fields(string(stat)[strings.LastIndex(string(stat),") ")+2:])
+    if len(parts)<20 { os.Exit(83) }
+    exe,err := os.Executable();if err!=nil {os.Exit(84)}
+    fmt.Printf("P2_KERNEL_OWNER %d %s %d %s\n",os.Getpid(),parts[19],os.Getuid(),exe)
+    line,err := bufio.NewReader(os.Stdin).ReadString('\n')
+    if err!=nil || line!="GO "+nonce+"\n" {os.Exit(85)}
+    code:=m.Run()
+    fmt.Printf("P2_KERNEL_DONE %d\n",code)
+    os.Exit(code)
+}

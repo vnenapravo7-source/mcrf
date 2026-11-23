@@ -6,6 +6,23 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class TurnEmptyRoutesParityTest {
+    @Test fun boundWdttOwnsFinalOutboundEvenWithoutAnyRules(){
+        val entry=ServerImport.Server("owned-wdtt","Fixture WDTT","wdtt","example.test",443,null,null,null,JSONObject().put("type","wdtt"))
+        val state=RouteRules.defaults().apply {
+            RoutingGroups.ensure(this);RoutingGroups.select(this,"bs")
+            put(RoutingConnectionBinding.KEY,JSONObject().put("enabled",true))
+        }
+        val runtime=RoutingConnectionBinding.prepare(state,listOf(entry),true,
+            RoutingConnectionBinding.Policy(BsAutoSelectionPolicy.OFF,"",entry.id,60,45,false),JSONObject(),1)
+        val plan=RouteServerPlan(runtime,listOf(entry))
+        assertEquals(listOf(entry.id),plan.entries.map {it.id})
+        val source=ServerImport.build(listOf(entry),entry.id,false,60,30,"Системный")
+        val config=ProfileConfig.build(source.toString(),true,10808)
+        val applied=RouteRules.apply(config,runtime,true,routeServers=listOf(entry))
+        assertEquals(RouteServerPlan.tag(entry.id),applied.getJSONObject("route").getString("final"))
+        assertEquals("proxy",state.getString("defaultTarget"))
+        assertEquals(0,state.getJSONArray("rules").length())
+    }
     @Test fun eachCarrierKeepsItsDefaultOutboundWithEmptyBsGroup() {
         for(kind in listOf("csqtt","wdtt","qwdtt")) {
             val entry=ServerImport.Server("owned-$kind","Fixture $kind",kind,"example.test",443,null,null,null,JSONObject().put("type",kind))

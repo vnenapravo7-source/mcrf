@@ -9,17 +9,28 @@ function Resolve([string]$path,[string]$pattern){
 }
 function Hash([string]$path){(Get-FileHash -LiteralPath $path).Hash.ToLowerInvariant()}
 $native=Resolve $NativeStage '^csqtt-historical-[0-9a-f]{32}$'
-$wrapper=Resolve $WrapperStage '^csqtt-captcha-[0-9a-f]{32}$'
+$wrapper=Resolve $WrapperStage '^(csqtt-captcha|p3-turn-native)-[0-9a-f]{32}$'
 $n=Get-Content "$native/receipt.json" -Raw|ConvertFrom-Json
 $w=Get-Content "$wrapper/receipt.json" -Raw|ConvertFrom-Json
 if($n.state -cne 'COMPILED_NOT_EXECUTED' -or !$n.sourceStable -or $n.engine -cnotin @('csqtt20','csqtt215') -or @($n.artifacts).Count -ne 3){throw 'Completed historical native producer required'}
 if($w.kind -cne 'csqtt' -or $w.state -cne 'COMPILED_NOT_EXECUTED' -or !$w.sourceStable -or $w.processGroupContract -ne 1 -or $w.turnHashPoolContract -ne 1 -or $w.captchaWaiterCapability -cne 'csqtt-id48-v1'){throw 'Exact retained safe Go bridge contract required'}
+if([IO.Path]::GetFileName($wrapper).StartsWith('p3-') -and ($w.p3PerformanceAuthority -cne 'human-20261023-finish-current-fixes-then-p3-p4' -or !$w.sourceManifestSha256 -or !$w.hostEvidenceSha256)){throw 'P3 wrapper requires fresh source-bound performance evidence'}
 $stage="$base/csqtt-historical-package-$([guid]::NewGuid().ToString('N'))"
 New-Item -ItemType Directory -Path $stage,"$stage/licenses"|Out-Null
 $result=[ordered]@{state='PREPARING';kind=$n.engine;generation=$n.generation;revision=$n.revision;sourceStable=$false;wrapperReceiptSha256=Hash "$wrapper/receipt.json";nativeReceiptSha256=Hash "$native/receipt.json";artifacts=@();releaseVerified=$false}
 function Save{[IO.File]::WriteAllText("$stage/receipt.json",($result|ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))}
 try {
     Copy-Item "$wrapper/receipt.json" "$stage/wrapper-receipt.json";Copy-Item "$native/receipt.json" "$stage/native-receipt.json"
+    if($w.p3PerformanceAuthority){
+        New-Item -ItemType Directory -Path "$stage/wrapper-performance"|Out-Null
+        foreach($proof in @('source-manifest.json','prepared-p3-turn-source.json','retained-baseline-receipt.json','turn-performance-host-evidence.json','turn-performance-tests.jsonl')){
+            $input=Get-Item -LiteralPath "$wrapper/$proof"
+            if($input.LinkType -or $input.PSIsContainer){throw 'Regular P3 wrapper proof required'}
+            Copy-Item -LiteralPath $input.FullName -Destination "$stage/wrapper-performance/$proof"
+        }
+        $result.packageVersionCode=4
+        $result.packageVersionName="$($n.generation)-mcrf.performance.4"
+    }
     foreach($abi in @('arm64-v8a','armeabi-v7a','x86_64')){
         New-Item -ItemType Directory -Path "$stage/$abi"|Out-Null
         $rust=@($n.artifacts|Where-Object {$_.abi -ceq $abi})

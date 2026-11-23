@@ -1,0 +1,22 @@
+[package]
+name = "mcrf-vk-backoff-admission-tests"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+anyhow = "1"
+tokio = { version = "=1.53.1", features = ["macros", "rt-multi-thread", "sync", "time", "test-util"] }
+tokio-util = "=0.7.19"
+serde_json = "1"
+
+[[test]]
+name = "flow_g251"
+path = "flows/g251/flow.rs"
+
+[[test]]
+name = "flow_g253"
+path = "flows/g253/flow.rs"

@@ -1,0 +1,19 @@
+[package]
+name = "mcrf-csqtt-multicall-boundary"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "lib.rs"
+
+[[bin]]
+name = "mcrf-csqtt-transport"
+path = "main.rs"
+
+[profile.release]
+lto = "fat"
+opt-level = "z"
+panic = "abort"
+codegen-units = 1
+strip = true

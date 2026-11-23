@@ -14,6 +14,112 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 object ProbeCoordinator {
+    private val healthLock = Any()
+    private var healthStore: HealthStore? = null
+    private data class HealthTarget(val id: String, val host: String, val port: Int)
+    private val healthPages = LinkedHashMap<Any, List<HealthTarget>>()
+    private val healthScheduler = java.util.concurrent.ScheduledThreadPoolExecutor(1) { job ->
+        Thread(job, "mcrf-health-beta").apply { isDaemon = true }
+    }.apply { removeOnCancelPolicy = true }
+    private var healthSchedule: java.util.concurrent.ScheduledFuture<*>? = null
+    private var healthCancellation: HealthCancellation? = null
+    private var healthCursor = 0L
+
+    fun healthStore(context: Context): HealthStore = synchronized(healthLock) {
+        healthStore ?: HealthStore(File(context.applicationContext.noBackupFilesDir, "health-beta.bin"),
+            System::currentTimeMillis, SystemClock::elapsedRealtime).also { healthStore = it }
+    }
+
+    /** Typed local lifecycle events; never starts network or service work. */
+    @JvmStatic fun ingestHealthEvent(context: Context, serverId: String, event: HealthEvent): Boolean {
+        if (SafeModeStore(context).enabled()) return false
+        val accepted = healthStore(context).ingest(serverId, event)
+        if (accepted) presentationChanged()
+        return accepted
+    }
+
+    fun setHealthEnabled(context: Context, enabled: Boolean): Boolean = synchronized(healthLock) {
+        stopHealthWork()
+        val saved = healthStore(context).setEnabled(enabled)
+        if (saved && enabled) scheduleHealth(context.applicationContext)
+        presentationChanged()
+        saved
+    }
+    internal fun refreshHealthPolicy(context:Context)=synchronized(healthLock) {
+        stopHealthWork()
+        scheduleHealth(context.applicationContext)
+    }
+
+    /** Ownership belongs to a visible server page, not a VPN/background service. */
+    internal fun watchHealth(context: Context, entries: List<ServerImport.Server>): AutoCloseable = synchronized(healthLock) {
+        val owner = Any()
+        healthPages[owner] = entries.asSequence().filter {
+            it.configuration == null && it.carrier == null && it.endpoint == null &&
+                it.protocol in setOf("vless", "vmess", "trojan", "shadowsocks", "socks", "http", "https", "anytls", "naive", "ssh") &&
+                it.host.length in 1..253 && it.host.matches(Regex("[A-Za-z0-9._:-]+")) && it.port in 1..65535
+        }.take(HealthSettings.MAX_SERVERS).map { HealthTarget(it.id, it.host, it.port) }.toList()
+        scheduleHealth(context.applicationContext)
+        AutoCloseable {
+            synchronized(healthLock) {
+                healthPages.remove(owner)
+                // An in-flight sample may belong to the page being detached.
+                healthCancellation?.cancel()
+                if (healthPages.isEmpty()) stopHealthWork()
+            }
+        }
+    }
+
+    private fun stopHealthWork() {
+        healthCancellation?.cancel(); healthCancellation = null
+        healthSchedule?.cancel(true); healthSchedule = null
+    }
+
+    private fun scheduleHealth(context: Context) {
+        if (SafeModeStore(context).enabled()) return
+        if (healthSchedule != null || healthPages.isEmpty() || !healthStore(context).settings().enabled) return
+        healthSchedule = healthScheduler.scheduleWithFixedDelay({
+            val cancellation = HealthCancellation()
+            val target = synchronized(healthLock) {
+                val targets = healthPages.values.lastOrNull().orEmpty()
+                if (targets.isEmpty()) null else {
+                    healthCancellation = cancellation
+                    targets[(healthCursor++ % targets.size).toInt()]
+                }
+            } ?: return@scheduleWithFixedDelay
+            try {
+                cancellation.check()
+                if(SafeModeStore(context).enabled())return@scheduleWithFixedDelay
+                val network = DirectAccessCheck.physical(context) ?: return@scheduleWithFixedDelay
+                val store = healthStore(context)
+                val manager = context.getSystemService(android.net.ConnectivityManager::class.java)
+                val caps = manager.getNetworkCapabilities(network)
+                // Portal/offline evidence must never become a negative server-health sample.
+                if (caps?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL) == true ||
+                    CaptivePortalMonitor.blocksAutomatic(context)) return@scheduleWithFixedDelay
+                val kind = when {
+                    caps?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) == true -> HealthNetwork.WIFI
+                    caps?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) == true -> HealthNetwork.CELLULAR
+                    else -> HealthNetwork.OTHER
+                }
+                val saved = ProtocolHealthCheck.measureHealth(store, target.id, kind, cancellation) {
+                    val result = ProbeService.sampleHealth(context, target.host, target.port, network, cancellation)
+                    if (DirectAccessCheck.physical(context)?.networkHandle != network.networkHandle)
+                        throw java.util.concurrent.CancellationException("HEALTH_NETWORK_CHANGED")
+                    if (CaptivePortalMonitor.blocksAutomatic(context) || manager.getNetworkCapabilities(network)
+                            ?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL) == true)
+                        throw java.util.concurrent.CancellationException("HEALTH_NETWORK_UNVALIDATED")
+                    result
+                }
+                if (saved) presentationChanged()
+            } catch (_: Exception) {
+                // No raw endpoint/errors enter logs or history. Skipped/cancelled work is not loss.
+            } finally {
+                cancellation.cancel()
+                synchronized(healthLock) { if (healthCancellation === cancellation) healthCancellation = null }
+            }
+        }, 0, HealthSettings.INTERVAL_MS, TimeUnit.MILLISECONDS)
+    }
+
     private val cancellation = java.util.concurrent.atomic.AtomicLong()
     private val explicitCancellation = java.util.concurrent.atomic.AtomicLong()
     private val startLock = Any()
@@ -37,6 +143,7 @@ object ProbeCoordinator {
     @Volatile var providerStage=""
         private set
     fun cancel(context: Context) = synchronized(startLock) {
+        synchronized(healthLock) { healthCancellation?.cancel() }
         explicitCancellation.incrementAndGet();cancellation.incrementAndGet(); context.stopService(Intent(context, ProbeService::class.java)); Unit
     }
     /** At most one temporary helper at a time. Its native probe has actually
@@ -56,7 +163,7 @@ object ProbeCoordinator {
         val network=DirectAccessCheck.physical(context)?.networkHandle?:error("STEER_PROBE_PHYSICAL_NETWORK")
         val installed=EngineUpdatePrimary.installation(context,"steer")
         val sha=ClientPrimaryWorkerWire.hashFile(File(installed.sourceDir))
-        fun retired()=cancelled()||explicitCancellation.get()!=cancelToken||DirectAccessCheck.physical(context)?.networkHandle!=network
+        fun retired()=cancelled()||explicitCancellation.get()!=cancelToken||DirectAccessCheck.physical(context)?.networkHandle!=network||CaptivePortalMonitor.blocksAutomatic(context)
         fun checkOwner(){check(!retired()) {"STEER_ASSISTED_PROBE_RETIRED"}}
         val values=LinkedHashMap<String,Long>();val times=LinkedHashMap<String,Long>()
         val bindings=LinkedHashMap<String,AssistedSteerProbeBinding>()
@@ -94,6 +201,11 @@ object ProbeCoordinator {
     }
     /** Wait for the other process's actual child/core cleanup before an ordinary TUN can capture its UID. */
     fun awaitQuiescent(context: Context) {
+        requestQuiescence(context).invoke()
+    }
+
+    /** The caller may bind its idle worker while the probe retires. */
+    internal fun requestQuiescence(context:Context):()->Unit {
         check(Looper.myLooper()!=Looper.getMainLooper()) { "Ожидание замера не должно блокировать интерфейс." }
         val closed=CountDownLatch(1)
         val receiver=object:ResultReceiver(Handler(Looper.getMainLooper())) {
@@ -103,7 +215,12 @@ object ProbeCoordinator {
             cancellation.incrementAndGet()
             context.startService(Intent(context,ProbeService::class.java).setAction(ProbeService.QUIESCE).putExtra("result",receiver))
         }
-        check(closed.await(20,TimeUnit.SECONDS)) { "Замер ещё останавливается. Повторите подключение после его завершения." }
+        val deadline=SystemClock.elapsedRealtime()+TimeUnit.SECONDS.toMillis(20)
+        return {
+            check(closed.await((deadline-SystemClock.elapsedRealtime()).coerceAtLeast(0),TimeUnit.MILLISECONDS)) {
+                "Замер ещё останавливается. Повторите подключение после его завершения."
+            }
+        }
     }
     /** Caller uses the client worker; the probe core itself lives in a separate Android process. */
     @JvmOverloads fun measure(context: Context, entries: List<ServerImport.Server>, testUrl: String = "https://www.gstatic.com/generate_204", expectedCancellation: Long = cancellationToken(), providerDiagnostic:Boolean=false,providerVersion:Int=1): Map<String, Long> = synchronized(measureLock) {
@@ -149,6 +266,7 @@ object ProbeCoordinator {
         providerStage=""
         fun ensureNotCancelled() {
             if (cancellation.get() != expectedCancellation) throw java.util.concurrent.CancellationException("Замер отменён. Предыдущие результаты сохранены.")
+            require(!CaptivePortalMonitor.blocksAutomatic(context)) {"Сначала подтвердите доступ в интернет или выполните вход в сеть. Результаты серверов сохранены."}
             if(runtimeCancelled!=null) {
                 check(context is McrfVpnService&&runtimeOwner===context&&!runtimeCancelled()) {"STEER_PROBE_RUNTIME_RETIRED"}
             }else require(!McrfVpnService.cleanupPending()&&McrfVpnService.status!="Подключение…"&&!McrfVpnService.status.startsWith("Переключаем движок")) {"Дождитесь завершения подключения или остановки перед замером серверов."}
@@ -159,7 +277,9 @@ object ProbeCoordinator {
         require(providerDiagnostic||providerVersion==1)
         if(providerDiagnostic){ClientOpenFluxProviderGate.requireApproved(entries);ClientOpenFluxProviderGate.verify(context,providerVersion)}
         require(entries.size <= 256) { "За один замер допускается до 256 серверов." }
-        val steer=ProbeBackendScope.usesSteer(ClientPrimarySelection.selected(context),
+        val standaloneCarrier=!providerDiagnostic&&runtimeCancelled==null&&java.net.URI(testUrl).scheme=="https"&&
+            ProbePlan.independentBatch(entries)
+        val steer=!standaloneCarrier&&ProbeBackendScope.usesSteer(ClientPrimarySelection.selected(context),
             runtimeCancelled!=null&&runtimeOwner===context,providerDiagnostic)
         val steerModule=if(steer)EngineUpdatePrimary.installation(context,"steer")else null
         val steerSha=steerModule?.let {ClientPrimaryWorkerWire.hashFile(File(it.sourceDir))}
@@ -193,6 +313,7 @@ object ProbeCoordinator {
             "Для замера дополнительных ядер отключите обычный VPN MCRF: проверка должна пройти через выбранный сервер, а не через активное VPN-подключение."
         }
         val request = JSONObject().put("config", config).put("extraSettings",extraSettings.json()).put("transportSettings",tuningSettings.json()).put("carriers",carriers).put("url",testUrl).put("servers", JSONArray(entries.map { JSONObject().put("id", it.id).put("tag", ServerImport.tag(it)) }))
+        if(standaloneCarrier)request.put("backend","carrier")
         if(steer)request.put("backend","steer").put("steerProfiles",steerProfiles).put("moduleSha256",steerSha)
             .put("networkHandle",steerNetwork).put("protectSockets",McrfVpnService.ownsCurrentTun())
         if(providerDiagnostic)request.put("providerDiagnostic",true).put("providerDiagnosticVersion",providerVersion).put("providerDiagnosticOriginalSha",ClientOpenFluxProviderGate.APPROVED_ORIGINAL_SHA)

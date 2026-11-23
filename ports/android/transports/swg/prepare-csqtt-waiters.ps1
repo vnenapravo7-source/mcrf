@@ -34,8 +34,10 @@ try{
     & git -C $taskSource apply --recount (Join-Path $PSScriptRoot 'csqtt-waiters.patch')
     if($LASTEXITCODE -ne 0){throw 'Exact native CAPTCHA waiter patch failed'}
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'mcrf_captcha_waiters.rs') -Destination (Join-Path $taskSource 'rust-client/mcrf_captcha_waiters.rs')
+    & python (Join-Path $PSScriptRoot 'prepare-csqtt-streams.py') $taskSource
+    if($LASTEXITCODE -ne 0){throw 'Exact native stream-owner adaptation failed'}
     $taskChanges=@(& git -C $taskSource diff --name-only)
-    $taskAllowed=@('rust-client/main.rs','rust-client/captcha.rs','rust-client/tun.rs','rust-client/dispatcher.rs','rust-client/turn_integration_tests.rs','rust-client/udp_batch.rs')
+    $taskAllowed=@('rust-client/main.rs','rust-client/session.rs','rust-client/captcha.rs','rust-client/tun.rs','rust-client/dispatcher.rs','rust-client/turn_integration_tests.rs','rust-client/udp_batch.rs')
     if(@($taskChanges|Where-Object {$_ -notin $taskAllowed}).Count){throw 'Unexpected native source changes'}
     $taskGitDir=Join-Path $taskSource '.git'
     $taskRows=@(Get-ChildItem -LiteralPath $taskSource -Recurse -File -Force | Where-Object {!$_.FullName.StartsWith($taskGitDir+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)} | Sort-Object FullName | ForEach-Object {

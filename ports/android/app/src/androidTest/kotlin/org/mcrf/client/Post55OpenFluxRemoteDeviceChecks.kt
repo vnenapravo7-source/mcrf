@@ -43,7 +43,7 @@ object Post55OpenFluxRemoteDeviceChecks {
         fun ownedTasks() = manager.appTasks.mapNotNull { task ->
             // Task can disappear between enumeration and getTaskInfo. Permission
             // failures are NOT swallowed or treated as proof of cleanup.
-            val info = try { task.taskInfo } catch (_: IllegalArgumentException) { return@mapNotNull null }
+            val info = try { task.taskInfo ?: return@mapNotNull null } catch (_: IllegalArgumentException) { return@mapNotNull null }
             val intent = info.baseIntent
             if (intent.component?.className == OpenFluxVerificationActivity::class.java.name &&
                 intent.getStringExtra("request") == request.id) task to info else null

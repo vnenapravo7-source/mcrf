@@ -4,6 +4,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ConnectionPresentationTest {
+    @Test fun nativeTerminalEscapesAndControlBytesAreRemovedFromErrorLabels() {
+        assertEquals("VK temporarily unavailable",ConnectionPresentation.cleanFailure("\u001b[31mVK temporarily unavailable\u001b[0m\u0000\u0007"))
+        assertEquals("x".repeat(600),ConnectionPresentation.cleanFailure("x".repeat(1000)))
+    }
+
+    @Test fun terminalFailureSurvivesStatusResetUntilNextAttemptOrSelection(){
+        LastConnectionFailure.clear();LastConnectionFailure.remember("unsupported protocol\nsecret=https://user:pass@example.test/x")
+        assertNotNull(LastConnectionFailure.detail());assertFalse(LastConnectionFailure.detail()!!.contains("pass"))
+        LastConnectionFailure.clear();assertNull(LastConnectionFailure.detail())
+    }
     @Test fun recoveryAndReturnArePendingNotIdleOrSuccessfullyConnected(){
         for(status in listOf("Восстановление соединения…","Возвращаемся в VPN…")){
             assertTrue(ConnectionPresentation.pending(status));assertFalse(ConnectionPresentation.connected(status));assertFalse(ConnectionPresentation.failed(status))

@@ -12,7 +12,7 @@ class WarpProbePlanTest {
         val entry=WarpProfile.initial(account)
         val config=WarpProbePlan.configuration(entry.original,31808,"fixture-user","fixture-password-only")
         val inputs=config.getJSONArray("inbounds");assertEquals(1,inputs.length())
-        val inbound=inputs.getJSONObject(0);assertEquals("mixed",inbound.getString("type"));assertEquals("127.0.0.1",inbound.getString("listen"))
+        val inbound=inputs.getJSONObject(0);assertEquals("http",inbound.getString("type"));assertEquals("127.0.0.1",inbound.getString("listen"))
         assertEquals("fixture-user",inbound.getJSONArray("users").getJSONObject(0).getString("username"))
         assertEquals(1,config.getJSONArray("endpoints").length())
         assertEquals(config.getJSONArray("endpoints").getJSONObject(0).getString("tag"),config.getJSONObject("route").getString("final"))

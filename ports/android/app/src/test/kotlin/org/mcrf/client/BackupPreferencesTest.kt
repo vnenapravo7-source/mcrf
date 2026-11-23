@@ -5,6 +5,23 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class BackupPreferencesTest {
+    @Test fun inviteBindingAndLocalIdentityValidateWithoutExportingInstallationIdentity() {
+        val source=JSONObject().put("inviteDeviceId","12345678-1234-1234-1234-123456789abc")
+            .put("inviteCode",JSONObject().put("token","owned-fixture-token").put("lastCount",2))
+        AndroidBackup.validatePreferences(source)
+        val portable=InviteCodeSync.historyPreferences(source)
+        assertFalse(portable.has("inviteDeviceId"));assertTrue(source.has("inviteDeviceId"))
+        assertEquals("owned-fixture-token",portable.getJSONObject("inviteCode").getString("token"))
+        AndroidBackup.validatePreferences(portable)
+        ClientSettingsRegistry.register()
+        assertTrue(BackupDefaults.settingsForReset(source,BackupDefaults.Scope.ALL_SETTINGS).has("inviteDeviceId"))
+    }
+    @Test fun malformedLocalInviteIdentityAndUnknownSectionsStillFail() {
+        for(value in listOf<Any>(123,"not-an-installation-id",JSONObject())) {
+            assertThrows(IllegalArgumentException::class.java){AndroidBackup.validatePreferences(JSONObject().put("inviteDeviceId",value))}
+        }
+        assertThrows(IllegalArgumentException::class.java){AndroidBackup.validatePreferences(JSONObject().put("unregisteredInviteThing",JSONObject()))}
+    }
     @Test fun oldPreferencesWithoutNewSectionsRemainValid() {
         AndroidBackup.validatePreferences(JSONObject().put("theme","dark").put("tun",false).put("port",10808))
     }

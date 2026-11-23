@@ -1,0 +1,102 @@
+{
+  "repository": "p1neappleXpress/OpenFluxTransports",
+  "sourceCommit": "09fd5e5a0c17760d9fc5dfc50ea6ad5b51f3b5d9",
+  "indexCommit": "9349c01a4f2dd707f33f5a316beb9b56b77e56bd",
+  "officialKey": "d8bf9c958b994c2faab886cade5f28213f254911f87abe5e34756a289ae91354",
+  "packages": [
+    {
+      "id": "yandex",
+      "version": "1.1.0",
+      "wire": 1,
+      "api": 1,
+      "url": "https://github.com/p1neappleXpress/OpenFluxTransports/releases/download/yandex-v1.1.0/yandex-1.1.0.flux",
+      "sha256": "fe71e62d235edbc3c6f94d66e22ddbdbe37e011e126724a8e4d38625d2f92b22",
+      "indexUrl": "https://raw.githubusercontent.com/p1neappleXpress/OpenFluxTransports/9349c01a4f2dd707f33f5a316beb9b56b77e56bd/yandex/update.json"
+    },
+    {
+      "id": "vyandex",
+      "version": "1.1.0",
+      "wire": 1,
+      "api": 1,
+      "url": "https://github.com/p1neappleXpress/OpenFluxTransports/releases/download/vyandex-v1.1.0/vyandex-1.1.0.flux",
+      "sha256": "98febe3eb6ce988b02b8267f5e029b8c61939551ff859981e045f451f0babfa5",
+      "indexUrl": "https://raw.githubusercontent.com/p1neappleXpress/OpenFluxTransports/9349c01a4f2dd707f33f5a316beb9b56b77e56bd/vyandex/update.json"
+    },
+    {
+      "id": "boards",
+      "version": "1.1.0",
+      "wire": 1,
+      "api": 1,
+      "url": "https://github.com/p1neappleXpress/OpenFluxTransports/releases/download/boards-v1.1.0/boards-1.1.0.flux",
+      "sha256": "7c687bca83ad1d9aa5154081e385c55a1d10af91d444f038f6bbb018de5260f4",
+      "indexUrl": "https://raw.githubusercontent.com/p1neappleXpress/OpenFluxTransports/9349c01a4f2dd707f33f5a316beb9b56b77e56bd/boards/update.json"
+    },
+    {
+      "id": "mailru",
+      "version": "1.1.2",
+      "wire": 1,
+      "api": 1,
+      "url": "https://github.com/p1neappleXpress/OpenFluxTransports/releases/download/mailru-v1.1.2/mailru-1.1.2.flux",
+      "sha256": "faa3774ea691fa37c5991b798bc969e9391c653765def3ebc47911abe77c8563",
+      "indexUrl": "https://raw.githubusercontent.com/p1neappleXpress/OpenFluxTransports/9349c01a4f2dd707f33f5a316beb9b56b77e56bd/mailru/update.json"
+    },
+    {
+      "id": "cupsonline",
+      "version": "1.1.0",
+      "wire": 1,
+      "api": 1,
+      "url": "https://github.com/p1neappleXpress/OpenFluxTransports/releases/download/cupsonline-v1.1.0/cupsonline-1.1.0.flux",
+      "sha256": "b9feab761df9d2c0acdf77db78a33d624b3525f25c483ad4628be7ddf6b355fb",
+      "indexUrl": "https://raw.githubusercontent.com/p1neappleXpress/OpenFluxTransports/9349c01a4f2dd707f33f5a316beb9b56b77e56bd/cupsonline/update.json"
+    },
+    {
+      "id": "oneme-iceinject",
+      "version": "1.1.0",
+      "wire": 1,
+      "api": 1,
+      "url": "https://github.com/p1neappleXpress/OpenFluxTransports/releases/download/oneme-iceinject-v1.1.0/oneme-iceinject-1.1.0.flux",
+      "sha256": "cc9f492bec9cb8f07f1125bcb645f4e74bd4997a373e311ba1bd0e1576f73dc9",
+      "indexUrl": "https://raw.githubusercontent.com/p1neappleXpress/OpenFluxTransports/9349c01a4f2dd707f33f5a316beb9b56b77e56bd/oneme-iceinject/update.json"
+    },
+    {
+      "id": "oneme-webrtc",
+      "version": "1.1.0",
+      "wire": 1,
+      "api": 1,
+      "url": "https://github.com/p1neappleXpress/OpenFluxTransports/releases/download/oneme-webrtc-v1.1.0/oneme-webrtc-1.1.0.flux",
+      "sha256": "e61dc4a7d45d777a6431b1adbbf919be84c68de85bdf301ae1282aa3a3bf2ed3",
+      "indexUrl": "https://raw.githubusercontent.com/p1neappleXpress/OpenFluxTransports/9349c01a4f2dd707f33f5a316beb9b56b77e56bd/oneme-webrtc/update.json"
+    },
+    {
+      "id": "mtslink",
+      "version": "1.0.0",
+      "wire": 1,
+      "api": 1,
+      "url": "https://github.com/p1neappleXpress/OpenFluxTransports/releases/download/mtslink-v1.0.0/mtslink-1.0.0.flux",
+      "sha256": "a68315d73e97dd74c137285debe635e9ba46d1e194416beb5eb9c412d6f46b79",
+      "indexUrl": "https://raw.githubusercontent.com/p1neappleXpress/OpenFluxTransports/9349c01a4f2dd707f33f5a316beb9b56b77e56bd/mtslink/update.json"
+    },
+    {
+      "id": "bitrix",
+      "version": "1.0.0",
+      "wire": 1,
+      "api": 1,
+      "url": "https://github.com/p1neappleXpress/OpenFluxTransports/releases/download/bitrix-v1.0.0/bitrix-1.0.0.flux",
+      "sha256": "8c83e3562bd366994385ba70dbaa53d1bb019fbb8ef3efaf7634ab2904a01c49",
+      "indexUrl": "https://raw.githubusercontent.com/p1neappleXpress/OpenFluxTransports/9349c01a4f2dd707f33f5a316beb9b56b77e56bd/bitrix/update.json"
+    },
+    {
+      "id": "pruffme",
+      "version": "1.0.0",
+      "wire": 1,
+      "api": 1,
+      "url": "https://github.com/p1neappleXpress/OpenFluxTransports/releases/download/pruffme-v1.0.0/pruffme-1.0.0.flux",
+      "sha256": "4208936d124658bbc1b98b6836106eaceaf945b688ed694fee965bd22b871e7e",
+      "indexUrl": "https://raw.githubusercontent.com/p1neappleXpress/OpenFluxTransports/9349c01a4f2dd707f33f5a316beb9b56b77e56bd/pruffme/update.json"
+    }
+  ],
+  "pending": [
+    "mtslink-webrtc",
+    "vkteams"
+  ]
+}

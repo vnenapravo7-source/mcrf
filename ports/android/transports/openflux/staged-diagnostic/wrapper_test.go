@@ -1,0 +1,4 @@
+package main
+import("errors";"strings";"testing";"github.com/p1neappleXpress/OpenFlux/mcrfdiag")
+func TestDiagnosticStopOrdering(t *testing.T){for _,reason:=range []string{"STOP","EOF","startup_error"}{t.Run(reason,func(t *testing.T){stopped:=false;emits:=0;want:=errors.New("synthetic error");err:=mcrfDiagnosticOperation(func()error{defer func(){stopped=true;mcrfdiag.Current().Mark(mcrfdiag.ReadClosed)}();return want},func(line string){emits++;if !stopped||!strings.Contains(line,`"mailru_read_closed":true`){t.Fatal("snapshot before stop")}});if err!=want||emits!=1||mcrfdiag.Current()!=nil{t.Fatal("lifecycle")}})}}
+func TestDiagnosticCrashNotReported(t *testing.T){emits:=0;func(){defer func(){_ = recover()}();mcrfDiagnosticOperation(func()error{panic("synthetic")},func(string){emits++})}();if emits!=0{t.Fatal("crash reported as false snapshot")};mcrfdiag.Current().Finish()}

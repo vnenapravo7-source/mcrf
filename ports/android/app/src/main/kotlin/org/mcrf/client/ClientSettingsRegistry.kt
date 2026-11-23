@@ -3,6 +3,7 @@ package org.mcrf.client
 /** Every Android process validates the same portable encrypted settings before any restore/export. */
 object ClientSettingsRegistry {
     @Synchronized fun register() {
+        InviteCodeSync.registerBackup()
         AndroidBackup.setRuntimeValidator { context, config ->
             val value=org.json.JSONObject(config)
             val inbounds=value.optJSONArray("inbounds")
@@ -22,6 +23,18 @@ object ClientSettingsRegistry {
         AndroidBackup.registerSection(WarpRegistrationStore.SECTION,BackupDefaults.Group.PRESERVE) { WarpRegistrationStore.validate(it); Unit }
         AndroidBackup.registerSection(OptionalCoreSettings.KEY) { OptionalCoreSettings.fromJson(it); Unit }
         AndroidBackup.registerSection(AutoVpnReturn.KEY) { AutoVpnReturn.validate(it) }
+        AndroidBackup.registerSection(ConditionProfiles.KEY,BackupDefaults.Group.PRESERVE) {ConditionProfiles.fromJson(it);Unit}
+        AndroidBackup.registerPreference(ExperienceModeStore.KEY,ExperienceMode.SIMPLE.id)
+        AndroidBackup.registerPreference(RandomAppearance.KEY,false)
+        AndroidBackup.registerPreference(ColdLaunchSwarm.KEY,true)
+        AndroidBackup.registerPreference(VpnOwnerIsolation.KEY,VpnOwnerIsolation.DEFAULT_ENABLED)
+        AndroidBackup.registerPreference(RuAppTunnelNotice.ENABLED,true)
+        AndroidBackup.registerPreference(AppearanceMotion.SLIDER,AppearanceMotion.DEFAULT_SLIDER)
+        listOf(AppearanceMotion.MATH,AppearanceMotion.MATH_BODY)
+            .forEach {AndroidBackup.registerPreference(it,true)}
+        listOf(AppearanceMotion.GRID,AppearanceMotion.EYE)
+            .forEach {AndroidBackup.registerPreference(it,false)}
+        AndroidBackup.registerPreference(SafeModeStore.KEY,false)
         AndroidBackup.registerPreference(BsDetectionMonitor.KEY,false)
         AndroidBackup.registerPreference(BsDetectionInterval.KEY,BsDetectionInterval.DEFAULT)
         AndroidBackup.registerPreference(BsAutoSelectionPolicy.KEY,BsAutoSelectionPolicy.FASTEST)
@@ -30,10 +43,30 @@ object ClientSettingsRegistry {
         AndroidBackup.registerPreference(BsAutoSelectionPolicy.LAST_BS,"")
         AndroidBackup.registerPreference("logsTerminal",false)
         AndroidBackup.registerPreference(LogRetention.KEY,LogRetention.DEFAULT)
-        AndroidBackup.registerPreference(ConnectionAppearance.MERGED,false)
-        AndroidBackup.registerPreference(ConnectionAppearance.STYLE,ConnectionAppearance.DEFAULT)
+        AndroidBackup.registerPreference(ConnectionAppearance.MERGED,true)
+        AndroidBackup.registerPreference(ConnectionAppearance.MERGED_DEFAULT_APPLIED,false)
+        AndroidBackup.registerPreference(ConnectionAppearance.STYLE,ConnectionAppearance.SIDE_ONLY)
+        AndroidBackup.registerPreference(ConnectionAppearance.TOGGLE_MAIN_ONLY,false)
+        AndroidBackup.registerPreference(ConnectionAppearance.COMPACT,true)
+        AndroidBackup.registerPreference(ConnectionAppearance.SERVER_ORBIT,false)
+        AndroidBackup.registerPreference(ConnectionIndicator.KEY,ConnectionIndicator.ORB_CONNECTING.key)
+        AndroidBackup.registerPreference(AppTypography.ENABLED,false)
+        AndroidBackup.registerPreference(AppTypography.DISPLAY,AppTypography.DEFAULT)
+        AndroidBackup.registerPreference(AppTypography.INTERFACE,AppTypography.DEFAULT)
+        AndroidBackup.registerPreference(HomeUiTheme.GRADIENT_KEY,false)
+        AndroidBackup.registerPreference(HomeUiTheme.MODE_KEY,"")
+        AndroidBackup.registerPreference(HomeUiTheme.V2_DEFAULTS_APPLIED,false)
+        AndroidBackup.registerPreference(EdgePanelAppearance.ORBIT_COLLAPSED,false)
+        AndroidBackup.registerPreference(AppLaunchGroupsUi.KEEP_VPN_AFTER_EXIT,false)
+        AppLaunchGroupsUi.Mode.entries.forEach {AndroidBackup.registerPreference(it.key,"[]")}
+        AndroidBackup.registerPreference(UiConstructor.KEY,"{}")
+        AndroidBackup.registerPreference("resourceMonitorQuickStart",false)
+        AndroidBackup.registerPreference(ConnectionControlsDock.HIDDEN,false)
         AndroidBackup.registerPreference(ConnectionAppearance.EXIT,ConnectionAppearance.DOOR)
         EdgePanelAppearance.items.keys.forEach {AndroidBackup.registerPreference(it,true)}
+        AndroidBackup.registerPreference(EdgePanelAppearance.HIDDEN,false)
+        AndroidBackup.registerPreference(EdgePanelAppearance.PINNED,false)
+        AndroidBackup.registerPreference(BsAutoSelectionPolicy.LAST_MODE,BsAutoSelectionPolicy.FASTEST)
         AndroidBackup.registerPreference(NotificationTrafficSettings.ENABLED,true)
         AndroidBackup.registerPreference(NotificationTrafficSettings.FOREGROUND,3)
         AndroidBackup.registerPreference(NotificationTrafficSettings.BACKGROUND,10)

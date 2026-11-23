@@ -5,8 +5,9 @@ import org.junit.Test
 
 class AdvancedReturnTest {
     @Test fun eachSettingsSectionIsItsOwnAdvancedReturn(){
-        for(from in listOf(ClientSettingsNavigation.VPN,ClientSettingsNavigation.DNS,ClientSettingsNavigation.GEO,ClientSettingsNavigation.UPDATES,ClientSettingsNavigation.ROOT))
+        for(from in listOf(ClientSettingsNavigation.VPN,ClientSettingsNavigation.DNS,ClientSettingsNavigation.UPDATES,ClientSettingsNavigation.ROOT))
             assertEquals(from,ClientSettingsNavigation.back(ClientSettingsNavigation.ADVANCED,"Главная",false,from))
+        assertEquals(ClientSettingsNavigation.ROOT,ClientSettingsNavigation.back(ClientSettingsNavigation.ADVANCED,"Главная",false,ClientSettingsNavigation.GEO))
     }
     @Test fun directRoutesLinkReturnsToRoutesNotRoot(){assertEquals("Маршрутизация",ClientSettingsNavigation.back(ClientSettingsNavigation.ADVANCED,"Маршрутизация",true,"Маршрутизация"))}
     @Test fun advancedDoesNotPointToItself(){assertEquals(ClientSettingsNavigation.ROOT,ClientSettingsNavigation.back(ClientSettingsNavigation.ADVANCED,"Главная",false,ClientSettingsNavigation.ADVANCED))}

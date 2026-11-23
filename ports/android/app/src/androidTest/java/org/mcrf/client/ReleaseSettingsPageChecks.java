@@ -70,12 +70,15 @@ final class ReleaseSettingsPageChecks {
     }
     private static void navigation(View root,String selected) {
         ViewGroup nav=root.findViewWithTag("main-navigation");check(nav!=null&&nav.getChildCount()==4,"Bottom navigation must have four items");
-        int height=-1,width=-1,chosen=0;
+        int height=-1,chosen=0;
+        float density=root.getResources().getDisplayMetrics().density;
         for(int i=0;i<nav.getChildCount();i++) {
-            Button item=(Button)nav.getChildAt(i);check(item.getLayout()!=null&&item.getLayout().getLineCount()==1,"Bottom label wraps: "+item.getContentDescription());
-            check(item.getLayout().getEllipsisCount(0)==0,"Bottom label is truncated: "+item.getContentDescription());
-            check(!item.getText().toString().contains("\n"),"Bottom label contains a forced newline");
-            if(height<0){height=item.getHeight();width=item.getWidth();}else check(item.getHeight()==height&&Math.abs(item.getWidth()-width)<=1,"Bottom selection geometry differs");
+            View item=nav.getChildAt(i);
+            check(item.isClickable()&&item.isFocusable(),"Bottom tab is not actionable");
+            check(item.getContentDescription()!=null&&item.getContentDescription().length()>0,"Bottom tab lacks an accessible label");
+            check(item.getWidth()+1>=48*density&&item.getHeight()+1>=48*density,"Bottom tab touch area is too small");
+            // Expanding Label deliberately gives the selected tab more width.
+            if(height<0)height=item.getHeight();else check(item.getHeight()==height,"Bottom touch heights differ");
             check(item.isSelected()==selected.contentEquals(item.getContentDescription()),"Wrong bottom selected state");if(item.isSelected())chosen++;
         }
         check(chosen==1,"Bottom selection is not unique");
@@ -174,10 +177,10 @@ final class ReleaseSettingsPageChecks {
             click(test,root,"settings-page-Оформление");awaitTag(test,root,"random-appearance");
             main(test,()->{
                 labelFits(root.findViewWithTag("random-appearance"),2,"Random appearance");
-                labelFits(root.findViewWithTag("theme-colors-save"),1,"Apply appearance");
+                check(root.findViewWithTag("theme-colors-save")==null,"Manual appearance must apply immediately");
             });
             click(test,root,"settings-back");
-            report.append("PASS appearance Random/Apply labels are fully visible without draft commit\n");
+            report.append("PASS appearance has no manual Apply action\n");
             for(String page:new String[]{"DNS и домены","Капча VK","Подключение и работа в фоне","VPN и локальный прокси","Раздача VPN другим устройствам","Дополнительные настройки TLS","Дополнительное ядро Xray","Базы GeoIP и GeoSite","Аккаунт и звонки VK","Обновления","Расширенные настройки"}) {
                 click(test,root,"settings-page-"+page);
                 main(test,()->{check(root.findViewWithTag("screen-"+page)!=null,"Not a real settings page: "+page);

@@ -27,6 +27,11 @@ class QrScanActivity : Activity() {
     @Volatile private var cameraGeneration = 0
     private var previewSize: android.util.Size? = null
     private var sensorOrientation = 90
+    private val displayListener = object : android.hardware.display.DisplayManager.DisplayListener {
+        override fun onDisplayAdded(id: Int) = Unit
+        override fun onDisplayRemoved(id: Int) = Unit
+        override fun onDisplayChanged(id: Int) { if (preview.display?.displayId == id) transformPreview() }
+    }
     private var lastFrame = 0L
     private val gallery = java.util.concurrent.Executors.newSingleThreadExecutor()
     override fun onCreate(state: Bundle?) {
@@ -46,14 +51,19 @@ class QrScanActivity : Activity() {
             override fun onSurfaceTextureUpdated(texture: SurfaceTexture) = Unit
         } }
         layout.addView(preview, LinearLayout.LayoutParams(-1, 0, 1f))
-        layout.addView(themedButton("Выбрать изображение QR").apply { setOnClickListener { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*").addCategory(Intent.CATEGORY_OPENABLE), 2) } })
-        layout.addView(themedButton("Отмена").apply { setOnClickListener { finish() } }); setContentView(layout)
+        layout.addView(themedButton("Выбрать изображение QR").apply {
+            setOnClickListener { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*").addCategory(Intent.CATEGORY_OPENABLE), 2) }
+        }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(16) })
+        layout.addView(themedButton("Отмена").apply {
+            setOnClickListener { finish() }
+        }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
+        setContentView(layout)
         if (!packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) hint.text = "На устройстве нет камеры. Выберите изображение QR."
         else if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) requestPermissions(arrayOf(Manifest.permission.CAMERA), 1)
     }
     private fun themedButton(label:String)=StandardButtons.style(this,Button(this),label)
-    override fun onResume() { super.onResume(); resumed = true; thread = HandlerThread("mcrf-qr").apply { start() }; background = Handler(thread!!.looper); if (preview.isAvailable) openCamera() }
-    override fun onPause() { resumed = false; closeCamera(); background = null; thread?.quitSafely(); thread = null; super.onPause() }
+    override fun onResume() { super.onResume(); resumed = true; getSystemService(android.hardware.display.DisplayManager::class.java).registerDisplayListener(displayListener, Handler(Looper.getMainLooper())); thread = HandlerThread("mcrf-qr").apply { start() }; background = Handler(thread!!.looper); if (preview.isAvailable) openCamera() }
+    override fun onPause() { resumed = false; getSystemService(android.hardware.display.DisplayManager::class.java).unregisterDisplayListener(displayListener); closeCamera(); background = null; thread?.quitSafely(); thread = null; super.onPause() }
     override fun onDestroy() { gallery.shutdownNow(); super.onDestroy() }
     override fun onRequestPermissionsResult(request: Int, permissions: Array<out String>, results: IntArray) {
         super.onRequestPermissionsResult(request, permissions, results)
@@ -115,14 +125,11 @@ class QrScanActivity : Activity() {
         val size = previewSize ?: return
         if (preview.width == 0 || preview.height == 0) return
         val displayDegrees = when (windowManager.defaultDisplay.rotation) { Surface.ROTATION_90 -> 90; Surface.ROTATION_180 -> 180; Surface.ROTATION_270 -> 270; else -> 0 }
-        val rotation = (sensorOrientation - displayDegrees + 360) % 360
-        val sideways = rotation == 90 || rotation == 270
-        val scale = maxOf(preview.width.toFloat() / if (sideways) size.height else size.width, preview.height.toFloat() / if (sideways) size.width else size.height)
+        val transform = QrPreviewTransform.calculate(size.width, size.height, preview.width, preview.height, sensorOrientation, displayDegrees)
         val cx = preview.width / 2f; val cy = preview.height / 2f
         preview.setTransform(Matrix().apply {
-            setScale(size.width.toFloat()/preview.width, size.height.toFloat()/preview.height, cx, cy)
-            postRotate(rotation.toFloat(), cx, cy)
-            postScale(scale, scale, cx, cy)
+            setScale(transform.scaleX, transform.scaleY, cx, cy)
+            postRotate(transform.rotation, cx, cy)
         })
     }
     private fun found(text: String) {
@@ -147,5 +154,19 @@ class QrScanActivity : Activity() {
             } catch (_: Exception) { runOnUiThread { if (!isFinishing) hint.text = "QR не найден. Выберите другое изображение." } }
             finally { bitmap?.recycle() }
         }
+    }
+}
+
+/** TextureView already applies SENSOR_ORIENTATION; compensate only display rotation. */
+internal object QrPreviewTransform {
+    data class Transform(val scaleX: Float, val scaleY: Float, val rotation: Float)
+    fun calculate(bufferWidth: Int, bufferHeight: Int, viewWidth: Int, viewHeight: Int, sensor: Int, display: Int): Transform {
+        require(bufferWidth > 0 && bufferHeight > 0 && viewWidth > 0 && viewHeight > 0)
+        require(sensor in setOf(0, 90, 180, 270) && display in setOf(0, 90, 180, 270))
+        val width = (if (sensor % 180 == 0) bufferWidth else bufferHeight).toFloat()
+        val height = (if (sensor % 180 == 0) bufferHeight else bufferWidth).toFloat()
+        val sideways = display % 180 != 0
+        val fill = maxOf(viewWidth / (if (sideways) height else width), viewHeight / (if (sideways) width else height))
+        return Transform(width / viewWidth * fill, height / viewHeight * fill, -display.toFloat())
     }
 }

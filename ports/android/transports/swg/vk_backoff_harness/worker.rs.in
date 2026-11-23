@@ -1,0 +1,28 @@
+#![allow(dead_code)]
+use super::auth::{self,CallUnavailable,TurnCredentials,VkAuth,VkRateLimitError};
+use std::sync::{Arc,atomic::{AtomicBool,AtomicUsize,Ordering}};
+use std::time::Duration;
+use tokio_util::sync::CancellationToken;
+const CREDENTIAL_POST_DELAY:Duration=Duration::from_millis(100);
+const CREDENTIAL_FETCH_TIMEOUT:Duration=Duration::from_secs(240);
+const WORKERS_PER_CREDENTIAL:usize=10;
+pub struct Events;
+impl Events {fn progress(&self,_:&str){} fn call_unavailable(&self,_:&str,_:i64){}}
+pub struct GroupContext{pub auth:Arc<VkAuth>,pub cancel:CancellationToken,pub events:Events}
+// EXACT transformed cache structures, per-hash state and worker admission:
+// MCRF_WORKER_TYPES
+impl CredentialCache {
+// MCRF_CACHE_METHODS
+}
+impl GroupCredentials {
+// MCRF_WORKER_METHODS
+    pub fn fixture(hash:&str,auth:Arc<VkAuth>,cached:bool)->Arc<Self>{
+        let context=Arc::new(GroupContext{auth,cancel:CancellationToken::new(),events:Events});
+        let mut cache=CredentialCache::default();if cached{assert!(cache.store(auth::credentials()));}
+        Arc::new(Self{credential_id:1,hash:hash.to_owned(),availability:Arc::new(HashAvailability::new(&context.cancel)),
+            context,state:tokio::sync::Mutex::new(cache),fetch_gate:tokio::sync::Mutex::new(()),failures:AtomicUsize::new(0),exhausted:AtomicBool::new(false)})
+    }
+    pub async fn readiness(&self)->bool{self.get().await.is_some()}
+    pub fn stop(&self){self.context.cancel.cancel();}
+}
+// MCRF_WORKER_HELPERS

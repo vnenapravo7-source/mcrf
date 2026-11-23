@@ -50,7 +50,7 @@ object OptionalCoreConfig {
     fun privateConfig(request: Request,port: Int,user: String,password: String): JSONObject {
         require(port in 1..65535 && user.toByteArray().size in 16..255 && password.toByteArray().size in 16..255)
         require(request.certificateStore==null || request.kind in setOf("tls-core","protocols") && request.certificateStore in setOf("system","mozilla")) {"Этот optional core не поддерживает выбранное хранилище CA."}
-        require(request.physicalNetworkHandle==null||request.kind=="protocols"&&request.physicalNetworkHandle>0){"Физическая сеть допустима только для протокольного модуля."}
+        require(request.physicalNetworkHandle==null||request.kind in setOf("protocols","xray","tls-core")&&request.physicalNetworkHandle>0){"Некорректная физическая сеть дополнительного ядра."}
         return JSONObject().put("api",1).put("socks","127.0.0.1:$port").put("socks_user",user).put("socks_pass",password).put("outbound",JSONObject(request.outbound.toString()))
             .also {request.certificateStore?.let {store -> it.put("certificate_store",store)};request.serverDns?.let {itDns->it.put("server_dns",JSONObject(itDns.toString()))};request.physicalNetworkHandle?.let {network->it.put("physical_network_handle",network)}}
     }

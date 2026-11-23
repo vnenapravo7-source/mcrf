@@ -27,6 +27,8 @@ public final class DeviceSmokeInstrumentation extends Instrumentation {
     private String mode;
     private String fixtureName;
     private String expectedExit;
+    private String strictOwnerScope;
+    private String strictLanAddress;
     private Bundle reviewArguments;
     private final StringBuilder report = new StringBuilder();
     @Override public void onCreate(Bundle arguments) {
@@ -38,6 +40,8 @@ public final class DeviceSmokeInstrumentation extends Instrumentation {
         mode = arguments == null ? "native" : arguments.getString("mode", "native");
         fixtureName = arguments == null ? "direct.json" : arguments.getString("fixture", "direct.json");
         expectedExit = arguments == null ? "" : arguments.getString("expectedExit", "");
+        strictOwnerScope = arguments == null ? "both" : arguments.getString("ownerScope", "both");
+        strictLanAddress = arguments == null ? null : arguments.getString("lanAddress");
         start();
     }
 
@@ -46,6 +50,8 @@ public final class DeviceSmokeInstrumentation extends Instrumentation {
         File temporary = new File(getTargetContext().getCacheDir(), "mcrf-test-" + UUID.randomUUID());
         int code = Activity.RESULT_OK;
         try {
+            if(mode.equals("vk-settings-deferred")){report.append(VkSettingsDeferredDeviceChecks.run(this,temporary));passed++;return;}
+            if(mode.equals("engine-settings-layout")){report.append(EngineSettingsLayoutChecks.run(this));passed++;return;}
             if(mode.equals("post55-local-review")){Post55LocalDeviceChecks.run(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
             if(mode.equals("post55-backup-failure-review")){Post55BackupFailureDeviceChecks.run(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
             if(mode.equals("post55-engine-consent-review")){Post55EngineConsentDeviceChecks.run(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
@@ -79,6 +85,8 @@ public final class DeviceSmokeInstrumentation extends Instrumentation {
             if(mode.equals("primary-choice")){report.append(ClientPrimaryChoiceDeviceChecks.run(this));check(true,"Read-only first-launch primary-core chooser presentation");return;}
             if(mode.equals("dual-primary-choice")){report.append(ClientPrimaryChoiceDeviceChecks.runDual(this));check(true,"Read-only installed-both main-traffic chooser presentation");return;}
             if(mode.equals("app-update-ui")){report.append(AppUpdateDialogDeviceChecks.run(this));check(true,"Read-only compact update dialog");return;}
+            if(mode.equals("bs-migration-launch")){report.append(BsMigrationLaunchDeviceChecks.run(this));check(true,"BS migration opens Android uninstaller instead of reopening its prompt");return;}
+            if(mode.equals("bs-migration-chain")){report.append(BsMigrationLaunchDeviceChecks.runChain(this));check(true,"BS migration removes every legacy package in one queue and reports success");return;}
             if(mode.equals("docs-tour")){report.append(DocsTourDeviceChecks.run(this));check(true,"Isolated real-interface documentation tour");return;}
             if(mode.equals("packet-native")){PacketNativeDeviceChecks.run(this,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
             if(mode.equals("packet-vpn")){PacketVpnDeviceChecks.run(getTargetContext(),fixtureName,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
@@ -87,7 +95,11 @@ public final class DeviceSmokeInstrumentation extends Instrumentation {
             if(mode.equals("primary-modules")){ClientPrimaryModuleDeviceChecks.run(getTargetContext(),message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
             if(mode.equals("primary-revoke")){ClientPrimaryVpnDeviceChecks.runRevoke(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
             if(mode.equals("primary-vpn")){ClientPrimaryVpnDeviceChecks.run(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("imported-profile-geoip")||mode.equals("imported-profile-geosite")){ClientPrimaryVpnDeviceChecks.runImportedRouting(getTargetContext(),getContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}},mode.endsWith("geosite")?"geosite":"geoip");return;}
             if(mode.equals("p1-original-owner")){ClientPrimaryVpnDeviceChecks.runOriginalOwner(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}},fixtureName);return;}
+            if(mode.equals("p1-strict-owner-lan")){ClientPrimaryVpnDeviceChecks.runStrictLan(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}},fixtureName,strictLanAddress);return;}
+            if(mode.equals("p1-strict-quic")){ClientPrimaryVpnDeviceChecks.runStrictQuic(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}},fixtureName);return;}
+            if(mode.equals("p1-strict-owner")){ClientPrimaryVpnDeviceChecks.runStrictOwner(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}},fixtureName,strictOwnerScope);return;}
             if(mode.equals("primary-direct-domain")||mode.equals("primary-direct-domain-inverted")||mode.equals("primary-direct-domain-negative")||mode.equals("primary-direct-domain-inverted-negative")){ClientPrimaryVpnDeviceChecks.runDirectDomain(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}},mode.contains("inverted"),mode.endsWith("negative"));return;}
             if(mode.equals("primary-direct")||mode.equals("primary-direct-inverted")||mode.equals("primary-direct-negative")||mode.equals("primary-direct-inverted-negative")){ClientPrimaryVpnDeviceChecks.runDirect(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}},mode.contains("inverted"),mode.endsWith("negative"));return;}
             if(mode.equals("primary-retirement")){ClientPrimaryVpnDeviceChecks.runRetirement(getTargetContext(),temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
@@ -96,9 +108,11 @@ public final class DeviceSmokeInstrumentation extends Instrumentation {
             if(mode.equals("primary-steer-vpn")){steerVpn(temporary);return;}
             if(mode.equals("p1-steer-vpn")){steerVpn(temporary);return;}
             if(mode.equals("p1-steer-proxy")){steerVpn(temporary);return;}
+            if(mode.equals("p1-steer-proxy-strict")){steerVpn(temporary);return;}
             if(mode.equals("p1-steer-tls")){steerVpn(temporary);return;}
             if(mode.equals("dns-no-edit")){if(!temporary.mkdir())throw new IllegalStateException("Cannot create DNS no-edit fixture");AdvancedDnsNoEditDeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
             if(mode.equals("presets-ui")){if(!temporary.mkdir())throw new IllegalStateException("Cannot create preset UI fixture");RoutingPresetUiDeviceChecks.run(this,temporary,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
+            if(mode.equals("routing-download-ui")){RoutingDownloadUiDeviceChecks.run(this,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
             if(mode.equals("lan-sharing")){LanSharingDeviceChecks.run(this,fixtureName,message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}});return;}
             if(mode.equals("ssh-primitives")){report.append(ReleaseSshPrimitiveChecks.run(this));check(true,"Local SSH primitives available without network or account access");return;}
             if(mode.equals("primary-spi")){report.append(ReleasePrimarySpiChecks.run(this));check(true,"Parent ABI delivery without loading installed primary engines");return;}
@@ -267,7 +281,8 @@ public final class DeviceSmokeInstrumentation extends Instrumentation {
         Files.write(copy.toPath(),bytes);
         try {
             java.util.function.Consumer<String> sink=message->{try{check(true,message);}catch(Exception error){throw new RuntimeException(error);}};
-            if(mode.equals("p1-steer-proxy"))ClientSteerVpnDeviceChecks.runP1Proxy(getTargetContext(),temporary,sink);
+            if(mode.equals("p1-steer-proxy-strict"))ClientSteerVpnDeviceChecks.runP1ProxyStrict(getTargetContext(),temporary,sink);
+            else if(mode.equals("p1-steer-proxy"))ClientSteerVpnDeviceChecks.runP1Proxy(getTargetContext(),temporary,sink);
             else if(mode.equals("p1-steer-vpn")||mode.equals("p1-steer-tls"))ClientSteerVpnDeviceChecks.runP1(getTargetContext(),temporary,sink);
             else ClientSteerVpnDeviceChecks.run(getTargetContext(),temporary,sink);
         }finally {
@@ -275,7 +290,7 @@ public final class DeviceSmokeInstrumentation extends Instrumentation {
             if(receipt.exists()) {
                 check(!Files.isSymbolicLink(receipt.toPath())&&receipt.getCanonicalFile().getParentFile().equals(temporary.getCanonicalFile())&&receipt.length()<=8192,"STEER_RECEIPT_PATH");
                 JSONObject value=new JSONObject(new String(Files.readAllBytes(receipt.toPath()),StandardCharsets.UTF_8));
-                boolean p1=mode.equals("p1-steer-vpn")||mode.equals("p1-steer-proxy")||mode.equals("p1-steer-tls");
+                boolean p1=mode.equals("p1-steer-vpn")||mode.equals("p1-steer-proxy")||mode.equals("p1-steer-proxy-strict")||mode.equals("p1-steer-tls");
                 java.util.Set<String> booleans=new java.util.HashSet<>(java.util.Arrays.asList("actual_gate_passed","android_segment_passed","host_peer_crossmatch_required","revoke_verified","cleanup_verified","user_state_unchanged"));
                 if(p1)booleans.add("full_p1_accepted");
                 java.util.Set<String> numbers=new java.util.HashSet<>(java.util.Arrays.asList("schema","mainPid","workerPid","generation","vpnNetworkHandle","ownerUid","physicalNetworkHandle","postBodyBytes","protectAndBindAcks","lastBoundNetworkHandle"));

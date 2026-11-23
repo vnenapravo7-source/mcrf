@@ -1,0 +1,141 @@
+//go:build with_utls
+
+// MCRF owned test, compiled only in the common verification batch.
+package tls
+
+import (
+	"bytes"
+	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	stdtls "crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/json"
+	"encoding/pem"
+	utls "github.com/metacubex/utls"
+	"github.com/sagernet/sing-box/option"
+	"github.com/sagernet/sing/common/logger"
+	"io"
+	"math/big"
+	"net"
+	"testing"
+	"time"
+)
+
+type captureHRR49 struct {
+	net.Conn
+	wire []byte
+}
+
+func (c *captureHRR49) Write(p []byte) (int, error) {
+	if len(c.wire) < 8192 {
+		c.wire = append(c.wire, p...)
+	}
+	return c.Conn.Write(p)
+}
+
+func TestMCRFTLSHybridRetry49(t *testing.T) {
+	previous := randomizedFingerprint
+	defer func() { randomizedFingerprint = previous }()
+	found := false
+	for i := 0; i < 256; i++ {
+		id := previous
+		seed := new(utls.PRNGSeed)
+		seed[0] = byte(i)
+		id.Seed = seed
+		c := utls.UClient(nil, &utls.Config{ServerName: "fixture.invalid", SessionTicketsDisabled: true}, id)
+		if c.BuildHandshakeState() != nil {
+			continue
+		}
+		h := c.HandshakeState.Hello
+		offered, sent, v13 := false, false, false
+		for _, g := range h.SupportedCurves {
+			offered = offered || g == utls.X25519MLKEM768
+		}
+		for _, g := range h.KeyShares {
+			sent = sent || g.Group == utls.X25519MLKEM768
+		}
+		for _, v := range h.SupportedVersions {
+			v13 = v13 || v == utls.VersionTLS13
+		}
+		if offered && !sent && v13 {
+			randomizedFingerprint = id
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("no deterministic offered-but-unsent hybrid template")
+	}
+	key, e := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if e != nil {
+		t.Fatal(e)
+	}
+	now := time.Now()
+	cert := &x509.Certificate{SerialNumber: big.NewInt(49), Subject: pkix.Name{CommonName: "fixture.invalid"}, DNSNames: []string{"fixture.invalid"}, NotBefore: now.Add(-time.Hour), NotAfter: now.Add(time.Hour), KeyUsage: x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}, IsCA: true, BasicConstraintsValid: true}
+	der, e := x509.CreateCertificate(rand.Reader, cert, cert, &key.PublicKey, key)
+	if e != nil {
+		t.Fatal(e)
+	}
+	roots := string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}))
+	ln, e := net.ListenTCP("tcp4", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1)})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer ln.Close()
+	_ = ln.SetDeadline(time.Now().Add(time.Second))
+	a, e := net.DialTimeout("tcp4", ln.Addr().String(), time.Second)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer a.Close()
+	b, e := ln.AcceptTCP()
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer b.Close()
+	captured := &captureHRR49{Conn: b}
+	done := make(chan error, 1)
+	go func() {
+		defer b.Close()
+		_ = b.SetDeadline(time.Now().Add(4 * time.Second))
+		server := stdtls.Server(captured, &stdtls.Config{Certificates: []stdtls.Certificate{{Certificate: [][]byte{der}, PrivateKey: key}}, MinVersion: stdtls.VersionTLS13, MaxVersion: stdtls.VersionTLS13, CurvePreferences: []stdtls.CurveID{stdtls.X25519MLKEM768}})
+		e := server.Handshake()
+		if e == nil {
+			_, e = server.Write([]byte{49})
+		}
+		done <- e
+	}()
+	data, _ := json.Marshal(map[string]any{"enabled": true, "server_name": "fixture.invalid", "certificate": []string{roots}, "utls": map[string]any{"enabled": true, "fingerprint": "randomized"}})
+	var opts option.OutboundTLSOptions
+	if json.Unmarshal(data, &opts) != nil {
+		t.Fatal("fixture config")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	cfg, e := NewClient(ctx, logger.NOP(), "fixture.invalid", opts)
+	if e != nil {
+		t.Fatal(e)
+	}
+	_ = a.SetDeadline(time.Now().Add(3 * time.Second))
+	client, e := cfg.Client(a)
+	if e == nil {
+		e = client.HandshakeContext(ctx)
+	}
+	if e != nil {
+		t.Fatal("actual hybrid HRR failed", e)
+	}
+	var reply [1]byte
+	if _, e = io.ReadFull(client, reply[:]); e != nil || reply[0] != 49 {
+		t.Fatal("no authenticated hybrid HRR data", e)
+	}
+	if e := <-done; e != nil {
+		t.Fatal(e)
+	}
+	magic := []byte{0xcf, 0x21, 0xad, 0x74, 0xe5, 0x9a, 0x61, 0x11, 0xbe, 0x1d, 0x8c, 0x02, 0x1e, 0x65, 0xb8, 0x91, 0xc2, 0xa2, 0x11, 0x16, 0x7a, 0xbb, 0x8c, 0x5e, 0x07, 0x9e, 0x09, 0xe2, 0xc8, 0xa8, 0x33, 0x9c}
+	if !bytes.Contains(captured.wire, magic) {
+		t.Fatal("owned test never exercised actual hybrid HRR")
+	}
+}

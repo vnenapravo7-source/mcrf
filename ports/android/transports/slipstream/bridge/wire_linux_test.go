@@ -58,7 +58,7 @@ func wireCertificate(t *testing.T, dir string) (string, string, string) {
 	return value, certFile, keyFile
 }
 
-func wireBackend(t *testing.T) (string, *atomic.Int64) {
+func wireBackend(t *testing.T, originalC bool) (string, *atomic.Int64) {
 	t.Helper()
 	ln, err := net.Listen("tcp4", "127.0.0.1:0")
 	if err != nil {
@@ -99,7 +99,11 @@ func wireBackend(t *testing.T) (string, *atomic.Int64) {
 				}
 				var payload [5]byte
 				if _, e = io.ReadFull(conn, payload[:]); e == nil && string(payload[:]) == "OWNED" {
-					mcrfWrite(conn, payload[:])
+					if mcrfWrite(conn, payload[:]) == nil && originalC {
+						// The original C peer resets QUIC on target EOF. Keep the
+						// target open until the client has received the echo.
+						_, _ = io.Copy(io.Discard, conn)
+					}
 				}
 			}()
 		}
@@ -131,7 +135,7 @@ func wireFixtureServer(t *testing.T, originalC bool) (config, string, string, *a
 	}
 	t.Cleanup(func() { os.RemoveAll(dir) })
 	certificate, cert, key := wireCertificate(t, dir)
-	backend, count := wireBackend(t)
+	backend, count := wireBackend(t, originalC)
 	reserved, err := net.ListenPacket("udp4", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -183,6 +187,25 @@ func wireFixtureServer(t *testing.T, originalC bool) (config, string, string, *a
 
 func TestMcrfSlipstreamOwnedWireData(t *testing.T) {
 	c, core, dir, _ := wireFixture(t)
+	wireOwnedData(t, c, core, dir)
+}
+
+func TestMcrfSlipstreamOwnedWirePhysicalNetwork(t *testing.T) {
+	handle := os.Getenv("MCRF_SLIPSTREAM_TEST_PHYSICAL")
+	if handle == "" {
+		t.Skip("requires the owned Android physical network")
+	}
+	const underlay = "MCRF_SLIPSTREAM_UNDERLAY"
+	c, core, dir, count := wireFixture(t)
+	t.Setenv(underlay, "9223372036854775807")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	err := run(ctx, c, core, dir)
+	if ctx.Err() != nil || err == nil || err.Error() != "PHYSICAL_NETWORK" || count.Load() != 0 {
+		cancel()
+		t.Fatalf("invalid underlay did not fail before remote SOCKS: %v", err)
+	}
+	cancel()
+	t.Setenv(underlay, handle)
 	wireOwnedData(t, c, core, dir)
 }
 

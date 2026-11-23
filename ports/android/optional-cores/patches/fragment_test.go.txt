@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+package dialer
+
+import (
+ "bytes"
+ "io"
+ "net"
+ "testing"
+ "time"
+ opts "github.com/sagernet/sing-box/option"
+)
+
+type mcrfCapture struct{net.Conn;wire bytes.Buffer;short bool;times []time.Time}
+func(c *mcrfCapture)Write(p []byte)(int,error){c.times=append(c.times,time.Now());if c.short{return len(p)-1,nil};return c.wire.Write(p)}
+func TestMCRFFragmentContract(t *testing.T){
+ for _,size:=range []uint64{1,32,512,1024,16384}{
+  payload:=bytes.Repeat([]byte{42},15000);payload[0]=1
+  record:=append([]byte{22,3,1,byte(len(payload)>>8),byte(len(payload))},payload...)
+  c:=&mcrfCapture{};f:=&fragmentConn{conn:c,fragment:TLSFragment{Enabled:true,Size:opts.IntRange{Min:size,Max:size}}}
+  n,e:=f.Write(record);if e!=nil||n!=len(record){t.Fatal("incorrect logical Write count")}
+  var recovered []byte;wire:=c.wire.Bytes();count:=0
+  for len(wire)>0{if len(wire)<5{t.Fatal("truncated record")};length:=int(wire[3])<<8|int(wire[4]);if length<1||uint64(length)>size||len(wire)<5+length{t.Fatal("incorrect fragment size")};recovered=append(recovered,wire[5:5+length]...);wire=wire[5+length:];count++}
+  if !bytes.Equal(payload,recovered)||count!=(len(payload)+int(size)-1)/int(size){t.Fatal("ClientHello contents changed")}
+ }
+ c:=&mcrfCapture{short:true};f:=&fragmentConn{conn:c,fragment:TLSFragment{Enabled:true,Size:opts.IntRange{Min:32,Max:32}}}
+ if _,e:=f.Write(append([]byte{22,3,1,0,64,1},make([]byte,63)...));e!=io.ErrShortWrite{t.Fatal("short write not rejected")}
+}
+func TestMCRFFragmentSleep(t *testing.T){
+ c:=&mcrfCapture{};f:=&fragmentConn{conn:c,fragment:TLSFragment{Enabled:true,Size:opts.IntRange{Min:32,Max:32},Sleep:opts.IntRange{Min:20,Max:20}}}
+ data:=append([]byte{22,3,1,2,0,1},make([]byte,511)...);start:=time.Now();if _,e:=f.Write(data);e!=nil{t.Fatal(e)}
+ if len(c.times)<4||time.Since(start)<80*time.Millisecond{t.Fatal("configured inter-burst sleep missing")}
+ for i:=1;i<len(c.times);i++{if c.times[i].Sub(c.times[i-1])<19*time.Millisecond{t.Fatal("burst pause below configured 20ms")}}
+}

@@ -20,6 +20,14 @@ public interface PacketBackend {
         boolean stopping(long generation);
     }
 
+    /** Optional capability for host-owned TCP/UDP packet admission before encryption. */
+    interface OwnerBackend extends PacketBackend { }
+
+    interface OwnerHost extends Host {
+        boolean admitPacketOwner(long generation, int protocol, String source, int sourcePort,
+                                 String destination, int destinationPort);
+    }
+
     final class Request {
         public final long generation;
         public final int borrowedTunFd, mtu;

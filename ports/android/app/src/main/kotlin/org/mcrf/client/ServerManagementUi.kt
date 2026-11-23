@@ -12,31 +12,33 @@ object ServerManagementUi {
     fun view(owner:Activity,store:AndroidDeployStore,entry:AndroidDeployHistory.Entry):LinearLayout {
         val activity=owner as MainActivity
         return with(activity){EditorLayout.body(this).apply {
-            setPadding(0,dp(8),0,dp(16))
+            setPadding(dp(16),dp(8),dp(16),dp(16))
             tag="server-management"
             require(entry.recipe=="swg")
             val template=entry.result.getJSONObject("transport_template")
             val host=template.getString("host");val sshPort=template.getString("sshPort").toInt();val user=template.getString("user")
             val draft=store.credentialsFor(entry)
+            val access=ServerEditorLayout.section(this@with,this,"Доступ к серверу")
             val authBody=LinearLayout(this@with).apply {orientation=LinearLayout.VERTICAL;tag="serverManagement.credentials"}
-            addView(LinearLayout(this@with).apply {
+            access.addView(LinearLayout(this@with).apply {
                 gravity=android.view.Gravity.CENTER_VERTICAL
                 addView(text("$user@$host:$sshPort",13,Loft.MUTED),LinearLayout.LayoutParams(0,-2,1f))
                 addView(iconButton("edit","Изменить доступ SSH").apply {setOnClickListener {authBody.visibility=if(authBody.visibility==View.VISIBLE)View.GONE else View.VISIBLE}},LinearLayout.LayoutParams(dp(48),dp(48)))
             },space(0,8))
-            addView(authBody,space(0,12))
+            access.addView(authBody,space(0,8))
             authBody.visibility=if(draft.optString("sshPassword").isBlank()&&draft.optString("privateKey").isBlank())View.VISIBLE else View.GONE
-            val password=editor("SSH-пароль").apply {tag="serverManagement.password";setSingleLine();inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD;typeface=android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.NORMAL);setText(draft.optString("sshPassword"))}
-            val key=editor("Приватный SSH-ключ").apply {tag="serverManagement.key";minLines=3;setText(draft.optString("privateKey"))}
-            val phrase=editor("Пароль ключа · если есть").apply {tag="serverManagement.keyPassword";setSingleLine();inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD;typeface=android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.NORMAL);setText(draft.optString("keyPassword"))}
+            val password=editor("SSH-пароль").apply {isSaveEnabled=false;tag="serverManagement.password";setSingleLine();inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD;typeface=android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.NORMAL);setText(draft.optString("sshPassword"))}
+            val key=editor("Приватный SSH-ключ").apply {isSaveEnabled=false;tag="serverManagement.key";minLines=3;transformationMethod=android.text.method.PasswordTransformationMethod.getInstance();setText(draft.optString("privateKey"))}
+            val phrase=editor("Пароль ключа · если есть").apply {isSaveEnabled=false;tag="serverManagement.keyPassword";setSingleLine();inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD;typeface=android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.NORMAL);setText(draft.optString("keyPassword"))}
             val mode=RadioGroup(this@with).apply {tag="serverManagement.auth";orientation=LinearLayout.HORIZONTAL}
             val passwordChoice=RadioButton(this@with).apply {id=View.generateViewId();text="Пароль";setTextColor(Loft.INK)}
             val keyChoice=RadioButton(this@with).apply {tag="serverManagement.authKey";id=View.generateViewId();text="SSH-ключ";setTextColor(Loft.INK)}
-            mode.addView(passwordChoice);mode.addView(keyChoice);authBody.addView(mode,space(0,8))
+            listOf(passwordChoice,keyChoice).forEach {choice->choice.minimumHeight=dp(48);mode.addView(choice,RadioGroup.LayoutParams(0,-2,1f))};authBody.addView(mode,space(0,8))
             authBody.addView(password,space(0,12));authBody.addView(key,space(0,8));authBody.addView(phrase,space(0,12))
             fun fields(){val keyed=mode.checkedRadioButtonId==keyChoice.id;password.visibility=if(keyed)View.GONE else View.VISIBLE;key.visibility=if(keyed)View.VISIBLE else View.GONE;phrase.visibility=key.visibility}
             mode.setOnCheckedChangeListener {_,_->fields()};mode.check(if(draft.optString("sshAuth")=="key")keyChoice.id else passwordChoice.id);fields()
-            val status=text("",13,Loft.MUTED).apply {tag="serverManagement.status"};addView(status,space(0,8))
+            val actions=ServerEditorLayout.section(this@with,this,"Управление")
+            val status=text("",13,Loft.MUTED).apply {tag="serverManagement.status"};actions.addView(status,space(0,8))
             val journal=LinearLayout(this@with).apply {orientation=LinearLayout.VERTICAL;tag="serverManagement.journal"}
             journal.visibility=View.GONE
             fun refreshJournal(){
@@ -164,7 +166,7 @@ object ServerManagementUi {
                 if(requestId==null)status.text="Дождись завершения текущей операции сервера"else controls.forEach {it.isEnabled=false}
             }
             for(action in listOf(ServerManagementRequest.Action.STATUS,ServerManagementRequest.Action.CLIENTS,ServerManagementRequest.Action.INTERFACES)){
-                val control=button(action.title,false).apply {tag="serverManagement.action.${action.id}";setOnClickListener {perform(action)}};controls.add(control);addView(control,space(0,8))
+                val control=button(action.title,false).apply {minimumHeight=dp(48);tag="serverManagement.action.${action.id}";setOnClickListener {perform(action)}};controls.add(control);actions.addView(control,space(0,8))
             }
             val add=button("Добавить клиента",false).apply {tag="serverManagement.addClient";setOnClickListener {
                 val name=editor("Имя клиента").apply {tag="serverManagement.clientName";setSingleLine();filters=arrayOf(android.text.InputFilter.LengthFilter(96))}
@@ -187,11 +189,10 @@ object ServerManagementUi {
                     }
                 }
                 dialog.show()
-            }};controls.add(add);addView(add,space(0,8))
-            addView(button("Отменить запрос",false).apply {setOnClickListener {requestId?.let(ServerManagementController::cancel)}},space(0,0))
-            addView(output,space(12,8))
-            addView(button("Последние действия",false).apply {setOnClickListener {journal.visibility=if(journal.visibility==View.VISIBLE)View.GONE else View.VISIBLE}},space(8,0))
-            addView(journal,space(0,12))
+            }};controls.add(add);actions.addView(add,space(0,8))
+            actions.addView(button("Отменить запрос",false).apply {minimumHeight=dp(48);setOnClickListener {requestId?.let(ServerManagementController::cancel)}},space(0,0))
+            actions.addView(output,space(8,8))
+            ServerEditorLayout.section(this@with,this,"Последние действия",true).addView(journal.apply {visibility=View.VISIBLE})
         }}
     }
 }

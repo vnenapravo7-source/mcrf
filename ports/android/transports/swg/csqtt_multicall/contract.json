@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "state": "COMPILED_PROOF_NOT_PACKAGED",
+  "layout": "rust-multicall-v1",
+  "library": "libcsqtt_multicall.so",
+  "selector": "MCRF_BS_RUST_MODE",
+  "implementedAdapters": ["2.0", "2.1.5", "2.1.9", "2.5.1", "2.5.2/2.5.3"],
+  "generations": ["2.0", "2.1.5", "2.1.9", "2.5.1", "2.5.2/2.5.3"],
+  "proof": {
+    "path": "D:/MCRF/Builds/Android/bs-rust-multicall-integration-20261101-01/receipt.json",
+    "sha256": "58f3834de0e5d8a699800632529d9a39eda9dde3a4468b88edefe230f3132a9c"
+  },
+  "provenTargets": ["host-windows-x86_64", "android-arm64-v8a-16k", "android-armeabi-v7a-16k", "android-x86_64-16k"],
+  "performanceStatus": "CANDIDATE_NOT_MEASURED",
+  "candidateStagingReady": true,
+  "packageReady": false,
+  "requiredEvidence": ["generation-wire-auth-captcha-timeout-shutdown", "parallel-route-traffic", "profile-performance", "Android-runtime-acceptance"]
+}

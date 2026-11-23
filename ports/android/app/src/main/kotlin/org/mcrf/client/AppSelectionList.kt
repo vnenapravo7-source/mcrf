@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 /** Recycled, fixed-height rows. Package-manager icon I/O never runs in getView. */
 class AppSelectionList(private val activity: MainActivity,private val selected: MutableSet<String>,private val changed: () -> Unit): ListView(activity) {
     data class Item(val id: String,val title: String,val detail: String,val installed: Boolean=true)
+    internal var itemActions:((View,String)->Boolean)?=null
     private var items=emptyList<Item>()
     val displayedItems: List<Item> get()=items
     fun isSelected(id: String)=id in selected
@@ -71,6 +72,9 @@ class AppSelectionList(private val activity: MainActivity,private val selected: 
                 changed()
             }
             row.root.setOnClickListener {row.check.performClick()}
+            row.root.setOnLongClickListener(if(itemActions==null)null else View.OnLongClickListener {view->
+                itemActions?.invoke(view,item.id)==true
+            })
             row.icon.tag=item.id
             row.icon.setImageResource(android.R.drawable.sym_def_app_icon)
             if(item.installed) {

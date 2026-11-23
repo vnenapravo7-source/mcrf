@@ -25,6 +25,7 @@ class TelegramProxyService:Service() {
     private var running=false
     private var status="Выключен"
     private var transport=""
+    private var webSocketFailure:String?=null
     @Volatile private var child:java.lang.Process?=null
     private var engineUsage:EngineUpdateGate.Usage?=null
     private val prefs get()=getSharedPreferences("telegram-service",MODE_PRIVATE)
@@ -60,7 +61,7 @@ class TelegramProxyService:Service() {
             (if(caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED))100 else 0)+(if(caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))10 else 0)
         }
         if(!force&&selected==next)return
-        selected=next;val epoch=++generation;running=false;transport="";status=if(next==null)"Ожидание сети" else "Подключение…";publish();foreground(status)
+        selected=next;val epoch=++generation;running=false;transport="";webSocketFailure=null;status=if(next==null)"Ожидание сети" else "Подключение…";publish();foreground(status)
         worker.execute {
             closeChild()
             if(!wanted||epoch!=generation)return@execute
@@ -77,7 +78,35 @@ class TelegramProxyService:Service() {
                 val process=builder.start();child=process
                 Thread({try {process.inputStream.bufferedReader(Charsets.US_ASCII).useLines {lines ->lines.forEach {line ->
                     val nextTransport=when(line){"MCRF_TGWS_WS"->"WebSocket";"MCRF_TGWS_TCP"->"TCP · резерв";else->""}
-                    if(nextTransport.isNotEmpty())main.post {if(wanted&&epoch==generation&&transport!=nextTransport){transport=nextTransport;publish();ClientEvents.record(this,"Telegram","Транспорт: $nextTransport")}}
+                    val failure=when(line){
+                        "MCRF_TGWS_WSS_TCP_ERROR"->"TCP"
+                        "MCRF_TGWS_WSS_TLS_ERROR"->"TLS"
+                        "MCRF_TGWS_WSS_TLS_NAME_ERROR"->"TLS · имя сертификата"
+                        "MCRF_TGWS_WSS_TLS_TRUST_ERROR"->"TLS · проверка сертификата"
+                        "MCRF_TGWS_WSS_TLS_TIMEOUT_ERROR"->"TLS · таймаут"
+                        "MCRF_TGWS_WSS_TLS_REMOTE_ERROR"->"TLS · соединение прервано"
+                        "MCRF_TGWS_WSS_TLS_RECORD_ERROR"->"TLS · неверный заголовок записи"
+                        "MCRF_TGWS_WSS_HTTP_ERROR"->"HTTP Upgrade"
+                        else->null
+                    }
+                    if(failure!=null)main.post {
+                        if(wanted&&epoch==generation&&webSocketFailure!=failure){
+                            webSocketFailure=failure
+                            publish()
+                            ClientEvents.record(this,"Telegram","Ошибка WebSocket на этапе $failure")
+                        }
+                    }
+                    if(nextTransport.isNotEmpty())main.post {
+                        if(wanted&&epoch==generation){
+                            val changed=transport!=nextTransport
+                            if(changed||nextTransport=="WebSocket"&&webSocketFailure!=null){
+                                transport=nextTransport
+                                if(transport=="WebSocket")webSocketFailure=null
+                                publish()
+                                if(changed)ClientEvents.record(this,"Telegram","Транспорт: $nextTransport")
+                            }
+                        }
+                    }
                 }}}catch(_:Exception){}},"mcrf-tg-output").apply {isDaemon=true;start()}
                 val deadline=System.nanoTime()+5_000_000_000L
                 while(wanted&&epoch==generation&&process.isAlive&&System.nanoTime()<deadline) {
@@ -102,7 +131,7 @@ class TelegramProxyService:Service() {
         engineUsage?.close();engineUsage=null
     }
     private fun stopMonitor(){monitor?.let {try{network.unregisterNetworkCallback(it)}catch(_:Exception){}};monitor=null;networks.clear();selected=null}
-    private fun publish(){val data=Bundle().apply {putBoolean("wanted",wanted);putBoolean("running",running);putString("message",status);putString("transport",transport);putInt("port",TelegramBridge.DEFAULT_PORT)};val gone=clients.filter {client ->try{client.send(Message.obtain(null,TelegramBridge.STATE).apply {this.data=Bundle(data)});false}catch(_:RemoteException){true}};clients.removeAll(gone.toSet())}
+    private fun publish(){val data=Bundle().apply {putBoolean("wanted",wanted);putBoolean("running",running);putString("message",status);putString("transport",transport.takeIf {wanted}.orEmpty());putString("webSocketFailure",webSocketFailure.takeIf {wanted});putInt("port",TelegramBridge.DEFAULT_PORT)};val gone=clients.filter {client ->try{client.send(Message.obtain(null,TelegramBridge.STATE).apply {this.data=Bundle(data)});false}catch(_:RemoteException){true}};clients.removeAll(gone.toSet())}
     private fun foreground(message:String) {
         getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel("telegram","Telegram WS",NotificationManager.IMPORTANCE_LOW))
         val open=PendingIntent.getActivity(this,20,Intent(this,MainActivity::class.java),PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)

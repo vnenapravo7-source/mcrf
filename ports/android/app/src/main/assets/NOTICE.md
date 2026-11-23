@@ -6,6 +6,12 @@
 - .NET: MIT и лицензии сторонних компонентов; [runtime](https://github.com/dotnet/runtime).
 - Gradle Wrapper: Apache-2.0, [Gradle 9.1.0](https://github.com/gradle/gradle/tree/v9.1.0).
 - ZXing core 3.5.3: Apache-2.0, офлайн-сканирование и генерация QR, [исходники](https://github.com/zxing/zxing/tree/zxing-3.5.3).
+- SnakeYAML 2.5: Apache-2.0, безопасный разбор документов маршрутизации; полный текст в `licenses/SnakeYAML-LICENSE`.
+- zstd-jni 1.5.7-25: BSD-2-Clause, распаковка MRS; [исходники](https://github.com/luben/zstd-jni), полный текст в `licenses/zstd-jni-LICENSE`. Zstandard 1.5.7: BSD-3-Clause, `licenses/zstd-LICENSE`.
 - Telegram SOCKS/WS: MIT, [y0sy4/telegram-proxy, cc6b7928](https://github.com/y0sy4/telegram-proxy/tree/cc6b7928e7306509bdeefbb6e0e29f2a982bdb48), адаптер/патчи `ports/android/transports/telegram`, полный текст в `licenses/tgws-LICENSE`. golang.org/x/net v0.52.0: BSD-3-Clause.
+
+- Bencho Stacked Bars: MIT, © 2026 Lorenzo Cabra, [исходники](https://github.com/cabralorenzo/bencho/tree/main/blocks/stacked-bars). Нативная диаграмма на Android использует геометрию компонента, полный текст лицензии в `licenses/bencho-LICENSE.txt`.
+
+- Bencho [Eye tracker](https://bencho.dev/blocks/eye-tracker) и [Particles](https://bencho.dev/blocks/particles): нативные адаптации Android, MIT, © 2026 Lorenzo Cabra. Полный текст в licenses/bencho-LICENSE.txt.
 
 До публикации Linux/Android релиза нужно приложить полные тексты лицензий, уведомления транзитивных зависимостей и соответствующие исходники приложения и GPL-компонентов. Тестовые пакеты не заменяют опубликованный комплект исходников.

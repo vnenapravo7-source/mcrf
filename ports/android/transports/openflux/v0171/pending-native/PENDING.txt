@@ -1,0 +1,4 @@
+PENDING_NATIVE_AND_APK_BUILD
+No binary for official v0.17.1 has been produced by this source-only task.
+Pass an absolute openflux0171Stage directory with a verified new receipt.
+Historical libopenflux.so files must never be packaged under the new pin.

@@ -1,0 +1,40 @@
+func (c *fragmentConn) writeFragments(b []byte) (int, error) {
+	// MCRF: preserve the net.Conn Write contract. The upstream implementation
+	// returned wire bytes including additional record headers, could overflow
+	// fixed burst buffers, and ignored successful short writes.
+	if len(b) < 6 { return c.conn.Write(b) }
+	recordLen := 5 + (int(b[3]) << 8 | int(b[4]))
+	if recordLen > len(b) { return c.conn.Write(b) }
+	if c.fragment.Size.Min == 0 || c.fragment.Size.Max > 16384 || c.fragment.Size.Min > c.fragment.Size.Max || c.fragment.Sleep.Max > 100 || c.fragment.Sleep.Min > c.fragment.Sleep.Max {
+		return 0, os.ErrInvalid
+	}
+	data := b[5:recordLen]
+	queue := make([]byte, 0, int(c.fragment.Size.Max+5)*5)
+	burst := int(opts.GetRandomIntFromRange(1, 4)) + 1
+	count := 0
+	flush := func() error {
+		n, err := c.conn.Write(queue)
+		if err != nil { return err }
+		if n != len(queue) { return io.ErrShortWrite }
+		queue = queue[:0]
+		count = 0
+		if c.fragment.Sleep.Max > 0 { time.Sleep(time.Duration(opts.GetRandomIntFromRange(c.fragment.Sleep.Min, c.fragment.Sleep.Max))*time.Millisecond) }
+		return nil
+	}
+	for from := 0; from < len(data); {
+		to := from + int(opts.GetRandomIntFromRange(c.fragment.Size.Min, c.fragment.Size.Max))
+		if to > len(data) { to = len(data) }
+		length := to - from
+		queue = append(queue, b[0], b[1], b[2], byte(length>>8), byte(length))
+		queue = append(queue, data[from:to]...)
+		from = to
+		count++
+		if count == burst || from == len(data) { if err := flush(); err != nil { return 0, err } }
+	}
+	if recordLen < len(b) {
+		n, err := c.conn.Write(b[recordLen:])
+		if err != nil { return recordLen+n, err }
+		if n != len(b)-recordLen { return recordLen+n, io.ErrShortWrite }
+	}
+	return len(b), nil
+}

@@ -4,9 +4,12 @@ package org.mcrf.client
 object ClientSettingsNavigation {
     const val ROOT = "Настройки"
     const val INVITE = "Инвайт-код"
+    const val BETA = "Beta-функции"
+    const val ANUBIS = "Anubis - автовключение VPN · Beta"
+    const val DIAGNOSTICS = "Диагностика подключения"
     const val APPEARANCE = "Оформление"
     const val MINIMALISM = "Минимализм"
-    const val DNS = "DNS и домены"
+    const val DNS = "Настройки DNS"
     const val BEHAVIOR = "Подключение и работа в фоне"
     const val DEPLOY = "Автодеплой"
     const val WHITELISTS = "Белые списки"
@@ -22,12 +25,29 @@ object ClientSettingsNavigation {
     const val VK = "Аккаунт и звонки VK"
     const val UPDATES = "Обновления и движки"
     const val ADVANCED = "Расширенные настройки"
-    val rootLeading = listOf(INVITE, APPEARANCE, DNS, DEPLOY)
+    const val EXPERIENCE = "Режим интерфейса"
+    const val CONDITIONS = ConditionProfiles.TITLE
+    const val ROUTES = "Маршрутизация"
+    const val SCHEDULE = "Расписание"
+    const val ROUTES_PAGE_KEY = "routesLastPage"
+    val rootLeading = listOf(BETA, APPEARANCE, DEPLOY)
     // Retain the historical home identity for saved navigation and deep links.
-    fun tabTitle(page:String)=if(page=="Главная")"VPN" else if(page==WHITELISTS)"БС" else if(page=="Маршрутизация")"Маршруты" else if(page==VK)"Vk Turn" else if(page==MINIMALISM)"Скрыть разделы" else page
+    fun tabTitle(page:String)=if(page=="Главная")"VPN" else if(page==WHITELISTS)"БС" else if(page=="Маршрутизация")"Маршруты" else if(page==VK)"Vk Turn" else if(page==ANUBIS)"Anubis" else if(page==MINIMALISM)"Скрыть разделы" else page
     val mainTabs = listOf("Главная", WHITELISTS, "Маршрутизация", "Логи")
-    val children: Set<String> = linkedSetOf(INVITE, MINIMALISM, APPEARANCE, DNS, DEPLOY, BEHAVIOR, OPENFLUX, VPN, GEO, VK, UPDATES, ADVANCED)
+    val children: Set<String> = linkedSetOf(INVITE, BETA, DIAGNOSTICS, MINIMALISM, APPEARANCE, DNS, DEPLOY, BEHAVIOR, OPENFLUX, VPN, GEO, VK, UPDATES, ADVANCED, EXPERIENCE)
+    private val simplePages=setOf(ROOT,EXPERIENCE,INVITE,APPEARANCE,DEPLOY,BEHAVIOR,UPDATES,VK,OPENFLUX,"Главная",WHITELISTS,ROUTES,SCHEDULE,CONDITIONS,ANUBIS)
+    fun visible(page:String,mode:ExperienceMode)=mode==ExperienceMode.EXPERT||page in simplePages
+    fun experimental(page:String)=page==BETA
+    fun isRoutes(page:String)=canonical(page).let {it==ROUTES||it==SCHEDULE}
+    fun routePage(saved:String?)=if(canonical(saved.orEmpty())==SCHEDULE)SCHEDULE else ROUTES
+    fun bottomTarget(tab:String,savedRoutePage:String?)=if(tab==ROUTES)routePage(savedRoutePage)else tab
+    fun mainTab(page:String)=if(isRoutes(page)||page==ANUBIS)ROUTES else canonical(page)
     fun canonical(page:String):String=when(page){
+        CONDITIONS,"Behaviour MCRF","Поведение MCRF"->SCHEDULE
+        EXPERIENCE->APPEARANCE
+        OPENFLUX->WHITELISTS
+        "DNS и домены"->DNS
+        GEO->ADVANCED
         "VPN и локальный прокси",SHARING->VPN
         "Обновления"->UPDATES
         CORE->UPDATES
@@ -35,12 +55,18 @@ object ClientSettingsNavigation {
         TLS,XRAY->ADVANCED
         else->page
     }
+    fun settingsTabTarget(current:String,last:String)=if(isSettings(current))ROOT else last.takeIf(::isSettings)?:ROOT
     fun isSettings(page: String) = page == ROOT || page == CORE || page in children
     fun back(page: String, origin: String, directEntry:Boolean=false,advancedFrom:String?=null): String = when {
-        page==ADVANCED&&!advancedFrom.isNullOrBlank()&&advancedFrom!=ADVANCED -> canonical(advancedFrom)
+        page==ADVANCED&&!advancedFrom.isNullOrBlank()&&canonical(advancedFrom)!=ADVANCED -> canonical(advancedFrom)
         page == CAPTCHA || page == CONNECTIONS -> origin.takeUnless(::isSettings)?:"Главная"
         page == MINIMALISM -> APPEARANCE
+        page == ANUBIS -> ROUTES
+        page == DIAGNOSTICS -> BETA
+        page == DNS -> VPN
+        page == GEO -> ADVANCED
         directEntry && (page in children || page == CORE) -> origin.takeUnless(::isSettings) ?: "Главная"
+        page == EXPERIENCE -> ROOT
         page in children || page == CORE -> ROOT
         page == ROOT -> origin.takeUnless(::isSettings) ?: "Главная"
         else -> "Главная"

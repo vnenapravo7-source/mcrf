@@ -175,8 +175,13 @@ class ClientPrimaryWorker private constructor(
         }
     }
 
+    internal var packetOwnerIsolationSupported=false
+        private set
+    internal var primaryOwnerIsolationSupported=false
+        private set
+
     /** Candidate packet path: existing owner, private process and death barrier, no primary switch. */
-    fun startPacket(profile: String, providedTun: ParcelFileDescriptor, dial: String, settings:String="{}",ownedBlockFixture:Boolean=false,vpnNetworkHandle:Long=0) {
+    fun startPacket(profile: String, providedTun: ParcelFileDescriptor, dial: String, settings:String="{}",ownedBlockFixture:Boolean=false,vpnNetworkHandle:Long=0,ownerIsolation:Boolean=false) {
         offUi()
         require(!ownedBlockFixture||BuildConfig.DEBUG) {"PACKET_BLOCK_FIXTURE_DEBUG_ONLY"}
         val managed=JSONObject(settings).optInt("schema",1)==3
@@ -185,11 +190,15 @@ class ClientPrimaryWorker private constructor(
             check(choiceId == "wg-awg" && hostPlatform != null && !stopping.get() && started.compareAndSet(false,true)) { "PACKET_WORKER_START_STATE" }
             try {
                 val result = withInput(profile,settings,dial,vpnNetworkHandle=vpnNetworkHandle) { file ->
-                    call("START_PACKET",25000) {putString("file",file.path);putParcelable("tun",providedTun);putBoolean("ownedBlockFixture",ownedBlockFixture)}
+                    call("START_PACKET",25000) {
+                        putString("file",file.path);putParcelable("tun",providedTun);putBoolean("ownedBlockFixture",ownedBlockFixture)
+                        putBoolean("ownerIsolation",ownerIsolation)
+                    }
                 }
                 check(result.getString("status") == "PACKET_RUNNING" && !stopping.get() && remote?.isBinderAlive == true) { "PACKET_WORKER_NOT_RUNNING" }
                 check(result.getString("routeSettingsSha256")==ClientPrimaryWorkerWire.sha256(settings.toByteArray(Charsets.UTF_8))&&
-                    result.get("ownedBlockFixture")==ownedBlockFixture&&result.get("managedDns")==managed&&result.get("vpnNetworkHandle")==vpnNetworkHandle) {"PACKET_WORKER_ROUTE_ACK"}
+                    result.get("ownedBlockFixture")==ownedBlockFixture&&result.get("managedDns")==managed&&
+                    result.get("vpnNetworkHandle")==vpnNetworkHandle&&result.getBoolean("ownerIsolation")==ownerIsolation) {"PACKET_WORKER_ROUTE_ACK"}
                 publish("PACKET_RUNNING")
             } catch(error: Throwable) {
                 requestStop()
@@ -298,11 +307,46 @@ class ClientPrimaryWorker private constructor(
             }catch(error:Throwable){requestStop();try {close()}catch(_:Exception){throw CleanupPending(this)};throw error}
         }
     }
+    internal fun attachOriginalCarrier(settings:String,spec:OriginalCarrierPacketSpec,pipe:ParcelFileDescriptor,peerPid:Int,endpointGeneration:Long) {
+        offUi()
+        synchronized(commandLock) {
+            check(choiceId=="singbox"&&serviceClass==ClientPrimaryWorkerService::class.java&&hostPlatform!=null&&
+                !stopping.get()&&!started.get()&&peerPid>0&&endpointGeneration==generation){"ORIGINAL_CARRIER_PRESTART"}
+            try {
+                val profile=spec.json()
+                val reply=withInput(profile,settings){file->call("ATTACH_ORIGINAL_CARRIER",25000){
+                    putString("file",file.path);putParcelable("pipe",pipe);putInt("peerPid",peerPid)
+                }}
+                check(reply.getString("status")=="ORIGINAL_CARRIER_ATTACHED"&&
+                    reply.getString("requestSha256")==SteerProbeSpec.requestSha(profile,settings,"")&&
+                    !stopping.get()&&remote?.isBinderAlive==true){"ORIGINAL_CARRIER_REPLY"}
+            }catch(error:Throwable){requestStop();try {close()}catch(_:Exception){throw CleanupPending(this)};throw error}
+        }
+    }
     internal fun dropRoutePipe(spec:PacketRoutePipeSpec) {
         offUi()
         check(choiceId=="singbox"&&serviceClass==ClientPrimaryWorkerService::class.java){"PACKET_ROUTE_DISPATCHER_ROLE"}
         check(call("DROP_ROUTE_PIPE",5000){putString("tag",spec.tag);putString("nonce",spec.nonce)}.getString("status")=="PACKET_ROUTE_FAILED_CLOSED"){"PACKET_ROUTE_PIPE_REPLY"}
     }
+    private var bsPrepared:String?=null
+    internal fun validateBs(payload:JSONObject):String {
+        offUi();synchronized(commandLock){check(choiceId==BsNativeContract.CHOICE&&!started.get()&&!stopping.get()){"BS_NATIVE_VALIDATE_STATE"}
+            val file=synchronized(resourceLock){check(!stopping.get());ClientPrimaryWorkerWire.writeBsInput(context,payload).also {inputs.add(it)}}
+            val expected=ClientPrimaryWorkerWire.sha256(payload.toString().toByteArray(Charsets.UTF_8))
+            val reply=try{call("VALIDATE_BS",20000){putString("file",file.path)}}finally{removeOwnedInput(file)}
+            check(reply.getString("status")=="BS_NATIVE_VALIDATED"&&reply.getString("digest")==expected&&!stopping.get()){"BS_NATIVE_PREPARATION_ACK"}
+            bsPrepared=expected;return expected
+        }
+    }
+    internal fun startBs() {
+        offUi();synchronized(commandLock){val digest=checkNotNull(bsPrepared)
+            check(choiceId==BsNativeContract.CHOICE&&hostPlatform!=null&&!stopping.get()&&started.compareAndSet(false,true)){"BS_NATIVE_START_STATE"}
+            try{val result=call("START_BS",70000){putString("digest",digest)}
+                check(result.getString("status")=="BS_NATIVE_RUNNING"&&result.getString("digest")==digest&&!stopping.get()&&remote?.isBinderAlive==true){"BS_NATIVE_NOT_RUNNING"};publish("RUNNING")
+            }catch(error:Throwable){requestStop();try{close()}catch(_:Exception){throw CleanupPending(this)};throw error}
+        }
+    }
+
     /** Actual native URL test through the verified installed sing-box entry. Milliseconds. */
     fun health(tag: String, url: String, timeout: Int): Long {
         offUi()
@@ -310,6 +354,15 @@ class ClientPrimaryWorker private constructor(
         require(timeout in 1..30000) { "PRIMARY_WORKER_TIMEOUT" }
         return call("HEALTH", timeout.toLong() + 3000) {
             putString("tag", tag); putString("url", url); putInt("timeout", timeout)
+        }.getLong("latency")
+    }
+    internal fun bsStartupHealth(tag:String,urls:List<String>,timeout:Int):Long {
+        offUi()
+        require(choiceId==BsNativeContract.CHOICE&&urls.size in 1..2&&timeout in 1..30000)
+        return call("BS_STARTUP_HEALTH",timeout.toLong()+3000){
+            putString("tag",ClientPrimaryWorkerWire.smallString(tag,512))
+            putStringArrayList("urls",ArrayList(urls.map {ClientPrimaryWorkerWire.smallString(it,8192)}))
+            putInt("timeout",timeout)
         }.getLong("latency")
     }
     fun resetNetwork() { offUi(); call("RESET", 8000) }
@@ -321,9 +374,11 @@ class ClientPrimaryWorker private constructor(
         offUi(); ClientPrimaryWorkerWire.smallString(group, 512)
         return requireNotNull(call("SELECTED", 8000) { putString("group", group) }.getString("tag"))
     }
-    fun stats(): Engine.Stats {
+    fun stats(): Engine.Stats = stats { }
+    internal fun stats(onStreams:(Int)->Unit): Engine.Stats {
         offUi()
         val result = call("STATS", 5000)
+        if(choiceId==BsNativeContract.CHOICE)onStreams(result.getInt("streams",-1))
         fun metric(key: String): Engine.Metric = if (result.containsKey(key)) Engine.Metric.of(result.getLong(key)) else Engine.Metric.unavailable()
         return Engine.Stats(metric("tx"), metric("rx"), metric("blocked"))
     }
@@ -521,10 +576,12 @@ class ClientPrimaryWorker private constructor(
             try { target.linkToDeath(deathRecipient, 0) }
             catch (_: android.os.RemoteException) { observedDeath(); throw IllegalStateException("PRIMARY_WORKER_DIED") }
         } finally { request.recycle(); reply.recycle() }
-        call(if(choiceId == "wg-awg") "INIT_PACKET" else "INIT", 20000) {
+        val initialized=call(when(choiceId){BsNativeContract.CHOICE->"INIT_BS";"wg-awg"->"INIT_PACKET";else->"INIT"}, 20000) {
             putString("choice", choiceId); putString("apkSha256", digest)
             hostPlatform?.let { putBinder("platform", ClientPrimaryPlatformBinder.stub(it, generation)) }
         }
+        packetOwnerIsolationSupported=choiceId=="wg-awg"&&initialized.getBoolean("ownerIsolation")
+        primaryOwnerIsolationSupported=initialized.getBoolean("vpnOwnerIsolation")
         publish("READY")
     }
 
@@ -562,6 +619,14 @@ class ClientPrimaryWorker private constructor(
             return connectOwned(context,choiceId,generation,platform,serviceClass,expectedApkSha256,onDeath,false)
         }
 
+        internal fun connectBs(context:Context,generation:Long,platform:Platform?,expectedApkSha256:String,
+                               validationOnly:Boolean=false,onDeath:()->Unit={}):ClientPrimaryWorker {
+            require(if(validationOnly)platform==null else platform!=null){"BS_NATIVE_VALIDATION_PLATFORM"}
+            return connectOwned(context,BsNativeContract.CHOICE,generation,platform,
+                if(validationOnly)ClientPrimaryValidationWorkerService::class.java else ClientPrimaryWorkerService::class.java,
+                expectedApkSha256,onDeath,false,true)
+        }
+
         fun connectPacket(context: Context, generation: Long, platform: Platform, expectedApkSha256: String,
                           onDeath: () -> Unit = {}): ClientPrimaryWorker =
             connectOwned(context,"wg-awg",generation,platform,ClientPrimaryWorkerService::class.java,expectedApkSha256,onDeath,true)
@@ -580,20 +645,23 @@ class ClientPrimaryWorker private constructor(
 
         private fun connectOwned(context: Context, choiceId: String, generation: Long, platform: Platform?,
                     serviceClass: Class<out ClientPrimaryWorkerService>, expectedApkSha256: String?,
-                    onDeath: () -> Unit, packet: Boolean): ClientPrimaryWorker {
+                    onDeath: () -> Unit, packet: Boolean,bs:Boolean=false): ClientPrimaryWorker {
             offUi()
             require(generation > 0) { "PRIMARY_WORKER_GENERATION" }
             val app = context.applicationContext
-            val core = if(packet) null else ClientPrimaryCorePolicy.Core.parse(choiceId)
+            val core = if(packet||bs) null else ClientPrimaryCorePolicy.Core.parse(choiceId)
+            require(!bs||!packet&&choiceId==BsNativeContract.CHOICE&&serviceClass in setOf(ClientPrimaryWorkerService::class.java,ClientPrimaryValidationWorkerService::class.java)){"BS_NATIVE_WORKER_ROLE"}
             ClientPrimaryWorkerWire.processSuffix(serviceClass)
             require(!ClientPrimaryWorkerWire.isRouteWorker(serviceClass)||
                 (platform!=null&&expectedApkSha256!=null&&((packet&&choiceId=="wg-awg")||(!packet&&choiceId=="steer")))) {"ROUTE_WORKER_ROLE"}
             val lease = EngineUpdateGate.acquireUsage(app) ?: throw IllegalStateException("PRIMARY_CORE_UPDATE_BUSY")
             var session: ClientPrimaryWorker? = null
             try {
-                val info = if(packet) app.packageManager.getApplicationInfo(ClientPacketBackendLoader.PACKAGE,0)
-                    else EngineUpdatePrimary.installation(app, requireNotNull(core).kind)
-                val digest = ClientPrimaryWorkerWire.hashFile(File(info.sourceDir).canonicalFile)
+                val digest = if(bs) BsNativeContract.workerPin(app,requireNotNull(expectedApkSha256)) else {
+                    val info=if(packet) app.packageManager.getApplicationInfo(ClientPacketBackendLoader.PACKAGE,0)
+                        else EngineUpdatePrimary.installation(app, requireNotNull(core).kind)
+                    ClientPrimaryWorkerWire.hashFile(File(info.sourceDir).canonicalFile)
+                }
                 require(expectedApkSha256 == null || expectedApkSha256.matches(Regex("[0-9a-fA-F]{64}")) &&
                     digest.equals(expectedApkSha256, true)) { "PRIMARY_CORE_APK_HASH" }
                 val worker = ClientPrimaryWorker(app, choiceId, generation, platform, serviceClass, lease, onDeath)

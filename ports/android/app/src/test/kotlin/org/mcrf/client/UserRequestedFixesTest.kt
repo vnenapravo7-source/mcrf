@@ -64,6 +64,16 @@ class UserRequestedFixesTest {
         assertEquals(3,text.lines().size);assertFalse(text.contains("Сейчас"));assertFalse(text.contains("байт"))
         assertEquals("Скачать и установить",EngineImportPresentation.button(true))
     }
+    @Test fun unifiedBsOfferExplainsSavingsAndAndroidConfirmations(){
+        val migration = EngineImportPresentation.unifiedBs("12 МБ", "8 МБ", true)
+        assertEquals(3, migration.lines().size)
+        assertTrue(migration.contains("в одном движке"))
+        assertTrue(migration.contains("освободится 8 МБ"))
+        assertTrue(migration.contains("установку и каждое удаление"))
+        val fresh = EngineImportPresentation.unifiedBs("12 МБ", null, false)
+        assertTrue(fresh.contains("Размер загрузки: 12 МБ"))
+        assertFalse(fresh.contains("удаление"))
+    }
     @Test fun multipleEnginePackagesIdentifyCurrentOneAndProgress(){
         val text=EngineImportPresentation.summary(listOf("A","B"),"5 МБ","B","1 МБ")
         assertTrue(text.contains("Сейчас: B"));assertTrue(text.contains("Загружено: 1 МБ"))

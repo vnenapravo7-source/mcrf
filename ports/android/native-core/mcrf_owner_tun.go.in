@@ -1,0 +1,78 @@
+package libbox
+
+import (
+	"io"
+	"time"
+
+	tun "github.com/sagernet/sing-tun"
+)
+
+type ownerPlatform struct{ platform PlatformInterface }
+
+func (p ownerPlatform) AdmitPacketOwner(protocol int32, source string, sourcePort int32, destination string, destinationPort int32) bool {
+	owner, err := p.platform.FindConnectionOwner(protocol, source, sourcePort, destination, destinationPort)
+	return err == nil && owner != nil && owner.UserId >= 0
+}
+
+func ownedAndroidTun(device tun.Tun, platform PlatformInterface) tun.Tun {
+	gate := &ownerGate{lookup: ownerPlatform{platform}}
+	if wrapper := ownedAndroidGVisorTun(device, gate); wrapper != nil {
+		return wrapper
+	}
+	if linux, ok := device.(tun.LinuxTUN); ok {
+		return &ownerLinuxTun{LinuxTUN: linux, gate: gate}
+	}
+	return &ownerTun{Tun: device, gate: gate}
+}
+
+type ownerTun struct {
+	tun.Tun
+	gate *ownerGate
+}
+
+func (t *ownerTun) Read(packet []byte) (int, error) {
+	for {
+		n, err := t.Tun.Read(packet)
+		if err != nil || n == 0 {
+			return n, err
+		}
+		if t.gate.admit(packet[:n], time.Now()) {
+			return n, nil
+		}
+	}
+}
+
+type ownerLinuxTun struct {
+	tun.LinuxTUN
+	gate *ownerGate
+}
+
+func (t *ownerLinuxTun) Read(packet []byte) (int, error) {
+	return (&ownerTun{Tun: t.LinuxTUN, gate: t.gate}).Read(packet)
+}
+
+func (t *ownerLinuxTun) BatchRead(buffers [][]byte, offset int, sizes []int) (int, error) {
+	for {
+		n, err := t.LinuxTUN.BatchRead(buffers, offset, sizes)
+		if err != nil || n == 0 {
+			return n, err
+		}
+		kept := 0
+		for index := 0; index < n; index++ {
+			length := sizes[index]
+			if offset < 0 || length < 0 || offset > len(buffers[index]) || length > len(buffers[index])-offset {
+				return 0, io.ErrShortBuffer
+			}
+			if t.gate.admit(buffers[index][offset:offset+length], time.Now()) {
+				if kept != index {
+					buffers[kept], buffers[index] = buffers[index], buffers[kept]
+					sizes[kept], sizes[index] = sizes[index], sizes[kept]
+				}
+				kept++
+			}
+		}
+		if kept != 0 {
+			return kept, nil
+		}
+	}
+}

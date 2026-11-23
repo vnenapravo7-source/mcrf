@@ -9,7 +9,10 @@ object EngineStorage {
     data class Size(val packageId:String,val apk:Long,val native:Long,val bytes:Long)
     fun format(context:android.content.Context,bytes:Long)=android.text.format.Formatter.formatShortFileSize(context,bytes)
     fun downloadAsset(kind:String):EnginePackage?=try{EnginePackages.knownAsset(kind,EnginePackage.abi(android.os.Build.SUPPORTED_ABIS.toList(),android.os.Process.is64Bit()))}catch(_:Exception){null}
-    fun downloadBytes(kind:String,abi:String,asset:EnginePackage?):Long?=asset?.takeIf{it.engine==kind&&it.abi==abi&&it.bytes in 1..EnginePackage.MAX_BYTES}?.bytes
+    fun downloadBytes(kind:String,abi:String,asset:EnginePackage?):Long?=asset?.takeIf {
+        BsEngineContract.covers(it.engine,kind) && it.abi==abi &&
+            it.bytes in 1..EnginePackage.MAX_BYTES
+    }?.bytes
     data class DisplayBytes(val apk:Long?,val device:Long?)
     fun displayBytes(download:Long?,installed:Size?):DisplayBytes=DisplayBytes(
         (if(installed!=null)installed.apk else download)?.takeIf{it>0},
@@ -46,7 +49,8 @@ object EngineStorage {
         if(activity.active()||ProbeCoordinator.measurements!=null){activity.alert("Удаление движка","Сначала отключи VPN/прокси и останови замер серверов.");return null}
         // Reconcile a completed installer before reporting the global gate as busy.
         runCatching {EngineUpdates.confirmPendingReceipt(activity)}
-        val lease=EngineUpdateGate.beginMutation(activity,"engine_remove","remove",kind)
+        val physicalKind=if(size.packageId==BsEngineContract.PACKAGE)BsEngineContract.KIND else kind
+        val lease=EngineUpdateGate.beginMutation(activity,"engine_remove","remove",physicalKind)
             ?:run{activity.alert("Удаление движка","Другая установка или удаление ещё не завершены в Android.");return null}
         return try{
             @Suppress("DEPRECATION") val intent=Intent(Intent.ACTION_UNINSTALL_PACKAGE,Uri.parse("package:${size.packageId}"))
@@ -66,8 +70,8 @@ object EngineStorage {
         val size=size(activity,kind)?:return
         if(size.packageId==EngineModules.LEGACY){activity.alert("Старый пакет","Сначала установи отдельный пакет ${kind.uppercase()}. Общий старый пакет не позволяет удалить только один движок.");return}
         if(activity.active()||ProbeCoordinator.measurements!=null){activity.alert("Удаление движка","Сначала отключи VPN/прокси и останови замер серверов.");return}
-        ThemedDialogBuilder(activity).setTitle("Удалить ${kind.uppercase()}?")
-            .setMessage("APK и библиотеки на устройстве: ${format(activity,size.bytes)}.\n\nОстальные движки и сохранённые подключения останутся. Для нового подключения через этот движок потребуется повторная загрузка.")
+        ThemedDialogBuilder(activity).setTitle(if(size.packageId==BsEngineContract.PACKAGE)"Удалить BS Engine целиком?"else"Удалить ${kind.uppercase()}?")
+            .setMessage("APK и библиотеки на устройстве: ${format(activity,size.bytes)}.\n\n"+if(size.packageId==BsEngineContract.PACKAGE)"Будут удалены все поколения CSQTT и QWDTT из BS Engine. Подключения сохранятся. Отдельный WDTT останется доступен."else"Остальные движки и сохранённые подключения останутся. Для нового подключения через этот движок потребуется повторная загрузка.")
             .setNegativeButton("Отмена",null).setPositiveButton("Удалить"){_,_->launchRemoval(activity,kind)}.show()
     }
 }

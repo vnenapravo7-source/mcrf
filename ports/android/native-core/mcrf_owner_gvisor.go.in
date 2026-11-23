@@ -1,0 +1,78 @@
+//go:build with_gvisor
+
+package libbox
+
+import (
+	"time"
+
+	"github.com/sagernet/gvisor/pkg/tcpip"
+	"github.com/sagernet/gvisor/pkg/tcpip/stack"
+	tun "github.com/sagernet/sing-tun"
+)
+
+type ownerGVisorEndpoint struct {
+	device tun.GVisorTun
+	gate   *ownerGate
+}
+
+type ownerGVisorTun struct {
+	ownerTun
+	ownerGVisorEndpoint
+}
+
+type ownerLinuxGVisorTun struct {
+	ownerLinuxTun
+	ownerGVisorEndpoint
+}
+
+func ownedAndroidGVisorTun(device tun.Tun, gate *ownerGate) tun.Tun {
+	gVisor, ok := device.(tun.GVisorTun)
+	if !ok {
+		return nil
+	}
+	endpoint := ownerGVisorEndpoint{device: gVisor, gate: gate}
+	if linux, ok := device.(tun.LinuxTUN); ok {
+		return &ownerLinuxGVisorTun{ownerLinuxTun{LinuxTUN: linux, gate: gate}, endpoint}
+	}
+	return &ownerGVisorTun{ownerTun{Tun: device, gate: gate}, endpoint}
+}
+
+func (t *ownerGVisorEndpoint) WritePacket(packet *stack.PacketBuffer) (int, error) {
+	return t.device.WritePacket(packet)
+}
+
+func (t *ownerGVisorEndpoint) NewEndpoint() (stack.LinkEndpoint, stack.NICOptions, error) {
+	endpoint, options, err := t.device.NewEndpoint()
+	if err != nil {
+		return nil, options, err
+	}
+	return &ownerLinkEndpoint{LinkEndpoint: endpoint, gate: t.gate}, options, nil
+}
+
+type ownerLinkEndpoint struct {
+	stack.LinkEndpoint
+	gate *ownerGate
+}
+
+func (e *ownerLinkEndpoint) Attach(dispatcher stack.NetworkDispatcher) {
+	if dispatcher == nil {
+		e.LinkEndpoint.Attach(nil)
+		return
+	}
+	e.LinkEndpoint.Attach(&ownerNetworkDispatcher{NetworkDispatcher: dispatcher, gate: e.gate})
+}
+
+type ownerNetworkDispatcher struct {
+	stack.NetworkDispatcher
+	gate *ownerGate
+}
+
+func (d *ownerNetworkDispatcher) DeliverNetworkPacket(protocol tcpip.NetworkProtocolNumber, packet *stack.PacketBuffer) {
+	if view, ok := packet.Data().PullUp(packet.Data().Size()); ok && d.gate.admit(view, time.Now()) {
+		d.NetworkDispatcher.DeliverNetworkPacket(protocol, packet)
+	}
+}
+
+var _ tun.GVisorTun = (*ownerGVisorTun)(nil)
+var _ tun.GVisorTun = (*ownerLinuxGVisorTun)(nil)
+var _ tun.LinuxTUN = (*ownerLinuxGVisorTun)(nil)

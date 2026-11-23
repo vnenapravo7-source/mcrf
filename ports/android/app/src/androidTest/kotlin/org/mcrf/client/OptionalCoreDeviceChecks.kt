@@ -86,7 +86,7 @@ object OptionalCoreDeviceChecks {
                 val ready=peer.await("MCRF_FIXTURE_READY");val address=ready.getString("address");val tls=JSONObject().put("enabled",true).put("server_name","fixture.example.test").put("certificate",JSONArray().put(ready.getString("certificate"))).put("tls_tricks",JSONObject().put("mixedcase_sni",true))
                 if(fingerprint=="chrome")tls.put("utls",JSONObject().put("enabled",true).put("fingerprint",fingerprint))
                 val out=JSONObject().put("type","http").put("server","127.0.0.1").put("server_port",address.substringAfterLast(':').toInt()).put("tls",tls).put("tls_fragment",JSONObject().put("enabled",true).put("size","32-32").put("sleep","20-20"))
-                OptionalCoreProcess.start(context,OptionalCoreConfig.Request("tls-core",out,if(fingerprint=="mozilla") "mozilla" else null),BooleanSupplier {false},false,false).use {worker ->
+                OptionalCoreProcess.start(context,OptionalCoreConfig.Request("tls-core",out,if(fingerprint=="mozilla") "mozilla" else null),BooleanSupplier {false},false,false,strictIngress=false).use {worker ->
                     traffic(worker,"127.0.0.1:80",ready.getString("payload"));val hello=peer.await("MCRF_FIXTURE_TLS");check(hello.getInt("records")>1&&hello.getInt("max_record")<=32);val name=hello.getString("sni");check(name.equals("fixture.example.test",true)&&name!="fixture.example.test")
                     check(hello.getBoolean("hello_complete")&&hello.getLong("hello_ms")>=20){"ClientHello fragment delay not observed"}
                     report.accept("Optional TLS $fingerprint: real HTTP + ClientHello records/delay (${hello.getLong("hello_ms")}ms total) + native mixedcase SNI PASS")
@@ -96,11 +96,21 @@ object OptionalCoreDeviceChecks {
         listOf("raw","mux","xhttp","reality","vision","ws","grpc","httpupgrade").forEach {mode ->
             Peer(binary,"xray-$mode").use {peer ->
                 val ready=peer.await("MCRF_FIXTURE_READY")
-                OptionalCoreProcess.start(context,OptionalCoreConfig.Request("xray",ready.getJSONObject("outbound")),BooleanSupplier {false},false,false).use {worker ->
+                OptionalCoreProcess.start(context,OptionalCoreConfig.Request("xray",ready.getJSONObject("outbound")),BooleanSupplier {false},false,false,strictIngress=false).use {worker ->
                     traffic(worker,ready.getString("target"),ready.getString("payload"))
                     check(ready.has("udp_target")){"Debug peer needs current UDP fixture"}
                     udpTraffic(worker,ready.getString("udp_target"))
                     report.accept("Optional Xray $mode: native HTTP + 1152-byte UDP + foreign-source refusal + control-close cleanup PASS")
+                    val port=worker.port
+                    worker.networkChanged()
+                    check(!worker.isAlive()) {"Xray survived its network-change retirement"}
+                    val closed=try {Socket().use {it.connect(java.net.InetSocketAddress("127.0.0.1",port),500)};false}catch(_:java.io.IOException){true}
+                    check(closed) {"Old Xray listener survived network change"}
+                }
+                OptionalCoreProcess.start(context,OptionalCoreConfig.Request("xray",ready.getJSONObject("outbound")),BooleanSupplier {false},false,false,strictIngress=false).use {replacement ->
+                    traffic(replacement,ready.getString("target"),ready.getString("payload"))
+                    udpTraffic(replacement,ready.getString("udp_target"))
+                    report.accept("Optional Xray $mode: retired process/listener after network change; fresh native TCP/UDP succeeded PASS")
                 }
             }
         }

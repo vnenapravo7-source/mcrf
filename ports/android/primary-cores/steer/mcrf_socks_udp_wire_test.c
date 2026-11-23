@@ -28,7 +28,9 @@ static uint16_t local_port(int fd){struct sockaddr_in address;socklen_t length=s
 static void *serve_owned(void *arg){
     struct peer *peer=arg;int fd=accept(peer->tcp,0,0);assert(fd>=0);
     struct timeval limit={2,0};setsockopt(fd,SOL_SOCKET,SO_RCVTIMEO,&limit,sizeof limit);
-    unsigned char data[512];assert(rd_full(fd,data,3)==0&&data[0]==5&&data[1]==1&&data[2]==2);assert(wr_full(fd,(const unsigned char[]){5,2},2)==0);
+    unsigned char data[512];assert(rd_full(fd,data,2)==0&&data[0]==5&&data[1]==2);
+    assert(rd_full(fd,data,2)==0&&((data[0]==0&&data[1]==2)||(data[0]==2&&data[1]==0)));
+    assert(wr_full(fd,(const unsigned char[]){5,2},2)==0);
     assert(rd_full(fd,data,2)==0&&data[0]==1&&data[1]==12);assert(rd_full(fd,data,12)==0&&memcmp(data,"fixture-user",12)==0);
     assert(rd_full(fd,data,1)==0&&data[0]==12);assert(rd_full(fd,data,12)==0&&memcmp(data,"fixture-pass",12)==0);assert(wr_full(fd,(const unsigned char[]){1,0},2)==0);
     assert(rd_full(fd,data,10)==0);assert(memcmp(data,(const unsigned char[]){5,3,0,1,127,0,0,1},8)==0);

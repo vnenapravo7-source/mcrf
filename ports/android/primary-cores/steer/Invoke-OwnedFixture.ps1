@@ -10,7 +10,7 @@ if((& $Adb -s $EmulatorSerial shell getprop ro.kernel.qemu).Trim() -cne '1' -or 
 $taskReceipt=Get-Content "$taskStage/receipt.json" -Raw|ConvertFrom-Json -AsHashtable
 if($taskReceipt.kind -cne 'steer' -or !$taskReceipt.sourceStable -or $taskReceipt.state -cnotin @('COMPILED_SOCKS_FIXTURE_PENDING','SOCKS_FIXTURE_FAILED_RETAINED','COMPILED_SOCKS_FIXTURE_VERIFIED')){throw 'Exact compiled Steer fixture required'}
 $taskRequired=@('mcrf_socks_udp_test','mcrf_socks_local_udp_test','mcrf_socks_udp_wire_test')
-if($taskReceipt.newVersion -eq 16){$taskRequired+='mcrf_private_socks_profile_test';if(!$taskReceipt.retainedSocks.unchangedFixtureSources){throw 'New private profile fixture requires retained unchanged SOCKS source proof'}}
+if($taskReceipt.privateHelperProfile -eq 1){$taskRequired+='mcrf_private_socks_profile_test';if($taskReceipt.retainedSocks -and !$taskReceipt.retainedSocks.unchangedFixtureSources){throw 'New private profile fixture requires retained unchanged SOCKS source proof'}}
 $taskPassed=@($taskReceipt.cases);$taskCases=@($taskRequired|Where-Object {$_ -cnotin $taskPassed})
 if(!$taskCases.Count){Write-Output 'STEER_SOCKS_CASES_RETAINED_NO_REPLAY';return}
 $taskRemote="/data/local/tmp/mcrf-steer-socks-$([guid]::NewGuid().ToString('N'))"

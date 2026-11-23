@@ -1,0 +1,652 @@
+[
+  {
+    "binary": "U1JTAXjaXI5NS8NAEIZ3Nh8aIWovnjyIeFK6bJIG4p7q3/AL1mQIhc0HtdX0VvtrZKHHQkFBT56TXxRpqCjO4Z3hmcP7ACGUADkGakzi0pgmJSX01BkOye9QQ+tzrbV+XV7r5ebYPuwrTBs1npdFnbGVxLpS71jWLFs/TGaymcZxNX+UEut+lbKPGaLLlGpytijchr249apZGGDniIlCE47ui+cckxvev7y7uGWj/EmqUXJmwbYNzE9CySZa+4dR8ytInC4OT8Bd/7Em/4GxQwm07S5YHhc+dygJ4W0PnIhzLiIecRd6xThlWMmsVMg6m32wun0APc6F5wnfF0EgBgMRhi18DwCxDlD6",
+    "expected": {
+      "rules": [
+        {
+          "domain": [
+            "exact.example",
+            "тест.пример"
+          ],
+          "domain_keyword": "needle",
+          "domain_regex": "^owned[0-9]+\\.invalid$",
+          "domain_suffix": [
+            ".only-sub.example",
+            "example.org",
+            "legacy.example"
+          ],
+          "invert": true,
+          "ip_cidr": [
+            "198.51.100.9/32",
+            "2001:db8::/126"
+          ],
+          "network": [
+            "tcp",
+            "udp"
+          ],
+          "package_name": "org.example.owned",
+          "port": [
+            53,
+            443
+          ],
+          "port_range": "8000:8080",
+          "query_type": [
+            "A",
+            "AAAA"
+          ],
+          "source_ip_cidr": "192.0.2.0/24",
+          "source_port": [
+            1,
+            65535
+          ],
+          "source_port_range": "10:20",
+          "wifi_bssid": "00:11:22:33:44:55",
+          "wifi_ssid": "owned"
+        }
+      ],
+      "version": 1
+    },
+    "name": "domains-and-ranges-v1"
+  },
+  {
+    "binary": "U1JTAnjaXI4/S8NAGIff99JWW4jaxcmhg5PS45I0EG9x9TP4D87kJVQuf6itplvt5EeR2wsFBZ2ck0G/TqQRQXyG5wfP9EMABggHyKxpmFuzKGeAT4Mz2MCMOTLGmOfbz3PzZYw5pbjSk0WelQlfKSoL/Up5yZP1zXSuqlkYFos7pagcFnHvbU7Eta7S3jKr+KNdrqqlhZ2UKNLUwv3r7CGl6EIMT66OL/k4vVd6HB22EX7A1jsw2Kju/DbW+vCibqO9Adpr+MP/YG0xwLrexrYjpCu6DHx86WE3EELIQATCxn42iTkVKsk18ebNDrab3cW+ENJxpOtKz5OjkfT9Gr8HAOIFUOI=",
+    "expected": {
+      "rules": [
+        {
+          "domain": [
+            "exact.example",
+            "тест.пример"
+          ],
+          "domain_keyword": "needle",
+          "domain_regex": "^owned[0-9]+\\.invalid$",
+          "domain_suffix": [
+            ".only-sub.example",
+            "example.org",
+            "legacy.example"
+          ],
+          "invert": true,
+          "ip_cidr": [
+            "198.51.100.9/32",
+            "2001:db8::/126"
+          ],
+          "network": [
+            "tcp",
+            "udp"
+          ],
+          "package_name": "org.example.owned",
+          "port": [
+            53,
+            443
+          ],
+          "port_range": "8000:8080",
+          "query_type": [
+            "A",
+            "AAAA"
+          ],
+          "source_ip_cidr": "192.0.2.0/24",
+          "source_port": [
+            1,
+            65535
+          ],
+          "source_port_range": "10:20",
+          "wifi_bssid": "00:11:22:33:44:55",
+          "wifi_ssid": "owned"
+        }
+      ],
+      "version": 2
+    },
+    "name": "domains-and-ranges-v2"
+  },
+  {
+    "binary": "U1JTA3jaXI4/S8NAGIff99JWW4jaxcmhg5PS45I0EG9x9TP4D87kJVQuf6itplvt5EeR2wsFBZ2ck0G/TqQRQXyG5wfP9EMABggHyKxpmFuzKGeAT4Mz2MCMOTLGmOfbz3PzZYw5pbjSk0WelQlfKSoL/Up5yZP1zXSuqlkYFos7pagcFnHvbU7Eta7S3jKr+KNdrqqlhZ2UKNLUwv3r7CGl6EIMT66OL/k4vVd6HB22EX7A1jsw2Kju/DbW+vCibqO9Adpr+MP/YG0xwLrexrYjpCu6DHx86WE3EELIQATCxn42iTkVKsk18ebNDrab3cW+ENJxpOtKz5OjkfT9Gr8HAOIFUOI=",
+    "expected": {
+      "rules": [
+        {
+          "domain": [
+            "exact.example",
+            "тест.пример"
+          ],
+          "domain_keyword": "needle",
+          "domain_regex": "^owned[0-9]+\\.invalid$",
+          "domain_suffix": [
+            ".only-sub.example",
+            "example.org",
+            "legacy.example"
+          ],
+          "invert": true,
+          "ip_cidr": [
+            "198.51.100.9/32",
+            "2001:db8::/126"
+          ],
+          "network": [
+            "tcp",
+            "udp"
+          ],
+          "package_name": "org.example.owned",
+          "port": [
+            53,
+            443
+          ],
+          "port_range": "8000:8080",
+          "query_type": [
+            "A",
+            "AAAA"
+          ],
+          "source_ip_cidr": "192.0.2.0/24",
+          "source_port": [
+            1,
+            65535
+          ],
+          "source_port_range": "10:20",
+          "wifi_bssid": "00:11:22:33:44:55",
+          "wifi_ssid": "owned"
+        }
+      ],
+      "version": 3
+    },
+    "name": "domains-and-ranges-v3"
+  },
+  {
+    "binary": "U1JTBHjaXI4/S8NAGIff99JWW4jaxcmhg5PS45I0EG9x9TP4D87kJVQuf6itplvt5EeR2wsFBZ2ck0G/TqQRQXyG5wfP9EMABggHyKxpmFuzKGeAT4Mz2MCMOTLGmOfbz3PzZYw5pbjSk0WelQlfKSoL/Up5yZP1zXSuqlkYFos7pagcFnHvbU7Eta7S3jKr+KNdrqqlhZ2UKNLUwv3r7CGl6EIMT66OL/k4vVd6HB22EX7A1jsw2Kju/DbW+vCibqO9Adpr+MP/YG0xwLrexrYjpCu6DHx86WE3EELIQATCxn42iTkVKsk18ebNDrab3cW+ENJxpOtKz5OjkfT9Gr8HAOIFUOI=",
+    "expected": {
+      "rules": [
+        {
+          "domain": [
+            "exact.example",
+            "тест.пример"
+          ],
+          "domain_keyword": "needle",
+          "domain_regex": "^owned[0-9]+\\.invalid$",
+          "domain_suffix": [
+            ".only-sub.example",
+            "example.org",
+            "legacy.example"
+          ],
+          "invert": true,
+          "ip_cidr": [
+            "198.51.100.9/32",
+            "2001:db8::/126"
+          ],
+          "network": [
+            "tcp",
+            "udp"
+          ],
+          "package_name": "org.example.owned",
+          "port": [
+            53,
+            443
+          ],
+          "port_range": "8000:8080",
+          "query_type": [
+            "A",
+            "AAAA"
+          ],
+          "source_ip_cidr": "192.0.2.0/24",
+          "source_port": [
+            1,
+            65535
+          ],
+          "source_port_range": "10:20",
+          "wifi_bssid": "00:11:22:33:44:55",
+          "wifi_ssid": "owned"
+        }
+      ],
+      "version": 4
+    },
+    "name": "domains-and-ranges-v4"
+  },
+  {
+    "binary": "U1JTBXjaXI4/S8NAGIff99JWW4jaxcmhg5PS45I0EG9x9TP4D87kJVQuf6itplvt5EeR2wsFBZ2ck0G/TqQRQXyG5wfP9EMABggHyKxpmFuzKGeAT4Mz2MCMOTLGmOfbz3PzZYw5pbjSk0WelQlfKSoL/Up5yZP1zXSuqlkYFos7pagcFnHvbU7Eta7S3jKr+KNdrqqlhZ2UKNLUwv3r7CGl6EIMT66OL/k4vVd6HB22EX7A1jsw2Kju/DbW+vCibqO9Adpr+MP/YG0xwLrexrYjpCu6DHx86WE3EELIQATCxn42iTkVKsk18ebNDrab3cW+ENJxpOtKz5OjkfT9Gr8HAOIFUOI=",
+    "expected": {
+      "rules": [
+        {
+          "domain": [
+            "exact.example",
+            "тест.пример"
+          ],
+          "domain_keyword": "needle",
+          "domain_regex": "^owned[0-9]+\\.invalid$",
+          "domain_suffix": [
+            ".only-sub.example",
+            "example.org",
+            "legacy.example"
+          ],
+          "invert": true,
+          "ip_cidr": [
+            "198.51.100.9/32",
+            "2001:db8::/126"
+          ],
+          "network": [
+            "tcp",
+            "udp"
+          ],
+          "package_name": "org.example.owned",
+          "port": [
+            53,
+            443
+          ],
+          "port_range": "8000:8080",
+          "query_type": [
+            "A",
+            "AAAA"
+          ],
+          "source_ip_cidr": "192.0.2.0/24",
+          "source_port": [
+            1,
+            65535
+          ],
+          "source_port_range": "10:20",
+          "wifi_bssid": "00:11:22:33:44:55",
+          "wifi_ssid": "owned"
+        }
+      ],
+      "version": 5
+    },
+    "name": "domains-and-ranges-v5"
+  },
+  {
+    "binary": "U1JTAXjaYmRkZGJgYmBkAAMNCINt1apVvCmZOYlleZl6qXn5erz/GRgZmBg4GRkC/jMwMDOy5pfnpab8Z2RgBAwANaoMVw==",
+    "expected": {
+      "rules": [
+        {
+          "invert": true,
+          "mode": "or",
+          "rules": [
+            {
+              "domain_suffix": "one.invalid"
+            },
+            {
+              "mode": "and",
+              "rules": [
+                {
+                  "port": 80
+                },
+                {
+                  "domain_keyword": "owned",
+                  "invert": true
+                }
+              ],
+              "type": "logical"
+            }
+          ],
+          "type": "logical"
+        }
+      ],
+      "version": 1
+    },
+    "name": "logical-v1"
+  },
+  {
+    "binary": "U1JTAnjaYmRkZGJgYmBkAAMBCINx1apVPCmZOYlleZl6qXn5XP8ZGBmYGDgZGQL+MzAwM7Lml+elpvxnZGAEDAAkWAwI",
+    "expected": {
+      "rules": [
+        {
+          "invert": true,
+          "mode": "or",
+          "rules": [
+            {
+              "domain_suffix": "one.invalid"
+            },
+            {
+              "mode": "and",
+              "rules": [
+                {
+                  "port": 80
+                },
+                {
+                  "domain_keyword": "owned",
+                  "invert": true
+                }
+              ],
+              "type": "logical"
+            }
+          ],
+          "type": "logical"
+        }
+      ],
+      "version": 2
+    },
+    "name": "logical-v2"
+  },
+  {
+    "binary": "U1JTA3jaYmRkZGJgYmBkAAMBCINx1apVPCmZOYlleZl6qXn5XP8ZGBmYGDgZGQL+MzAwM7Lml+elpvxnZGAEDAAkWAwI",
+    "expected": {
+      "rules": [
+        {
+          "invert": true,
+          "mode": "or",
+          "rules": [
+            {
+              "domain_suffix": "one.invalid"
+            },
+            {
+              "mode": "and",
+              "rules": [
+                {
+                  "port": 80
+                },
+                {
+                  "domain_keyword": "owned",
+                  "invert": true
+                }
+              ],
+              "type": "logical"
+            }
+          ],
+          "type": "logical"
+        }
+      ],
+      "version": 3
+    },
+    "name": "logical-v3"
+  },
+  {
+    "binary": "U1JTBHjaYmRkZGJgYmBkAAMBCINx1apVPCmZOYlleZl6qXn5XP8ZGBmYGDgZGQL+MzAwM7Lml+elpvxnZGAEDAAkWAwI",
+    "expected": {
+      "rules": [
+        {
+          "invert": true,
+          "mode": "or",
+          "rules": [
+            {
+              "domain_suffix": "one.invalid"
+            },
+            {
+              "mode": "and",
+              "rules": [
+                {
+                  "port": 80
+                },
+                {
+                  "domain_keyword": "owned",
+                  "invert": true
+                }
+              ],
+              "type": "logical"
+            }
+          ],
+          "type": "logical"
+        }
+      ],
+      "version": 4
+    },
+    "name": "logical-v4"
+  },
+  {
+    "binary": "U1JTBXjaYmRkZGJgYmBkAAMBCINx1apVPCmZOYlleZl6qXn5XP8ZGBmYGDgZGQL+MzAwM7Lml+elpvxnZGAEDAAkWAwI",
+    "expected": {
+      "rules": [
+        {
+          "invert": true,
+          "mode": "or",
+          "rules": [
+            {
+              "domain_suffix": "one.invalid"
+            },
+            {
+              "mode": "and",
+              "rules": [
+                {
+                  "port": 80
+                },
+                {
+                  "domain_keyword": "owned",
+                  "invert": true
+                }
+              ],
+              "type": "logical"
+            }
+          ],
+          "type": "logical"
+        }
+      ],
+      "version": 5
+    },
+    "name": "logical-v5"
+  },
+  {
+    "binary": "U1JTAXjaXMCxDQAwCAMwU6HO/P9s2HH5BXgNnSTjmFx2AEnwFR4=",
+    "expected": {
+      "rules": [
+        {
+          "ip_cidr": [
+            "0.0.0.0/0",
+            "::/0"
+          ]
+        }
+      ],
+      "version": 1
+    },
+    "name": "full-ip-spaces-v1"
+  },
+  {
+    "binary": "U1JTAnjaXMCxDQAwCAMwU6HO/P9s2HH5BXgNnSTjmFx2AEnwFR4=",
+    "expected": {
+      "rules": [
+        {
+          "ip_cidr": [
+            "0.0.0.0/0",
+            "::/0"
+          ]
+        }
+      ],
+      "version": 2
+    },
+    "name": "full-ip-spaces-v2"
+  },
+  {
+    "binary": "U1JTA3jaXMCxDQAwCAMwU6HO/P9s2HH5BXgNnSTjmFx2AEnwFR4=",
+    "expected": {
+      "rules": [
+        {
+          "ip_cidr": [
+            "0.0.0.0/0",
+            "::/0"
+          ]
+        }
+      ],
+      "version": 3
+    },
+    "name": "full-ip-spaces-v3"
+  },
+  {
+    "binary": "U1JTBHjaXMCxDQAwCAMwU6HO/P9s2HH5BXgNnSTjmFx2AEnwFR4=",
+    "expected": {
+      "rules": [
+        {
+          "ip_cidr": [
+            "0.0.0.0/0",
+            "::/0"
+          ]
+        }
+      ],
+      "version": 4
+    },
+    "name": "full-ip-spaces-v4"
+  },
+  {
+    "binary": "U1JTBXjaXMCxDQAwCAMwU6HO/P9s2HH5BXgNnSTjmFx2AEnwFR4=",
+    "expected": {
+      "rules": [
+        {
+          "ip_cidr": [
+            "0.0.0.0/0",
+            "::/0"
+          ]
+        }
+      ],
+      "version": 5
+    },
+    "name": "full-ip-spaces-v5"
+  },
+  {
+    "binary": "U1JTA3jaYmQQYmFgZGIWFvnPABgAA5gBRA==",
+    "expected": {
+      "rules": [
+        {
+          "network_is_constrained": true,
+          "network_is_expensive": true,
+          "network_type": [
+            "wifi",
+            "cellular",
+            "ethernet",
+            "other"
+          ]
+        }
+      ],
+      "version": 3
+    },
+    "name": "underlay-v3"
+  },
+  {
+    "binary": "U1JTBHjaYmQQYmFgZGIWFvnPABgAA5gBRA==",
+    "expected": {
+      "rules": [
+        {
+          "network_is_constrained": true,
+          "network_is_expensive": true,
+          "network_type": [
+            "wifi",
+            "cellular",
+            "ethernet",
+            "other"
+          ]
+        }
+      ],
+      "version": 4
+    },
+    "name": "underlay-v4"
+  },
+  {
+    "binary": "U1JTBXjaYmQQYmFgZGIWFvnPABgAA5gBRA==",
+    "expected": {
+      "rules": [
+        {
+          "network_is_constrained": true,
+          "network_is_expensive": true,
+          "network_type": [
+            "wifi",
+            "cellular",
+            "ethernet",
+            "other"
+          ]
+        }
+      ],
+      "version": 5
+    },
+    "name": "underlay-v5"
+  },
+  {
+    "binary": "U1JTBHjaYmQQZWJgZDnAwMQuwcQooMDIu4MBARgdxBhZjhmnMCn8ZwAMAEnIBNI=",
+    "expected": {
+      "rules": [
+        {
+          "default_interface_address": "198.51.100.2",
+          "network_interface_address": {
+            "ethernet": "2001:db8::1/64",
+            "wifi": "192.0.2.7/24"
+          }
+        }
+      ],
+      "version": 4
+    },
+    "name": "interface-addresses-v4"
+  },
+  {
+    "binary": "U1JTBXjaYmQQZWJgZDnAwMQuwcQooMDIu4MBARgdxBhZjhmnMCn8ZwAMAEnIBNI=",
+    "expected": {
+      "rules": [
+        {
+          "default_interface_address": "198.51.100.2",
+          "network_interface_address": {
+            "ethernet": "2001:db8::1/64",
+            "wifi": "192.0.2.7/24"
+          }
+        }
+      ],
+      "version": 5
+    },
+    "name": "interface-addresses-v5"
+  },
+  {
+    "binary": "U1JTBXjaYmQQZOSI088vz0tN0Rdn5I/LL0qP0UutSMwtyEmN0fvPABgAh+8JwQ==",
+    "expected": {
+      "rules": [
+        {
+          "package_name_regex": "^org\\.example\\.",
+          "process_path_regex": "^/owned/"
+        }
+      ],
+      "version": 5
+    },
+    "name": "package-regex-v5"
+  },
+  {
+    "binary": "U1JTAnjaYmQQYGBkYGBsaGRgYGBatTYUBDwYQIDxaqgGR2q6VkpOkV5RQX5xfq5eSnliamJlRQ5XampBtl4ub0lickViagVX6n8GwAB8zBUA",
+    "expected": {
+      "rules": [
+        {
+          "adguard_domain": [
+            "||ads.*",
+            "keyword",
+            "|exact.example^",
+            "||example.org^"
+          ]
+        }
+      ],
+      "version": 2
+    },
+    "name": "adguard-v2"
+  },
+  {
+    "binary": "U1JTA3jaYmQQYGBkYGBsaGRgYGBatTYUBDwYQIDxaqgGR2q6VkpOkV5RQX5xfq5eSnliamJlRQ5XampBtl4ub0lickViagVX6n8GwAB8zBUA",
+    "expected": {
+      "rules": [
+        {
+          "adguard_domain": [
+            "||ads.*",
+            "keyword",
+            "|exact.example^",
+            "||example.org^"
+          ]
+        }
+      ],
+      "version": 3
+    },
+    "name": "adguard-v3"
+  },
+  {
+    "binary": "U1JTBHjaYmQQYGBkYGBsaGRgYGBatTYUBDwYQIDxaqgGR2q6VkpOkV5RQX5xfq5eSnliamJlRQ5XampBtl4ub0lickViagVX6n8GwAB8zBUA",
+    "expected": {
+      "rules": [
+        {
+          "adguard_domain": [
+            "||ads.*",
+            "keyword",
+            "|exact.example^",
+            "||example.org^"
+          ]
+        }
+      ],
+      "version": 4
+    },
+    "name": "adguard-v4"
+  },
+  {
+    "binary": "U1JTBXjaYmQQYGBkYGBsaGRgYGBatTYUBDwYQIDxaqgGR2q6VkpOkV5RQX5xfq5eSnliamJlRQ5XampBtl4ub0lickViagVX6n8GwAB8zBUA",
+    "expected": {
+      "rules": [
+        {
+          "adguard_domain": [
+            "||ads.*",
+            "keyword",
+            "|exact.example^",
+            "||example.org^"
+          ]
+        }
+      ],
+      "version": 5
+    },
+    "name": "adguard-v5"
+  }
+]

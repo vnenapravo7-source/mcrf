@@ -1,0 +1,11 @@
+Source: https://github.com/Endlad2/Gooby
+Revision: c85b1a9744162bdafb8b6f1572fbb8c035ca605f
+License: Apache-2.0; original LICENSE and NOTICE retained.
+
+CSQTTR integration changes:
+- Library entry point with pre-bound loopback listener and owned task lifetime.
+- Built-in base rule, optional original ZIP configuration API retained.
+- Accepted connection tasks belong to the listener and are aborted on shutdown.
+- Bound SOCKS negotiation / initial record / remote connect waits and connection count.
+- Failure to restore TTL closes the affected connection.
+The separate original CLI and its ZIP/Lua protocol remain documented in README.md.

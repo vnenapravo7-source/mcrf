@@ -1,0 +1,15 @@
+use std::{future::Future,time::Duration};
+use anyhow::{Result,bail};
+use serde_json::Value;
+use super::auth::{VkRateLimitError,VkRateLimitType};
+// EXACT transformed JS bootstrap retry/API classification, with a fake closure.
+// MCRF_BOOTSTRAP
+pub async fn fixture(calls:&std::sync::atomic::AtomicUsize)->Result<Value>{
+    retry(3,||async {
+        super::auth::mcrf_vk_backoff::provider_allowed()?;
+        calls.fetch_add(1,std::sync::atomic::Ordering::SeqCst);
+        let value=serde_json::json!({"error":{"error_code":9,"error_msg":"fixture"}});
+        check_api_error(&value)?;
+        Ok(value)
+    }).await
+}

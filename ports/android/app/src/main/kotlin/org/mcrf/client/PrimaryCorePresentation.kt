@@ -8,8 +8,9 @@ object PrimaryCorePresentation {
         else->throw IllegalArgumentException("Неизвестный основной движок.")
     }
     fun confirmation(kind:String):String=when(kind){
-        "steer"->"Steer работает без sing-box. Нет IPv6, локального прокси, TUIC, AnyTLS, NaiveProxy и SSH. WireGuard/AmneziaWG — отдельный модуль, пока проходит проверку; при установленном sing-box WG/AWG идёт через него. Дополнения Xray/TLS не расширяют Steer. Сначала проверим профиль и настройки — несовместимые не отбросим. Соединение нужно остановить."
-        "sing-box"->"Движки поддерживают разные возможности. Сначала проверим профиль и настройки. Соединение нужно остановить."
+        "steer","sing-box"->"Проверим совместимость сохранённых подключений и настроек перед переключением."
         else->throw IllegalArgumentException("Неизвестный основной движок.")
     }
+    /** One companion supplies both protocols; it is offered only when not installed. */
+    fun offerWgAddon(kind:String,addonInstalled:Boolean)=kind=="steer"&&!addonInstalled
 }

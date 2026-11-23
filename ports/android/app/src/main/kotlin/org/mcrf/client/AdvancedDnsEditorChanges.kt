@@ -10,7 +10,7 @@ object AdvancedDnsEditorChanges {
         fun take(value:JSONObject):Boolean {val next=fields(value);if(next==emitted)return false;emitted=next;return true}
     }
     fun value(original:JSONObject,visible:JSONObject,policyEdited:Boolean=false):JSONObject {
-        if(!policyEdited&&fields(original)==fields(visible))return JSONObject(original.toString())
+        if(!policyEdited&&fields(original)==fields(visible))return DnsConfig.withoutRetiredPolicy(original)
         return JSONObject().put("provider",visible.getString("provider")).put("protocol",visible.getString("protocol")).put("custom",visible.optString("custom",""))
     }
     fun resolver(original:JSONObject,visible:JSONObject):JSONObject? {

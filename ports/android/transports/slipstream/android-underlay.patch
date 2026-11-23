@@ -1,0 +1,139 @@
+--- a/rust/crates/slipstream-client/src/main.rs
++++ b/rust/crates/slipstream-client/src/main.rs
+@@ -1,2 +1,3 @@
+ mod private_listener;
++mod android_underlay;
+ mod dns;
+--- a/rust/crates/slipstream-client/src/runtime/setup.rs
++++ b/rust/crates/slipstream-client/src/runtime/setup.rs
+@@ -22,3 +22,3 @@
+ pub(crate) async fn bind_udp_socket() -> Result<TokioUdpSocket, ClientError> {
+-    bind_first_resolved_with_ipv4_fallback(
++    let (socket, _) = bind_first_resolved_with_ipv4_fallback(
+         "::",
+@@ -29,4 +29,8 @@
+     .await
+-    .map(|(socket, _)| socket)
+-    .map_err(map_io)
++    .map_err(map_io)?;
++    crate::android_underlay::bind_udp(&socket).map_err(|error| {
++        eprintln!("MCRF_BACKEND PHYSICAL_NETWORK");
++        map_io(error)
++    })?;
++    Ok(socket)
+ }
+--- /dev/null
++++ b/rust/crates/slipstream-client/src/android_underlay.rs
+@@ -0,0 +1,51 @@
++use std::io;
++
++const NETWORK_ENV: &str = "MCRF_SLIPSTREAM_UNDERLAY";
++
++#[cfg(any(test, target_os = "android"))]
++fn parse_handle(value: &std::ffi::OsStr) -> io::Result<u64> {
++    let handle = value.to_str().and_then(|text| {
++        let handle = text.parse::<u64>().ok()?;
++        (handle > 0 && handle <= i64::MAX as u64 && text == handle.to_string()).then_some(handle)
++    });
++    handle.ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "invalid Slipstream physical network"))
++}
++
++#[cfg(target_os = "android")]
++pub(crate) fn bind_udp(socket: &impl std::os::fd::AsRawFd) -> io::Result<()> {
++    let Some(value) = std::env::var_os(NETWORK_ENV) else {
++        return Ok(());
++    };
++    let handle = parse_handle(&value)?;
++    #[link(name = "android")]
++    unsafe extern "C" {
++        fn android_setsocknetwork(network: u64, fd: std::ffi::c_int) -> std::ffi::c_int;
++    }
++    // The local UDP endpoint is bound but still unconnected, and no DNS datagrams have been sent.
++    if unsafe { android_setsocknetwork(handle, socket.as_raw_fd()) } != 0 {
++        return Err(io::Error::last_os_error());
++    }
++    Ok(())
++}
++
++#[cfg(not(target_os = "android"))]
++pub(crate) fn bind_udp<T>(_: &T) -> io::Result<()> {
++    if std::env::var_os(NETWORK_ENV).is_some() {
++        return Err(io::Error::new(io::ErrorKind::Unsupported, "Slipstream physical network requires Android"));
++    }
++    Ok(())
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::ffi::OsStr;
++
++    #[test]
++    fn canonical_android_handle() {
++        assert_eq!(parse_handle(OsStr::new("437197393933")).unwrap(), 437197393933);
++        for invalid in ["", "0", "-1", "+5", "05", "5 ", "9223372036854775808"] {
++            assert!(parse_handle(OsStr::new(invalid)).is_err());
++        }
++    }
++}
+--- a/bridge/main.go
++++ b/bridge/main.go
+@@ -134,3 +134,21 @@
+ 
++const underlayKey = "MCRF_SLIPSTREAM_UNDERLAY"
++
++func backendUnderlay(lookup func(string) (string, bool), android bool) (string, error) {
++	value, set := lookup(underlayKey)
++	if !set {
++		return "", nil
++	}
++	handle, err := strconv.ParseUint(value, 10, 63)
++	if !android || err != nil || handle == 0 || strconv.FormatUint(handle, 10) != value {
++		return "", errors.New("INVALID_PHYSICAL_NETWORK")
++	}
++	return underlayKey + "=" + value, nil
++}
++
+ func run(ctx context.Context, c config, backend, privateParent string) error {
++	underlay, err := backendUnderlay(os.LookupEnv, runtime.GOOS == "android")
++	if err != nil {
++		return err
++	}
+ 	ctx, cancel := context.WithCancel(ctx)
+@@ -156,2 +174,5 @@
+ 	child.Env = []string{"MCRF_SLIPSTREAM_SOCKET=" + path, "RUST_LOG=off"}
++	if underlay != "" {
++		child.Env = append(child.Env, underlay)
++	}
+ 	child.Stdout = io.Discard
+@@ -194,3 +215,4 @@
+ 			line := scanner.Text()
+-			if line == "MCRF_BACKEND CERTIFICATE_REQUIRED" || line == "MCRF_BACKEND CERTIFICATE_MISMATCH" {
++			switch line {
++            case "MCRF_BACKEND CERTIFICATE_REQUIRED", "MCRF_BACKEND CERTIFICATE_MISMATCH", "MCRF_BACKEND PHYSICAL_NETWORK":
+ 				reason := strings.TrimPrefix(line, "MCRF_BACKEND ")
+--- /dev/null
++++ b/bridge/underlay_test.go
+@@ -0,0 +1,22 @@
++package main
++
++import "testing"
++
++func TestBackendUnderlay(t *testing.T) {
++	missing := func(string) (string, bool) { return "", false }
++	if got, err := backendUnderlay(missing, false); got != "" || err != nil {
++		t.Fatal("ordinary startup must retain the default underlay")
++	}
++	for _, input := range []string{"", "0", "+5", "05", "5 ", "9223372036854775808"} {
++		if got, err := backendUnderlay(func(string) (string, bool) { return input, true }, true); got != "" || err == nil {
++			t.Fatal("invalid physical network forwarded")
++		}
++	}
++	owned := func(string) (string, bool) { return "437197393933", true }
++	if got, err := backendUnderlay(owned, true); got != underlayKey+"=437197393933" || err != nil {
++		t.Fatal("exact physical network was not forwarded")
++	}
++	if got, err := backendUnderlay(owned, false); got != "" || err == nil {
++		t.Fatal("non-Android process accepted a physical network")
++	}
++}

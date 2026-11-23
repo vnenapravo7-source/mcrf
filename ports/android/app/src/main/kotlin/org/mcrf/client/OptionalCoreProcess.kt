@@ -24,11 +24,27 @@ class OptionalCoreProcess private constructor(val port: Int,val username: String
     private val trustRejected=AtomicBoolean(false)
     private var failureDetail:CarrierFailureDetail?=null
     private var outputThread:Thread?=null
+    private var app:Context?=null
+    private var logWindow=0L
+    private var logCount=0
+    private var logSuppressed=0
+    private fun journal(line:String) {
+        if(kind!="xray")return
+        val context=app?:return
+        val safe=failureDetail?.journalLine(line)?:return
+        val now=android.os.SystemClock.elapsedRealtime()
+        if(now-logWindow>=1000) {
+            logWindow=now;logCount=0
+            if(logSuppressed>0){ClientEvents.record(context,"Xray","Повторяющиеся сообщения: пропущено $logSuppressed за интервал.");logSuppressed=0}
+        }
+        if(logCount++<16)ClientEvents.record(context,"Xray",safe)else logSuppressed++
+    }
     private fun watch(child:Process,config:JSONObject,acceptReady:Boolean=false){
         val detail=CarrierFailureDetail(kind,config,listOf(username,password));failureDetail=detail
         ready.set(false)
         outputThread=ChildFailureOutput.start(child.inputStream,detail){line->
             if(acceptReady&&line=="MCRF_READY")ready.set(true)
+            journal(line)
             if(kind=="protocols"&&CompactProtocolFailure.trustFailure(line))trustRejected.set(true)
         }
     }
@@ -77,9 +93,18 @@ class OptionalCoreProcess private constructor(val port: Int,val username: String
     fun networkChanged()=close()
     companion object {
         val kinds=setOf("xray","tls-core","protocols")
+        private const val PHYSICAL_NETWORK="android-child-physical-network-v1"
+        private const val PHYSICAL_METADATA="org.mcrf.engines.optional-physical-network"
+        private fun strictIngressCapability(kind:String)=if(kind=="tls-core")"socks5-tcp-only-v1"else "udp-authenticated-source-port-v1"
+        internal fun advertisesPhysicalNetwork(context:Context,kind:String):Boolean =
+            context.packageManager.getApplicationInfo(packageName(kind),PackageManager.GET_META_DATA)
+                .metaData?.getInt(PHYSICAL_METADATA)==1
         fun packageName(kind: String):String {require(kind in kinds);return "org.mcrf.engines.${if(kind=="tls-core") "tlscore" else kind}"}
         fun libraryName(kind: String):String {require(kind in kinds);return when(kind){"tls-core"->"libtls_core.so";"protocols"->"libprotocols.so";else->"libxray.so"}}
-        private fun executable(context:Context,kind:String):File {
+        internal fun requireStrictIngress(context:Context,kind:String) {
+            executable(context,kind,strictIngress=true)
+        }
+        private fun executable(context:Context,kind:String,requirePhysical:Boolean=false,strictIngress:Boolean=false):File {
             val pm=context.packageManager
             val plugin=try {pm.getApplicationInfo(packageName(kind),PackageManager.GET_META_DATA)} catch(_:PackageManager.NameNotFoundException){throw IllegalArgumentException("Установи отдельный подписанный пакет $kind для архитектуры телефона.")}
             val sourceCommit=EngineModules.sourceCommit(kind)
@@ -87,6 +112,12 @@ class OptionalCoreProcess private constructor(val port: Int,val username: String
             require(plugin.enabled && plugin.metaData?.getInt("org.mcrf.engines.interface")==1 && plugin.metaData?.getString("org.mcrf.engines.kind")==kind &&
                 plugin.metaData?.getInt("org.mcrf.engines.optional-core")==1 && plugin.metaData?.getString("org.mcrf.engines.source.commit")==sourceCommit && plugin.metaData?.getString("org.mcrf.engines.source.repository")==sourceRepository &&
                 pm.checkSignatures(context.packageName,plugin.packageName)==PackageManager.SIGNATURE_MATCH) {"Подпись, исходник или интерфейс optional core не совпадает с MCRF."}
+            require(!requirePhysical||kind=="protocols"||plugin.metaData?.getInt(PHYSICAL_METADATA)==1){"Обнови $kind для привязки к физической сети."}
+            // The protocols module already requires the exact source-port
+            // capability in its descriptor regardless of isolation policy.
+            require(!strictIngress||kind=="protocols"||plugin.metaData?.getInt("org.mcrf.engines.socks_udp_source.$kind")==1) {
+                "Обнови $kind для строгой изоляции VPN."
+            }
             val base=File(plugin.nativeLibraryDir).canonicalFile
             return File(base,libraryName(kind)).canonicalFile.also {require(it.parentFile==base&&it.isFile&&it.canExecute()) {"Нет optional core для архитектуры Android."}}
         }
@@ -95,7 +126,8 @@ class OptionalCoreProcess private constructor(val port: Int,val username: String
             while(System.nanoTime()<deadline){if(cancelled.asBoolean)throw IllegalArgumentException("Подключение отменено.");if(child.waitFor(50,TimeUnit.MILLISECONDS))return child.exitValue()}
             throw IllegalArgumentException("Optional core не ответил вовремя.")
         }
-        private fun describe(binary: File,kind: String,cancelled: BooleanSupplier,certificateStore: String?=null,serverDns:Boolean=false):JSONObject {
+        private fun describe(binary: File,kind: String,cancelled: BooleanSupplier,certificateStore: String?=null,serverDns:Boolean=false,physical:Boolean=false,
+                             strictIngress:Boolean=false):JSONObject {
             val child=ProcessBuilder(binary.absolutePath,"--mcrf-describe").start()
             val detail=CarrierFailureDetail(kind,JSONObject())
             val errors=ChildFailureOutput.start(child.errorStream,detail)
@@ -116,8 +148,15 @@ class OptionalCoreProcess private constructor(val port: Int,val username: String
                 val values=descriptor.getJSONArray("capabilities")
                 require(required.all {need->(0 until values.length()).any {values.getString(it)==need}}){"Протокольный модуль не подтверждает исходные протоколы и защищённый UDP."}
             }
+            if(strictIngress&&kind!="protocols"){
+                val values=descriptor.getJSONArray("capabilities")
+                require((0 until values.length()).any {values.getString(it)==strictIngressCapability(kind)}) {
+                    "Модуль $kind не подтвердил защищённый локальный вход."
+                }
+            }
             if(certificateStore!=null){val capabilities=descriptor.getJSONArray("capabilities");require((0 until capabilities.length()).any {capabilities.getString(it)=="certificate-store"}) {"Обнови TLS core для выбранного CA store."}}
             if(serverDns){val capabilities=descriptor.getJSONArray("capabilities");require((0 until capabilities.length()).any {capabilities.getString(it)=="server-address-dns-v1"}) {"Обнови внешний движок для передачи выбранного DNS адресов серверов."}}
+            if(physical){val capabilities=descriptor.getJSONArray("capabilities");require((0 until capabilities.length()).any {capabilities.getString(it)==PHYSICAL_NETWORK}) {"Модуль $kind не подтвердил привязку к физической сети."}}
             OptionalCoreTermination.release(child,false)
             return descriptor
             }catch(error:Throwable){OptionalCoreRetirement.fail(error,AutoCloseable {OptionalCoreTermination.release(child,false)})}
@@ -130,12 +169,14 @@ class OptionalCoreProcess private constructor(val port: Int,val username: String
         }
         /** vpn=true requires the service to exclude this application's UID from
          * TUN. A subprocess cannot use the in-process libbox FD protector. */
-        fun start(context:Context,request:OptionalCoreConfig.Request,cancelled:BooleanSupplier,vpn:Boolean,vpnUidBypassConfigured:Boolean):OptionalCoreProcess {
-            require(!vpn || vpnUidBypassConfigured || request.kind=="protocols"&&request.physicalNetworkHandle?.let {it>0}==true) {"VPN должен исключить UID приложения либо явно привязать протокольный модуль к физической сети."}
-            val binary=executable(context,request.kind)
-            describe(binary,request.kind,cancelled,request.certificateStore,request.serverDns!=null)
+        fun start(context:Context,request:OptionalCoreConfig.Request,cancelled:BooleanSupplier,vpn:Boolean,vpnUidBypassConfigured:Boolean,
+                  strictIngress:Boolean):OptionalCoreProcess {
+            val physical=request.physicalNetworkHandle!=null
+            require(!vpn || vpnUidBypassConfigured || request.physicalNetworkHandle?.let {it>0}==true) {"VPN требует привязки дополнительного ядра к физической сети."}
+            val binary=executable(context,request.kind,physical,strictIngress)
+            describe(binary,request.kind,cancelled,request.certificateStore,request.serverDns!=null,physical,strictIngress)
             val port=ServerSocket(0,1,InetAddress.getByName("127.0.0.1")).use {it.localPort}
-            val owner=OptionalCoreProcess(port,UUID.randomUUID().toString(),UUID.randomUUID().toString(),request.kind)
+            val owner=OptionalCoreProcess(port,UUID.randomUUID().toString(),UUID.randomUUID().toString(),request.kind).apply {app=context.applicationContext}
             try {
                 if(cancelled.asBoolean)throw IllegalArgumentException("Подключение отменено.")
                 val dir=File(context.cacheDir,"mcrf-optional-${UUID.randomUUID()}");require(dir.mkdir());owner.directory=dir;Os.chmod(dir.absolutePath,0x1c0)
@@ -159,9 +200,11 @@ class OptionalCoreProcess private constructor(val port: Int,val username: String
         }
         /** Read-only module/config preflight. Native construction/close only;
          * this does not bind a SOCKS/TUN/UDP listener or consume a server token. */
-        fun check(context:Context,request:OptionalCoreConfig.Request,cancelled:BooleanSupplier) {
-            val binary=executable(context,request.kind);describe(binary,request.kind,cancelled,request.certificateStore,request.serverDns!=null)
-            val owner=OptionalCoreProcess(10900,UUID.randomUUID().toString(),UUID.randomUUID().toString(),request.kind)
+        fun check(context:Context,request:OptionalCoreConfig.Request,cancelled:BooleanSupplier,strictIngress:Boolean=false) {
+            val physical=request.physicalNetworkHandle!=null
+            val binary=executable(context,request.kind,physical,strictIngress)
+            describe(binary,request.kind,cancelled,request.certificateStore,request.serverDns!=null,physical,strictIngress)
+            val owner=OptionalCoreProcess(10900,UUID.randomUUID().toString(),UUID.randomUUID().toString(),request.kind).apply {app=context.applicationContext}
             try {
                 if(cancelled.asBoolean)throw IllegalArgumentException("Проверка отменена.")
                 val dir=File(context.cacheDir,"mcrf-optional-${UUID.randomUUID()}");require(dir.mkdir());owner.directory=dir;Os.chmod(dir.absolutePath,0x1c0)

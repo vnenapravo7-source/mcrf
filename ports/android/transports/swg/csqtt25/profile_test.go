@@ -17,6 +17,61 @@ func Test25ExtendedHashPoolReachesNativeArguments(t *testing.T) {
     if err!=nil||!has(spec.args,"-vk",strings.Join(p.Hashes,",")){t.Fatalf("extended native pool lost: %v",err)}
 }
 
+func Test252253ManualWorkersDoNotDependOnHashCountOrRedistribution(t *testing.T) {
+	for _, implementation := range []string{"swg-panel-2.5.2", "swg-panel-2.5.3"} {
+		for _, count := range []int{80, 100} {
+			p := fixture()
+			p.Implementation, p.Workers = implementation, count
+			p.Hashes = nil
+			for i := 1; i <= 6; i++ {
+				p.Hashes = append(p.Hashes, fmt.Sprintf("fixture-call-%d-0123456789abcdef", i))
+			}
+			p.CaptchaMode, p.Fingerprint, p.TurnTransport, p.Obfs = "wv", "firefox", "tcp", "video"
+			for _, exact := range []bool{false, true} {
+				p.ExactWorkers = exact
+				before, err := json.Marshal(p)
+				if err != nil { t.Fatal(err) }
+				decoded, err := ReadProfile(strings.NewReader(string(before)))
+				if err != nil { t.Fatal("modern manual worker profile rejected", err) }
+				decodedBefore, err := json.Marshal(decoded)
+				if err != nil { t.Fatal(err) }
+				spec, err := Prepare(decoded)
+				if err != nil || !has(spec.args, "-n", fmt.Sprint(count)) ||
+					!has(spec.args, "-vk", strings.Join(p.Hashes, ",")) ||
+					!has(spec.args, "-fingerprint", "firefox") || !has(spec.args, "-turn-transport", "tcp") ||
+					!has(spec.args, "-captcha-mode", "wv") || !has(spec.args, "-obfs", "video") {
+					t.Fatal("manual worker count or native options changed", err)
+				}
+				gotExact := false
+				for _, arg := range spec.args { if arg == "--exact-workers" { gotExact = true } }
+				if gotExact != exact || decoded.AllowHashRedistribution { t.Fatal("worker option was invented") }
+				after, err := json.Marshal(p)
+				if err != nil || string(before) != string(after) { t.Fatal("input profile mutated") }
+				decodedAfter, err := json.Marshal(decoded)
+				if err != nil || string(decodedBefore) != string(decodedAfter) { t.Fatal("prepared profile mutated") }
+			}
+			p.Workers = 101
+			if p.Validate() == nil { t.Fatal("native worker maximum bypassed") }
+			p.Workers = count
+			p.Hashes = nil
+			if p.Validate() == nil { t.Fatal("manual credentials requirement bypassed") }
+		}
+	}
+}
+
+func Test251ManualCapacityAndExactOverridesRemainUnchanged(t *testing.T) {
+	for _, implementation := range []string{"", "swg-panel-2.5.1"} {
+		p := fixture()
+		p.Implementation, p.Workers = implementation, 80
+		for i := 2; i <= 6; i++ { p.Hashes = append(p.Hashes, fmt.Sprintf("fixture-call-%d-0123456789abcdef", i)) }
+		if p.Validate() == nil { t.Fatal("251 manual capacity changed") }
+		p.ExactWorkers = true
+		if _, err := Prepare(p); err != nil { t.Fatal("251 exact count changed", err) }
+		p.ExactWorkers, p.AllowHashRedistribution = false, true
+		if _, err := Prepare(p); err != nil { t.Fatal("251 explicit redistribution changed", err) }
+	}
+}
+
 func Test25OwnMaskingAndServerGenerationAreNotDropped(t *testing.T) {
 	p := fixture()
 	p.Obfs = "video"
@@ -81,6 +136,64 @@ func has(args []string, key, value string) bool {
 		}
 	}
 	return false
+}
+func Test25OmittedSRTPRetainsNativeAutoAndOldProfileShape(t *testing.T) {
+	for _, implementation := range []string{"", "swg-panel-2.5.1", "swg-panel-2.5.2", "swg-panel-2.5.3"} {
+		p := fixture()
+		p.Implementation = implementation
+		before, err := json.Marshal(p)
+		if err != nil { t.Fatal(err) }
+		if strings.Contains(string(before), `"srtp_mode"`) { t.Fatal("omitted SRTP was invented") }
+		decoded, err := ReadProfile(strings.NewReader(string(before)))
+		if err != nil { t.Fatal(err) }
+		spec, err := Prepare(decoded)
+		if err != nil { t.Fatal(err) }
+		for _, arg := range spec.args {
+			if arg == "-srtp-mode" { t.Fatal("omitted mode no longer uses original native AUTO default") }
+		}
+		after, err := json.Marshal(decoded)
+		if err != nil || string(before) != string(after) { t.Fatal("old profile changed") }
+	}
+}
+func Test252253ExplicitSRTPReachesCLIWithoutChangingOtherOptions(t *testing.T) {
+	for _, implementation := range []string{"swg-panel-2.5.2", "swg-panel-2.5.3"} {
+		for _, mode := range []string{"auto", "wrap-srtp", "dtls-srtp"} {
+			p := fixture()
+			p.Implementation, p.SRTPMode = implementation, mode
+			p.TurnTransport, p.Obfs, p.Workers, p.ExactWorkers = "tcp", "unified", 7, true
+			before, err := json.Marshal(p)
+			if err != nil { t.Fatal(err) }
+			decoded, err := ReadProfile(strings.NewReader(string(before)))
+			if err != nil { t.Fatal(err) }
+			spec, err := Prepare(decoded)
+			if err != nil || !has(spec.args, "-srtp-mode", mode) || !has(spec.args, "-turn-transport", "tcp") ||
+				!has(spec.args, "-obfs", "unified") || !has(spec.args, "-n", "7") { t.Fatal("SRTP or existing transport options changed", err) }
+			count := 0
+			for _, arg := range spec.args { if arg == "-srtp-mode" { count++ } }
+			if count != 1 { t.Fatal("duplicate SRTP argument") }
+			after, err := json.Marshal(decoded)
+			if err != nil || string(before) != string(after) { t.Fatal("explicit profile changed") }
+		}
+	}
+}
+func Test25ExplicitInvalidSRTPJSONCannotBecomeAuto(t *testing.T) {
+	base, err := json.Marshal(fixture())
+	if err != nil { t.Fatal(err) }
+	for _, value := range []string{`null`, `""`, `"AUTO"`, `" auto"`, `"auto "`, `"wrap"`, `"dtls"`, `"future"`, `"wrap-srtp\n"`, `true`, `1`, `[]`, `{}`} {
+		raw := strings.TrimSuffix(string(base), "}") + `,"srtp_mode":` + value + "}"
+		if _, err := ReadProfile(strings.NewReader(raw)); err == nil || strings.Contains(err.Error(), fixture().Password) {
+			t.Fatal("invalid SRTP accepted or secret exposed")
+		}
+	}
+	raw := strings.TrimSuffix(string(base), "}") + `,"srtp_mode":"auto","srtp_mode":"wrap-srtp"}`
+	if _, err := ReadProfile(strings.NewReader(raw)); err == nil { t.Fatal("duplicate SRTP accepted") }
+}
+func Test25DirectLaunchAlsoRejectsUnsupportedSRTP(t *testing.T) {
+	for _, mode := range []string{"AUTO", "wrap", "dtls", "future", "auto\n", "auto --peer=elsewhere"} {
+		p := fixture()
+		p.SRTPMode = mode
+		if _, err := Prepare(p); err == nil || strings.Contains(err.Error(), p.Password) { t.Fatal("unsupported direct SRTP launch") }
+	}
 }
 func Test25ExplicitVersionAndWorkersNeverUseLegacyRounding(t *testing.T) {
 	for _, n := range []int{3, 7, 18, 99, 100} {

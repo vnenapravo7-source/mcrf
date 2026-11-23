@@ -6,6 +6,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class CarrierFailureDetailTest {
+    @Test fun journalKeepsWarningsButRejectsPrivateProtocolAndRedactsAllConfiguredSecrets() {
+        val detail=CarrierFailureDetail("xray",JSONObject().put("password","fixture-password"),listOf("fixture-user"))
+        val warning=detail.journalLine("[Warning] dial failed fixture-password fixture-user")!!
+        assertTrue(warning.contains("dial failed"))
+        assertFalse(warning.contains("fixture-password"));assertFalse(warning.contains("fixture-user"))
+        for(raw in listOf("MCRF_CONFIG=error: private", "CONFIG|error|private", "{\"error\":\"private\"}","x".repeat(4097)))assertNull(detail.journalLine(raw))
+    }
+
     @Test fun preservesActualReasonEngineStageAndExitWithoutGuessing() {
         val detail=CarrierFailureDetail("csqtt25",JSONObject())
         detail.offer("error: permission denied loading transport")

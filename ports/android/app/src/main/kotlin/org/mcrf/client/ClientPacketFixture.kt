@@ -13,7 +13,7 @@ object ClientPacketFixture {
     internal fun frameworkRejection(expectedRcode:Int,errorCode:Int,errno:Int):Boolean = expectedRcode==2&&errorCode==1&&errno==110
     class Result internal constructor(val original: String, val dial: String, val apkHash: String,
                                      val body: String, val path: String, val plan: CompactWireGuardPlan.Plan,val captureBlocked:Boolean,
-                                     val managedDns:String?=null,val ipv4Only:Boolean=false) {
+                                     val managedDns:String?=null,val ipv4Only:Boolean=false,val ownerPairSha256:String?=null) {
         val encryptedDns:Boolean get()=managedDns in encryptedModes
         val dnsRcode:Int get()=if(managedDns?.endsWith("bad-name")==true||managedDns?.endsWith("untrusted")==true)2 else if(encryptedDns)3 else 0
         val captured:PacketRouteEnvelope.Captured = PacketRouteEnvelope.capture(plan.routes,if(captureBlocked)
@@ -49,7 +49,10 @@ object ClientPacketFixture {
         val keys=fixture.keys().asSequence().toSet()
         val base=setOf("original","dialIpv4","apkSha256","expectedBody")
         val managed=fixture.opt("managedDns") as? String
-        require(keys == base || keys == base+"captureBlocked" || managed in setOf("udp4","udp6","tcp4","tcp6")+encryptedModes&&
+        val ownerPair = fixture.opt("ownerPairSha256") as? String
+        require(keys == base || keys == base+"captureBlocked" ||
+            keys == base+"ownerPairSha256" && ownerPair?.matches(Regex("[0-9a-f]{64}")) == true ||
+            managed in setOf("udp4","udp6","tcp4","tcp6")+encryptedModes&&
             (keys==base+"managedDns"||keys==base+setOf("managedDns","ipv4Compatibility"))) { "PACKET_FIXTURE_FIELDS" }
         require(managed !in encryptedModes||!fixture.has("ipv4Compatibility")){"PACKET_FIXTURE_ENCRYPTED_IPV4_FLAG"}
         require(!fixture.has("ipv4Compatibility")||fixture.opt("ipv4Compatibility")==true){"PACKET_FIXTURE_IPV4_FLAG"}
@@ -74,6 +77,6 @@ object ClientPacketFixture {
         val expectedRoutes=if(blocked)listOf("10.77.0.1/32","10.77.0.3/32","fd77::1/128","fd77::3/128")else listOf("10.77.0.1/32","fd77::1/128")
         require(plan.mtu == 1280 && plan.addresses == listOf("10.77.0.2/32","fd77::2/128") &&
             plan.routes == expectedRoutes && plan.dns==(if(managed==null)listOf("10.77.0.1")else emptyList<String>())) { "PACKET_FIXTURE_BOUNDED_TUN" }
-        return Result(original,dial,hash,body,path,plan,blocked,managed,fixture.optBoolean("ipv4Compatibility",false))
+        return Result(original,dial,hash,body,path,plan,blocked,managed,fixture.optBoolean("ipv4Compatibility",false),ownerPair)
     }
 }

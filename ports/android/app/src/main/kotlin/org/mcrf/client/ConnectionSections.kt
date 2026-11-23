@@ -3,7 +3,7 @@ package org.mcrf.client
 /** Presentation/explicit-start scope only. Never rewrites the encrypted catalogue. */
 object ConnectionSections {
     fun needsNavigation(destination:String?,current:String)=destination!=null&&destination!=current
-    fun belongs(entry:ServerImport.Server,whitelists:Boolean)= (entry.carrier!=null)==whitelists
+    fun belongs(entry:ServerImport.Server,whitelists:Boolean)=entry.whitelists==whitelists
     fun entries(all:List<ServerImport.Server>,whitelists:Boolean)=all.filter {belongs(it,whitelists)}
     fun policy(whitelists:Boolean)=if(whitelists)AutoSelection.BS_ENGINES else AutoSelection.LATENCY
     fun importDestination(entries:List<ServerImport.Server>):String?=when {

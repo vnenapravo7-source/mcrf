@@ -1,0 +1,20 @@
+[
+  {
+    "file": "loyalsoldier-private-geoip.dat",
+    "sha256": "ac5f6df7cf67c2f19e42f7bacdecdff7660671eab164af91633399517af00b73",
+    "bytes": 240,
+    "source": "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/202610132205/geoip.dat",
+    "sourceSha256": "116cc0f03d48991962f7f9cdbbcf53d45d89777f9c3cd1a663210853e5df6093",
+    "category": "private",
+    "transformation": "byte-identical single outer protobuf field"
+  },
+  {
+    "file": "loyalsoldier-private-geosite.dat",
+    "sha256": "b1e48b00b0904d048356c33149868f0720feca7962fd97e7039be338941abbb4",
+    "bytes": 3154,
+    "source": "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/202610132205/geosite.dat",
+    "sourceSha256": "c5a73fbd415bb0506ecf8fa574caadc6f54a71d9308c265e97da49e4cebf8466",
+    "category": "private",
+    "transformation": "byte-identical single outer protobuf field"
+  }
+]

@@ -32,10 +32,20 @@ object RemoteRoutingConfig {
     }
     /** Redirects remain HTTPS; size/time bounded. Caller provides protected network when VPN is active. */
     fun fetch(url: String, max: Int = 4 * 1024 * 1024, open: (URL) -> HttpURLConnection = { it.openConnection() as HttpURLConnection }): ByteArray {
+        return fetchWithin(url,max,System.nanoTime()+60_000_000_000L,open)
+    }
+    internal fun fetchWithin(url:String,max:Int,deadline:Long,open:(URL)->HttpURLConnection):ByteArray {
+        fun remaining(cap:Int):Int {
+            if(Thread.currentThread().isInterrupted)throw InterruptedException()
+            val left=(deadline-System.nanoTime())/1_000_000
+            if(left<=0)throw java.net.SocketTimeoutException("Время обновления списков маршрутизации истекло.")
+            return left.coerceAtMost(cap.toLong()).toInt()
+        }
         var address = url
         repeat(6) {
             https(address)
-            val c = open(URL(address)); c.connectTimeout = 15000; c.readTimeout = 30000; c.instanceFollowRedirects = false
+            remaining(15000)
+            val c = open(URL(address)); c.connectTimeout = remaining(15000); c.readTimeout = remaining(30000); c.instanceFollowRedirects = false
             c.setRequestProperty("User-Agent", "MCRF-Android/1")
             try {
                 val code = c.responseCode
@@ -43,7 +53,7 @@ object RemoteRoutingConfig {
                 require(code in 200..299) { "Сервер ответил HTTP $code." }
                 require(c.contentLengthLong <= max) { "Удалённый файл слишком большой." }
                 return c.inputStream.use { input -> val output = java.io.ByteArrayOutputStream(); val buffer = ByteArray(8192)
-                    while (true) { val n = input.read(buffer); if (n < 0) break; require(output.size() + n <= max) { "Удалённый файл слишком большой." }; output.write(buffer, 0, n) }
+                    while (true) { c.readTimeout=remaining(30000);val n = input.read(buffer); if (n < 0) break; require(output.size() + n <= max) { "Удалённый файл слишком большой." }; output.write(buffer, 0, n) }
                     output.toByteArray().also { require(it.isNotEmpty()) { "Удалённый файл пуст." } }
                 }
             } finally { c.disconnect() }
@@ -65,8 +75,8 @@ object RemoteRoutingConfig {
             all.put(r)
         }
         // Remote specific lists precede the country fallback.
-        val result = JSONArray(); repeat(all.length()) { if (all.getJSONObject(it).optString("builtinPreset") != "outside-ru") result.put(all.getJSONObject(it)) }
-        repeat(all.length()) { if (all.getJSONObject(it).optString("builtinPreset") == "outside-ru") result.put(all.getJSONObject(it)) }
+        val result = JSONArray(); repeat(all.length()) { if (!RouteRules.countryPreset(all.getJSONObject(it))) result.put(all.getJSONObject(it)) }
+        repeat(all.length()) { if (RouteRules.countryPreset(all.getJSONObject(it))) result.put(all.getJSONObject(it)) }
         next.put("rules", result)
         value(next).getJSONArray("profiles").let { a -> repeat(a.length()) { if (a.getJSONObject(it).getString("id") == id) a.getJSONObject(it).put("updatedAt", now).put("error", "") } }
         RoutingStore.validate(next); return next

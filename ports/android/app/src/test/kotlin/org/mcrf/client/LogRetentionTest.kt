@@ -24,7 +24,7 @@ class LogRetentionTest {
         val row="2026-10-22 11:59:59 [Ошибка движка] XRAY · проверка профиля · код завершения=1 · error: DNS failed password=fixture-secret"
         val kept=LogRetention.retain(row,60,now)
         assertFalse(kept.contains("fixture-secret"))
-        assertTrue(LogEntries.parse(kept.trim()).message.contains("код завершения=1"))
+        assertTrue(LogEntries.parse(kept.trim()).message.startsWith("Не удалось получить адрес"));assertTrue(LogEntries.parse(kept.trim()).details.contains("код завершения=1"))
     }
     @Test fun boundsBytesWithMultibyteTextAndKeepsLatestRows() {
         val rows=(0..1500).joinToString("\n"){"2026-10-22 11:59:59 [Клиент] row-$it "+"я".repeat(1000)}

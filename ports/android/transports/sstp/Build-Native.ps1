@@ -18,14 +18,14 @@ function Assert-Source {
 }
 Assert-Source
 $taskRequired=@('TestMcrfSstpStrictConfigAndSecureDefaults','TestMcrfSstpRejectAmbiguousConfigAndEndpoint','TestMcrfSstpTypedCertificateFailureIsPreserved','TestMcrfSstpCloseUnblocksStalledDisconnect','TestMcrfSstpCancelDuringPostTLSHTTPHandshake')
-$taskRequired+='TestMcrfSstpOwnedTLSMSCHAPIPData'
+$taskRequired+=@('TestMcrfSstpOwnedTLSMSCHAPIPData','TestMcrfSstpUnderlayBeforeDial')
 $taskHost=Get-Content -LiteralPath $HostEvidence -Raw|ConvertFrom-Json
 if($taskHost.state -cne 'PASS_P4_SSTP_HOST' -or $taskHost.sourceManifestSha256 -cne $taskPrepared.manifestSha256 -or $taskHost.failures -ne 0 -or $taskHost.skipped -ne 0 -or @($taskRequired|Where-Object {$_ -cnotin $taskHost.cases}).Count){throw 'All new real-peer/lifecycle/auth checks required'}
 $taskLog=Join-Path (Split-Path $HostEvidence) 'sstp-host-tests.jsonl'
 if(!$taskHost.logSha256 -or (Hash $taskLog) -cne $taskHost.logSha256){throw 'Source-bound SSTP host log changed'}
 $taskStage="D:/MCRF/Builds/Android/p4-sstp-native-$([guid]::NewGuid().ToString('N'))";New-Item -ItemType Directory -Path "$taskStage/licenses"|Out-Null
 $taskGo='D:/MCRF/Projects/MCRF/work/toolchains/go1.26.8/go/bin/go.exe';$taskTools="$Ndk/toolchains/llvm/prebuilt/windows-x86_64/bin"
-$taskReceipt=@{state='BUILDING';kind='sstp';repository=$taskLock.repository;commit=$taskLock.commit;source=$taskPrepared.module;sourceStable=$false;sourceManifestSha256=$taskPrepared.manifestSha256;hostEvidenceSha256=Hash $HostEvidence;toolchainSha256=Hash $taskGo;artifacts=@();nativeExecuted=$false;apkBuilt=$false;producerComplete=$false;sstpContract=1;packageVersionCode=1;packageVersionName='sstp-8463d33-mcrf.1'}
+$taskReceipt=@{state='BUILDING';kind='sstp';repository=$taskLock.repository;commit=$taskLock.commit;source=$taskPrepared.module;sourceStable=$false;sourceManifestSha256=$taskPrepared.manifestSha256;hostEvidenceSha256=Hash $HostEvidence;toolchainSha256=Hash $taskGo;artifacts=@();nativeExecuted=$false;apkBuilt=$false;producerComplete=$false;sstpContract=1;sstpUnderlayContract=1;packageVersionCode=2;packageVersionName='sstp-8463d33-mcrf.2'}
 Copy-Item -LiteralPath "$PreparedSource/SOURCE_MANIFEST.json" -Destination "$taskStage/source-manifest.json"
 Copy-Item -LiteralPath "$PreparedSource/receipt.json" -Destination "$taskStage/prepared-source.json"
 Copy-Item -LiteralPath $HostEvidence -Destination "$taskStage/host-evidence.json";Copy-Item -LiteralPath $taskLog -Destination "$taskStage/sstp-host-tests.jsonl"
@@ -54,11 +54,13 @@ try {
   Push-Location $taskPrepared.module
   try {& $taskGo build -mod=readonly -trimpath -buildmode=pie '-ldflags=-s -w -checklinkname=0 -linkmode=external -extldflags=-Wl,-z,max-page-size=16384' -o $taskBinary . *> "$taskStage/build-$taskAbi.log";if($LASTEXITCODE){throw "SSTP build failed: $taskAbi"}}finally{Pop-Location}
   $taskBytes=[IO.File]::ReadAllBytes($taskBinary)
+  $taskSymbols=(& "$taskTools/llvm-readelf.exe" --dyn-syms --wide $taskBinary) -join "`n"
+  if($LASTEXITCODE -or $taskSymbols -notmatch '\bandroid_setprocnetwork\b' -or $taskSymbols -notmatch '\bandroid_setsocknetwork\b' -or ![Text.Encoding]::ASCII.GetString($taskBytes).Contains('MCRF_SSTP_UNDERLAY')){throw 'SSTP Android network binding not linked'}
   if([BitConverter]::ToString($taskBytes[0..3]) -cne '7F-45-4C-46' -or $taskBytes[4] -ne $taskClass -or $taskBytes[5] -ne 1 -or [BitConverter]::ToUInt16($taskBytes,16) -ne 3 -or [BitConverter]::ToUInt16($taskBytes,18) -ne $taskMachine){throw 'SSTP ELF identity mismatch'}
   $taskSegments=@(& "$taskTools/llvm-readelf.exe" --program-headers --wide $taskBinary);if($LASTEXITCODE){throw 'ELF read failed'};$taskLoads=@($taskSegments|Where-Object {$_ -match '^\s*LOAD\s'})
   if(!$taskLoads.Count){throw 'Missing ELF load segments'}
   foreach($taskLoad in $taskLoads){if($taskLoad -notmatch '^\s*LOAD\s+0x([0-9a-fA-F]+)\s+0x([0-9a-fA-F]+).*\s+0x([0-9a-fA-F]+)\s*$'){throw 'Unknown ELF format'};if([Convert]::ToUInt64($Matches[3],16) -lt 16384 -or [Convert]::ToUInt64($Matches[1],16)%16384 -ne [Convert]::ToUInt64($Matches[2],16)%16384){throw 'SSTP ELF is not16KiB aligned'}}
-  $taskReceipt.artifacts+=@{abi=$taskAbi;file="$taskAbi/libsstp.so";bytes=(Get-Item -LiteralPath $taskBinary).Length;sha256=Hash $taskBinary;elfChecked=$true;nativeExecuted=$false}
+  $taskReceipt.artifacts+=@{abi=$taskAbi;file="$taskAbi/libsstp.so";bytes=(Get-Item -LiteralPath $taskBinary).Length;sha256=Hash $taskBinary;elfChecked=$true;androidUnderlayChecked=$true;nativeExecuted=$false}
   # Build info is read, never execute a target ELF to discover dependencies.
   $taskInfo=@(& $taskGo version -m $taskBinary);if($LASTEXITCODE){throw 'Native build info unavailable'}
   foreach($taskLine in $taskInfo){if($taskLine -match '^\s+dep\s+(\S+)\s+(\S+)'){$taskLinked[$Matches[1]]=$Matches[2]}}

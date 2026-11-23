@@ -26,13 +26,20 @@ internal class VkCallSlots(private val activity:MainActivity,initial:List<String
     private val fields=mutableListOf<EditText>()
     private val counter=activity.text("",12,Loft.MUTED)
     private var expanded=false
+    private var pending=VkHashPool.unique(initial)
+    private var rowsCreated=false
     private val add=activity.button("Добавить звонок",false).apply {setOnClickListener {
         show(fields.map {it.text.toString()}+"");changed();fields.last().requestFocus()
     }}
     private val fold=activity.iconButton("down","Показать ручные хэши").apply {setOnClickListener {toggle()}}
-    private fun toggle(){expanded=!expanded;rows.visibility=if(expanded)View.VISIBLE else View.GONE;add.visibility=rows.visibility;fold.rotation=if(expanded)180f else 0f;fold.contentDescription=if(expanded)"Скрыть ручные хэши"else"Показать ручные хэши"}
+    private fun toggle(){
+        expanded=!expanded
+        if(expanded&&!rowsCreated)show(pending)
+        rows.visibility=if(expanded)View.VISIBLE else View.GONE;add.visibility=rows.visibility
+        fold.rotation=if(expanded)180f else 0f;fold.contentDescription=if(expanded)"Скрыть ручные хэши"else"Показать ручные хэши"
+    }
     private var updating=false
-    val values:List<String> get()=VkHashPool.unique(fields.map {it.text.toString()})
+    val values:List<String> get()=if(rowsCreated)VkHashPool.unique(fields.map {it.text.toString()})else pending.toList()
     fun append(calls:List<String>){show(VkHashPool.append(values,calls));changed()}
     private fun updateCount(){counter.text="Ручных хэшей: ${values.size}"}
     private fun edit(index:Int)=object:EditText(activity){
@@ -68,6 +75,9 @@ internal class VkCallSlots(private val activity:MainActivity,initial:List<String
         })
     }
     private fun show(values:List<String>){
+        pending=values.toList()
+        if(!expanded){rowsCreated=false;rows.removeAllViews();fields.clear();updateCount();return}
+        rowsCreated=true
         updating=true;rows.removeAllViews();fields.clear()
         values.ifEmpty {listOf("")}.forEachIndexed {index,value->
             val row=LinearLayout(activity).apply {gravity=Gravity.CENTER_VERTICAL}
@@ -90,7 +100,7 @@ internal class VkCallSlots(private val activity:MainActivity,initial:List<String
             addView(counter,LayoutParams(0,-2,1f));addView(fold,LayoutParams(activity.dp(48),activity.dp(48)))
         },LayoutParams(-1,-2).apply {bottomMargin=activity.dp(8)})
         rows.visibility=View.GONE;add.visibility=View.GONE
-        addView(rows,LayoutParams(-1,-2));show(VkHashPool.unique(initial))
+        addView(rows,LayoutParams(-1,-2));updateCount()
         addView(add,LayoutParams(-1,-2).apply {topMargin=activity.dp(12);bottomMargin=activity.dp(8)})
     }
 }

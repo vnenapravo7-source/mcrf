@@ -11,7 +11,7 @@ class BsDetectionMonitor(context:Context,private val snapshot:()->Stamp?,private
     private val youtube:(Stamp,String)->DirectAccessCheck.Outcome,private val retryVpn:(Stamp,String)->Unit):AutoCloseable {
     data class Stamp(val epoch:Long,val generation:Long,val vpnSection:Boolean,val tun:Boolean)
     private val app=context.applicationContext
-    private val prefs=app.getSharedPreferences("MainActivity",Context.MODE_PRIVATE)
+    private val prefs=ProfilePolicyRuntime.preferences(app)
     private val main=Handler(Looper.getMainLooper())
     private val executor=Executors.newSingleThreadExecutor()
     @Volatile private var closed=false
@@ -25,15 +25,17 @@ class BsDetectionMonitor(context:Context,private val snapshot:()->Stamp?,private
         if(busy)return
         busy=true
         val capturedSites=sites()
+        val authority=ProfilePolicyRuntime.active(app)?.id
+        fun permitted()=!closed&&prefs.getBoolean(KEY,false)&&ProfilePolicyRuntime.active(app)?.id==authority
         executor.execute {
             val result=try{
-                val direct=DirectAccessCheck.check(app,cancelled={closed||!prefs.getBoolean(KEY,false)||sites()!=capturedSites},sites=capturedSites)
-                if(!closed&&prefs.getBoolean(KEY,false)&&stamp.vpnSection&&stamp.tun&&direct.directComplete)
+                val direct=DirectAccessCheck.check(app,cancelled={!permitted()||sites()!=capturedSites},sites=capturedSites)
+                if(permitted()&&stamp.vpnSection&&stamp.tun&&direct.directComplete)
                     direct.copy(youtube=youtube(stamp,capturedSites[2])) else direct
             }catch(_:Exception){null}
             main.post {
                 busy=false
-                if(!closed&&prefs.getBoolean(KEY,false)&&snapshot()==stamp&&sites()==capturedSites){
+                if(permitted()&&snapshot()==stamp&&sites()==capturedSites){
                     if(result?.needsVpnRetry(true,stamp.vpnSection)==true)retryVpn(stamp,capturedSites[2])
                     else if(result?.shouldSwitch(true,true,stamp.vpnSection)==true||result?.shouldReturn(true,stamp.vpnSection)==true)switch(stamp)
                 }
@@ -42,6 +44,7 @@ class BsDetectionMonitor(context:Context,private val snapshot:()->Stamp?,private
     }}
     init {prefs.registerOnSharedPreferenceChangeListener(listener);schedule()}
     private fun interval()=BsDetectionInterval.millis(prefs.getInt(BsDetectionInterval.KEY,BsDetectionInterval.DEFAULT))
+    fun refresh(){main.post {schedule()}}
     private fun schedule(){main.removeCallbacks(tick);if(!closed&&prefs.getBoolean(KEY,false))main.postDelayed(tick,interval())}
     override fun close(){closed=true;prefs.unregisterOnSharedPreferenceChangeListener(listener);main.removeCallbacksAndMessages(null);executor.shutdownNow()}
     companion object {const val KEY="autoDetectBs"}

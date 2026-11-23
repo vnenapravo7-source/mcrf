@@ -103,7 +103,51 @@ class AdvancedDnsRoutingTest {
     @Test(expected=IllegalArgumentException::class) fun throneUnsupportedConditionsRejectWholeProfile() {RemoteRoutingImports.normalize(JSONObject("""{"kind":"throne-route-profile","rules":[{"domain":["example.com"],"unknown_condition":"tcp"}]}"""))}
     @Test fun happDatasetReferencesAreLazyAndKeepCustomUrls() {val s=GeoDataConfig.fromProvider(JSONObject("""{"Geoipurl":"https://example.org/ip.dat","DirectIp":["geoip:ru"],"ProxySites":["geosite:google"]}"""));assertEquals("custom",s.getString("source"));assertEquals(2,s.getJSONArray("selectors").length());assertEquals("https://example.org/ip.dat",s.getString("geoipUrl"))}
     @Test fun retiredRemoteManagerInjectsNoDownloadsAndPreservesLegacyData(){val s=state().put("remoteRouting",RemoteRoutingConfig.defaults().put("adblock",true).put("autoRefresh",true));val before=s.toString();val config=RouteRules.apply(base(),s,true);assertFalse(config.getJSONObject("route").has("rule_set"));assertEquals(before,s.toString())}
-    @Test fun ruAppDirectRuleCompilesAsPackageRouteWithoutBuilderExclusion(){val s=RoutingDefaultsRussianAppsPolicy.apply(state(),setOf("ru.oneme.app"),setOf("ru.oneme.app"),false);val config=RouteRules.apply(base(),s,true);val rules=config.getJSONObject("route").getJSONArray("rules");val direct=(0 until rules.length()).map {rules.getJSONObject(it)}.single {it.has("package_name")};assertEquals("direct",direct.getString("outbound"));assertEquals("ru.oneme.app",direct.getJSONArray("package_name").getString(0));assertFalse(config.getJSONArray("inbounds").getJSONObject(0).has("exclude_package"))}
+    @Test fun directAppPoliciesShareAndroidScopeAndKeepMixedConditions(){
+        val ru="ru.gazprombank.android.mobilebank.app"
+        val s=RoutingDefaultsRussianAppsPolicy.apply(state(),setOf(ru),setOf(ru),false)
+        s.getJSONArray("excludedApps").put("org.example.manual")
+        s.getJSONArray("vpnApps").put(ru).put("org.example.forced")
+        s.getJSONArray("rules")
+            .put(JSONObject().put("id","app-direct").put("name","Приложение").put("mode","apps")
+                .put("target","direct").put("text","app:org.example.rule\napp:org.example.forced"))
+            .put(JSONObject().put("id","mixed-direct").put("name","Домен в приложении").put("mode","in-apps")
+                .put("target","direct").put("text","example.com\napp:org.example.mixed"))
+        val before=s.toString()
+        val config=RouteRules.apply(base(),s,true)
+        val excluded=config.getJSONArray("inbounds").getJSONObject(0).getJSONArray("exclude_package")
+        assertEquals(listOf(ru,"org.example.manual","org.example.rule"),(0 until excluded.length()).map(excluded::getString))
+        val rules=config.getJSONObject("route").getJSONArray("rules")
+        val installed=(0 until rules.length()).map(rules::getJSONObject)
+        assertEquals("org.example.forced",installed.single {it.has("package_name")}.getJSONArray("package_name").getString(0))
+        assertTrue(installed.any {it.optString("type")=="logical"&&it.optString("outbound")=="direct"})
+        val steer=RoutingAppPolicies.runtimeState(s,true)
+        assertEquals(excluded.toString(),steer.getJSONArray("excludedApps").toString())
+        assertEquals("mixed-direct",steer.getJSONArray("rules").getJSONObject(0).getString("id"))
+        assertEquals(before,s.toString())
+    }
+
+    @Test fun disabledRuAppAndEarlierAppRuleDoNotBecomeExclusions(){
+        val ru="ru.oneme.app"
+        val s=RoutingDefaultsRussianAppsPolicy.apply(state(),setOf(ru),setOf(ru),false)
+        s.getJSONArray("rules").getJSONObject(0).put("enabled",false)
+        s.getJSONArray("rules")
+            .put(JSONObject().put("id","first").put("name","VPN").put("mode","apps").put("target","proxy").put("text","app:$ru"))
+            .put(JSONObject().put("id","later").put("name","Напрямую").put("mode","apps").put("target","direct").put("text","app:$ru"))
+        assertTrue(RoutingAppPolicies.systemScope(s).direct.isEmpty())
+    }
+
+    @Test fun earlierDomainBlockKeepsTheAppInTheEngine(){
+        val s=state()
+        s.getJSONArray("rules")
+            .put(JSONObject().put("id","mixed").put("name","Блок").put("mode","in-apps").put("target","block")
+                .put("text","example.com\napp:org.example.mixed"))
+            .put(JSONObject().put("id","fallback").put("name","Напрямую").put("mode","apps").put("target","direct")
+                .put("text","app:org.example.mixed\napp:org.example.whole"))
+        val scope=RoutingAppPolicies.systemScope(s)
+        assertEquals(setOf("org.example.whole"),scope.direct)
+        assertFalse("fallback" in scope.projected)
+    }
     @Test(expected=IllegalArgumentException::class) fun providerMalformedArrayIsNotIgnored(){GeoDataConfig.fromProvider(JSONObject().put("DirectSites","geosite:ru"))}
     @Test(expected=IllegalArgumentException::class) fun providerExternalDatIsNotSilentlyDropped(){GeoDataConfig.fromProvider(JSONObject().put("DirectSites",JSONArray().put("ext:custom.dat:ru")))}
     @Test(expected=IllegalStateException::class) fun replacementMissingSelectedCategoryIsRejectedBeforeWrite(){val s=GeoDataConfig.defaults().put("selectors",JSONArray().put(JSONObject().put("kind","geosite").put("code","absent").put("target","direct")));val domain=integer(1,2)+blob(2,"example.com".toByteArray());val dat=blob(1,blob(1,"test".toByteArray())+blob(2,domain));GeoDataConfig.validateDownload(dat,"geosite",s)}

@@ -44,7 +44,7 @@ object Post55OpenFluxHttpRemoteDeviceChecks {
             }
         }
         fun ownedTasks(id: String = request.id) = manager.appTasks.mapNotNull { task ->
-            val info = try { task.taskInfo } catch (_: IllegalArgumentException) { return@mapNotNull null }
+            val info = try { task.taskInfo ?: return@mapNotNull null } catch (_: IllegalArgumentException) { return@mapNotNull null }
             if (info.baseIntent.component?.className == OpenFluxHttpVerificationActivity::class.java.name &&
                 info.baseIntent.getStringExtra("request") == id) task to info else null
         }

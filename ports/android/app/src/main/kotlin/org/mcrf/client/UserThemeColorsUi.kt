@@ -4,31 +4,182 @@ import android.graphics.drawable.GradientDrawable
 import android.widget.LinearLayout
 
 object UserThemeColorsUi {
+    private fun connection(activity:MainActivity,onChanged:()->Unit):LinearLayout=with(activity) {
+        AppearanceSettingsUi.block(this,"Оформление подключения","appearance-connection") {
+            LinearLayout(this).apply {
+                orientation=LinearLayout.VERTICAL
+                if(!TvUi.enabled(this@with)){
+                    if(!orbitEnabled())addView(ConnectionAppearanceUi.unifiedScreen(this@with,onChanged),space(0,8))
+                    addView(ConnectionAppearanceUi.editor(this@with,onChanged),space(0,8))
+                }
+                val label="Индикатор подключения"
+                addView(text(label,14,Loft.INK),space(0,4))
+                addView(AppearanceSettingsUi.choiceButton(this@with,label,
+                    ConnectionIndicator.selected(this@with).label,"appearance-connection-indicator") {
+                    ConnectionIndicator.choose(this@with)
+                },space(0,12))
+                if(!TvUi.enabled(this@with))addView(AppearanceMotion.settings(this@with))
+            }
+        }
+    }
+
+    private fun automatic(activity:MainActivity):LinearLayout=with(activity) {
+        AppearanceSettingsUi.block(this,"Случайное оформление","appearance-random-card") {
+            LinearLayout(this).apply {
+                orientation=LinearLayout.VERTICAL
+                addView(android.widget.Switch(this@with).apply {
+                    text="Рандомное оформление каждый раз";tag="random-appearance-on-open"
+                    tune(this)
+                    isChecked=prefs.getBoolean(RandomAppearance.KEY,false)
+                    setOnCheckedChangeListener {_,checked->prefs.edit().putBoolean(RandomAppearance.KEY,checked).apply()}
+                },space(0,8))
+                addView(button("Применить рандомное оформление",false).apply {
+                    tag="random-appearance-now"
+                    setOnClickListener {
+                        if(!working())runAfterSuccess({applyRandom(this@with);""},false,Runnable {applyUserThemeColors()})
+                    }
+                })
+            }
+        }
+    }
+    private fun applyRandom(activity:MainActivity) {
+        val keys=UserThemeColors.keys+listOf(PatternWallpaper.KEY,ConnectionAppearance.STYLE,ConnectionAppearance.EXIT,
+            BottomNavigationStyle.KEY,BottomNavigationStyle.POSITION)
+        val current=keys.associateWith {activity.prefs.getString(it,"").orEmpty()}.toMutableMap()
+        for (scope in AppTypography.Scope.entries) current[scope.key]=AppTypography.selected(activity,scope)
+        current[PatternWallpaper.KEY]=WallpaperCombinations.canonical(current[PatternWallpaper.KEY].orEmpty())
+        current[ConnectionAppearance.STYLE]=ConnectionAppearanceUi.style(activity)
+        current[ConnectionAppearance.EXIT]=ConnectionAppearance.exit(current[ConnectionAppearance.EXIT])
+        current[BottomNavigationStyle.KEY]=BottomNavigationStyle.resolve(current[BottomNavigationStyle.KEY],current[BottomNavigationStyle.POSITION])
+        val edit=activity.prefs.edit()
+        for ((key,value) in RandomAppearance.changes(current,PatternWallpaper.choices.keys.filter {it!="none"},amoled=activity.orbitEnabled())) {
+            if (key==AppearanceMotion.MATH||key==AppearanceMotion.MATH_BODY) edit.putBoolean(key,value.toBooleanStrict())
+            else edit.putString(key,value)
+        }
+        check(edit.commit()) {"Не удалось сохранить случайное оформление."}
+    }
+    fun randomizeForeground(activity:MainActivity):Boolean {
+        if(TvUi.enabled(activity))return false
+        if(!RandomAppearance.foreground.enter(activity.prefs.getBoolean(RandomAppearance.KEY,false)))return false
+        applyRandom(activity)
+        return true
+    }
     fun configure(activity:android.content.Context) {
         val preferences=activity.getSharedPreferences("MainActivity",android.content.Context.MODE_PRIVATE)
+        AppearanceSettings.removeRetiredPreferences(preferences)
         fun choice(first:String,second:String)=runCatching {UserThemeColors.choice(preferences.getString(first,null),preferences.getString(second,null))}.getOrNull()
         HomeUiTheme.configure(choice(UserThemeColors.keys[0],UserThemeColors.keys[1]),choice(UserThemeColors.keys[2],UserThemeColors.keys[3]))
         PatternWallpaper.configure(activity,preferences.getString(PatternWallpaper.KEY,"none").orEmpty())
     }
-    fun view(activity:MainActivity):LinearLayout=with(activity) {
-        val fields=linkedMapOf<String,ColorButton>()
-        var pendingIcon:LauncherIcons.Choice?=null
-        val connectionEditor=ConnectionAppearanceUi.editor(this)
-        val openedConnection=connectionEditor.snapshot()
+    fun view(activity:MainActivity,onUnifiedChanged:()->Unit={activity.render()}):LinearLayout=with(activity) {
+        val tv=TvUi.enabled(activity)
+        LinearLayout(this).apply {
+            orientation=LinearLayout.VERTICAL;tag="appearance-settings"
+            if(!tv){
+                addView(AppearanceSettingsUi.theme(this@with),space(0,12))
+                addView(card().apply {
+                    tag="appearance-mode-card"
+                    addView(AppearanceSettingsUi.interfaceMode(this@with,onUnifiedChanged))
+                },space(0,12))
+            }
+            addView(connection(this@with,onUnifiedChanged),space(0,12))
+            if(!tv){
+                addView(AppearanceSettingsUi.block(this@with,"Навигация","appearance-navigation") {
+                    AppearanceSettingsUi.navigation(this@with)
+                },space(0,12))
+                addView(automatic(this@with),space(0,12))
+                addView(card().apply {
+                    addView(android.widget.Switch(this@with).apply {
+                        text="Анимация запуска Swarm";tag="cold-launch-swarm"
+                        tune(this)
+                        isChecked=prefs.getBoolean(ColdLaunchSwarm.KEY,true)
+                        setOnCheckedChangeListener {_,enabled->prefs.edit().putBoolean(ColdLaunchSwarm.KEY,enabled).apply()}
+                    })
+                    addView(text("При каждом холодном запуске приложения. Возврат из фона не повторяет анимацию; системное отключение анимаций учитывается.",12,Loft.MUTED))
+                },space(0,12))
+            }
+            addView(card().apply {
+                tag="appearance-fonts"
+                fun fontRow(scope:AppTypography.Scope,title:String,tagName:String,glitchKey:String){
+                    val choices=(AppTypography.choices(scope)+mapOf(AppTypography.CUSTOM to "Свой файл TTF/OTF…")).entries.toList()
+                    val selected=choices.indexOfFirst {it.key==AppTypography.selected(this@with,scope)}.coerceAtLeast(0)
+                    val custom=choices[selected].key==AppTypography.CUSTOM
+                    fun importFont(){
+                        startActivityForResult(android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT)
+                            .addCategory(android.content.Intent.CATEGORY_OPENABLE).setType("*/*"),
+                            scope.request)
+                    }
+                    addView(text(title,14,Loft.INK).apply {isAccessibilityHeading=true},space(0,6))
+                    addView(button(if(custom)"Свой шрифт" else choices[selected].value,false).apply {
+                        tag=tagName
+                        contentDescription="$title. ${choices[selected].value}"
+                        setOnClickListener {
+                            DropdownPopup.show(this@with,this,title,choices.map {DropdownPopup.Item(it.value)},selected) {index->
+                                val key=choices[index].key
+                                if(key==AppTypography.CUSTOM&&!AppTypography.hasFile(this@with,scope,key))importFont() else {
+                                    prefs.edit().putString(scope.key,key).apply()
+                                    applyUserThemeColors()
+                                }
+                            }
+                        }
+                    },space(0,8))
+                    if(custom)addView(button("Заменить файл…",false).apply {
+                        setOnClickListener {importFont()}
+                    },space(0,8))
+                    if(!tv)addView(android.widget.Switch(this@with).apply {
+                        tag=glitchKey
+                        text="Glitch effect"
+                        isChecked=prefs.getBoolean(glitchKey,true)
+                        tune(this)
+                        setOnCheckedChangeListener {_,enabled->
+                            prefs.edit().putBoolean(glitchKey,enabled).apply()
+                            render()
+                        }
+                    },space(0,0))
+                }
+                fontRow(AppTypography.Scope.INTERFACE,"Шрифт интерфейса","appearance-interface-font",AppearanceMotion.MATH_BODY)
+                divider(this,4,12)
+                fontRow(AppTypography.Scope.DISPLAY,"Шрифт акцентов","appearance-display-font",AppearanceMotion.MATH)
+                addView(text("VPN подключён · 42 мс",14,Loft.MUTED).apply {
+                    tag="display-font-sample"
+                    contentDescription="Образец шрифта. VPN подключён. 42 миллисекунды"
+                },space(0,0))
+            },space(0,12))
+            if(!tv)addView(UsageFeaturesUi.settings(this@with,"Отображение функционала"),space(0,12))
+            if(!tv)addView(AppearanceSettingsUi.block(this@with,"Настройки бокового меню","appearance-edge") {EdgePanelAppearance.view(this@with)},space(0,12))
+            if(!tv&&!orbitEnabled())addView(colorsAndWallpaper(this@with) {applyUserThemeColors()},space(0,12))
+            addView(card().apply {
+                tag="appearance-app-icon"
+                LauncherIconsUi.add(this@with,this,onUnifiedChanged) {choice->
+                    try {LauncherIcons.select(this@with,choice.id);onUnifiedChanged()}
+                    catch(error:Exception){alert("Иконка приложения",error.message?:"Не удалось сменить иконку.");onUnifiedChanged()}
+                }
+            },space(0,12))
+            if(!tv&&canEditInterface())addView(SettingsUiNodes(this@with).actionRow("Конструктор интерфейса","Порядок и видимость элементов","arrow","Открыть конструктор интерфейса"){
+                openInterfaceConstructor()
+            }.apply {tag="open-layout-constructor"},space(0,12))
+        }
+    }
+    private fun colorsAndWallpaper(activity:MainActivity,onApplied:()->Unit):LinearLayout=with(activity) {
+        fun save(key:String,value:String) {
+            if(prefs.getString(key,null)==value)return
+            prefs.edit().putString(key,value).apply()
+            onApplied()
+        }
         card().apply {
             tag="theme-colors-settings"
             addView(text("Фоновый узор",18,Loft.INK),space(0,8))
             val openedWallpaper=WallpaperCombinations.canonical(prefs.getString(PatternWallpaper.KEY,"none").orEmpty())
             val wallpaper=picker(PatternWallpaper.choices.values.toTypedArray(),PatternWallpaper.choices.keys.indexOf(openedWallpaper).coerceAtLeast(0))
-            addView(wallpaper,space(0,8))
-            addView(button("Применить узор",false).apply {setOnClickListener {
-                if(!working()){
-                    val selected=PatternWallpaper.choices.keys.elementAt(wallpaper.selectedItemPosition)
-                    if(selected==WallpaperCombinations.canonical(prefs.getString(PatternWallpaper.KEY,"none").orEmpty())){toast("Нет изменений");return@setOnClickListener}
-                    this@with.runAfterSuccess({check(prefs.edit().putString(PatternWallpaper.KEY,selected).commit()){"Не удалось сохранить узор."};""},false,Runnable {applyUserThemeColors()})
+            var previousWallpaper=wallpaper.selectedItemPosition
+            wallpaper.tag="manual-wallpaper"
+            wallpaper.onItemSelectedListener=selectedListener {position->
+                if(position!=previousWallpaper) {
+                    if(working())wallpaper.setSelection(previousWallpaper)
+                    else {previousWallpaper=position;save(PatternWallpaper.KEY,PatternWallpaper.choices.keys.elementAt(position))}
                 }
-            }},space(0,16))
-            divider(this,0,12)
+            }
+            addView(wallpaper,space(0,8))
             addView(text("Два цвета оформления",18,Loft.INK),space(0,8))
             addView(text("Первый — акценты и начало градиента, второй — его конец и подсветка. Отдельно для каждой темы. Яркость кнопок подстраивается для читаемости.",12,Loft.MUTED),space(0,16))
             fun pair(title:String,keys:List<String>,defaults:List<String>) {
@@ -37,91 +188,23 @@ object UserThemeColorsUi {
                 keys.forEachIndexed {index,key->
                     val control=ColorButton(this@with,if(index==0)"Первый цвет"else"Второй цвет").apply {
                         tag=key;value=prefs.getString(key,"").orEmpty().ifBlank {defaults[index]}
-                        setOnClickListener {UserColorPicker.show(this@with,value){chosen->value=chosen}}
+                        setOnClickListener {if(!working())UserColorPicker.show(this@with,value){chosen->save(key,chosen)}}
                     }
-                    fields[key]=control;row.addView(control,LinearLayout.LayoutParams(0,dp(56),1f).apply {if(index==0)rightMargin=dp(4)else leftMargin=dp(4)})
+                    row.addView(control,LinearLayout.LayoutParams(0,dp(56),1f).apply {if(index==0)rightMargin=dp(4)else leftMargin=dp(4)})
                 }
                 addView(row,space(0,12))
             }
             fun night()=pair("Тёмная тема"+(if(Loft.dark)" · текущая"else""),UserThemeColors.keys.take(2),listOf("#B8A3D2","#373040"))
             fun day()=pair("Светлая тема"+(if(!Loft.dark)" · текущая"else""),UserThemeColors.keys.drop(2),listOf("#006467","#CFE5DD"))
             if(Loft.dark){night();day()}else{day();night()}
-            val openedColors=UserThemeColors.keys.map {fields.getValue(it).value}
-            fun read():List<Int> = UserThemeColors.keys.map {key->
-                val input=fields.getValue(key)
-                UserThemeColors.parse(input.value)
-            }
-            val randomSummary=text("",12,Loft.MUTED).apply {tag="random-appearance-summary"}
-            addView(button("Рандомное оформление",false).apply {tag="random-appearance";setOnClickListener {
-                val current=UserThemeColors.keys.map {fields.getValue(it).value}
-                val preset=AppearancePresets.all.filter {it.colors!=current}.random()
-                UserThemeColors.keys.forEachIndexed {index,key->fields.getValue(key).value=preset.colors[index]}
-                val previousIcon=pendingIcon?.id?:LauncherIcons.current(this@with).id
-                pendingIcon=LauncherIcons.choices.filter {it.id!=previousIcon}.random()
-                val nextWallpaper=(1 until PatternWallpaper.choices.size).filter {it!=wallpaper.selectedItemPosition}.random()
-                wallpaper.setSelection(nextWallpaper)
-                val connectionLook=connectionEditor.randomize()
-                randomSummary.text="${preset.name} · узор: ${wallpaper.selectedItem} · $connectionLook. Для сохранения нажми «Применить»."
-            }},space(0,8))
-            addView(randomSummary,space(0,8))
-            addView(button("Применить оформление",false).apply {tag="theme-colors-save";setOnClickListener {try {
-                if(working())return@setOnClickListener
-                val colors=read()
-                val wallpaperId=PatternWallpaper.choices.keys.elementAt(wallpaper.selectedItemPosition)
-                val iconChanged=pendingIcon?.let {it.id!=LauncherIcons.current(this@with).id}?:false
-                if(colors.map(UserThemeColors::hex)==openedColors&&wallpaperId==openedWallpaper&&!iconChanged&&connectionEditor.snapshot()==openedConnection){toast("Нет изменений");return@setOnClickListener}
-                val edit=prefs.edit()
-                connectionEditor.write(edit)
-                UserThemeColors.keys.forEachIndexed {index,key->edit.putString(key,UserThemeColors.hex(colors[index]))}
-                edit.putString(PatternWallpaper.KEY,PatternWallpaper.choices.keys.elementAt(wallpaper.selectedItemPosition))
-                val chosenIcon=pendingIcon
-                this@with.runAfterSuccess({
-                    val previousIcon=if(chosenIcon!=null)LauncherIcons.current(this@with)else null
-                    chosenIcon?.let {LauncherIcons.select(this@with,it.id)}
-                    if(!edit.commit()){
-                        if(previousIcon!=null)LauncherIcons.select(this@with,previousIcon.id)
-                        error("Не удалось сохранить оформление.")
-                    }
-                    ""
-                },false,Runnable {applyUserThemeColors()})
-            }catch(error:Exception){alert("Оформление",error.message?:"Проверь цвета.")}}},space(0,8))
-            addView(button("Применить",false).apply {tag="theme-colors-save-bottom";setOnClickListener {
-                this@with.window.decorView.findViewWithTag<android.view.View>("theme-colors-save").performClick()
-            }},space(0,12))
             divider(this,0,12)
             addView(button("Стандартные цвета",false).apply {tag="theme-colors-reset";setOnClickListener {
                 if(UserThemeColors.keys.none {prefs.contains(it)}){toast("Уже используются стандартные цвета");return@setOnClickListener}
                 if(!working())this@with.runAfterSuccess({
                     val edit=prefs.edit();UserThemeColors.keys.forEach(edit::remove)
                     check(edit.commit()){"Не удалось восстановить цвета."};""
-                },false,Runnable {applyUserThemeColors()})
+                },false,Runnable(onApplied))
             }},space(0,0))
-            // Keep both actions above the editors; randomization remains a draft until Apply.
-            val random=findViewWithTag<android.widget.Button>("random-appearance")
-            val apply=findViewWithTag<android.widget.Button>("theme-colors-save")
-            removeView(random);removeView(apply)
-            apply.text="Применить"
-            random.setSingleLine(false);random.maxLines=2
-            random.setPadding(dp(6),dp(6),dp(6),dp(6))
-            random.setAutoSizeTextTypeUniformWithConfiguration(11,14,1,android.util.TypedValue.COMPLEX_UNIT_SP)
-            apply.setPadding(dp(6),dp(6),dp(6),dp(6))
-            apply.setSingleLine(true);apply.setHorizontallyScrolling(false)
-            apply.setAutoSizeTextTypeUniformWithConfiguration(11,14,1,android.util.TypedValue.COMPLEX_UNIT_SP)
-            val actions=LinearLayout(this@with).apply {
-                orientation=LinearLayout.HORIZONTAL
-                addView(random,LinearLayout.LayoutParams(0,dp(64),1f).apply {rightMargin=dp(4)})
-                addView(apply,LinearLayout.LayoutParams(dp(100),dp(64)).apply {leftMargin=dp(4)})
-            }
-            fun separated(content:android.view.View)=LinearLayout(this@with).apply {
-                orientation=LinearLayout.VERTICAL
-                addView(content,space(0,12));divider(this,0,12)
-            }
-            addView(separated(actions),0,space(0,0))
-            addView(separated(SettingsUiNodes(this@with).actionRow("Скрыть разделы","","arrow","Открыть: Скрыть разделы"){navigate(ClientSettingsNavigation.MINIMALISM)}.apply {tag="settings-page-${ClientSettingsNavigation.MINIMALISM}"}),1,space(0,0))
-            addView(separated(connectionEditor.view),2,space(0,0))
-            addView(separated(EdgePanelAppearance.view(this@with)),3,space(0,0))
-            addView(separated(NotificationTrafficUi.view(this@with)),4,space(0,0))
-            LauncherIconsUi.add(this@with,this)
         }
     }
     class ColorButton(private val activity:MainActivity,private val label:String):android.widget.Button(activity){

@@ -62,6 +62,73 @@ class NativeRouteDispatchPlanTest {
         assertEquals(1,plan.bindings.size);assertEquals(2,plan.bindings.single().tags.size)
         plan.replace(source(main,main),mapOf(main.id to bridge()))
     }
+    @Test fun steerRuleWorkerDoesNotCaptureAutonomousDefaultCarrier(){
+        val carrier=ServerImport.Server("owned-carrier","carrier","wdtt","",0,null,null,null,JSONObject().put("type","wdtt"))
+        val steer=server("steer")
+        val rule=JSONObject().put("id","steer").put("target","proxy").put("mode","addresses")
+            .put("text","steer.example.test").put("serverId",steer.id)
+        val settings=RouteRules.defaults().put("rules",JSONArray().put(rule))
+        val extra=RouteServerPlan(settings,listOf(steer))
+        val input=RouteRules.apply(ServerImport.build(listOf(carrier),carrier.id,false,60,50,"Cloudflare"),
+            settings,true,routeServers=listOf(steer))
+        val mainTag=input.getJSONObject("route").getString("final")
+        val steerTag=RouteServerPlan.tag(steer.id)
+        val plan=NativeRouteDispatchPlan.steerRules(extra)
+        assertEquals(listOf(steerTag),plan.bindings.single().tags)
+        val output=plan.replace(input,mapOf(steer.id to bridge()))
+        val outbounds=output.getJSONArray("outbounds")
+        val nodes=(0 until outbounds.length()).map(outbounds::getJSONObject).associateBy {it.getString("tag")}
+        assertEquals("socks",nodes.getValue(mainTag).getString("type"))
+        assertEquals(1,nodes.getValue(mainTag).getInt("server_port"))
+        assertEquals(NativeRouteDispatchPlan.TYPE,nodes.getValue(steerTag).getString("type"))
+        val route=output.getJSONObject("route")
+        assertEquals(mainTag,route.getString("final"))
+        val rules=route.getJSONArray("rules")
+        val index=(0 until rules.length()).first {rules.getJSONObject(it).optString("outbound")==steerTag}
+        assertEquals("resolve",rules.getJSONObject(index-1).getString("action"))
+        assertEquals(input.getJSONObject("dns").toString(),output.getJSONObject("dns").toString())
+    }
+    @Test fun mixedPoolPreservesSingBoxProtocolWhileResolvingForItsSteerMember(){
+        val main=server("main")
+        val steer=server("steer")
+        val hysteria=ServerImport.read("hysteria://owned@hysteria.example.test:443").single()
+        val steerTag=RouteServerPlan.tag(steer.id)
+        val hysteriaTag=RouteServerPlan.tag(hysteria.id)
+        val poolRule=JSONObject().put("id","pool").put("target","proxy").put("mode","addresses")
+            .put("text","pool.example.test").put("serverIds",JSONArray(listOf(steer.id,hysteria.id)))
+        val poolTag=RouteServerPlan.outbound(poolRule,"unused-global")
+        val directHysteriaRule=JSONObject().put("id","hysteria").put("target","proxy").put("mode","addresses")
+            .put("text","hysteria-only.example.test").put("serverId",hysteria.id)
+        val settings=RouteRules.defaults().put("rules",JSONArray(listOf(directHysteriaRule,poolRule)))
+        val extra=RouteServerPlan(settings,listOf(steer,hysteria))
+        val input=RouteRules.apply(ServerImport.build(listOf(main),main.id,false,60,50,"Cloudflare"),
+            settings,true,routeServers=listOf(steer,hysteria))
+        val plan=NativeRouteDispatchPlan.forSteer(main,extra)
+        assertEquals(setOf(main.id,steer.id),plan.bindings.map {it.id}.toSet())
+        val output=plan.replace(input,plan.bindings.associate {it.id to bridge()})
+
+        fun outbounds(config:JSONObject):Map<String,JSONObject> {
+            val nodes=config.getJSONArray("outbounds")
+            return (0 until nodes.length()).map(nodes::getJSONObject).associateBy {it.getString("tag")}
+        }
+        val original=outbounds(input)
+        val replaced=outbounds(output)
+        assertEquals("hysteria",replaced.getValue(hysteriaTag).getString("type"))
+        assertEquals(original.getValue(hysteriaTag).toString(),replaced.getValue(hysteriaTag).toString())
+        assertEquals(NativeRouteDispatchPlan.TYPE,replaced.getValue(steerTag).getString("type"))
+        assertEquals(original.getValue(poolTag).toString(),replaced.getValue(poolTag).toString())
+        assertEquals(input.getJSONObject("dns").toString(),output.getJSONObject("dns").toString())
+
+        val route=output.getJSONObject("route")
+        val ruleArray=route.getJSONArray("rules")
+        val rules=(0 until ruleArray.length()).map(ruleArray::getJSONObject)
+        val poolIndex=rules.indexOfFirst {it.optString("outbound")==poolTag}
+        assertTrue(poolIndex>0)
+        assertEquals("resolve",rules[poolIndex-1].getString("action"))
+        assertTrue(rules.any {it.optString("outbound")==hysteriaTag})
+        assertFalse(rules.any {it.optString("action")=="resolve"&&it.toString().contains("hysteria-only.example.test")})
+        assertEquals(input.getJSONObject("route").getString("final"),route.getString("final"))
+    }
     @Test fun legacyVmessSecureDefaultIsNotAProfileChangeButInsecureIs(){
         val fields=JSONObject().put("v","2").put("add","owned.example.test").put("port",443)
             .put("id","00000000-0000-4000-8000-000000000001").put("aid",0).put("scy","auto")

@@ -1,0 +1,254 @@
+{
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "repository": "SanityProtocol/csqttr",
+  "signerSha256": "6a2c508ae4c31e527efcee73bc2d55a99dd175f47871b8a369512bac2059fdce",
+  "licenseSha256": "15c9a3f5217bf23e2a9accb23191133b4a3b9bde0382e9496f1fb83cd8992a75",
+  "versions": {
+    "2.5.2": {
+      "native": {
+        "x86_64": {
+          "bytes": 11049968,
+          "sha256": "d8a8022c725194a44403ea6b21ec31b991146494a79c83906a39f72dd215285d",
+          "entry": "lib/x86_64/libclient.so"
+        },
+        "armeabi-v7a": {
+          "bytes": 6823768,
+          "sha256": "f035907d404e93de2102f0dbb5240439a59bd31d8ea01d46fa380af3615b1c5d",
+          "entry": "lib/armeabi-v7a/libclient.so"
+        },
+        "arm64-v8a": {
+          "bytes": 9306656,
+          "sha256": "7299e9c16bc47a0d1238a8f48b54e0a489533a358c2a5384f44ff14f84825e8d",
+          "entry": "lib/arm64-v8a/libclient.so"
+        }
+      },
+      "assets": [
+        {
+          "name": "build-apk.sh",
+          "size": 3799,
+          "digest": "sha256:d69809a4716e62c7e7bfc787453692acd3e4f7baee6c158ab006f6071e13971b",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.2/build-apk.sh"
+        },
+        {
+          "name": "CSQTT-2.5.2-arm64-v8a.apk",
+          "size": 24650940,
+          "digest": "sha256:c0194410070d0975fdc5de4ae0648405f959adff85bfa45d7d94116372426875",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.2/CSQTT-2.5.2-arm64-v8a.apk"
+        },
+        {
+          "name": "CSQTT-2.5.2-armeabi-v7a.apk",
+          "size": 24102124,
+          "digest": "sha256:cb86f68b13a9a98ef5db93991339bb60e592acb3c4465fa1b7516ccc694222da",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.2/CSQTT-2.5.2-armeabi-v7a.apk"
+        },
+        {
+          "name": "CSQTT-2.5.2-universal.apk",
+          "size": 33298821,
+          "digest": "sha256:532a85a2c9c9ca8b183bc20e92d9a00482aef1c72ef873eab4f39954d4a82c83",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.2/CSQTT-2.5.2-universal.apk"
+        },
+        {
+          "name": "CSQTT-2.5.2-x86_64.apk",
+          "size": 25029119,
+          "digest": "sha256:39d831100b2a8f972e9e9aef555b71de6faafe44206f731422ce95e42ec0d485",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.2/CSQTT-2.5.2-x86_64.apk"
+        },
+        {
+          "name": "csqtt-app-2.5.2.patch",
+          "size": 307402,
+          "digest": "sha256:5fdb2d008fcf052ffb71ab31aca5b68440c9aa3d70451be71ba41bf9549a3f47",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.2/csqtt-app-2.5.2.patch"
+        },
+        {
+          "name": "CSQTT-LICENSE.txt",
+          "size": 4841,
+          "digest": "sha256:15c9a3f5217bf23e2a9accb23191133b4a3b9bde0382e9496f1fb83cd8992a75",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.2/CSQTT-LICENSE.txt"
+        },
+        {
+          "name": "Dockerfile.android",
+          "size": 1276,
+          "digest": "sha256:702f1823d11530d7443fea30d0e67335930635b4eb16e33b19cb0077e1c6f579",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.2/Dockerfile.android"
+        },
+        {
+          "name": "SHA256SUMS",
+          "size": 703,
+          "digest": "sha256:f99e245c724efdfb1f4507f518ac727b6b19afcbeff36a862368dfcdefaa5495",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.2/SHA256SUMS"
+        }
+      ],
+      "clientTree": "8c92d40b42656cd307131a9a2a3c8dd9dfee354f",
+      "serverTag": "csqtt-2.5.2",
+      "serverAssets": [
+        {
+          "name": "csqtt-2.5.2-swgpanel-src.tar.gz",
+          "size": 303098,
+          "digest": "sha256:b8f807b5fb7bcc86e299476d4fa694136ef890a1387cd997e958067beff8ac85",
+          "browser_download_url": "https://github.com/SanityProtocol/swg-panel/releases/download/csqtt-2.5.2/csqtt-2.5.2-swgpanel-src.tar.gz"
+        },
+        {
+          "name": "csqtt-swgpanel-2.5.2.patch",
+          "size": 89417,
+          "digest": "sha256:af14e38d80bcb24aa08971472787e3f5d91c7c574f0924eae75637e8598c494f",
+          "browser_download_url": "https://github.com/SanityProtocol/swg-panel/releases/download/csqtt-2.5.2/csqtt-swgpanel-2.5.2.patch"
+        },
+        {
+          "name": "server-linux-amd64",
+          "size": 11275784,
+          "digest": "sha256:02d4114e4181d3c6f43a4b87c6b92b575195070f2d4a9057eb8a19d7bac7fb0b",
+          "browser_download_url": "https://github.com/SanityProtocol/swg-panel/releases/download/csqtt-2.5.2/server-linux-amd64"
+        },
+        {
+          "name": "server-linux-arm64",
+          "size": 9581512,
+          "digest": "sha256:0dd939c77f0f1f894d21e87fbec8fc7d54cd505563af908b08725a3186758242",
+          "browser_download_url": "https://github.com/SanityProtocol/swg-panel/releases/download/csqtt-2.5.2/server-linux-arm64"
+        },
+        {
+          "name": "server-linux-armv7",
+          "size": 8992524,
+          "digest": "sha256:8369e637476f44ba97d1105077acec3263ec7524e93f7c09398211566002bfda",
+          "browser_download_url": "https://github.com/SanityProtocol/swg-panel/releases/download/csqtt-2.5.2/server-linux-armv7"
+        },
+        {
+          "name": "SHA256SUMS",
+          "size": 446,
+          "digest": "sha256:e4eec988e944aeb033e014045f49e7b11d0df06d0be7200576e24e7ff1a4a41a",
+          "browser_download_url": "https://github.com/SanityProtocol/swg-panel/releases/download/csqtt-2.5.2/SHA256SUMS"
+        }
+      ],
+      "serverTagRevision": "9c4a59d523ae4ec42fb8205198678c8a7ffc6263",
+      "tag": "csqtt-app-2.5.2",
+      "serverTagRepository": "SanityProtocol/swg-panel",
+      "revision": "1f51f962288d6e2286790e0770847a800745046e",
+      "sharedTree": "2762532b8fbf0a18f8112b0e87c355494e2fc900",
+      "implementation": "swg-panel-2.5.2",
+      "branch": "release-2.5.2"
+    },
+    "2.5.3": {
+      "native": {
+        "x86_64": {
+          "bytes": 11049968,
+          "sha256": "d8a8022c725194a44403ea6b21ec31b991146494a79c83906a39f72dd215285d",
+          "entry": "lib/x86_64/libclient.so"
+        },
+        "armeabi-v7a": {
+          "bytes": 6823768,
+          "sha256": "f035907d404e93de2102f0dbb5240439a59bd31d8ea01d46fa380af3615b1c5d",
+          "entry": "lib/armeabi-v7a/libclient.so"
+        },
+        "arm64-v8a": {
+          "bytes": 9306656,
+          "sha256": "7299e9c16bc47a0d1238a8f48b54e0a489533a358c2a5384f44ff14f84825e8d",
+          "entry": "lib/arm64-v8a/libclient.so"
+        }
+      },
+      "assets": [
+        {
+          "name": "build-apk.sh",
+          "size": 4267,
+          "digest": "sha256:23e06a89389e9eeed5d54f14d1e8f6dfed3b7313279b3bbe454ac2e6352a1785",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.3/build-apk.sh"
+        },
+        {
+          "name": "CSQTT-2.5.3-arm64-v8a.apk",
+          "size": 25451102,
+          "digest": "sha256:9b7e5d24433475164b541330e2a6c517499b1b6df377a0028a0f00e11beb4fde",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.3/CSQTT-2.5.3-arm64-v8a.apk"
+        },
+        {
+          "name": "CSQTT-2.5.3-armeabi-v7a.apk",
+          "size": 24902295,
+          "digest": "sha256:269900e1ee14443fd9abb27c13d5a7e3e7391f0081641ed3f45cc543774df23b",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.3/CSQTT-2.5.3-armeabi-v7a.apk"
+        },
+        {
+          "name": "CSQTT-2.5.3-universal.apk",
+          "size": 34098971,
+          "digest": "sha256:3c7a11a0a26561269ce27570565a47728d3745d3d33586b7452901213e3e9396",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.3/CSQTT-2.5.3-universal.apk"
+        },
+        {
+          "name": "CSQTT-2.5.3-x86_64.apk",
+          "size": 25829281,
+          "digest": "sha256:76c92a03002639ad2c52ce33eb470b9f6532ea300fdf069d8d05761e27a23dec",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.3/CSQTT-2.5.3-x86_64.apk"
+        },
+        {
+          "name": "csqtt-app-2.5.3.patch",
+          "size": 204033,
+          "digest": "sha256:b0343232478b212a8365e3f11de227617091ac3d7d0bfff0c0e78891385b1a61",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.3/csqtt-app-2.5.3.patch"
+        },
+        {
+          "name": "CSQTT-LICENSE.txt",
+          "size": 4841,
+          "digest": "sha256:15c9a3f5217bf23e2a9accb23191133b4a3b9bde0382e9496f1fb83cd8992a75",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.3/CSQTT-LICENSE.txt"
+        },
+        {
+          "name": "Dockerfile.android",
+          "size": 1276,
+          "digest": "sha256:702f1823d11530d7443fea30d0e67335930635b4eb16e33b19cb0077e1c6f579",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.3/Dockerfile.android"
+        },
+        {
+          "name": "SHA256SUMS",
+          "size": 703,
+          "digest": "sha256:0eb52d5b180bc7eef6309a4876930abdd6b56c8fafee639ee48709c9a17dbc5b",
+          "browser_download_url": "https://github.com/SanityProtocol/csqttr/releases/download/csqtt-app-2.5.3/SHA256SUMS"
+        }
+      ],
+      "clientTree": "8c92d40b42656cd307131a9a2a3c8dd9dfee354f",
+      "serverTag": "csqtt-2.5.3",
+      "serverAssets": [
+        {
+          "name": "csqtt-2.5.3-swgpanel-src.tar.gz",
+          "size": 280748,
+          "digest": "sha256:6b2ee135f7fb6b4cdd0c30b0f44fc8643eb1f459806b37e75cd630523735c5ad",
+          "browser_download_url": "https://github.com/SanityProtocol/swg-panel/releases/download/csqtt-2.5.3/csqtt-2.5.3-swgpanel-src.tar.gz"
+        },
+        {
+          "name": "csqtt-swgpanel-2.5.3.patch",
+          "size": 6948,
+          "digest": "sha256:7860f56b81de843c8943c271c3e1e8212666f1afce5d3b2a9098650a6b08a2ad",
+          "browser_download_url": "https://github.com/SanityProtocol/swg-panel/releases/download/csqtt-2.5.3/csqtt-swgpanel-2.5.3.patch"
+        },
+        {
+          "name": "server-linux-amd64",
+          "size": 11275784,
+          "digest": "sha256:187224d969df4af93555ab5838945eedf3c8bef907d285782348f11c5bc00c4c",
+          "browser_download_url": "https://github.com/SanityProtocol/swg-panel/releases/download/csqtt-2.5.3/server-linux-amd64"
+        },
+        {
+          "name": "server-linux-arm64",
+          "size": 9581512,
+          "digest": "sha256:e9e7dc2d3c9f5675694de26216169685e3630d951b77c2bbf47e762860a7c840",
+          "browser_download_url": "https://github.com/SanityProtocol/swg-panel/releases/download/csqtt-2.5.3/server-linux-arm64"
+        },
+        {
+          "name": "server-linux-armv7",
+          "size": 8993036,
+          "digest": "sha256:ae4a74f6cecf720a8f5022aaaae4ac7b9fa79959a211dc351e760d1d0e687da4",
+          "browser_download_url": "https://github.com/SanityProtocol/swg-panel/releases/download/csqtt-2.5.3/server-linux-armv7"
+        },
+        {
+          "name": "SHA256SUMS",
+          "size": 446,
+          "digest": "sha256:d58e122d0c89273b9bf7a7634266515d6204ed79b68512d9f3310766eeaa0811",
+          "browser_download_url": "https://github.com/SanityProtocol/swg-panel/releases/download/csqtt-2.5.3/SHA256SUMS"
+        }
+      ],
+      "serverTagRevision": "9c4a59d523ae4ec42fb8205198678c8a7ffc6263",
+      "tag": "csqtt-app-2.5.3",
+      "serverTagRepository": "SanityProtocol/swg-panel",
+      "revision": "0188606a243c92a54440be09dc59a93848c463aa",
+      "sharedTree": "2762532b8fbf0a18f8112b0e87c355494e2fc900",
+      "implementation": "swg-panel-2.5.3",
+      "branch": "release-2.5.3"
+    }
+  },
+  "schema": 1,
+  "checked": "2026-10-30"
+}

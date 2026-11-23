@@ -12,6 +12,19 @@ class ClientPacketFixtureTest {
     private fun source() = JSONObject().put("mcrf_packet_fixture",JSONObject()
         .put("original","[Interface]\nPrivateKey=$key\nAddress=10.77.0.2/32,fd77::2/128\nDNS=10.77.0.1\nMTU=1280\n[Peer]\nPublicKey=$key\nEndpoint=192.168.7.1:51820\nAllowedIPs=10.77.0.1/32,fd77::1/128")
         .put("dialIpv4","192.168.7.1").put("apkSha256","b".repeat(64)).put("expectedBody",body))
+    @Test fun strictOwnerAdmitsOnlyAnExactPairPinOnThePlainOwnedFixture() {
+        val pin = "c".repeat(64)
+        fun pinned(value: Any) = source().apply { getJSONObject("mcrf_packet_fixture").put("ownerPairSha256", value) }
+        assertNull(ClientPacketFixture.parse(source(), url).ownerPairSha256)
+        assertEquals(pin, ClientPacketFixture.parse(pinned(pin), url).ownerPairSha256)
+        for (bad in listOf("", pin.uppercase(), pin.dropLast(1), true, JSONObject.NULL)) {
+            assertThrows(IllegalArgumentException::class.java) { ClientPacketFixture.parse(pinned(bad), url) }
+        }
+        for ((key, value) in listOf("captureBlocked" to true, "managedDns" to "udp4", "ipv4Compatibility" to true)) {
+            val input = pinned(pin).apply { getJSONObject("mcrf_packet_fixture").put(key, value) }
+            assertThrows(IllegalArgumentException::class.java) { ClientPacketFixture.parse(input, url) }
+        }
+    }
     @Test fun frameworkServfailIsOnlyAnExactNegativeOutcomeNeverPositiveDns(){
         assertTrue(ClientPacketFixture.frameworkRejection(2,1,110))
         for(rcode in listOf(0,1,3,5))assertFalse(ClientPacketFixture.frameworkRejection(rcode,1,110))

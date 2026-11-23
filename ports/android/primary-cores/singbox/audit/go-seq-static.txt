@@ -1,0 +1,30 @@
+  static java.util.logging.Logger access$000();
+    Code:
+       0: getstatic     #1                  // Field log:Ljava/util/logging/Logger;
+       3: areturn
+
+  static {};
+    Code:
+       0: ldc           #74                 // String GoSeq
+       2: invokestatic  #76                 // Method java/util/logging/Logger.getLogger:(Ljava/lang/String;)Ljava/util/logging/Logger;
+       5: putstatic     #1                  // Field log:Ljava/util/logging/Logger;
+       8: new           #82                 // class go/Seq$Ref
+      11: dup
+      12: bipush        41
+      14: aconst_null
+      15: invokespecial #84                 // Method go/Seq$Ref."<init>":(ILjava/lang/Object;)V
+      18: putstatic     #87                 // Field nullRef:Lgo/Seq$Ref;
+      21: new           #62                 // class go/Seq$GoRefQueue
+      24: dup
+      25: invokespecial #91                 // Method go/Seq$GoRefQueue."<init>":()V
+      28: putstatic     #57                 // Field goRefQueue:Lgo/Seq$GoRefQueue;
+      31: ldc           #92                 // String box
+      33: invokestatic  #94                 // Method java/lang/System.loadLibrary:(Ljava/lang/String;)V
+      36: invokestatic  #99                 // Method init:()V
+      39: invokestatic  #102                // Method go/Universe.touch:()V
+      42: new           #22                 // class go/Seq$RefTracker
+      45: dup
+      46: invokespecial #107                // Method go/Seq$RefTracker."<init>":()V
+      49: putstatic     #17                 // Field tracker:Lgo/Seq$RefTracker;
+      52: return
+}

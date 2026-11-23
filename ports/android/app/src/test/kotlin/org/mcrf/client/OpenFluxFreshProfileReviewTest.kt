@@ -18,10 +18,14 @@ class OpenFluxFreshProfileReviewTest {
 
     @Test fun newShareableCarriersRoundTripButRequireFreshCore() {
         for (type in listOf("avito", "telemost")) {
-            val imported = OpenFluxProfile.link(OpenFluxProfile.share(profile(type))).carrier!!
+            val url=if(type=="avito")Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("[\"room-one\",\"room-two\"]".toByteArray(Charsets.UTF_8)) else "https://docs.example/one"
+            val imported = OpenFluxProfile.link(OpenFluxProfile.share(profile(type,url))).carrier!!
             assertEquals(type, imported.getJSONArray("transports").getJSONObject(0).getString("type"))
+            assertEquals(url, imported.getJSONArray("transports").getJSONObject(0).getString("url"))
             assertTrue(OpenFluxProfile.requiresFreshCore(imported))
         }
+        reject { OpenFluxProfile.share(profile("avito")) }
     }
 
     @Test fun groupedUrlsKeepWireValueAndRequireFreshCore() {
@@ -37,8 +41,8 @@ class OpenFluxFreshProfileReviewTest {
     }
 
     @Test fun existingSingleAndCupsProfilesDoNotRequireFreshCore() {
-        assertFalse(OpenFluxProfile.requiresFreshCore(profile()))
-        assertFalse(OpenFluxProfile.requiresFreshCore(profile("cupsonline", "room-one,room-two")))
+        assertTrue(OpenFluxProfile.requiresFreshCore(profile()))
+        assertTrue(OpenFluxProfile.requiresFreshCore(profile("cupsonline", "room-one,room-two")))
     }
 
     @Test fun onlyExactSourceIdentityAdmitsFreshProfile() {
@@ -68,7 +72,7 @@ class OpenFluxFreshProfileReviewTest {
     }
 
     @Test fun scriptSourceKeepsOldReviewedPairAndAddsExactFreshPair() {
-        assertTrue(OpenFluxProfile.supportsScriptSource("v0.7.3", "f12e981629a18c8c01007d59ac002254c02972bb"))
+        assertFalse(OpenFluxProfile.supportsScriptSource("v0.7.3", "f12e981629a18c8c01007d59ac002254c02972bb"))
         assertTrue(OpenFluxProfile.supportsScriptSource(OpenFluxProfile.FRESH_VERSION, OpenFluxProfile.FRESH_COMMIT))
         assertFalse(OpenFluxProfile.supportsScriptSource("v0.4.2", "74cac6d47bf4c27947348ee957538a2c0728a485"))
     }

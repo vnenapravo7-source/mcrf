@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="org.mcrf.client.permission.ANUBIS_EVENTS" />
+    <queries><package android:name="org.mcrf.client" /></queries>
+    <application android:label="@string/label" android:allowBackup="false">
+        <service android:name=".LaunchObserver" android:exported="true" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/anubis_launch_observer" />
+        </service>
+    </application>
+</manifest>

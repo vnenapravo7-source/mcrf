@@ -13,35 +13,64 @@ class ConnectionCatalogue(source: String) {
         require(data.getInt("version") == 1) { "Неизвестный формат каталога." }
         if (!data.has("subscriptions")) data.put("subscriptions", JSONArray())
         data.getJSONArray("servers")
+        if(data.has("inviteServers"))require(data.getJSONArray("inviteServers").length()<=1000){"Слишком много подключений инвайта."}
         val subscriptions = data.getJSONArray("subscriptions")
         require(subscriptions.length() <= MAX_SUBSCRIPTIONS) { "Слишком много подписок." }
         val ids = hashSetOf<String>(); val urls = hashSetOf<String>()
         repeat(subscriptions.length()) { i ->
             val sub = subscriptions.getJSONObject(i)
+            if(sub.has("title"))require(sub.get("title") is String&&sub.getString("title").let {it.length in 1..256&&it.none(Char::isISOControl)}) {"Некорректное название подписки."}
+            if(sub.has("hidden"))require(sub.get("hidden") is Boolean) {"Некорректная видимость подписки."}
             sub.getJSONArray("servers")
             require(sub.getString("id").isNotEmpty() && ids.add(sub.getString("id")) &&
                 urls.add(SubscriptionClient.address(sub.getString("url")).toString())) { "Некорректный каталог подписок." }
         }
-        entries()
-        data.optJSONObject("warpAccounts")?.let {accounts ->require(accounts.length()<=128);accounts.keys().forEach {id ->require(entries().any {it.id==id&&WarpProfile.isWarp(it)});WarpProfile.account(accounts.getString(id))}}
+        AutoExclusions.parse(data.optString("autoExclusions",""))
+        val validatedEntries=entries()
+        data.optJSONObject("warpAccounts")?.let {accounts ->
+            require(accounts.length()<=128)
+            val byId=validatedEntries.associateBy {it.id}
+            accounts.keys().forEach {id ->require(byId[id]?.let(WarpProfile::isWarp)==true);WarpProfile.account(accounts.getString(id))}
+        }
         if(data.has("warpCommitReceipts"))validateWarpReceipts(data.getJSONObject("warpCommitReceipts"))
     }
     fun serialize(): String = data.toString().also {
         require(it.toByteArray(Charsets.UTF_8).size <= ServerImport.MAX_BYTES) { "Каталог подключений больше 4 МБ." }
     }
+    internal fun csqttMigrationState():JSONObject?=data.optJSONObject(CsqttEngineMigration.KEY)?.let {JSONObject(it.toString())}
+    internal fun csqttMigrationState(value:JSONObject){data.put(CsqttEngineMigration.KEY,JSONObject(value.toString()))}
     fun entries(): List<ServerImport.Server> {
+        val sections=ServerSectionChoice.assignments(data)
         val result = linkedMapOf<String, ServerImport.Server>()
         fun append(links: JSONArray) = repeat(links.length()) { i ->
             ServerImport.read(links.getString(i)).forEach { result.putIfAbsent(it.id, ConnectionEdits.apply(it, data.optJSONObject("edits")?.optJSONObject(it.id))) }
         }
         append(data.getJSONArray("servers"))
+        data.optJSONArray("inviteServers")?.let(::append)
         val subscriptions = data.getJSONArray("subscriptions")
         repeat(subscriptions.length()) { append(subscriptions.getJSONObject(it).getJSONArray("servers")) }
-        return result.values.toList()
+        return result.values.map {ServerSectionChoice.apply(it,sections)}
     }
     fun subscriptions(): List<JSONObject> {
         val list = data.getJSONArray("subscriptions")
         return (0 until list.length()).map { JSONObject(list.getJSONObject(it).toString()) }
+    }
+    fun inviteEntries():List<ServerImport.Server> = data.optJSONArray("inviteServers")?.let {links->
+        (0 until links.length()).flatMap {ServerImport.read(links.getString(it))}
+    }.orEmpty()
+    /** One owned snapshot, independent of protocol, address or number of servers. */
+    fun replaceInvite(imported:List<ServerImport.Server>):Int {
+        require(imported.size<=1000){"Слишком много подключений инвайта."}
+        val next=imported.distinctBy {it.id};val before=inviteEntries()
+        if(!data.has("inviteServers")) {
+            // Older clients imported this exact snapshot into the manual list.
+            // Adopt matching records once; unrelated manual/subscription entries stay separate.
+            val ids=next.mapTo(hashSetOf()){it.id};val manual=data.getJSONArray("servers")
+            for(i in manual.length()-1 downTo 0)if(ServerImport.read(manual.getString(i)).all {it.id in ids})manual.remove(i)
+        }
+        data.put("inviteServers",JSONArray(next.map {it.original}))
+        preserveRenamedChoices(before,next);pruneSelection()
+        return next.size
     }
     /** Called against the fresh commit candidate, after every fetch succeeds. No resurrection of removed subscriptions. */
     fun refreshFetched(downloaded: Map<String, SubscriptionClient.Downloaded>, clearOnSuccess: Boolean,
@@ -95,7 +124,7 @@ class ConnectionCatalogue(source: String) {
             if(values.size == 1 && next.size == 1 && values[0].id != next[0].id) {
                 val from = values[0].id; val to = next[0].id
                 if(from in selected) selected.add(to)
-                listOf("edits", "probes").forEach { section -> data.optJSONObject(section)?.let { if(it.has(from) && !it.has(to)) it.put(to,it.get(from)) } }
+                listOf("edits", "probes", "exitTests", ServerSectionChoice.KEY).forEach { section -> data.optJSONObject(section)?.let { if(it.has(from) && !it.has(to)) it.put(to,it.get(from)) } }
             }
         }
         data.put("autoServers", JSONArray(selected))
@@ -105,6 +134,7 @@ class ConnectionCatalogue(source: String) {
             for (i in links.length() - 1 downTo 0) if (ServerImport.read(links.getString(i)).any { it.id == id }) links.remove(i)
         }
         removeFrom(data.getJSONArray("servers"))
+        data.optJSONArray("inviteServers")?.let(::removeFrom)
         val subscriptions = data.getJSONArray("subscriptions")
         repeat(subscriptions.length()) { removeFrom(subscriptions.getJSONObject(it).getJSONArray("servers")) }
         pruneSelection()
@@ -113,6 +143,17 @@ class ConnectionCatalogue(source: String) {
         val list = data.getJSONArray("subscriptions")
         for (i in list.length() - 1 downTo 0) if (list.getJSONObject(i).getString("id") == id) list.remove(i)
         pruneSelection()
+    }
+    fun renameSubscription(id:String,title:String){
+        val value=title.trim()
+        require(value.length in 1..256&&value.none(Char::isISOControl)) {"Название подписки: от 1 до 256 символов без управляющих знаков."}
+        subscription(id).put("title",value)
+    }
+    fun setSubscriptionHidden(id:String,hidden:Boolean){subscription(id).put("hidden",hidden)}
+    private fun subscription(id:String):JSONObject {
+        val values=data.getJSONArray("subscriptions")
+        return (0 until values.length()).map {values.getJSONObject(it)}.firstOrNull {it.getString("id")==id}
+            ?:throw IllegalArgumentException("Подписка уже удалена.")
     }
     @JvmOverloads fun editSubscription(id: String, address: String, imported: List<ServerImport.Server>, metadata: JSONObject? = null, clearOnSuccess: Boolean = true): SubscriptionChanges {
         val url = SubscriptionClient.address(address).toString()
@@ -134,8 +175,12 @@ class ConnectionCatalogue(source: String) {
         return SubscriptionChanges.between(before, after)
     }
     fun autoIds(): Set<String> {
+        if(data.optJSONArray("autoServers")==null)return emptySet()
+        return autoIds(entries().mapTo(hashSetOf()) { it.id })
+    }
+    /** A published view already validated and parsed these IDs. */
+    internal fun autoIds(existing: Set<String>): Set<String> {
         val list = data.optJSONArray("autoServers") ?: return emptySet()
-        val existing = entries().mapTo(hashSetOf()) { it.id }
         return (0 until list.length()).map { list.getString(it) }.filterTo(linkedSetOf()) { it in existing }
     }
     fun setAuto(id: String, selected: Boolean) {
@@ -145,7 +190,39 @@ class ConnectionCatalogue(source: String) {
         data.put("autoServers", JSONArray(pool))
     }
     fun probes(): JSONObject = JSONObject((data.optJSONObject("probes") ?: JSONObject()).toString())
+    fun autoExclusions()=data.optString("autoExclusions","")
+    fun setAutoExclusions(value:String){AutoExclusions.parse(value);data.put("autoExclusions",value.trim())}
+    fun exitTests()=JSONObject((data.optJSONObject("exitTests")?:JSONObject()).toString())
+    fun clearExitCountry(id:String){data.optJSONObject("exitTests")?.remove(id)}
+    fun clearExitCountry(entry:ServerImport.Server) {
+        val latest=entries().firstOrNull {it.id==entry.id}?:return
+        if(RoutingDefaultsEdits.equivalent(ConnectionEdits.snapshot(latest),ConnectionEdits.snapshot(entry)))clearExitCountry(entry.id)
+    }
+    fun recordExitCountry(entry:ServerImport.Server,country:String,at:Long) {
+        ServerEditorCommit.requireUnchanged(entries().firstOrNull {it.id==entry.id},ConnectionEdits.snapshot(entry))
+        recordExitCountry(entry.id,country,at)
+    }
+    fun recordExitCountry(id:String,country:String,at:Long) {
+        require(entries().any {it.id==id}&&country in java.util.Locale.getISOCountries().toSet()&&at>0)
+        data.put("exitTests",exitTests().put(id,JSONObject().put("country",country).put("at",at)))
+    }
+    fun autoCandidates(input:List<ServerImport.Server>):List<ServerImport.Server> {
+        val filter=AutoExclusions.parse(autoExclusions());val proof=exitTests()
+        return input.filter {AutoExclusions.allowed(it,filter,proof)}
+    }
     fun clearProbes(){data.remove("probes")}
+    internal fun saveTvProfile(profile: TvTransferredProfile): Int {
+        val target = profile.parse()
+        if (entries().none { it.id == target.id }) add(profile.original)
+        edit(target.id, profile.options)
+        val current = entries().single { it.id == target.id }
+        if (current.whitelists != target.whitelists) {
+            val updated = ServerSectionChoice.move(data, target.id, target.whitelists)
+            data.put(ServerSectionChoice.KEY, updated.getJSONObject(ServerSectionChoice.KEY))
+        }
+        return 1
+    }
+
     fun edited(id: String) = data.optJSONObject("edits")?.has(id) == true
     fun edit(id: String, options: JSONObject?) {
         val entry = entries().firstOrNull { it.id == id } ?: throw IllegalArgumentException("Подключение уже удалено.")
@@ -154,6 +231,7 @@ class ConnectionCatalogue(source: String) {
         if (options == null) edits.remove(id) else edits.put(id, JSONObject(options.toString()))
         data.put("edits", edits)
         data.put("probes", probes().apply { remove(id) })
+        data.optJSONObject("exitTests")?.remove(id)
     }
     fun recordProbe(id: String, delay: Long, now: Long) {
         require(entries().any { it.id == id }) { "Проверяемый сервер уже удалён." }
@@ -220,6 +298,7 @@ class ConnectionCatalogue(source: String) {
         probes.keys().asSequence().toList().filter { it !in existing }.forEach { probes.remove(it) }
         data.put("probes", probes)
         data.optJSONObject("edits")?.let { edits -> edits.keys().asSequence().toList().filter { it !in existing }.forEach(edits::remove) }
+        data.optJSONObject(ServerSectionChoice.KEY)?.let { sections -> sections.keys().asSequence().toList().filter {it !in existing}.forEach(sections::remove) }
         data.optJSONObject("warpAccounts")?.let {accounts ->accounts.keys().asSequence().toList().filter {it !in existing}.forEach(accounts::remove)}
     }
 }

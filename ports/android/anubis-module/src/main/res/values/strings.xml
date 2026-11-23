@@ -1,0 +1,4 @@
+<resources>
+    <string name="label">MCRF · Anubis</string>
+    <string name="description">Получает события открытия окон для правил VPN. Содержимое экрана не читается.</string>
+</resources>

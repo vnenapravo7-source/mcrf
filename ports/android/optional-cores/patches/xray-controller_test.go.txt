@@ -1,0 +1,31 @@
+package internet
+
+import (
+	"context"
+	"errors"
+	"strings"
+	"syscall"
+	"testing"
+
+	"github.com/xtls/xray-core/common/net"
+)
+
+func TestMcrfControllerRejectionStopsTCPAndUDP(t *testing.T) {
+	previous := Controllers
+	t.Cleanup(func() { Controllers = previous })
+	blocked := errors.New("owned socket binding refusal")
+	Controllers = nil
+	if err := RegisterDialerController(func(string, string, syscall.RawConn) error { return blocked }); err != nil {
+		t.Fatal(err)
+	}
+	for _, network := range []net.Network{net.Network_TCP, net.Network_UDP} {
+		destination := net.Destination{Network: network, Address: net.LocalHostIP, Port: 1}
+		conn, err := (&DefaultSystemDialer{}).Dial(context.Background(), nil, destination, nil)
+		if conn != nil {
+			conn.Close()
+		}
+		if err == nil || !strings.Contains(err.Error(), blocked.Error()) {
+			t.Fatalf("%s did not return the binding refusal: %v", network, err)
+		}
+	}
+}

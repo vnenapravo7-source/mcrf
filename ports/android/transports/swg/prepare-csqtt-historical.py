@@ -80,6 +80,7 @@ def adapt(root, generation):
     helper = scripts / "mcrf_captcha_waiters.rs"
     (root / "rust-client/mcrf_captcha_waiters.rs").write_bytes(helper.read_bytes())
     (root / "rust-client/mcrf_historical_tunnel.rs").write_bytes((scripts / "mcrf_historical_tunnel.rs").read_bytes())
+    subprocess.run([sys.executable, str(scripts / "prepare-csqtt-streams.py"), str(root)], check=True)
     print("HISTORICAL_CS QTT_SOURCE_ADAPTED=".replace(" ", "") + generation)
 
 if __name__ == "__main__":

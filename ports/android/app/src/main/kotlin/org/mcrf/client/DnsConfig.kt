@@ -5,6 +5,31 @@ import org.json.JSONObject
 import java.net.URI
 
 object DnsConfig {
+    /** Retired policy is inert even in old backups; preserve the configured resolver. */
+    fun withoutRetiredPolicy(settings:JSONObject)=JSONObject(settings.toString()).apply {remove("tamperProtection")}
+    fun retireLegacyPolicies(state:JSONObject):Boolean {
+        var changed=false
+        fun retire(resolver:JSONObject?) {
+            if(resolver?.has("tamperProtection")==true){resolver.remove("tamperProtection");changed=true}
+        }
+        val pending=java.util.ArrayDeque<JSONObject>().apply {add(state)}
+        while(pending.isNotEmpty()) {
+            val value=pending.removeFirst()
+            retire(value.optJSONObject("globalDns"))
+            value.optJSONObject("advancedDns")?.let {advanced->retire(advanced.optJSONObject("direct"));retire(advanced.optJSONObject("local"))}
+            value.optJSONArray("rules")?.let {rules->repeat(rules.length()){retire(rules.optJSONObject(it)?.optJSONObject("dns"))}}
+            value.optJSONObject("routingGroups")?.optJSONArray("groups")?.let {groups->
+                repeat(groups.length()){groups.optJSONObject(it)?.optJSONObject("data")?.let(pending::add)}
+            }
+            value.optJSONObject("experienceRouting")?.let {banks->
+                for(mode in listOf("simple","expert"))banks.optJSONObject(mode)?.let(pending::add)
+            }
+            value.optJSONObject("temporaryRules")?.optJSONArray("sessions")?.let {sessions->
+                repeat(sessions.length()){retire(sessions.optJSONObject(it)?.optJSONObject("rule")?.optJSONObject("dns"))}
+            }
+        }
+        return changed
+    }
     // A valid native tag identifies DNS emitted by the app, not an imported JSON
     // profile. No unknown metadata is passed to the native core or backup validator.
     const val APP_DNS_TAG = "mcrf-app-dns"
@@ -64,6 +89,11 @@ object DnsConfig {
             val uriPath = uri.rawPath.orEmpty()
             if (type in setOf("https", "h3")) { if (uriPath.isNotEmpty() && uriPath != "/") path = uriPath }
             else require(uriPath.isEmpty() || uriPath == "/") { "Для этого протокола DNS путь не используется." }
+        }
+        if(settings.has("endpointIp")) {
+            val endpoint=settings.getString("endpointIp")
+            require(provider=="Свой"&&RouteRules.literal(endpoint)!=null){"IP DNS должен быть числовым адресом."}
+            server=endpoint
         }
         require(port in 1..65535 && !host.contains('%')) { "Некорректный адрес DNS." }
         return JSONObject().put("type", type).put("tag", tag).put("server", server).put("server_port", port).apply {

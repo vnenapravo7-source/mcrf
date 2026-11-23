@@ -10,7 +10,8 @@ class SwgInviteSubscriptionTest {
     @Test fun addressRequiresCompletePanelLinkAndKeepsUnlockFragment(){
         val key=Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32){it.toByte()})
         val value="https://vnenapravo7.ru/wdtt/sub/abcdefghijklmnop#$key"
-        assertEquals(value,SwgInviteSubscription.address(value))
+        assertEquals("https://179.254.154.28/wd/sub/abcdefghijklmnop#$key",SwgInviteSubscription.address(value))
+        assertEquals("https://179.254.154.28/wd/sub/abcdefghijklmnop#$key",SwgInviteSubscription.address("https://179.254.154.28/wd/sub/abcdefghijklmnop#$key"))
     }
     @Test fun panelTargetsBecomeEverySupportedGeneration(){
         fun target(kind:String,index:Int)=JSONObject().put("type",kind).put(kind,JSONObject()

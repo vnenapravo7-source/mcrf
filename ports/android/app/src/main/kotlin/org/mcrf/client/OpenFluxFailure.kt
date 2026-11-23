@@ -5,6 +5,10 @@ internal object OpenFluxFailure {
     fun describe(engine: String, line: String): String? {
         if (engine != "openflux") return null
         return when (line) {
+            "MCRF_OPENFLUX_FAILURE transport_start_rejected" ->
+                "OpenFlux не запустил транспорт. Проверьте протокол, адрес/список комнат, секрет, контекст и параметры сервера в редакторе подключения."
+            "MCRF_OPENFLUX_FAILURE script_package_rejected" ->
+                "Официальный script-пакет отсутствует или не прошёл проверку SHA/подписи. Обновите модуль OpenFlux; mtslink-webrtc и vkteams ожидают публикации пакетов."
             "MCRF_OPENFLUX_FAILURE provider_verification_required" ->
                 "Провайдер OpenFlux запросил проверку в браузере. Этот модуль пока не поддерживает её показ; подключение остановлено без обхода проверки."
             "MCRF_OPENFLUX_FAILURE setup_page_unsupported" ->

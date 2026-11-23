@@ -690,6 +690,7 @@ if($S3BypassStage){
     if(@($taskS3Notices.missingModules).Count){throw 'S3 dependency notices need review; keep existing compiled binaries, do not rebuild them'}
     if($taskS3Receipt.controlFile -cne 'producer-control.ps1' -or (Get-FileHash -LiteralPath (Join-Path $taskS3Root 'producer-control.ps1') -Algorithm SHA256).Hash.ToLowerInvariant() -cne $taskS3Receipt.controlSha256){throw 'Native producer snapshot differs from its receipt'}
     $taskS3Files=@('receipt.json','source-manifest.json','notice-manifest.json','producer-control.ps1')
+    if($taskS3Receipt.s3UnderlayContract -eq 1){$taskS3Files+='s3-underlay-host-tests.log'}
     foreach($taskNotice in $taskS3Notices.files){
         $taskRelative='licenses/'+$taskNotice.file
         $taskNoticeFile=[IO.Path]::GetFullPath((Join-Path $taskS3Root $taskRelative))

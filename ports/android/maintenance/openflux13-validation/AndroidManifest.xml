@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.mcrf.openflux.validation" android:versionCode="1" android:versionName="0.13.0-validation.1">
+ <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="34"/>
+ <uses-permission android:name="android.permission.INTERNET"/>
+ <queries><package android:name="org.mcrf.engines.openflux"/></queries>
+ <application android:label="MCRF isolated OpenFlux validation" android:allowBackup="false" android:extractNativeLibs="true" android:hasCode="true"/>
+ <instrumentation android:name="org.mcrf.openflux.validation.Validation" android:targetPackage="org.mcrf.openflux.validation" android:functionalTest="true"/>
+</manifest>

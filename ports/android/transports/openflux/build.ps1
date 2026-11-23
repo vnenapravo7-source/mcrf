@@ -1,5 +1,11 @@
 param([string]$Ndk='', [switch]$TestServer, [switch]$HostOnly, [string]$Commit='', [string]$Version='', [switch]$StageOnly, [switch]$ScriptUpdaterCandidate, [switch]$MailruAckCandidate, [switch]$FreshCoreCandidate, [string]$RetainStartupEvidenceFrom='')
 $ErrorActionPreference='Stop'
+if($args.Count){throw 'Unknown OpenFlux build arguments'}
+# Active producer is exclusively official v0.17.1. Historical recipes below
+# remain as evidence; they cannot label old native bytes with the current pin.
+if($Commit -or $Version -or $ScriptUpdaterCandidate -or $MailruAckCandidate -or $FreshCoreCandidate -or $RetainStartupEvidenceFrom){throw 'Historical OpenFlux producers retired; use pinned v0171/build.ps1'}
+& "$PSScriptRoot/v0171/build.ps1" -Ndk $Ndk -TestServer:$TestServer -HostOnly:$HostOnly
+return
 $taskProject=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $taskGo=Join-Path $taskProject 'work/toolchains/go1.26.8/go/bin/go.exe'
 $env:GOPATH=Join-Path $taskProject 'work/toolchains/go-home'

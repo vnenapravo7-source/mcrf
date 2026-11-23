@@ -1,0 +1,18 @@
+{
+  "cases": 288,
+  "moduleReadonly": true,
+  "downloads": false,
+  "sourceRoot": "D:/MCRF/Projects/MCRF/work/android-upstream/sing-box-lx-mcrf-clash-20261014",
+  "scope": "288 real selected-primary rule.Match comparisons, no network",
+  "fixtureSha256": "a510b4ee7027e3da5f8cd3591d81c8a63a95a5ee4514ad57d3b85e44986b953a",
+  "sources": {
+    "route/rule/rule_item_ipversion.go": "4e3e8a89debf0088429f198ea348a2c2cbca21c615d4b91ca666553f0c670695",
+    "go.mod": "3a199dda3d1c9f86b4b1197780bb6cc57f666f7744239b5db668ee9bf3e8a9d3",
+    "route/rule/rule_item_cidr.go": "76fb158b5f1c35007cf747a93bc89ff1a632f0133e0858c555ce99b5e90b6e37",
+    "route/rule/rule_default.go": "ce384ce12ad3375e1e0e83e6aa6157f7cf7ce1642bd71fcecfe3d51c3bb1554a",
+    "go.sum": "24b3725cfbcff73605f64460349065873a67a88f01dcc059dd685cd40f796be3",
+    "route/rule/rule_item_ip_is_private.go": "116638d9a4404b260019320c96a8fdaee339f7a044cfdc082825094b5ccdbc5b",
+    "option/rule.go": "eec31a22a325886bcffd9752f043fb38c0fdc2fcc2280c9b3ae8f43d186d7902"
+  },
+  "generatorSha256": "2cd751f12cf5761ac7fc464d735bf7e0bc795b2019ccc149d49a5521e81f8f04"
+}

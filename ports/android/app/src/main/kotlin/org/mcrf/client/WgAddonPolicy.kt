@@ -1,13 +1,36 @@
 package org.mcrf.client
 
+import android.content.Context
+import android.content.pm.PackageManager
 import org.json.JSONObject
 
-/** Human-defined WG routing precedence; never modifies primary choice or removes installed modules. */
+/** Backend choice for WG/AWG leaves the primary-core preference untouched. */
 object WgAddonPolicy {
     const val KIND = "wg-awg"
     enum class Backend { SING_BOX, COMPACT_WG, NEED_PRIMARY, NEED_SING_BOX, NEED_COMPACT_WG }
 
     fun isWireGuard(protocol: String) = protocol in setOf("wg","wireguard","awg")
+
+    internal fun standaloneProfile(entry:ServerImport.Server?,vpn:Boolean,automatic:Boolean):Boolean =
+        vpn&&!automatic&&entry!=null&&isWireGuard(entry.protocol)&&entry.carrier==null&&entry.configuration==null
+
+    internal fun standalonePreferred(compactPresent:Boolean,singBoxPresent:Boolean):Boolean =
+        compactPresent||!singBoxPresent
+
+    /** UI package hint. The actual start verifies the APK off the UI thread. */
+    internal fun standaloneHint(context:Context):Boolean {
+        fun present(kind:String)=try {
+            context.packageManager.getApplicationInfo(EngineModules.packageName(kind),0);true
+        }catch(_:PackageManager.NameNotFoundException){false}
+        return standalonePreferred(present(KIND),present("sing-box"))
+    }
+
+    internal fun prefersStandalone(context:Context):Boolean {
+        try {EngineUpdatePacket.installation(context);return true}
+        catch(_:PackageManager.NameNotFoundException){}
+        return try {EngineUpdatePrimary.installation(context,"sing-box");false}
+        catch(_:PackageManager.NameNotFoundException){true}
+    }
 
     /** Follow the active selector, not every unselected server stored in the same configuration. */
     fun usesWireGuard(source: JSONObject): Boolean {
@@ -49,11 +72,4 @@ object WgAddonPolicy {
     fun offerDownload(primary: String?, singBoxInstalled: Boolean, compactInstalled: Boolean, protocols: Collection<String>) =
         protocols.any(::isWireGuard) && backend(primary,singBoxInstalled,compactInstalled) == Backend.NEED_COMPACT_WG
 
-    fun requireDownloadAllowed(primary: String?, singBoxPresent:Boolean=false) {
-        require(!singBoxPresent) {"sing-box уже установлен: WG/AWG работает через него, отдельный модуль не нужен."}
-        require(primary == "steer") {
-            if(primary == "singbox") "Для sing-box модуль WG/AWG не нужен: эти протоколы уже поддерживаются."
-            else "Сначала выбери основной движок. Модуль WG/AWG предназначен для Steer."
-        }
-    }
 }

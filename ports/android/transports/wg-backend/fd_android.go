@@ -6,6 +6,7 @@ import (
 	"golang.org/x/sys/unix"
 	"os"
 	"sync"
+	"time"
 )
 
 // Takes fd ownership only on success. On every rejection no os.File finalizer
@@ -41,6 +42,7 @@ type fdTun struct {
 	events   chan tun.Event
 	once     sync.Once
 	closeErr error
+	owner    *ownerGate
 }
 
 func (t *fdTun) File() *os.File           { return t.file }
@@ -52,12 +54,16 @@ func (t *fdTun) Read(bufs [][]byte, sizes []int, offset int) (int, error) {
 	if len(bufs) == 0 || len(sizes) == 0 || offset < 0 || offset >= len(bufs[0]) {
 		return 0, errors.New("WG_TUN_BUFFER")
 	}
-	n, err := t.file.Read(bufs[0][offset:])
-	if err != nil {
-		return 0, err
+	for {
+		n, err := t.file.Read(bufs[0][offset:])
+		if err != nil {
+			return 0, err
+		}
+		if t.owner == nil || t.owner.admit(bufs[0][offset:offset+n], time.Now()) {
+			sizes[0] = n
+			return 1, nil
+		}
 	}
-	sizes[0] = n
-	return 1, nil
 }
 func (t *fdTun) Write(bufs [][]byte, offset int) (int, error) {
 	for i, buf := range bufs {

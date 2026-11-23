@@ -4,6 +4,7 @@ import org.json.JSONObject
 
 /** Only the pinned client's structured, fatal configuration rejection; never raw native logs. */
 object CsqttNativeFailure {
+    class Rejected(val kind:Kind,detail:String=""):IllegalArgumentException("${kind.explanation} $detail")
     enum class Kind(val explanation:String) {
         PROTOCOL("CSQTT: сервер отклонил версию протокола или число потоков. Проверь версию CSQTT сервера и параметры подключения; старый CSQTT и 2.5 нельзя считать взаимозаменяемыми."),
         ACCESS("CSQTT: сервер отклонил доступ. Проверь пароль, срок действия и привязку подключения к устройству.")
@@ -24,8 +25,8 @@ object CsqttNativeFailure {
             val message=event.optString("message")
             if(message.length>4096||"AUTH_RETRY" in message)return null
             when {
-                "FATAL_PROTOCOL:" in message->Kind.PROTOCOL
-                "FATAL_AUTH:" in message->Kind.ACCESS
+                message.startsWith("FATAL_AUTH:")->Kind.ACCESS
+                message.startsWith("FATAL_PROTOCOL:")&&"FATAL_AUTH:" !in message->Kind.PROTOCOL
                 else->null
             }
         }catch(_:Exception){null}

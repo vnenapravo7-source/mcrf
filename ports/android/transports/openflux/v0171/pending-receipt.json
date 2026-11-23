@@ -1,0 +1,19 @@
+{
+  "state": "PENDING_NATIVE_AND_APK_BUILD",
+  "repository": "p1neappleXpress/OpenFlux",
+  "version": "v0.17.1",
+  "commit": "f492a1a33b7581ad8f88118f97e0b866adda3cdc",
+  "tagObject": "5131040c49d42719c822ff297fa204404480a739",
+  "sourceOfCommit": "https://api.github.com/repos/p1neappleXpress/OpenFlux/git/tags/5131040c49d42719c822ff297fa204404480a739",
+  "nativeSha256": null,
+  "apkSha256": null,
+  "files": [],
+  "testsExecuted": false,
+  "runtimeAccepted": false,
+  "published": false,
+  "reason": "Human forbids APK/native/helper builds in this turn. Source/static checks only; existing binaries and historical receipts are not v0.17.1 evidence.",
+  "pending": ["native build and host suites", "APK/signature/ABI/16KB checks", "provider/JS runtime acceptance", "new prompt API setup/CAPTCHA UI adapter source work and runtime acceptance", "mtslink-webrtc and vkteams have no stable package in the pinned official index"],
+  "packageVerificationReceipt": "package-verification-receipt.json",
+  "packageBytesAndSignaturesVerified": true,
+  "packageVerificationIsNotNativeAcceptance": true
+}

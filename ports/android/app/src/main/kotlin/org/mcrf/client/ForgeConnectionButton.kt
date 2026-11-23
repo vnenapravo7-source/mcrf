@@ -17,9 +17,13 @@ class ForgeConnectionButton(private val activity:MainActivity,private val motion
     private var speed=0.0
     private var resumed=true
     private val scroll=ViewTreeObserver.OnScrollChangedListener {refresh()}
+    // Attach/size callbacks can precede a usable global rectangle. Refresh
+    // after layout as well so a newly selected scene resumes its WebView even
+    // when the user neither scrolls nor leaves/re-enters the Activity.
+    private val layout=ViewTreeObserver.OnGlobalLayoutListener {refresh()}
     init {
         tag="connection-primary";setPadding(0,0,0,0);setBackgroundColor(Color.TRANSPARENT)
-        minimumHeight=activity.dp(164);stateListAnimator=null;isClickable=true;isFocusable=true
+        minimumHeight=activity.dp(144);stateListAnimator=null;isClickable=true;isFocusable=true
         addView(scene,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT))
         setOnClickListener {action()}
     }
@@ -38,13 +42,13 @@ class ForgeConnectionButton(private val activity:MainActivity,private val motion
     }
     fun resumeAnimation(visible:Boolean){resumed=visible;refresh()}
     private fun canDraw()=resumed&&isAttachedToWindow&&windowVisibility==View.VISIBLE&&isShown&&getGlobalVisibleRect(visibleBounds)
-    private fun refresh(){scene.present(style,exit,motion.currentSignal(),speed,ValueAnimator.areAnimatorsEnabled(),canDraw())}
+    private fun refresh(){scene.present(style,motion.exitStyle,motion.currentSignal(),speed,ValueAnimator.areAnimatorsEnabled(),canDraw())}
     override fun onInterceptTouchEvent(event:MotionEvent)=true
     override fun onInitializeAccessibilityNodeInfo(info:AccessibilityNodeInfo){super.onInitializeAccessibilityNodeInfo(info);info.className="android.widget.Button"}
-    override fun onAttachedToWindow(){super.onAttachedToWindow();viewTreeObserver.addOnScrollChangedListener(scroll);refresh()}
+    override fun onAttachedToWindow(){super.onAttachedToWindow();viewTreeObserver.addOnScrollChangedListener(scroll);viewTreeObserver.addOnGlobalLayoutListener(layout);refresh()}
     override fun onDetachedFromWindow(){
         resumed=false;refresh()
-        if(viewTreeObserver.isAlive)viewTreeObserver.removeOnScrollChangedListener(scroll)
+        if(viewTreeObserver.isAlive){viewTreeObserver.removeOnScrollChangedListener(scroll);viewTreeObserver.removeOnGlobalLayoutListener(layout)}
         scene.dispose();super.onDetachedFromWindow()
     }
     override fun onVisibilityAggregated(isVisible:Boolean){super.onVisibilityAggregated(isVisible);refresh()}

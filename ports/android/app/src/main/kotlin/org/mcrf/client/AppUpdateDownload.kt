@@ -27,9 +27,13 @@ internal object AppUpdateDownload {
         val own=pm.getPackageInfo(context.packageName,PackageManager.GET_SIGNING_CERTIFICATES)
         fun signers(p:android.content.pm.PackageInfo)=p.signingInfo?.apkContentsSigners?.map{it.toCharsString()}?.toSet().orEmpty()
         AppUpdateSafety.validate(context.packageName,apk.packageName,expected.version,apk.versionName,own.longVersionCode,apk.longVersionCode,signers(own),signers(apk))
+        require(expected.versionCode==null||apk.longVersionCode==expected.versionCode){"Номер сборки APK не совпадает с опубликованным."}
     }
     fun download(context:Context,expected:EnginePackage,cancelled:()->Boolean,progress:(Long)->Unit):File {
+        MobileBetaUpdates.requireAllowed(context,expected)
         require(expected.engine==null&&expected.url.host=="github.com"&&expected.url.path.startsWith("/${EnginePackage.REPOSITORY}/releases/download/android-v")){"Некорректный источник обновления приложения."}
+        VersionArchive.capture(context,context.packageName)
+        DownloadSourceReporting.tryReport(expected.url)
         // Keep at most two earlier handed-off application APKs; never touch engine packages.
         context.cacheDir.listFiles()?.filter{it.name.matches(Regex("mcrf-app-update-[0-9a-f-]{36}\\.apk"))&&!java.nio.file.Files.isSymbolicLink(it.toPath())}
             ?.sortedByDescending{it.lastModified()}?.drop(2)?.forEach{it.delete()}

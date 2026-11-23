@@ -25,12 +25,14 @@ function Replace-Exact([string]$Path,[string]$Old,[string]$New){
  if(($taskText.Split([string[]]@($Old),[StringSplitOptions]::None).Count-1) -ne 1){throw "SSTP source anchor changed: $Path"}
  [IO.File]::WriteAllText($Path,$taskText.Replace($Old,$New),[Text.UTF8Encoding]::new($false))
 }
-foreach($taskName in @('main.go','config.go','config_test.go')){Copy-Item -LiteralPath "$PSScriptRoot/$taskName" -Destination "$taskModule/$taskName"}
+foreach($taskName in @('main.go','config.go','config_test.go','mcrf_underlay.go','mcrf_underlay_android.go','mcrf_underlay_other.go','mcrf_underlay_test.go')){Copy-Item -LiteralPath "$PSScriptRoot/$taskName" -Destination "$taskModule/$taskName"}
 Copy-Item -LiteralPath "$PSScriptRoot/mcrf_close.go" -Destination "$taskModule/tunnel/mcrf_close.go"
 Copy-Item -LiteralPath "$PSScriptRoot/mcrf_lifecycle_test.go" -Destination "$taskModule/tunnel/mcrf_lifecycle_test.go"
 Copy-Item -LiteralPath "$PSScriptRoot/mcrf_wire_test.go" -Destination "$taskModule/tunnel/mcrf_wire_test.go"
 Replace-Exact "$taskModule/socks5.go" 'type SOCKSProxy struct {' "type SOCKSProxy struct {`n`tctx context.Context"
 Replace-Exact "$taskModule/socks5.go" 'context.WithTimeout(context.Background(), 30*time.Second)' 'context.WithTimeout(p.ctx, 30*time.Second)'
+Replace-Exact "$taskModule/tunnel/tunnel.go" 'type Config struct {' "type Config struct {`n`tMcrfNetDialer *net.Dialer"
+Replace-Exact "$taskModule/tunnel/tunnel.go" 'tls.Dialer{Config: tlsCfg}' 'tls.Dialer{Config: tlsCfg, NetDialer: cfg.McrfNetDialer}'
 $taskAnchor=''+"`tvar certFP string"
 $taskDeadline=@'
 	// MCRF: cancellation/deadline also covers post-TLS HTTP and SSTP negotiation.

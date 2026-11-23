@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "abi": "armeabi-v7a",
+  "versions": ["2.5.2", "2.5.3"],
+  "receiptSha256": "5b3b50826f450da5bbe4ffdec5eb9f167854caede54d2591c32523f2b7a633a6",
+  "sha256": "133dc70f2ce0c02aef496bbb4c104f12d84d0937bc5ba24040ac2ad08a898d22",
+  "bytes": 6864016,
+  "domainsGitBlob": "d52d29657e34ffa13544323087ed7f20b344737a",
+  "domainsSha256": "3783f488db5378a9d91120c43f874bf70cab62bd0a799b6951f7859a492cecd1"
+}

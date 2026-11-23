@@ -3,10 +3,18 @@ $ErrorActionPreference='Stop'
 function Hash([string]$Path){(Get-FileHash -LiteralPath $Path).Hash.ToLowerInvariant()}
 function Save($Value,[string]$Path){[IO.File]::WriteAllText($Path,($Value|ConvertTo-Json -Depth 12),[Text.UTF8Encoding]::new($false))}
 $taskCanonical='D:/MCRF/Projects/MCRF/work/steer-android-port'
+$taskUpstreamPin=Get-Content "$taskCanonical/UPSTREAM_BASE.json" -Raw|ConvertFrom-Json -AsHashtable
+if($taskUpstreamPin.revision -cne 'eeb0471bdd75ff0b8e65bddeecf7493d04baace6' -or $taskUpstreamPin.integrationMode -cne 'selective-post-pr-port'){throw 'Reviewed Steer upstream base required'}
+$taskUpstreamTree=& git -C $taskCanonical rev-parse "$($taskUpstreamPin.revision)^{tree}"
+if($LASTEXITCODE -ne 0 -or $taskUpstreamTree -cne $taskUpstreamPin.tree){throw 'Steer upstream reference tree changed or missing'}
+$taskLocalHead=& git -C $taskCanonical rev-parse HEAD
+if($LASTEXITCODE -ne 0){throw 'Local Steer provenance unavailable'}
+$taskLocalStatus=@(& git -C $taskCanonical status --porcelain=v1 --untracked-files=normal)
+if($LASTEXITCODE -ne 0){throw 'Local Steer status unavailable'}
 $taskPrimary=(Resolve-Path -LiteralPath $RetainedPrimaryStage).Path
 $taskRetained=Get-Content "$taskPrimary/receipt.json" -Raw|ConvertFrom-Json -AsHashtable
 $taskDescriptor=$taskRetained.modules.steer
-if(!$taskDescriptor -or $taskDescriptor.api -ne 2 -or $taskDescriptor.versionCode -notin @(13,14) -or (@($taskDescriptor.abis|Sort-Object) -join ',') -cne 'arm64-v8a,x86_64'){throw 'Accepted Steer two-ABI source descriptor required'}
+if(!$taskDescriptor -or $taskDescriptor.api -ne 2 -or $taskDescriptor.versionCode -notin @(13,14,16) -or (@($taskDescriptor.abis|Sort-Object) -join ',') -cne 'arm64-v8a,x86_64'){throw 'Accepted Steer two-ABI source descriptor required'}
 foreach($taskName in @('runtime.aar','adapter.aar')){
  $taskArtifact=@($taskDescriptor.artifacts|Where-Object file -CEQ $taskName)
  if($taskArtifact.Count -ne 1 -or $taskArtifact[0].sha256 -cne (Hash "$taskPrimary/steer/$taskName")){throw 'Retained Steer AAR digest changed'}
@@ -29,6 +37,8 @@ foreach($taskArea in @('src','tests','android-vpn/core/src/main/cpp','android-vp
  }
 }
 Copy-Item "$taskCanonical/Android.bp" "$taskSource/Android.bp"
+Copy-Item "$taskCanonical/UPSTREAM_BASE.json" "$taskSource/UPSTREAM_BASE.json"
+Save @{reviewedUpstreamReference=$taskUpstreamPin.revision;reviewedUpstreamTree=$taskUpstreamPin.tree;integrationMode=$taskUpstreamPin.integrationMode;localGitHead=$taskLocalHead;localWorkingTreeDirty=($taskLocalStatus.Count -gt 0);exactContents='SOURCE_MANIFEST.json';fullUpstreamTreeImported=$false;upstreamAncestryClaimed=$false} "$taskStage/source-provenance.json"
 Get-ChildItem -LiteralPath $taskCanonical -File|Where-Object {$_.Name -match '^(LICENSE|LICENCE|COPYING|NOTICE)([._-].*)?$'}|ForEach-Object {Copy-Item -LiteralPath $_.FullName -Destination "$taskSource/$($_.Name)"}
 & "$PSScriptRoot/Apply-SocksUdpSource.ps1" -Source $taskSource
 $taskCmake="$taskSource/android-vpn/core/src/main/cpp/CMakeLists.txt"
@@ -63,5 +73,5 @@ try{foreach($taskAbi in @('arm64-v8a','x86_64')){
 Save $taskTls "$taskStage/tls.json"
 $taskRows=@(Get-ChildItem -LiteralPath $taskStage -Recurse -File|ForEach-Object {@{path=[IO.Path]::GetRelativePath($taskStage,$_.FullName).Replace([char]92,[char]47);sha256=Hash $_.FullName;bytes=$_.Length}}|Sort-Object path)
 Save $taskRows "$taskStage/SOURCE_MANIFEST.json"
-Save @{state='SOURCE_PREPARED_NOT_COMPILED';source=$taskSource;kind='steer';baselineDescriptorVersion=$taskDescriptor.versionCode;baselinePackageVersionNotInferredFromAar=$true;newVersion=15;baselinePrimaryReceiptSha256=Hash "$taskPrimary/receipt.json";manifestSha256=Hash "$taskStage/SOURCE_MANIFEST.json";compiled=$false;executed=$false;producerComplete=$false} "$taskStage/receipt.json"
+Save @{state='SOURCE_PREPARED_NOT_COMPILED';source=$taskSource;kind='steer';baselineDescriptorVersion=$taskDescriptor.versionCode;baselinePackageVersionNotInferredFromAar=$true;newVersion=15;baselinePrimaryReceiptSha256=Hash "$taskPrimary/receipt.json";reviewedUpstreamReference=$taskUpstreamPin.revision;upstreamIntegrationMode=$taskUpstreamPin.integrationMode;localGitHead=$taskLocalHead;provenanceSha256=Hash "$taskStage/source-provenance.json";manifestSha256=Hash "$taskStage/SOURCE_MANIFEST.json";compiled=$false;executed=$false;producerComplete=$false} "$taskStage/receipt.json"
 Write-Output "P3_STEER_SOURCE=$taskStage"

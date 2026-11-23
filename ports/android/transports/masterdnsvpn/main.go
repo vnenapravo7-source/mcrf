@@ -51,6 +51,10 @@ func main() {
 		os.Exit(2)
 	}
 	app := client.New(cfg, logger.McrfQuiet(), codec)
+	if err := app.McrfBindUnderlay(os.Getenv(client.McrfUnderlayEnv)); err != nil {
+		fmt.Println("MCRF_ERROR MASTERDNS_UNDERLAY_BIND")
+		os.Exit(2)
+	}
 	if app.BuildConnectionMap() != nil {
 		fmt.Println("MCRF_ERROR MASTERDNS_ENDPOINT_MAP")
 		os.Exit(2)

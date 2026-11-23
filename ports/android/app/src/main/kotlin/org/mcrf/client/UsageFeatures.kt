@@ -2,28 +2,32 @@ package org.mcrf.client
 
 /** Presentation preferences, not engine permissions or a replacement routing policy. */
 object UsageFeatures {
+    val betaFeatures get()=BetaFeatureRegistry.entries
     const val KEY="usageFeatures"
     const val ASKED="usageFeaturesAsked"
     enum class Feature(val id:String,val title:String,val detail:String) {
         VPN("vpn","VPN","Трафик приложений через выбранный VPN-сервер"),
-        PROXY("proxy","Прокси","Локальный HTTP/SOCKS-прокси и раздача другим устройствам"),
+        PROXY("proxy","VPN Proxy","Локальный HTTP/SOCKS-прокси и раздача другим устройствам"),
         WARP("warp","WARP","Создание и подбор подключения Cloudflare WARP"),
-        WHITELIST("whitelist","Turn протоколы для БС","CSQTT, QWDTT, WDTT и звонки VK"),
+        WHITELIST("whitelist","TURN-протоколы для БС","CSQTT, QWDTT, WDTT и звонки VK"),
         OPENFLUX("openflux","OpenFlux","Отдельный транспорт белых списков"),
-        S3_BYPASS("s3-bypass","S3 Bypass","Белые списки через S3-хранилище")
+        S3_BYPASS("s3-bypass","S3 Bypass","Белые списки через S3-хранилище"),
+        TGWS("tgws","TGWS Proxy","Локальный прокси для подключения Telegram по WebSocket")
     }
     val all:Set<Feature> = Feature.values().toSet()
+    val firstLaunchDefaults=setOf(Feature.VPN,Feature.WHITELIST)
     fun decode(raw:String?):Set<Feature> {
         if(raw==null)return all // Existing installations retain their entire interface.
         val ids=raw.split(',').toSet()
         return Feature.values().filterTo(linkedSetOf()){it.id in ids}.apply {
             // Old whitelist selection included OpenFlux; migrate once in memory.
-            if("v2" !in ids&&Feature.WHITELIST in this)add(Feature.OPENFLUX)
+            if("v2" !in ids&&"v3" !in ids&&Feature.WHITELIST in this)add(Feature.OPENFLUX)
+            if("v3" !in ids&&(Feature.PROXY in this||Feature.WHITELIST in this))add(Feature.TGWS)
         }.ifEmpty {all}
     }
     fun encode(features:Set<Feature>):String {
         require(features.isNotEmpty()) {"Выбери хотя бы одну возможность."}
-        return "v2,"+Feature.values().filter {it in features}.joinToString(","){it.id}
+        return "v3,"+Feature.values().filter {it in features}.joinToString(","){it.id}
     }
     fun visible(page:String,features:Set<Feature>):Boolean = when(page) {
         "Главная" -> Feature.VPN in features||Feature.PROXY in features||Feature.WARP in features
@@ -38,7 +42,7 @@ object UsageFeatures {
         ClientSettingsNavigation.SHARING -> Feature.PROXY in features
         else -> true
     }
-    fun usesVpn(features:Set<Feature>)=features.any {it!=Feature.PROXY}
+    fun usesVpn(features:Set<Feature>)=features.any {it!=Feature.PROXY&&it!=Feature.TGWS}
     fun whitelists(features:Set<Feature>)=features.any {it in setOf(Feature.WHITELIST,Feature.OPENFLUX,Feature.S3_BYPASS)}
     fun connection(entry:ServerImport.Server,features:Set<Feature>)=when(entry.protocol){
         "openflux"->Feature.OPENFLUX in features
@@ -64,7 +68,7 @@ object UsageFeatures {
         name=="Telegram WS"->telegram(features)
         else->Feature.WHITELIST in features
     }
-    fun telegram(features:Set<Feature>,wanted:Boolean=false,running:Boolean=false)=Feature.PROXY in features||Feature.WHITELIST in features||wanted||running
+    fun telegram(features:Set<Feature>,wanted:Boolean=false,running:Boolean=false)=Feature.TGWS in features||wanted||running
     fun preferredVpn(features:Set<Feature>,stored:Boolean)=when {
         Feature.PROXY !in features->true
         !usesVpn(features)->false

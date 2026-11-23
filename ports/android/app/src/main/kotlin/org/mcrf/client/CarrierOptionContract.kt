@@ -4,8 +4,16 @@ import org.json.JSONObject
 
 /** Feature capability, not a guessed version/name of a separately signed APK. */
 internal object CarrierOptionContract {
+    const val SRTP_MODE="org.mcrf.engines.csqtt25_srtp_mode"
+    fun missing(profile:JSONObject,capabilityVersion:(String)->Int):Boolean =
+        requiredAll(profile).any {capabilityVersion(it)<1}
     fun requiredAll(profile:JSONObject):Set<String> = buildSet {
         required(profile)?.let(::add)
+        if(Csqtt25Profile.isProfile(profile)){CsqttGooby.validate(profile);if(CsqttGooby.active(profile))add(CsqttGooby.CAPABILITY)}
+        // Old wrappers may ignore unknown JSON. Never silently replace an explicit
+        // non-default mode with AUTO, regardless of APK version/name.
+        if(Csqtt25Profile.isProfile(profile)&&Csqtt25Profile.srtpMode(profile)!="auto")add(SRTP_MODE)
+        if(CsqttSwgVersions.needsNewRuntime(profile))add(CsqttSwgVersions.CAPABILITY)
         if(profile.optString("type") in SwgProfile.TYPES) {
             val hashes=profile.opt("hashes")
             val count=if(hashes is org.json.JSONArray)hashes.length() else profile.optString("hashes").split(Regex("[,;\\s]+" )).count {it.isNotBlank()}

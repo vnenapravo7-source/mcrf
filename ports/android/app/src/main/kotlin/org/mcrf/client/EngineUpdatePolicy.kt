@@ -5,7 +5,7 @@ import org.json.JSONObject
 
 /** Upstream core releases, signed carrier scripts and Android modules are different units. */
 object EngineUpdatePolicy {
-    const val UPSTREAM = "OpenFluxTeam/OpenFlux"
+    const val UPSTREAM = "p1neappleXpress/OpenFlux"
     const val LEGACY_UPSTREAM = "p1neappleXpress/OpenFlux"
     data class Revision(val version: String, val commit: String) {
         init { require(numbers(version) != null && commit.matches(Regex("[0-9a-f]{40}"))) }
@@ -25,13 +25,13 @@ object EngineUpdatePolicy {
         compare(latest.version, installed.version) > 0 || compare(latest.version, installed.version) == 0 && latest.commit != installed.commit
     fun source(metadata: JSONObject): Revision {
         val repository=metadata.getString("repository")
-        require(repository == UPSTREAM || repository == LEGACY_UPSTREAM && compare(metadata.getString("version"),"v0.13.0")<=0) { "Пакет собран из неподдерживаемого репозитория OpenFlux." }
+        require(repository == UPSTREAM) { "Пакет собран из неподдерживаемого репозитория OpenFlux." }
         return Revision(metadata.getString("version"), metadata.getString("commit"))
     }
     enum class Phase { IDLE, CHECKING, CURRENT, UNPUBLISHED, AVAILABLE, DOWNLOADING, QUEUED, CONSENT, INSTALLING, INSTALLED, ERROR }
     fun readyPhase(active: Boolean) = if (active) Phase.QUEUED else Phase.CONSENT
     const val DEFAULT_AUTOMATIC = true
     fun automaticEligible(saved: Boolean?, installed: Boolean) = installed && (saved ?: DEFAULT_AUTOMATIC)
-    const val SCRIPT_LIMITATION = "Подписанные .flux — обновления транспортов внутри OpenFlux. Текущий stdio-модуль MCRF не предоставляет их установку/проверку ключа. Нативный APK OpenFlux не заменяет этот модуль."
+    const val SCRIPT_LIMITATION = "Подписанные JS-транспорты (.flux) обновляются отдельно в разделе OpenFlux: проверка → применение точного пакета → следующее подключение. Нужен модуль пакета C; подпись, SHA, wire/API, ABI и VM проверяются. Доступен проверенный откат. Автоматического разрыва VPN, установки latest и сторонних авторов нет. Нативный APK OpenFlux не заменяет модуль MCRF."
     const val ROLLBACK_LIMITATION = "Предыдущий APK можно сохранить для ручного восстановления. Android обычно запрещает установку меньшего versionCode: может потребоваться удалить только модуль и установить сохранённый APK. Автоматический откат не гарантируется."
 }

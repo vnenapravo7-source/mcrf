@@ -39,6 +39,11 @@ New-Item -ItemType Directory -Path "$taskStage/licenses","$taskStage/fixtures","
 $taskRust='D:/MCRF/Builds/Tools/rust-1.97.1-gnu/toolchain';$taskCargoNdk='D:/MCRF/Builds/Tools/cargo-ndk-4.1.2/bin'
 $taskNdkTools="$Ndk/toolchains/llvm/prebuilt/windows-x86_64/bin";$taskGo='D:/MCRF/Projects/MCRF/work/toolchains/go1.26.8/go/bin/go.exe'
 $taskReceipt=@{state='BUILDING';kind='slipstream';repository='Mygod/slipstream-rust';commit=$taskSourceProof.commit;picoquicCommit=$taskInputProof.picoquic;sourceManifestSha256=$taskSourceProof.manifestSha256;sourceStable=$false;producerComplete=$false;artifacts=@();fixtureArtifacts=@();nativeExecuted=$false;apkBuilt=$false;privateUds=$true;mandatoryLeafPin=$true;slipstreamContract=1;packageVersionCode=1;packageVersionName='slipstream-0.1.1-mcrf.1';dependencyReceiptSha256=Hash "$taskDeps/receipt.json";dependencyInputReceiptSha256=Hash "$taskInputs/receipt.json"}
+if($taskSourceProof.androidPhysicalSocketBinding){
+ if($taskSourceProof.underlayPatchSha256 -cne (Hash "$PSScriptRoot/android-underlay.patch")){throw 'Slipstream underlay patch identity changed'}
+ $taskReceipt.androidPhysicalSocketBinding=$true
+ $taskReceipt.underlayPatchSha256=$taskSourceProof.underlayPatchSha256
+}
 Copy-Item -LiteralPath "$taskSource/SOURCE_MANIFEST.json" -Destination "$taskStage/source-manifest.json"
 Copy-Item -LiteralPath "$taskSource/receipt.json" -Destination "$taskStage/prepared-source.json"
 Copy-Item -LiteralPath "$taskDeps/receipt.json" -Destination "$taskStage/c-dependencies.json"

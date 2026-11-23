@@ -1,0 +1,80 @@
+{
+  "g251": {
+    "sourceSha256": {
+      "auth.rs": "0f72447dc8c313859749c504dbd15a1d0b472a83a0dfa8b9dcdcc7b83d406514",
+      "worker.rs": "8996a1152ed72dcce72de3d27f11ada9162bb872be11f4729a0ee33e2060b3ab",
+      "vk_js_calls.rs": "c7ee31530e43629f8ee54e2bef0645d48ebbe49f8ddd4b4149bfc65ef7caa2f9"
+    },
+    "blocks": {
+      "auth.rs:pub async fn get_credentials(": "6c68ed6e8677825d1ed4dfce10b688c059a3ea3e29d38cd944176e4dc75c5865",
+      "auth.rs:async fn mcrf_fetch_credentials(": "a7ef0f799769c90cdd6c7880c6806020dc08c1d9c5613cc04cc52c2c1164b203",
+      "auth.rs:async fn vk_calls_with_retries(": "7f0cf92ebce9f6775225c6deca4223ab97ac47ba6da0256a095276a033d6741a",
+      "auth.rs:pub struct TurnCredentials": "068fa0cdeb8f947ab1a78c46fb7ae6c0a073e2a7822b57905c10953e2d1cf41a",
+      "auth.rs:pub struct CallUnavailable": "9bb8a6959fb0fda258b3a26bd2f0245a1621b934f90c5b3d2bb117bb06b47e50",
+      "auth.rs:pub enum VkRateLimitType": "c61335f340cd472e2dde7705a80fc09bcf04b75fbe36d7d873994bbdf12d49de",
+      "auth.rs:pub struct VkRateLimitError": "c5138e81c6e049770f368558e31aaaadbd0f4f8770cda103b36fc4776f36f2b3",
+      "worker.rs:struct HashAvailability": "321dcaef286dbe5d463bc440295d0e121ef4f5cfc7867819962999ee29009ec2",
+      "worker.rs:impl HashAvailability": "eea4bebcf05fc31b08b1596e8d3eaa3f7f846afa443a7de24c39fd1a618f85ed",
+      "worker.rs:pub struct GroupCredentials": "8c8dc21caf61a2ee95595d4c229cf6de58db0daf31cf758d3e4e77353d4d26f3",
+      "worker.rs:struct CachedCredentials": "b5acd28cbe3b31dd8cac6b3672e23e98a197da20664a940941d57ffcde54ff93",
+      "worker.rs:struct CredentialLease": "4acd896329f362c699eb00334b9ccae03fe310f88daefecb6e96d4fd23bbf6fa",
+      "worker.rs:struct CredentialCache": "217a9d2274927548f925b8101871a91acdd10f867952817c096cd844916ea6f8",
+      "worker.rs:fn is_unavailable(": "14febcabf6967486859e2ba07374a36c58edb78acceac2040d9d1e54cedfc30a",
+      "worker.rs:fn is_exhausted(": "55f87bafce0dfa8354da4045e31e245e9dfc2b9e8f76792e2d352ce5fa3b6766",
+      "worker.rs:async fn get(": "749ba1a38697f16009698bfe3765bba0204a87a18766a189f7a66503b2490fe0",
+      "worker.rs:fn reserve(": "9b20cf6a46200046dd774158324c112e669e0ff4d31d0a3086117115fdc5619c",
+      "worker.rs:fn store(": "3606cafccb525944c9e0a7cf087860addcb1047f764375f0bfab8c6139e5c840",
+      "worker.rs:fn next_quota_delay(": "2669106f7cf9843c67e83012981420471781f95b3ef8d9cf62170b523cfa97a1",
+      "worker.rs:pub fn credential_failure_delay(": "84c9201b9f6651fd584263ec045c3ca45c9660ea1dd5542a802e2684ea4d72e5",
+      "worker.rs:fn quota_rotation_delay(": "43e5a01d1b4cc77031c75765f4e7f3af410d35f3a0aef93f4a80cccbfa861d9e",
+      "worker.rs:fn credential_stream_id(": "386b32dec32de9a085c57b0492c287c616309111f0a241e7fc721514f04c061d",
+      "worker.rs:fn same_turn_credentials(": "b50f5eb10209053eca2e0707fd75470aa7406ee5b2727dba9dbb39bc10dff67a",
+      "vk_js_calls.rs:async fn retry<": "dfeb120ea9d491dd57e30f3d6b64362c1ee7cd88ad3269d00dfaf43e92ebb7f9",
+      "vk_js_calls.rs:fn mcrf_api_error(": "dd5981e9fedbc722e622e7f95f01d75758f14339f89660f97c2cbb86e67ed407",
+      "vk_js_calls.rs:fn check_api_error(": "6e13fc90955ed337f0716184e6bfb479cf737b776f2066d1e214d93be0ce122f",
+      "vk_js_calls.rs:fn json_scalar_string(": "c37873d3456e1de850719e0a436d5f3acbadbf4f7742086a7c2c6fcf82593db0",
+      "auth.rs:async fn post_empty(": "08b44747f0d13507cabe13b6a509251000296a6683aae3eac4db403f65d263dd",
+      "auth.rs:async fn post_form(": "5c34e146fac43a21cb0893e5f6a69512bcf3c6d08600db8c6aff32c25ddfaff1",
+      "vk_js_calls.rs:async fn post_form(": "c7cdfe42e64eab9751d8b87f9ad3ae06fb3ff5a61221d672adb3904d8b1f99b3"
+    }
+  },
+  "g253": {
+    "sourceSha256": {
+      "auth.rs": "0f72447dc8c313859749c504dbd15a1d0b472a83a0dfa8b9dcdcc7b83d406514",
+      "worker.rs": "335599995410c73ebb7939ed577cb5bea92fa62c47b36e2ad3617dc1a5d8383c",
+      "vk_js_calls.rs": "c7ee31530e43629f8ee54e2bef0645d48ebbe49f8ddd4b4149bfc65ef7caa2f9"
+    },
+    "blocks": {
+      "auth.rs:pub async fn get_credentials(": "6c68ed6e8677825d1ed4dfce10b688c059a3ea3e29d38cd944176e4dc75c5865",
+      "auth.rs:async fn mcrf_fetch_credentials(": "a7ef0f799769c90cdd6c7880c6806020dc08c1d9c5613cc04cc52c2c1164b203",
+      "auth.rs:async fn vk_calls_with_retries(": "7f0cf92ebce9f6775225c6deca4223ab97ac47ba6da0256a095276a033d6741a",
+      "auth.rs:pub struct TurnCredentials": "068fa0cdeb8f947ab1a78c46fb7ae6c0a073e2a7822b57905c10953e2d1cf41a",
+      "auth.rs:pub struct CallUnavailable": "9bb8a6959fb0fda258b3a26bd2f0245a1621b934f90c5b3d2bb117bb06b47e50",
+      "auth.rs:pub enum VkRateLimitType": "c61335f340cd472e2dde7705a80fc09bcf04b75fbe36d7d873994bbdf12d49de",
+      "auth.rs:pub struct VkRateLimitError": "c5138e81c6e049770f368558e31aaaadbd0f4f8770cda103b36fc4776f36f2b3",
+      "worker.rs:struct HashAvailability": "321dcaef286dbe5d463bc440295d0e121ef4f5cfc7867819962999ee29009ec2",
+      "worker.rs:impl HashAvailability": "eea4bebcf05fc31b08b1596e8d3eaa3f7f846afa443a7de24c39fd1a618f85ed",
+      "worker.rs:pub struct GroupCredentials": "8c8dc21caf61a2ee95595d4c229cf6de58db0daf31cf758d3e4e77353d4d26f3",
+      "worker.rs:struct CachedCredentials": "b5acd28cbe3b31dd8cac6b3672e23e98a197da20664a940941d57ffcde54ff93",
+      "worker.rs:struct CredentialLease": "4acd896329f362c699eb00334b9ccae03fe310f88daefecb6e96d4fd23bbf6fa",
+      "worker.rs:struct CredentialCache": "217a9d2274927548f925b8101871a91acdd10f867952817c096cd844916ea6f8",
+      "worker.rs:fn is_unavailable(": "14febcabf6967486859e2ba07374a36c58edb78acceac2040d9d1e54cedfc30a",
+      "worker.rs:fn is_exhausted(": "55f87bafce0dfa8354da4045e31e245e9dfc2b9e8f76792e2d352ce5fa3b6766",
+      "worker.rs:async fn get(": "749ba1a38697f16009698bfe3765bba0204a87a18766a189f7a66503b2490fe0",
+      "worker.rs:fn reserve(": "9b20cf6a46200046dd774158324c112e669e0ff4d31d0a3086117115fdc5619c",
+      "worker.rs:fn store(": "3606cafccb525944c9e0a7cf087860addcb1047f764375f0bfab8c6139e5c840",
+      "worker.rs:fn next_quota_delay(": "2669106f7cf9843c67e83012981420471781f95b3ef8d9cf62170b523cfa97a1",
+      "worker.rs:pub fn credential_failure_delay(": "84c9201b9f6651fd584263ec045c3ca45c9660ea1dd5542a802e2684ea4d72e5",
+      "worker.rs:fn quota_rotation_delay(": "43e5a01d1b4cc77031c75765f4e7f3af410d35f3a0aef93f4a80cccbfa861d9e",
+      "worker.rs:fn credential_stream_id(": "386b32dec32de9a085c57b0492c287c616309111f0a241e7fc721514f04c061d",
+      "worker.rs:fn same_turn_credentials(": "b50f5eb10209053eca2e0707fd75470aa7406ee5b2727dba9dbb39bc10dff67a",
+      "vk_js_calls.rs:async fn retry<": "dfeb120ea9d491dd57e30f3d6b64362c1ee7cd88ad3269d00dfaf43e92ebb7f9",
+      "vk_js_calls.rs:fn mcrf_api_error(": "dd5981e9fedbc722e622e7f95f01d75758f14339f89660f97c2cbb86e67ed407",
+      "vk_js_calls.rs:fn check_api_error(": "6e13fc90955ed337f0716184e6bfb479cf737b776f2066d1e214d93be0ce122f",
+      "vk_js_calls.rs:fn json_scalar_string(": "c37873d3456e1de850719e0a436d5f3acbadbf4f7742086a7c2c6fcf82593db0",
+      "auth.rs:async fn post_empty(": "08b44747f0d13507cabe13b6a509251000296a6683aae3eac4db403f65d263dd",
+      "auth.rs:async fn post_form(": "5c34e146fac43a21cb0893e5f6a69512bcf3c6d08600db8c6aff32c25ddfaff1",
+      "vk_js_calls.rs:async fn post_form(": "c7cdfe42e64eab9751d8b87f9ad3ae06fb3ff5a61221d672adb3904d8b1f99b3"
+    }
+  }
+}

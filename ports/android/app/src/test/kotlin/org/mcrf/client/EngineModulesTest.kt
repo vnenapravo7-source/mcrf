@@ -15,7 +15,13 @@ class EngineModulesTest {
         assertTrue(EngineModules.validNativeEntries("csqtt25","armeabi-v7a",listOf("lib/armeabi-v7a/libcsqtt25.so","lib/armeabi-v7a/libcsqtt25_transport.so")))
         assertThrows(IllegalArgumentException::class.java){EngineModules.carrierKind(JSONObject(legacy.toString()).put("csqtt_generation","future"))}
     }
-    @Test fun eachEngineHasItsOwnIdentity(){assertEquals(12,EngineModules.kinds.map{EngineModules.packageName(it)}.toSet().size);EngineModules.kinds.forEach {assertEquals(it,EngineModules.kind(EngineModules.packageName(it)))}}
+    @Test fun eachEngineHasItsOwnIdentity(){
+        assertEquals(setOf("csqtt","csqtt20","csqtt215","csqtt25","qwdtt","wdtt","openflux","olcrtc","dnstt",
+            VayDnsProfile.KIND,SlipstreamProfile.KIND,SstpProfile.KIND,MasterDnsProfile.KIND,"warpscout","tgws",
+            S3BypassProfile.KIND,"xray","tls-core","protocols"),EngineModules.kinds)
+        assertEquals(EngineModules.kinds.size,EngineModules.kinds.map{EngineModules.packageName(it)}.toSet().size)
+        EngineModules.kinds.forEach {assertEquals(it,EngineModules.kind(EngineModules.packageName(it)))}
+    }
     @Test fun s3RequiresItsOwnExecutablePackageOnEverySupportedAbi(){
         assertEquals("org.mcrf.engines.s3bypass",EngineModules.packageName(S3BypassProfile.KIND))
         for(abi in listOf("arm64-v8a","armeabi-v7a","x86_64")){
@@ -25,7 +31,23 @@ class EngineModulesTest {
         }
     }
     @Test fun csqttHasItsBridgeButDoesNotInstallQwdttPackage(){assertEquals(setOf("libqwdtt.so","libcsqtt_transport.so"),EngineModules.libraries("csqtt"));assertNotEquals(EngineModules.packageName("csqtt"),EngineModules.packageName("qwdtt"))}
-    @Test fun otherPackagesHaveOnlyTheirOwnExecutable(){EngineModules.kinds.filter{it !in setOf("csqtt","csqtt25")}.forEach{assertEquals(setOf(if(it=="tls-core")"libtls_core.so"else"lib$it.so"),EngineModules.libraries(it))}}
+    @Test fun packagesHaveOnlyTheirDeclaredExecutableAndTransportLibraries(){
+        val paired=mapOf("csqtt" to setOf("libqwdtt.so","libcsqtt_transport.so"),
+            "csqtt20" to setOf("libcsqtt20.so","libcsqtt_transport.so"),
+            "csqtt215" to setOf("libcsqtt215.so","libcsqtt_transport.so"),
+            "csqtt25" to setOf("libcsqtt25.so","libcsqtt25_transport.so"),
+            SlipstreamProfile.KIND to setOf("libslipstream.so","libslipstream_core.so"))
+        EngineModules.kinds.forEach {kind->
+            val expected=paired[kind]?:setOf(if(kind=="tls-core")"libtls_core.so"else"lib$kind.so")
+            assertEquals(expected,EngineModules.libraries(kind))
+            for(abi in listOf("arm64-v8a","armeabi-v7a","x86_64")){
+                val entries=expected.map {"lib/$abi/$it"}
+                assertTrue(kind,EngineModules.validNativeEntries(kind,abi,entries))
+                assertFalse(kind,EngineModules.validNativeEntries(kind,abi,entries+"lib/$abi/libforeign.so"))
+                if(entries.size>1)assertFalse(kind,EngineModules.validNativeEntries(kind,abi,entries.dropLast(1)))
+            }
+        }
+    }
     @Test fun optionalCoresHaveExplicitMappingsAndNoLegacyAlias(){assertEquals("org.mcrf.engines.tlscore",EngineModules.packageName("tls-core"));assertNull(EngineModules.kind("org.mcrf.engines.tls-core"));assertTrue(EngineModules.validNativeEntries("tls-core","arm64-v8a",listOf("lib/arm64-v8a/libtls_core.so")));assertFalse(EngineModules.validNativeEntries("xray","arm64-v8a",listOf("lib/arm64-v8a/libxray.so","lib/arm64-v8a/libbox.so")))}
     @Test fun wrongPackageAndUnknownKindAreRefused(){assertNull(EngineModules.kind("org.mcrf.client"));try{EngineModules.packageName("../bad");fail()}catch(_:IllegalArgumentException){}}
     @Test fun releaseLookupSelectsOnlyRequestedEngineAndAbi(){

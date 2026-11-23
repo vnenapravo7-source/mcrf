@@ -59,6 +59,9 @@ object ClientPrimaryVpnDeviceChecks {
     @JvmStatic fun run(context: Context, temporary: File, passed: Consumer<String>) =
         runChecks(context, temporary, passed, Fault.NONE)
 
+    internal fun runWithCustomStop(context:Context,temporary:File,stop:()->Unit) =
+        runChecks(context,temporary,Consumer {},Fault.NONE,stopBeforeRetirement=stop)
+
     @JvmStatic fun runRetirement(context: Context, temporary: File, passed: Consumer<String>) =
         runChecks(context, temporary, passed, Fault.RETIREMENT)
 
@@ -76,6 +79,9 @@ object ClientPrimaryVpnDeviceChecks {
     @JvmStatic fun runDirectDomain(context:Context,temporary:File,passed:Consumer<String>,inverted:Boolean,negative:Boolean) =
         runChecks(context,temporary,passed,Fault.NONE,inverted to negative,true)
 
+    @JvmStatic fun runImportedRouting(context:Context,fixtures:Context,temporary:File,passed:Consumer<String>,kind:String) =
+        runChecks(context,temporary,passed,Fault.NONE,false to false,true,importedFixtures=fixtures,importedKind=kind)
+
     /** New P1 platform prerequisite only. Reuse the guarded fixture lifetime, not
      * the closed HTTP/Direct/STOP/restart suites. The common owner pins the helper. */
     @JvmStatic fun runOriginalOwner(context:Context,temporary:File,passed:Consumer<String>,helperSha256:String) {
@@ -83,9 +89,25 @@ object ClientPrimaryVpnDeviceChecks {
         runChecks(context,temporary,passed,Fault.NONE,ownerHelperSha256=helperSha256)
     }
 
+    @JvmStatic fun runStrictOwner(context: Context, temporary: File, passed: Consumer<String>, pin: String, scope: String) {
+        require(scope in setOf("both", "partial", "excluded"))
+        runChecks(context, temporary, passed, Fault.NONE, ownerHelperSha256 = pin, strictOwnerScope = scope)
+    }
+
+    @JvmStatic fun runStrictLan(test:android.app.Instrumentation,temporary:File,passed:Consumer<String>,pin:String,address:String) {
+        runChecks(test.targetContext,temporary,passed,Fault.NONE,ownerHelperSha256=pin,strictOwnerScope="excluded",
+            lanTest=test,lanAddress=address)
+    }
+
+    @JvmStatic fun runStrictQuic(context: Context, temporary: File, passed: Consumer<String>, pin: String) {
+        runChecks(context, temporary, passed, Fault.NONE, ownerHelperSha256 = pin,
+            strictOwnerScope = "excluded", strictQuic = true)
+    }
+
     private enum class Fault { NONE, RETIREMENT, CONNECT_PENDING, DESTROYED_PROXY, REVOKE }
 
-    private fun runChecks(context: Context, temporary: File, passed: Consumer<String>, fault: Fault,directPlan:Pair<Boolean,Boolean>?=null,domainPlan:Boolean=false,ownerHelperSha256:String?=null) {
+    private fun runChecks(context: Context, temporary: File, passed: Consumer<String>, fault: Fault,directPlan:Pair<Boolean,Boolean>?=null,domainPlan:Boolean=false,ownerHelperSha256:String?=null,importedFixtures:Context?=null,importedKind:String?=null,stopBeforeRetirement:(()->Unit)?=null,strictOwnerScope:String?=null,
+                          lanTest:android.app.Instrumentation?=null,lanAddress:String?=null,strictQuic:Boolean=false) {
         val app = context.applicationContext
         check(BuildConfig.DEBUG) { "Primary VPN acceptance requires a DEBUG build with the private test_fixture gate" }
         check(Looper.myLooper() != Looper.getMainLooper() && Application.getProcessName() == app.packageName) {
@@ -123,12 +145,16 @@ object ClientPrimaryVpnDeviceChecks {
         val saved = Saved.capture(app)
         val runtimeBefore = runtimeNames(app)
         val mainTunsBefore = tunInterfaces(Process.myPid())
-        val physical = physicalAddress(connectivity)
+        val physical = if (strictOwnerScope == null) physicalAddress(connectivity) else null
         val fixture = File(root, "service-fixture.json")
         val owned = mutableListOf<OwnedRun>()
         val connections = mutableListOf<OwnedConnection>()
         var hold: OwnedHold? = null
         var origin: Origin? = null
+        var strictOrigin: ClientP1StrictOwnerChecks? = null
+        var lanOrigin: StrictLanDeviceChecks? = null
+        var quicOrigin: ClientQuicOwnerChecks? = null
+        var imported:OwnedImportedRoutingPlan?=null
         var madeDirectory = false
         var madeFixture = false
         var attemptedStart = false
@@ -137,12 +163,22 @@ object ClientPrimaryVpnDeviceChecks {
         try {
             if (!root.exists()) { check(root.mkdir()); madeDirectory = true }
             Os.chmod(root.path, 0x1c0)
-            val peer = Origin(physical, UUID.randomUUID().toString(),directPlan!=null,domainPlan).also { origin = it }
-            val tag = "fixture-owned-${peer.nonce}"
+            val nonce = if (strictOwnerScope == null) UUID.randomUUID().toString() else root.name.removePrefix("mcrf-test-")
+            val peer by lazy { Origin(requireNotNull(physical), nonce, directPlan!=null, domainPlan).also { origin = it } }
+            val tag = "fixture-owned-$nonce"
+            val strict = strictOwnerScope?.let { ClientP1StrictOwnerChecks(app, requireNotNull(ownerHelperSha256), it, nonce) }
+                .also { strictOrigin = it }
+            val lan=lanTest?.let {
+                StrictLanDeviceChecks(it,app,requireNotNull(lanAddress),requireNotNull(ownerHelperSha256),nonce.replace("-",""))
+            }.also {lanOrigin=it}
+            val quic = if (strictQuic) ClientQuicOwnerChecks.open(app, requireNotNull(ownerHelperSha256))
+                .also { quicOrigin = it } else null
+            if(importedFixtures!=null)imported=OwnedImportedRoutingPlan.prepare(app,importedFixtures,tag,requireNotNull(importedKind))
             // Pinned sing-box 1.13+ REMOVES overrides on direct outbounds (option/direct.go).
             // RouteActionOptions retains both overrides; exact match + terminal reject prevents
             // unrelated captured traffic from being forwarded to any physical destination.
-            val source = if(directPlan!=null)OwnedDirectVpnPlan.build(physical.hostAddress!!,peer.port,tag,directPlan.first,directPlan.second,domainPlan)
+            val source = if (strict != null) null else
+                imported?.source(requireNotNull(physical).hostAddress!!,peer.port,tag)?:if(directPlan!=null)OwnedDirectVpnPlan.build(requireNotNull(physical).hostAddress!!,peer.port,tag,directPlan.first,directPlan.second,domainPlan)
                 else JSONObject().put("outbounds", JSONArray().put(JSONObject().put("type", "direct").put("tag", tag)))
                 // ProfileConfig's TUN hijacks DNS before ordinary route rules. Keep even
                 // incidental Android DNS local: a hosts-only resolver plus terminal reject.
@@ -152,13 +188,15 @@ object ClientPrimaryVpnDeviceChecks {
                     .put(JSONObject().put("inbound", JSONArray().put("tun-in")).put("network", "tcp")
                         .put("ip_cidr", JSONArray().put("$DESTINATION/32")).put("port", DESTINATION_PORT)
                         .put("action", "route").put("outbound", tag)
-                        .put("override_address", physical.hostAddress).put("override_port", peer.port))
+                        .put("override_address", requireNotNull(physical).hostAddress).put("override_port", peer.port))
                     .put(JSONObject().put("action", "reject"))))
             check(fixture.createNewFile()); madeFixture = true
             Os.chmod(fixture.path, 0x180)
-            val fixtureData = JSONObject().put("source", source).put("timeout", 3000)
-                .put("url", "http://${physical.hostAddress}:${peer.port}${peer.path}/health")
-            if(ownerHelperSha256!=null)fixtureData.put("p1OwnerHelperSha256",ownerHelperSha256)
+            val fixtureData = strict?.json() ?: JSONObject().put("source", source).put("timeout", 3000)
+                .put("url", "http://${requireNotNull(physical).hostAddress}:${peer.port}${peer.path}/health")
+            if(lan!=null)fixtureData.getJSONObject("p1StrictOwner").put("lan",lan.json())
+            if(quic!=null)fixtureData.getJSONObject("p1StrictOwner").put("quicPort",quic.port)
+            if(ownerHelperSha256!=null&&strict==null)fixtureData.put("p1OwnerHelperSha256",ownerHelperSha256)
             if (fault != Fault.NONE && fault != Fault.REVOKE) fixtureData.put("retirementFault", true)
             if (fault == Fault.CONNECT_PENDING) fixtureData.put("connectPendingFault", true)
             fixture.writeText(fixtureData.toString(), Charsets.UTF_8)
@@ -186,7 +224,7 @@ object ClientPrimaryVpnDeviceChecks {
                     if (!McrfVpnService.status.startsWith("VPN подключён")) false
                     else {
                         run = workers().singleOrNull()?.takeIf { it.choiceId == "singbox" && it.state == "RUNNING" }
-                            ?.let { OwnedRun.capture(it, app, source.getJSONObject("route").getString("final")) }
+                            ?.let { OwnedRun.capture(it, app, source?.getJSONObject("route")?.getString("final") ?: tag) }
                         run != null
                     }
                 }) { "Actual main McrfVpnService did not start its installed sing-box VPN worker: ${McrfVpnService.status}" }
@@ -264,16 +302,29 @@ object ClientPrimaryVpnDeviceChecks {
             if (ownerHelperSha256 != null) {
                 val run = start()
                 run.assertCurrent()
-                ClientP1SocketOwnerChecks.run(app, run.network, ownerHelperSha256, passed)
+                if (strict != null) {
+                    check(strictScopeInstalled(run.service, run.tun)) { "P1_STRICT_OWNER_GATE_INACTIVE" }
+                    if(lan==null&&quic==null)strict.run(run.network, passed) else {
+                        val helper=context.packageManager.getApplicationInfo("org.mcrf.p1owner",0).uid
+                        val scope=(field(McrfVpnService::class.java,run.service,"installedVpnScope") as Pair<*,*>).second as VpnOwnerIsolation.Scope
+                        check(scope.excluded["org.mcrf.p1owner.peer"]==helper&&
+                            !scope.admits(helper,setOf("org.mcrf.p1owner","org.mcrf.p1owner.peer"))) {"P1_STRICT_EXCLUDED_HELPER_SCOPE"}
+                        if(quic!=null)quic.run(run.network,run::assertCurrent,passed)
+                        else {
+                            requireNotNull(lan).run(run::assertCurrent)
+                            passed.accept("Strict owner LAN: distinct excluded UID denied via loopback and physical IPv4; exactly two remote requests reached the owned origin")
+                        }
+                    }
+                } else ClientP1SocketOwnerChecks.run(app, run.network, ownerHelperSha256, passed)
                 run.assertCurrent()
                 // A live VPN retains Android's system binding: stopService alone
                 // cannot destroy it while its TUN remains open. Send the normal
                 // STOP only to this still-current, verified owned fixture first.
                 app.startService(Intent(app, McrfVpnService::class.java).setAction(McrfVpnService.STOP))
-                verify(awaitLifecycle(25000, "P1 original-owner normal STOP", { run.service }) {
+                verify(awaitLifecycle(25000, "P1 owner normal STOP", { run.service }) {
                     clean(app, connectivity, owned, runtimeBefore, mainTunsBefore) &&
                         !ClientPrimaryRetirement.hasPending() && retiringServices().isEmpty()
-                }, "P1 original-owner STOP observes actual worker death and TUN service lease retirement")
+                }, "P1 owner STOP observes actual worker death and TUN service lease retirement")
             } else if (fault == Fault.DESTROYED_PROXY) {
                 // A retained VPN TUN can keep Android's system binding alive after
                 // stopService. Require actual destruction in a run that never had a TUN.
@@ -408,6 +459,7 @@ object ClientPrimaryVpnDeviceChecks {
             first.assertCurrent()
             if (fault == Fault.RETIREMENT) requireNotNull(hold).create()
             if(fault==Fault.REVOKE)first.service.onRevoke()
+            else if(stopBeforeRetirement!=null)stopBeforeRetirement()
             else app.startService(Intent(app, McrfVpnService::class.java).setAction(McrfVpnService.STOP))
             if (fault == Fault.RETIREMENT) {
                 var pending: ClientPrimaryRetirement<*>? = null
@@ -471,6 +523,7 @@ object ClientPrimaryVpnDeviceChecks {
                 else "STOP observes Binder/process death, closes main and worker TUN ownership, removes the VPN/interface, and cleans private runtime files")
             verify(retiredProtectRejected(first), if(fault==Fault.REVOKE)"onRevoke retires the actual platform and rejects stale protect callbacks"else "STOP retires the actual main platform: a stale protect callback is rejected")
 
+            if(stopBeforeRetirement!=null)return
             val second = start()
             check(first.pid != second.pid || first.birth != second.birth) { "Restart reused a surviving primary worker" }
             vpnHttp(second, if(fault==Fault.REVOKE)"tun-after-revoke-callback"else"tun-before-death")
@@ -486,9 +539,18 @@ object ClientPrimaryVpnDeviceChecks {
             }else{
                 // Only this invocation's verified same-UID :primary PID/birth. No package force-stop.
                 Process.killProcess(second.pid)
-                verify(await(20000) { clean(app, connectivity, owned, runtimeBefore, mainTunsBefore) },
-                    "Unexpected death of the owned primary worker makes the main service stop and releases the real TUN, VPN Network and runtime files")
+                verify(await(45000) {
+                    McrfVpnService.status.startsWith("VPN подключён")&&workers().singleOrNull()?.let {
+                        it.state=="RUNNING"&&it.remotePid!=second.pid
+                    }==true
+                },"Unexpected primary-worker death recovers the captured connection in a fresh worker")
+                val recovered=start(submit=false)
+                verify(recovered.pid!=second.pid||recovered.birth!=second.birth,"Recovery never reuses the retired primary process")
+                vpnHttp(recovered,"tun-after-worker-recovery")
                 verify(retiredProtectRejected(second), "Worker death retires the actual main platform and rejects stale protect callbacks")
+                app.startService(Intent(app,McrfVpnService::class.java).setAction(McrfVpnService.STOP))
+                verify(await(20000) { clean(app, connectivity, owned, runtimeBefore, mainTunsBefore) },
+                    "STOP after automatic recovery releases every old/new worker, TUN, VPN Network and private runtime file")
             }
             }
             }
@@ -524,6 +586,10 @@ object ClientPrimaryVpnDeviceChecks {
                     (owned.map { it.service } + connections.map { it.service }).distinct().joinToString { lifecycleState(it) } }
             }
             finish { origin?.close() }
+            finish { strictOrigin?.close() }
+            finish { lanOrigin?.close() }
+            finish { quicOrigin?.close() }
+            if(cleaned)finish {imported?.close()}
             finish {
                 check(Saved.capture(app) == saved) { "Primary VPN acceptance changed saved ProfileStore generation/content/files or full user preferences; no restore/write is attempted" }
                 passed.accept("All saved profiles, catalogue, routes, encrypted settings and full preferences remain unchanged")
@@ -712,7 +778,7 @@ object ClientPrimaryVpnDeviceChecks {
             state.available&&(state.sent>0||state.received>0)&&text==TrafficState.notificationTraffic(state)&&!text.contains("/с")&&!text.contains("/s")&&!expanded.contains("/с")&&!expanded.contains("/s")}){"Actual foreground notification must show real combined traffic, never speeds"}
         passed.accept("Actual foreground notification shows measured combined session traffic, without speed in collapsed or expanded text")
     }
-    private fun requireIdle(context: Context, connectivity: ConnectivityManager,expectedStatus:String=DISCONNECTED) {
+    internal fun requireIdle(context: Context, connectivity: ConnectivityManager,expectedStatus:String=DISCONNECTED) {
         check(!serviceExists(context) && workers().isEmpty() && primaryProcesses(context).isEmpty() &&
             !ClientPrimaryRetirement.hasPending() && retiringServices().isEmpty() &&
             McrfVpnService.status == expectedStatus && McrfVpnService.localProxyPort == 0 &&
@@ -905,7 +971,7 @@ object ClientPrimaryVpnDeviceChecks {
         return entries.mapNotNull { tunInterface(pid, it.name) }.toSet()
     }
 
-    private fun tunInterface(pid: Int, fd: String): String? = try {
+    internal fun tunInterface(pid: Int, fd: String): String? = try {
         val target = Os.readlink("/proc/$pid/fd/$fd")
         if (target != "/dev/tun" && target != "/dev/net/tun") null
         else {
@@ -913,6 +979,11 @@ object ClientPrimaryVpnDeviceChecks {
                 ?.substringAfter(':')?.trim() ?: error("Kernel TUN interface evidence unavailable for PID $pid FD $fd")
         }
     } catch (error: ErrnoException) { if (error.errno == OsConstants.ENOENT) null else throw error }
+
+    internal fun strictScopeInstalled(service: McrfVpnService, descriptor: ParcelFileDescriptor): Boolean {
+        val installed = field(McrfVpnService::class.java, service, "installedVpnScope") as? Pair<*, *> ?: return false
+        return installed.first === descriptor && (installed.second as? VpnOwnerIsolation.Scope)?.strict == true
+    }
 
     private fun runtimeNames(context: Context): Set<String> =
         (context.cacheDir.list() ?: error("Cannot inspect private runtime cleanup")).filter { name ->
@@ -987,7 +1058,7 @@ object ClientPrimaryVpnDeviceChecks {
                             it.getOutputStream().apply {write("HTTP/1.1 403 Owned proxy refusal\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".toByteArray(Charsets.US_ASCII));flush()}
                             return@use
                         }
-                        val names = listOf("protected", "tun-first", "tun-second", "tun-before-death", "tun-after-retirement", "tun-after-revoke-callback")
+                        val names = listOf("protected", "tun-first", "tun-second", "tun-before-death", "tun-after-retirement", "tun-after-revoke-callback", "tun-after-worker-recovery")
                         val name = names.singleOrNull { name -> header.startsWith("POST $path/$name HTTP/1.1\r\n") }
                             ?: error("Origin received a request outside this invocation")
                         val expectedHost=if(domainPlan&&name!="protected")OwnedDirectVpnPlan.hostname("fixture-owned-$nonce")else DESTINATION
@@ -1023,7 +1094,7 @@ object ClientPrimaryVpnDeviceChecks {
     /** Compare decrypted stores AND raw protected files, not just a selected preference subset.
      * No values are logged and no restoration masks a service write. All snapshots live in RAM.
      */
-    private data class Saved(val generation: String, val stores: Map<String, String>,
+    internal data class Saved(val generation: String, val stores: Map<String, String>,
                              val preferences: Map<String, Map<String, Any?>>, val files: Map<String, String>) {
         companion object {
             fun capture(context: Context): Saved = synchronized(ProfileStore.storageLock) {

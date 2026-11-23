@@ -1,0 +1,21 @@
+diff --git a/internal/warpscout/bind.go b/internal/warpscout/bind.go
+--- a/internal/warpscout/bind.go
++++ b/internal/warpscout/bind.go
+@@ -24,1 +24,1 @@
+-	var lc net.ListenConfig
++	lc := net.ListenConfig{Control:mcrfControl}
+diff --git a/internal/warpscout/register.go b/internal/warpscout/register.go
+--- a/internal/warpscout/register.go
++++ b/internal/warpscout/register.go
+@@ -304,1 +304,1 @@
+-	d := &net.Dialer{}
++	d := &net.Dialer{Control:mcrfControl}
+diff --git a/internal/warpscout/main.go b/internal/warpscout/main.go
+--- a/internal/warpscout/main.go
++++ b/internal/warpscout/main.go
+@@ -530,1 +530,2 @@
++		if mcrfScanComplete(ctx) { return }
+ 		defer emit(probedMsg{})
+@@ -553,1 +554,2 @@
+ 		results[i] = r
++		mcrfAcceptCandidate(ctx,run,r,opts)

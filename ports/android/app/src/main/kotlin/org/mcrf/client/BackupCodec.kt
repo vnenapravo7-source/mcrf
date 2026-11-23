@@ -6,14 +6,33 @@ import javax.crypto.*
 import javax.crypto.spec.*
 import java.util.zip.*
 
-/** Portable password-encrypted format. Authenticated header, bounded decompression, no Keystore export. */
+/** Portable backups with bounded decompression; retains legacy encrypted-document restore. */
 object BackupCodec {
     const val MAX_PLAIN = 16 * 1024 * 1024
     const val MAX_FILE = 20 * 1024 * 1024
     private const val ITERATIONS = 600_000
     private val MAGIC = "MCRFBK01".toByteArray(Charsets.US_ASCII)
+    private val PORTABLE="MCRFBK02".toByteArray(Charsets.US_ASCII)
+    fun isPortable(file:ByteArray)=file.size>=8&&file.copyOfRange(0,8).contentEquals(PORTABLE)
+    /** Password-free portable document. Checksum detects damage; this is not encryption. */
+    fun pack(source:ByteArray):ByteArray {
+        require(source.size<=MAX_PLAIN)
+        val zipped=ByteArrayOutputStream().also {GZIPOutputStream(it).use {out->out.write(source)}}.toByteArray()
+        return try {PORTABLE+java.security.MessageDigest.getInstance("SHA-256").digest(zipped)+zipped}finally {zipped.fill(0)}
+    }
+    fun unpack(file:ByteArray):ByteArray {
+        require(file.size in 58..MAX_FILE&&isPortable(file)){"Неизвестный формат бэкапа."}
+        val zipped=file.copyOfRange(40,file.size)
+        require(java.security.MessageDigest.isEqual(file.copyOfRange(8,40),java.security.MessageDigest.getInstance("SHA-256").digest(zipped))){"Бэкап повреждён."}
+        return try {GZIPInputStream(ByteArrayInputStream(zipped)).use {input->
+            val out=ByteArrayOutputStream();val buffer=ByteArray(8192)
+            while(true){val n=input.read(buffer);if(n<0)break;require(out.size()+n<=MAX_PLAIN){"Бэкап после распаковки больше 16 МБ."};out.write(buffer,0,n)}
+            out.toByteArray()
+        }}finally {zipped.fill(0)}
+    }
     /** Cheap signature/version checks before uploading or offering a downloaded file for restore. */
     @JvmStatic fun validateEnvelope(file: ByteArray) {
+        if(isPortable(file)){require(file.size in 58..MAX_FILE){"Некорректный размер бэкапа."};return}
         require(file.size in 56..MAX_FILE) { "Некорректный размер бэкапа." }
         require(file.copyOfRange(0,8).contentEquals(MAGIC)) { "Неизвестный формат бэкапа." }
         require(java.nio.ByteBuffer.wrap(file,8,4).int == ITERATIONS) { "Неизвестная версия шифрования бэкапа." }

@@ -1,0 +1,72 @@
+//go:build with_utls
+
+// MCRF adaptation of throneproj/sing-box (GPL-3.0-or-later).
+package tls
+
+import (
+	"errors"
+	utls "github.com/metacubex/utls"
+)
+
+// nil retains the fingerprint's default; nonnil empty explicitly removes ALPN.
+// Called BEFORE Reality signs the final ClientHello, never after authentication.
+func mcrfApplyALPN49(c *utls.UConn, protocols []string) error {
+	if protocols == nil {
+		return nil
+	}
+	total := 0
+	hasH2 := false
+	for _, p := range protocols {
+		if len(p) == 0 || len(p) > 255 {
+			return errors.New("invalid explicit ALPN token")
+		}
+		total += 1 + len(p)
+		hasH2 = hasH2 || p == "h2"
+	}
+	if total > 65535 {
+		return errors.New("explicit ALPN list too long")
+	}
+	if err := c.BuildHandshakeState(); err != nil {
+		return err
+	}
+	found := false
+	extensions := make([]utls.TLSExtension, 0, len(c.Extensions)+1)
+	for _, ext := range c.Extensions {
+		switch value := ext.(type) {
+		case *utls.ALPNExtension:
+			if len(protocols) > 0 && !found {
+				value.AlpnProtocols = append([]string(nil), protocols...)
+				extensions = append(extensions, value)
+				found = true
+			}
+			continue
+		case *utls.ApplicationSettingsExtension, *utls.ApplicationSettingsExtensionNew:
+			if !hasH2 {
+				continue
+			}
+		case *utls.UtlsPaddingExtension:
+			if len(protocols) > 0 && !found {
+				extensions = append(extensions, &utls.ALPNExtension{AlpnProtocols: append([]string(nil), protocols...)})
+				found = true
+			}
+		}
+		extensions = append(extensions, ext)
+	}
+	if len(protocols) > 0 && !found {
+		extensions = append(extensions, &utls.ALPNExtension{AlpnProtocols: append([]string(nil), protocols...)})
+	}
+	c.Extensions = extensions
+	// A removed ALPN extension otherwise leaves the preset's old config/Hello
+	// values behind. Apply ONLY a temporary ALPN writer without serializing an
+	// invalid zero-length extension, then restore the real wire extension list.
+	c.Extensions = []utls.TLSExtension{&utls.ALPNExtension{AlpnProtocols: append([]string{}, protocols...)}}
+	err := c.ApplyConfig()
+	c.Extensions = extensions
+	if err != nil {
+		return err
+	}
+	c.HandshakeState.Hello.AlpnProtocols = append([]string{}, protocols...)
+	// Force the actual wire bytes to match the edited extensions. This also
+	// updates HandshakeState.Hello.Raw before Reality derives its authenticator.
+	return c.BuildHandshakeState()
+}

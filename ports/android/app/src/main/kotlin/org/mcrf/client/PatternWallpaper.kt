@@ -47,12 +47,12 @@ object PatternWallpaper {
             style=Paint.Style.STROKE;strokeWidth=1.1f;strokeCap=Paint.Cap.ROUND;strokeJoin=Paint.Join.ROUND
             color=Loft.mix(Loft.ACCENT,HomeUiTheme.palette(Loft.dark).glow,.35f);alpha=if(Loft.dark)38 else 28
         }
-        val tile=64*density;val scale=tile/120
+        val tile=44*density;val scale=tile/120
         val saved=canvas.save();canvas.clipRect(bounds)
         for(y in 0..(bounds.height()/tile).toInt())for(x in 0..(bounds.width()/tile).toInt()){
             val stamp=canvas.save();canvas.translate(bounds.left+x*tile,bounds.top+y*tile);canvas.scale(scale,scale)
             canvas.rotate(if((x+y)%2==0)-8f else 8f,60f,60f)
-            captured[(x+y)%captured.size].forEach {canvas.drawPath(it,paint)};canvas.restoreToCount(stamp)
+            captured[(x+2*y+y/2)%captured.size].forEach {canvas.drawPath(it,paint)};canvas.restoreToCount(stamp)
         }
         canvas.restoreToCount(saved)
     }

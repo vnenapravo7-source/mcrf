@@ -28,6 +28,14 @@ class VkRelayAccount(private val store: VkRelayPersistence,
     fun manualDefaults(): List<String> = store.get("vkSettings").optJSONArray("manual")?.let { a -> (0 until a.length()).map(a::getString) } ?: emptyList()
     fun supplementAll()=store.get("vkSettings").optBoolean("manualSupplementAll",false)
     fun setSupplementAll(enabled:Boolean)=store.update("vkSettings"){it.put("manualSupplementAll",enabled)}
+    internal fun turnSubnets()=VkTurnSubnets.read(store.get("vkSettings"))
+    internal fun setTurnSubnets(selection:VkTurnSubnets.Selection)=store.update("vkSettings") {settings->
+        val next=VkTurnSubnets.write(settings,selection)
+        for(key in listOf(VkTurnSubnets.SELECTED,VkTurnSubnets.IP_LIMIT,VkTurnSubnets.CUSTOM_IPS)) {
+            if(next.has(key))settings.put(key,next.get(key))else settings.remove(key)
+        }
+    }
+    internal fun withTurnSubnets(profile:JSONObject)=VkTurnSubnets.apply(profile,store.get("vkSettings"))
     data class ManualGeneration(val group:String,val calls:List<String>,val requested:Int,val problem:String?=null)
     /** Persist each successful provider reply in the existing owner-bound store.
      * A partial result is recoverable after closing the editor or API failure. */

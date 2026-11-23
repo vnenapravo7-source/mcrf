@@ -15,6 +15,7 @@ internal object SstpFailure {
             "SSTP_CONTROL_HANDSHAKE"->"Сервер не подтвердил управляющий сеанс SSTP."
             "SSTP_AUTH_REJECTED"->"SSTP-сервер отклонил авторизацию PPP/MS-CHAPv2; проверьте логин и пароль."
             "SSTP_NETWORK_TIMEOUT"->"Истекло время подключения или согласования SSTP."
+            "SSTP_UNDERLAY_BIND"->"Не удалось привязать SSTP к физической сети."
             "SSTP_NETSTACK"->"SSTP подключён, но не удалось подготовить локальный сетевой стек."
             "SSTP_LOCAL_LISTENER","SSTP_LOCAL_ACCEPT"->"Не удалось подготовить локальный SOCKS-вход SSTP."
             "SSTP_SESSION_CLOSED"->"SSTP-сервер завершил сеанс."

@@ -17,6 +17,25 @@ import org.json.JSONArray
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
 
+/** Initial rendering is read-only and coherent; later actions always use current storage. */
+internal class VkSettingsReadSnapshot(private val live:VkRelayPersistence,snapshot:JSONObject):VkRelayPersistence by live {
+    private var initial:JSONObject?=snapshot
+    override fun get(section:String):JSONObject {
+        val snapshot=initial?:return live.get(section)
+        return JSONObject(snapshot.optJSONObject(section)?.toString()?:"{}")
+    }
+    fun release(){initial=null}
+}
+
+/** A detached page is terminal, including a callback from an earlier retry. */
+internal class VkSettingsDelivery {
+    private var version=0
+    private var cancelled=false
+    fun begin():Int=++version
+    fun accepts(stamp:Int)=!cancelled&&stamp==version
+    fun cancel(){cancelled=true;version++}
+}
+
 /** Integration supplies existing profile importer. Views autosave drafts, but never start network operations on edits. */
 class AndroidDeployUi(private val activity: Activity,private val store: AndroidDeployStore,
                      private val backend: AndroidDeployBackend,private val importLink: (String) -> Unit) {
@@ -25,10 +44,11 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
     private var attachedListener: ((AndroidDeployState) -> Unit)?=null
     private var pageRefresh: (() -> Unit)?=null
     private var browserUi:AndroidDeployBrowserUi?=null
+    private var detached=false
     private val density=activity.resources.displayMetrics.density
     private fun dp(value: Int)=(value*density).toInt()
     private fun text(value: String)=TextView(activity).apply { text=value;setTextColor(Loft.INK);textSize=14f;setPadding(0,dp(6),0,dp(6)) }
-    private fun card()=LinearLayout(activity).apply { orientation=LinearLayout.VERTICAL;setPadding(dp(16),dp(16),dp(16),dp(16));background=Loft.Glass(density,20f);layoutParams=LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(12) } }
+    private fun card()=AndroidDeployUiStyle.card(activity)
     private fun fieldSurface()=Loft.fieldBackground(activity)
     private fun button(label: String, action: () -> Unit)=StandardButtons.style(activity,Button(activity),label).apply {
         layoutParams=LinearLayout.LayoutParams(-1,-2).apply { topMargin=dp(4);bottomMargin=dp(4) };setOnClickListener { action() }
@@ -36,7 +56,8 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
     private fun countSelector(selected: Int,changed: (Int) -> Unit):Spinner {
         val choices=(listOf(1,2,3,5,6,10,15,20,30,50)+selected.coerceAtLeast(1)).distinct().sorted()
         return HomeUiControls.selector(activity,choices.map {"$it звонков"},choices.indexOf(selected.coerceAtLeast(1))){changed(choices[it])}.apply {
-            contentDescription="Количество автоматических звонков";minimumHeight=dp(48)
+            contentDescription="Количество автоматических звонков";AndroidDeployUiStyle.field(this)
+            layoutParams=LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(8);bottomMargin=dp(8)}
         }
     }
     private fun editor(value: String,secret: Boolean=false,change: (String) -> Unit)=EditText(activity).apply {
@@ -47,11 +68,54 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
         importantForAutofill=View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
         addTextChangedListener(object : TextWatcher { override fun beforeTextChanged(s: CharSequence?,start: Int,count: Int,after: Int) {} ;override fun onTextChanged(s: CharSequence?,start: Int,before: Int,count: Int) { change(s.toString()) };override fun afterTextChanged(s: Editable?) {} })
     }
-    fun vkSettings(): View {
-        val vk=VkRelayAccount(store);val main=activity as? MainActivity
+    fun vkSettings(onLoaded:()->Unit={}): View {
+        val main=activity as? MainActivity
         val layout=card().apply {tag="vk-turn-account-calls"}
         if(main!=null)EditorLayout.heading(main,layout,"Аккаунт VK","proxy")else layout.addView(text("Аккаунт VK"))
-        val status=text(if(vk.linked()) "Аккаунт привязан" else "Гостевой режим · без аккаунта").apply {setTextColor(Loft.MUTED);textSize=12f};layout.addView(status)
+        val accountBody=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL;tag="vk-account-content"}
+        layout.addView(accountBody)
+        if(main!=null)EditorLayout.heading(main,layout,"Звонки и ручные хэши","servers")else layout.addView(text("Звонки и ручные хэши"))
+        val callsBody=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL;tag="vk-calls-content"}
+        layout.addView(callsBody)
+        val delivery=VkSettingsDelivery()
+        fun alive()=!detached&&layout.isAttachedToWindow&&!activity.isFinishing&&!activity.isDestroyed
+        fun load() {
+            if(!alive())return
+            val version=delivery.begin()
+            AndroidDeployIo.submit({store.exportForEncryptedBackup()}) {result->
+                if(!delivery.accepts(version)||!alive())return@submit
+                result.mapCatching {snapshot->
+                    // Reads made while constructing controls use one encrypted generation.
+                    // Account actions switch back to live storage before any user input.
+                    val reads=VkSettingsReadSnapshot(store,snapshot)
+                    try {
+                        accountBody.removeAllViews();callsBody.removeAllViews()
+                        fillVkSettings(VkRelayAccount(reads),accountBody,callsBody,::alive)
+                    }finally {reads.release()}
+                }.onSuccess {onLoaded()}.onFailure {
+                    accountBody.removeAllViews();callsBody.removeAllViews()
+                    accountBody.addView(text("Не удалось открыть настройки VK.").apply {setTextColor(Loft.ERROR)})
+                    accountBody.addView(button("Повторить"){load()})
+                }
+            }
+        }
+        layout.addOnAttachStateChangeListener(object:View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(view:View)=Unit
+            override fun onViewDetachedFromWindow(view:View){delivery.cancel()}
+        })
+        // Post from pre-draw: render the permanent headings first, then read storage.
+        layout.viewTreeObserver.addOnPreDrawListener(object:android.view.ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw():Boolean {
+                layout.viewTreeObserver.removeOnPreDrawListener(this)
+                layout.post {if(alive())load()}
+                return true
+            }
+        })
+        return layout
+    }
+    private fun fillVkSettings(vk:VkRelayAccount,accountBody:LinearLayout,callsBody:LinearLayout,alive:()->Boolean) {
+        val main=activity as? MainActivity
+        val status=text(if(vk.linked()) "Аккаунт привязан" else "Гостевой режим · без аккаунта").apply {setTextColor(Loft.MUTED);textSize=12f};accountBody.addView(status)
         val actions=LinearLayout(activity).apply {gravity=android.view.Gravity.CENTER_VERTICAL}
         lateinit var renderAccountActions:()->Unit
         val unlink={
@@ -68,10 +132,43 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
             }.apply {tag=if(linked)"vk-account-unlink"else"vk-account-link"},LinearLayout.LayoutParams(-1,dp(48)))
         }
         renderAccountActions()
-        layout.addView(actions,LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(8);bottomMargin=dp(16)})
-        if(main!=null)EditorLayout.heading(main,layout,"Звонки и ручные хэши","servers")
+        accountBody.addView(actions,LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(8);bottomMargin=dp(16)})
         val error=text("")
         if(main!=null){
+            val subnetLoaded=runCatching {vk.turnSubnets()}
+            // Default is a repair DRAFT only. Never silently rewrite restored
+            // metadata; an explicit choice commits the three subnet fields.
+            var subnetSelection=subnetLoaded.getOrDefault(VkTurnSubnets.Selection())
+            val subnetWarning=text(if(subnetLoaded.isFailure)"Настройка подсети повреждена. Выберите подсеть заново."else "").apply {
+                visibility=if(subnetLoaded.isFailure)View.VISIBLE else View.GONE
+                setTextColor(Loft.ERROR)
+            }
+            val subnetHost=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL}
+            lateinit var renderSubnet:()->Unit
+            renderSubnet={
+                subnetHost.removeAllViews()
+                lateinit var subnetRow:View
+                subnetRow=VkTurnSubnetsUi.row(main,subnetSelection){selection->
+                    subnetRow.isEnabled=false
+                    AndroidDeployIo.submit({vk.setTurnSubnets(selection)}) {result->
+                        if(alive()) {
+                            result.onSuccess {
+                                subnetSelection=selection;renderSubnet()
+                                subnetWarning.visibility=View.GONE
+                                runCatching {main.catalogue.invalidateProbes()}
+                                error.text="Сохранено"
+                            }.onFailure {
+                                renderSubnet();error.text="Не удалось сохранить подсеть TURN. Повторите выбор."
+                            }
+                        }
+                    }
+                }
+                subnetHost.addView(subnetRow)
+            }
+            renderSubnet()
+            callsBody.addView(subnetHost,main.space(0,8))
+            callsBody.addView(subnetWarning,main.space(0,4))
+            callsBody.addView(text("Для CSQTT 2.5.x. Собственные IP сервера имеют приоритет."),main.space(0,12))
             lateinit var slots:VkCallSlots
             slots=VkCallSlots(main,vk.manualDefaults(),Int.MAX_VALUE){
                 runCatching {vk.setManualDefaults(slots.values)}.onSuccess {
@@ -79,18 +176,18 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
                     error.text="Сохранено"
                 }.onFailure {error.text=it.message}
             }
-            layout.addView(slots)
-            layout.addView(VkManualCallsUi.generator(main,vk,{layout.isAttachedToWindow}){slots.append(it)},main.space(0,12))
-            layout.addView(android.widget.CheckBox(activity).apply {
+            callsBody.addView(slots)
+            callsBody.addView(VkManualCallsUi.generator(main,vk,alive){slots.append(it)},main.space(0,12))
+            callsBody.addView(android.widget.CheckBox(activity).apply {
                 text="Дополнять для всех Turn-подключений";tag="vk-manual-supplement-all"
                 setTextColor(Loft.INK);textSize=14f;minHeight=main.dp(48)
                 buttonTintList=android.content.res.ColorStateList.valueOf(Loft.ACCENT)
                 setPadding(main.dp(4),main.dp(8),main.dp(4),main.dp(8));isChecked=vk.supplementAll()
                 setOnCheckedChangeListener {_,checked->vk.setSupplementAll(checked);main.catalogue.invalidateProbes()}
             })
-            layout.addView(text("Добавляет общие хэши после звонков сервера, без дублей. Режим «Авто VK» с собственными звонками аккаунта не смешивает их с ручными."))
-        }else layout.addView(editor(vk.manualDefaults().joinToString("\n")){value->runCatching {vk.setManualDefaults(VkCallPaste.split(value))}.onFailure {error.text=it.message}})
-        layout.addView(error);return layout
+            callsBody.addView(text("Добавляет общие хэши после звонков сервера, без дублей. Режим «Авто VK» с собственными звонками аккаунта не смешивает их с ручными."))
+        }else callsBody.addView(editor(vk.manualDefaults().joinToString("\n")){value->runCatching {vk.setManualDefaults(VkCallPaste.split(value))}.onFailure {error.text=it.message}})
+        callsBody.addView(error)
     }
     /** Screen-based browser; only one destination and one live form at a time. */
     fun buildPage():LinearLayout {
@@ -111,11 +208,47 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
     fun deploy(recipeId: String): View = ScrollView(activity).apply { addView(deployForm(recipeId)) }
     private fun deployForm(recipeId: String,panel:JSONObject?=null,requestedDraftId:String?=null): LinearLayout {
         require(AndroidDeployRecipe.all.any { it.id==recipeId })
-        val draftId=requestedDraftId?:store.selectedDeployment(recipeId)
-        store.selectDeployment(recipeId,draftId)
-        val workspace=store.workspace()
+        val host=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL;tag="androidDeploy.loading"}
+        var version=0
+        var abandoned=false
+        host.addOnAttachStateChangeListener(object:View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(view:View)=Unit
+            override fun onViewDetachedFromWindow(view:View){
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    if(!view.isAttachedToWindow){abandoned=true;version++}
+                }
+            }
+        })
+        fun load() {
+            val stamp=++version
+            host.removeAllViews();host.addView(text("Загрузка установки…"))
+            AndroidDeployIo.submit({
+                val id=requestedDraftId?:store.selectedDeployment(recipeId)
+                store.selectDeployment(recipeId,id)
+                val snapshot=store.snapshot()
+                val values=snapshot.workspace.getJSONObject("drafts").getJSONObject(id).getJSONObject("values")
+                if(!values.has("panelPassword"))values.put("panelPassword",AndroidDeployPlan.secret())
+                if(!values.has("operationId"))values.put("operationId",java.util.UUID.randomUUID().toString())
+                id to snapshot
+            }) {result->
+                if(detached||abandoned||stamp!=version||activity.isFinishing||activity.isDestroyed)return@submit
+                host.removeAllViews()
+                result.onSuccess {(id,snapshot)->
+                    runCatching {loadedDeployForm(recipeId,panel,id,snapshot)}
+                        .onSuccess {host.addView(it)}.onFailure {
+                            host.addView(text("Не удалось открыть установку."));host.addView(button("Повторить"){load()})
+                        }
+                }.onFailure {
+                    host.addView(text("Не удалось прочитать черновик установки."));host.addView(button("Повторить"){load()})
+                }
+            }
+        }
+        load();return host
+    }
+    private fun loadedDeployForm(recipeId:String,panel:JSONObject?,draftId:String,snapshot:AndroidDeployStore.Snapshot):LinearLayout {
+        val workspace=snapshot.workspace
         val record=workspace.getJSONObject("drafts").getJSONObject(draftId)
-        val boundResult=store.get("deployResults").optJSONObject(record.optString("panelResultKey"))
+        val boundResult=snapshot.results.optJSONObject(record.optString("panelResultKey"))
         val savedPanel=panel?:boundResult?.takeIf {recipeId in setOf("3xui","swg")}
         val draft=JSONObject(record.getJSONObject("values").toString())
         var deploymentName=record.getString("name")
@@ -124,15 +257,50 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
         val options=draft.optJSONObject("options") ?: JSONObject().put("create",true)
         draft.put("options",options)
         val draftStatus=text("").apply {setTextColor(Loft.ERROR);textSize=12f}
-        fun save() {
-            if(backend.state.running){draftStatus.text="Дождитесь завершения операции перед изменением установки";return}
-            try {store.saveDeployment(draftId,deploymentName,draft);draftStatus.text=""}
-            catch(_:Exception){draftStatus.text="Не удалось сохранить черновик. Проверь поля; предыдущий сохранённый вариант не изменён."}
+        var launchButton:Button?=null
+        var saveRetry:Button?=null
+        var initializing=true
+        var saveVersion=0
+        var savedVersion=-1
+        var refreshingCompletion=false
+        var completionReadFailed=false
+        var completionSavePending=false
+        var pendingSave:Runnable?=null
+        fun save(onSaved:(()->Unit)?=null) {
+            if(initializing)return
+            if(completionReadFailed)return
+            if(refreshingCompletion){completionSavePending=true;draftStatus.text="Обновление результата…";return}
+            if(backend.state.running){draftStatus.text="Дождитесь завершения операции перед сохранением изменений";launchButton?.isEnabled=false;saveRetry?.visibility=View.VISIBLE;return}
+            val version=++saveVersion
+            val values=draft.toString();val name=deploymentName
+            draftStatus.text="Сохранение…";launchButton?.isEnabled=false;saveRetry?.visibility=View.GONE
+            pendingSave?.let {AndroidDeployIo.main.removeCallbacks(it)}
+            pendingSave=Runnable {
+                pendingSave=null
+                AndroidDeployIo.submit({store.saveDeployment(draftId,name,JSONObject(values))}) {result->
+                    if(detached||version!=saveVersion||activity.isFinishing||activity.isDestroyed)return@submit
+                    result.onSuccess {
+                        savedVersion=version;draftStatus.text="";launchButton?.isEnabled=!backend.state.running&&!refreshingCompletion&&!completionReadFailed
+                        onSaved?.invoke()
+                    }.onFailure {
+                        draftStatus.text="Не удалось сохранить черновик. Повторите сохранение перед запуском."
+                        saveRetry?.visibility=View.VISIBLE
+                    }
+                }
+            }.also {AndroidDeployIo.main.postDelayed(it,250)}
         }
-        save()
         val main=activity as MainActivity
         val layout=EditorLayout.body(main).apply {tag="androidDeploy.form";setPadding(0,dp(8),0,dp(16))}
+        layout.addOnAttachStateChangeListener(object:View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(view:View)=Unit
+            override fun onViewDetachedFromWindow(view:View){
+                // Persist the last edit before a subsequent page is allowed to read the draft.
+                pendingSave?.let {AndroidDeployIo.main.removeCallbacks(it);it.run()}
+            }
+        })
         layout.addView(draftStatus)
+        saveRetry=button("Повторить сохранение"){save()}.apply {visibility=View.GONE}
+        layout.addView(saveRetry)
         val label=when(recipeId){S3BypassProfile.KIND->"S3 Bypass";"swg"->"SWG Panel";"3xui"->"3x-ui";else->"OpenFlux"}
         val name=text(deploymentName).apply {textSize=17f;setTypeface(null,android.graphics.Typeface.BOLD)}
         layout.addView(LinearLayout(activity).apply {
@@ -146,52 +314,69 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
                 val dialog=ThemedDialogBuilder(activity).setTitle("Название установки").setView(body).setNegativeButton("Отмена",null).setPositiveButton("Сохранить",null).create()
                 dialog.setOnShowListener {dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                     runCatching {AndroidDeployInventory.name(input.text.toString())}.onSuccess {value->
-                        val previous=deploymentName;deploymentName=value;save()
-                        if(draftStatus.text.isEmpty()){name.text=value;dialog.dismiss()}else deploymentName=previous
+                        deploymentName=value;save {name.text=value;dialog.dismiss()}
                     }.onFailure {input.error="От 1 до 80 символов"}
                 }};dialog.show()
             }},LinearLayout.LayoutParams(dp(48),dp(48)))
         })
         layout.addView(text("$label · Debian / Ubuntu").apply {textSize=12f;setTextColor(Loft.MUTED)})
         var fieldParent=layout
-        var launchButton: Button?=null
         var callGroupActions: View?=null
         fun updateCallGroupActions() {
             val profiles=options.optJSONArray("swg_profiles")
             val needsAutomatic=if(profiles==null)(options.optJSONArray("vk_calls")?.length() ?: 0)==0 else (0 until profiles.length()).any {val p=profiles.getJSONObject(it);p.optBoolean("enabled")&&(p.optJSONArray("vk_calls")?.length() ?: 0)==0}
             callGroupActions?.visibility=if(recipeId=="swg" && options.optBoolean("create",true) && options.optBoolean("automatic_calls") && needsAutomatic && !backend.state.running) View.VISIBLE else View.GONE
         }
-        fun section(title: String) {
-            fieldParent.addView(View(activity).apply { setBackgroundColor(Loft.LINE);layoutParams=LinearLayout.LayoutParams(-1,dp(1).coerceAtLeast(1)).apply { topMargin=dp(18);bottomMargin=dp(10) } })
-            fieldParent.addView(text(title).apply { textSize=16f;setTypeface(null,android.graphics.Typeface.BOLD) })
+        fun section(title:String,collapsible:Boolean=false):LinearLayout {
+            val group=card()
+            layout.addView(group)
+            fieldParent=group
+            if(!collapsible){group.addView(text(title).apply {textSize=16f;setTypeface(null,android.graphics.Typeface.BOLD)});return group}
+            val body=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL;tag="androidDeploy.section.$title"}
+            val heading=button("$title ▾"){}.apply {
+                contentDescription="$title · свернуть";isSelected=true
+                setOnClickListener {
+                    val expanded=body.visibility!=View.VISIBLE
+                    body.visibility=if(expanded)View.VISIBLE else View.GONE
+                    text=title+if(expanded)" ▾"else" ▸";isSelected=expanded
+                    contentDescription=title+if(expanded)" · свернуть"else" · раскрыть"
+                }
+            }
+            group.addView(heading,LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=dp(8)})
+            group.addView(body);fieldParent=body;return body
         }
         fun field(key: String,label: String,help: String,default: String="",secret: Boolean=false,option: Boolean=false) {
             val obj=if(option) options else draft
-            fieldParent.addView(text(label).apply { setTypeface(null,android.graphics.Typeface.BOLD);setPadding(0,dp(12),0,dp(2)) })
-            if(help.isNotBlank()) fieldParent.addView(text(help).apply { textSize=12f;setTextColor(Loft.MUTED);setPadding(0,0,0,dp(6)) })
-            fieldParent.addView(editor(obj.optString(key,default),secret) {
+            val field=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL;tag="androidDeploy.field.$key"}
+            field.addView(text(label).apply { setTypeface(null,android.graphics.Typeface.BOLD);setPadding(0,dp(8),0,dp(8)) })
+            if(help.isNotBlank()) field.addView(text(help).apply { textSize=12f;setTextColor(Loft.MUTED);setPadding(0,0,0,dp(8)) })
+            field.addView(editor(obj.optString(key,default),secret) {
                 if(key in setOf("host","sshPort","relay_kind") && obj.optString(key,default)!=it) draft.put("operationId",java.util.UUID.randomUUID().toString())
                 obj.put(key,it);save()
             }.apply {
                 if(key!="privateKey")setSingleLine(true)
                 if(!option&&boundResult!=null&&key in setOf("host","sshPort","user","panelPort","domain"))isEnabled=false
-            })
+            },LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=dp(8)})
+            fieldParent.addView(field)
         }
         fun switch(key: String,label: String,help: String,default: Boolean): Switch {
-            val toggle=Switch(activity).apply { text=label;setTextColor(Loft.INK);isChecked=options.optBoolean(key,default);minHeight=dp(48);setPadding(0,dp(6),0,dp(6));setOnCheckedChangeListener { _,v -> options.put(key,v);save();updateCallGroupActions() } }
-            fieldParent.addView(toggle)
-            fieldParent.addView(text(help).apply { textSize=12f;setTextColor(Loft.MUTED) })
+            val toggle=Switch(activity).apply { text=label;setTextColor(Loft.INK);isChecked=options.optBoolean(key,default);minHeight=dp(48);setPadding(dp(12),dp(8),dp(12),dp(8));AndroidDeployUiStyle.field(this);setOnCheckedChangeListener { _,v -> options.put(key,v);save();updateCallGroupActions() } }
+            fieldParent.addView(LinearLayout(activity).apply {
+                orientation=LinearLayout.VERTICAL;tag="androidDeploy.option.$key"
+                addView(toggle,LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(8);bottomMargin=dp(8)})
+                addView(text(help).apply {textSize=12f;setTextColor(Loft.MUTED)})
+            })
             return toggle
         }
-        section("Доступ к серверу")
+        val access=section("Доступ к серверу",true)
         field("host","Адрес VPS","IP или домен без https://")
         field("user","SSH-логин","Пользователь с правами root/sudo","root")
         field("sshPort","SSH-порт","Порт существующего SSH-сервера","22")
         val useKey=AndroidDeployPresentation.usesSshKey(draft.optString("sshAuth"),draft.optString("privateKey").isNotBlank())
         draft.put("sshAuth",if(useKey) "key" else "password");save()
-        layout.addView(text("Способ входа").apply {setTypeface(null,android.graphics.Typeface.BOLD)})
+        access.addView(text("Способ входа").apply {setTypeface(null,android.graphics.Typeface.BOLD)})
         val authChoices=LinearLayout(activity).apply {gravity=android.view.Gravity.CENTER_VERTICAL}
-        layout.addView(authChoices)
+        access.addView(authChoices)
         val passwordFields=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL;tag="androidDeploy.auth.password"}
         val keyFields=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL;tag="androidDeploy.auth.key"}
         val passwordChoice=button("Пароль") {}.apply {tag="androidDeploy.auth.selectPassword"}
@@ -206,7 +391,7 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
         }
         passwordChoice.setOnClickListener {draft.put("sshAuth","password");save();showAuth(false)}
         keyChoice.setOnClickListener {draft.put("sshAuth","key");save();showAuth(true)}
-        layout.addView(passwordFields);layout.addView(keyFields)
+        access.addView(passwordFields);access.addView(keyFields)
         fieldParent=passwordFields
         field("sshPassword","SSH-пароль","Не попадает в журнал или ссылки","",true)
         fieldParent=keyFields
@@ -214,17 +399,17 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
         field("keyPassword","Пароль SSH-ключа","Оставьте пустым для незашифрованного ключа","",true)
         fieldParent=layout;showAuth(useKey)
         if(savedPanel==null&&recipeId!=S3BypassProfile.KIND){
-        section("Панель управления")
+        section("Панель управления",true)
         field("panelPort","Порт панели","Свободный TCP-порт 1024–65535","8443")
         field("panelUser","Логин панели","Создаётся новым установщиком","mcrf")
         field("panelPassword","Пароль панели","Создан случайно; хранится зашифрованно","",true)
         field("domain","Домен панели","Пусто: самоподписанный сертификат, отпечаток будет получен через SSH")
         }else if(savedPanel!=null){
-            section("Существующая панель")
-            layout.addView(text(savedPanel.getString("panel_url")))
-            layout.addView(text("Добавляется только транспорт. Панель и её сертификат не переустанавливаются. Укажите свободные порты для нового подключения."))
+            section("Панель управления",true)
+            fieldParent.addView(text(savedPanel.getString("panel_url")))
+            fieldParent.addView(text("Добавляется только транспорт. Панель и её сертификат не переустанавливаются. Укажите свободные порты для нового подключения."))
         }
-        section("Подключения")
+        val connectionSection=section("Подключения",true)
         val createToggle=switch("create","Создать подключения после установки","Выключите, если нужна только панель. Параметры подключения сохранятся в черновике.",true).apply { tag="androidDeploy.create" }
         if(recipeId==S3BypassProfile.KIND){createToggle.visibility=View.GONE;options.put("create",true)}
         if(savedPanel!=null){createToggle.visibility=View.GONE;options.put("create",true)}
@@ -232,7 +417,7 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
             orientation=LinearLayout.VERTICAL;tag="androidDeploy.provisioning"
             visibility=if(options.optBoolean("create",true)) View.VISIBLE else View.GONE
         }
-        layout.addView(provisioning);fieldParent=provisioning
+        connectionSection.addView(provisioning);fieldParent=provisioning
         createToggle.setOnCheckedChangeListener { _,create ->
             options.put("create",create);save()
             provisioning.visibility=if(create) View.VISIBLE else View.GONE
@@ -259,9 +444,72 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
                 field("grpc_service","gRPC serviceName","Буквы, цифры, точка, дефис, подчёркивание",option=true)
             }
             "openflux" -> {
-                field("transport","Транспорт OpenFlux","direct, yandex, vyandex, boards, telemost, mailru, cupsonline","direct",option=true)
+                val transports=AndroidDeployOpenFlux.transports
+                val scriptDraft=if(options.optString("transport")=="script")runCatching {JSONObject(options.optString("carrier_url"))}.getOrElse {JSONObject()}else JSONObject()
+                if(!scriptDraft.has("name"))scriptDraft.put("name",AndroidDeployOpenFlux.scripts.first())
+                if(!scriptDraft.has("url"))scriptDraft.put("url","")
+                if(!scriptDraft.has("settings"))scriptDraft.put("settings",JSONObject())
+                var ordinaryUrl=if(options.optString("transport")=="script")""else options.optString("carrier_url")
+                var refreshTransportControls:()->Unit={}
+                fun saveCarrier(){options.put("carrier_url",if(options.optString("transport","direct")=="script")scriptDraft.toString()else ordinaryUrl);save()}
+                val transport=button(options.optString("transport","direct")){}.apply {tag="androidDeploy.openflux.transport";AndroidDeployUiStyle.choice(main,this)}
+                val transportStatus=text("").apply {textSize=12f;setTextColor(Loft.MUTED)}
+                fun support(value:String){transportStatus.text=when(value){"script"->"Подписанный пакет устанавливается на сервер. Заполните URL и настройки выбранного сервиса.";"avito","cupsonline"->"Оставьте код пустым для создания новых комнат.";in transports->"";else->"Неизвестный транспорт; выберите поддерживаемый тип."}}
+                fun choose(value:String){
+                    val previous=options.optString("transport","direct")
+                    if(value in setOf("avito","cupsonline")&&previous !in setOf("avito","cupsonline"))ordinaryUrl=""
+                    options.put("transport",value);draft.put("operationId",java.util.UUID.randomUUID().toString());transport.text=value;support(value);saveCarrier();refreshTransportControls()
+                }
+                provisioning.addView(text("Транспорт OpenFlux"))
+                provisioning.addView(transport)
+                provisioning.addView(transportStatus);support(options.optString("transport","direct"))
+                transport.setOnClickListener {
+                    DropdownPopup.show(main,transport,"Транспорт OpenFlux",transports.map {DropdownPopup.Item(it)}+DropdownPopup.Item("Ввести вручную…"),transports.indexOf(options.optString("transport","direct"))) {index->
+                        if(index<transports.size)choose(transports[index])else {
+                            val input=main.editor("").apply {setSingleLine();setText(options.optString("transport","direct"))}
+                            val body=EditorLayout.body(main)
+                            EditorLayout.field(main,body,"Транспорт",input,"Идентификатор транспорта сервера. Доступность проверяется перед установкой.")
+                            val dialog=ThemedDialogBuilder(activity).setTitle("Транспорт OpenFlux").setView(body).setNegativeButton("Отмена",null).setPositiveButton("Применить",null).create()
+                            dialog.setOnShowListener {dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                                val value=input.text.toString().trim().lowercase(java.util.Locale.ROOT)
+                                if(!value.matches(Regex("[a-z][a-z0-9_-]{0,63}"))){input.error="Используйте латинские буквы, цифры, дефис или подчёркивание";return@setOnClickListener}
+                                choose(value);dialog.dismiss()
+                            }};dialog.show()
+                        }
+                    }
+                }
+                val directFields=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL}
+                provisioning.addView(directFields);fieldParent=directFields
                 field("direct_port","Порт direct","Используется только транспортом direct","5443",option=true)
-                field("carrier_url","Ссылка сервиса","HTTPS-ссылка для выбранного транспорта; для direct/cupsonline не нужна",option=true)
+                val carrierFields=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL}
+                val carrierLabel=text("Ссылка сервиса")
+                val carrierInput=editor(ordinaryUrl){value->ordinaryUrl=value;saveCarrier()}.apply {setSingleLine()}
+                carrierFields.addView(carrierLabel);carrierFields.addView(carrierInput);provisioning.addView(carrierFields)
+                val scriptFields=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL;tag="androidDeploy.openflux.script"}
+                val scriptName=button(scriptDraft.getString("name")){}.apply {AndroidDeployUiStyle.choice(main,this)}
+                EditorLayout.field(main,scriptFields,"Script-пакет",scriptName)
+                scriptName.setOnClickListener {
+                    DropdownPopup.show(main,scriptName,"Подписанный пакет",AndroidDeployOpenFlux.scripts.map {DropdownPopup.Item(it)},AndroidDeployOpenFlux.scripts.indexOf(scriptDraft.optString("name"))){index->
+                        scriptDraft.put("name",AndroidDeployOpenFlux.scripts[index]);scriptName.text=AndroidDeployOpenFlux.scripts[index];saveCarrier()
+                    }
+                }
+                EditorLayout.field(main,scriptFields,"URL / значение сервиса",editor(scriptDraft.optString("url")){scriptDraft.put("url",it);saveCarrier()}.apply {setSingleLine()})
+                val settings=scriptDraft.optJSONObject("settings")?.toString(2)?:scriptDraft.optString("settings","{}")
+                EditorLayout.field(main,scriptFields,"Настройки · JSON",editor(settings){value->
+                    scriptDraft.put("settings",runCatching<Any> {JSONObject(value)}.getOrElse {value});saveCarrier()
+                }.apply {minLines=3},"Объект строк: {\"ключ\":\"значение\"}. mtslink-webrtc и vkteams ожидают опубликованных пакетов.")
+                provisioning.addView(scriptFields)
+                refreshTransportControls={
+                    val kind=options.optString("transport","direct")
+                    directFields.visibility=if(kind=="direct")View.VISIBLE else View.GONE
+                    carrierFields.visibility=if(kind !in setOf("direct","script"))View.VISIBLE else View.GONE
+                    scriptFields.visibility=if(kind=="script")View.VISIBLE else View.GONE
+                    carrierLabel.text=if(kind in setOf("avito","cupsonline"))"Код комнат · необязательно"else"HTTPS-ссылка сервиса"
+                    if(carrierInput.text.toString()!=ordinaryUrl)carrierInput.setText(ordinaryUrl)
+                }
+                refreshTransportControls()
+                if(options.optString("transport")=="script")saveCarrier()
+                fieldParent=provisioning
             }
             "swg" -> {
                 provisioning.addView(text("Протоколы SWG Panel · можно выбрать несколько").apply {setTypeface(null,android.graphics.Typeface.BOLD)})
@@ -274,12 +522,13 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
                 val profiles=AndroidDeploySwg.drafts(options);options.put("swg_profiles",profiles);save()
                 repeat(profiles.length()) { index ->
                     val profile=profiles.getJSONObject(index);val kind=profile.getString("kind")
-                    val area=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL;setPadding(dp(12),0,0,dp(10));tag="androidDeploy.swg.$kind.fields";visibility=if(profile.getBoolean("enabled")) View.VISIBLE else View.GONE}
+                    val area=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL;setPadding(0,dp(8),0,dp(8));tag="androidDeploy.swg.$kind.fields";visibility=if(profile.getBoolean("enabled")) View.VISIBLE else View.GONE}
                     provisioning.addView(CheckBox(activity).apply {
                         text=AndroidDeploySwg.label(kind);textSize=15f;setTextColor(Loft.INK);minHeight=dp(48);isChecked=profile.getBoolean("enabled");tag="androidDeploy.swg.$kind.enabled"
+                        AndroidDeployUiStyle.field(this);setPadding(dp(12),dp(8),dp(12),dp(8))
                         buttonTintList=android.content.res.ColorStateList.valueOf(Loft.ACCENT)
                         setOnCheckedChangeListener {_,enabled ->profile.put("enabled",enabled);draft.put("operationId",java.util.UUID.randomUUID().toString());save();area.visibility=if(enabled) View.VISIBLE else View.GONE;updateCallGroupActions()}
-                    })
+                    },LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(8);bottomMargin=dp(8)})
                     provisioning.addView(area,LinearLayout.LayoutParams(-1,-2))
                     fun relayField(key:String,label:String) {
                         area.addView(text(label).apply {setTypeface(null,android.graphics.Typeface.BOLD)})
@@ -301,9 +550,12 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
             }
         }
         fieldParent=layout
-        section("Выполнение")
+        val execution=section("Выполнение")
         val status=text(backend.state.phase);val console=text(backend.state.logs).apply {setTextIsSelectable(true);maxLines=6;textSize=12f;setTextColor(Loft.MUTED)};val output=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL}
-        layout.addView(status);layout.addView(console);layout.addView(output)
+        execution.addView(status);execution.addView(console);execution.addView(output)
+        var stored=AndroidDeployHistory.entries(snapshot.results).firstOrNull {it.result.optString("deployment_id")==draftId}?.result?:boundResult
+        var loadedCompletion=""
+        var renderedOutput=""
         fun render(s: AndroidDeployState) {
             showTrust(s)
             updateCallGroupActions()
@@ -311,23 +563,42 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
             status.text=if(same) s.phase+if(s.error.isNotBlank()) "\n${s.error}" else "" else if(s.running) "Выполняется другая установка: ${s.recipeId}" else ""
             console.text=if(same) s.logs else ""
             val completed=s.result
-            if(completed!=null && completed.optString("operation_id")==draft.optString("operationId") && (!completed.optBoolean("provision_requested") || completed.optBoolean("provision_complete"))) {
-                store.workspace().getJSONObject("drafts").getJSONObject(draftId).getJSONObject("values").optString("operationId").takeIf(String::isNotBlank)?.let { draft.put("operationId",it) }
+            val completion=completed?.toString().orEmpty()
+            if(same&&!s.running&&completion.isNotEmpty()&&completion!=loadedCompletion) {
+                loadedCompletion=completion;refreshingCompletion=true
+                AndroidDeployIo.submit({store.snapshot()}) {result->
+                    if(detached||!layout.isAttachedToWindow||activity.isFinishing||activity.isDestroyed)return@submit
+                    result.onSuccess {fresh->
+                        if(completed!=null&&completed.optString("operation_id")==draft.optString("operationId")&&(!completed.optBoolean("provision_requested")||completed.optBoolean("provision_complete"))) {
+                            fresh.workspace.getJSONObject("drafts").getJSONObject(draftId).getJSONObject("values").optString("operationId").takeIf(String::isNotBlank)?.let {draft.put("operationId",it)}
+                        }
+                        stored=AndroidDeployHistory.entries(fresh.results).firstOrNull {it.result.optString("deployment_id")==draftId}?.result?:stored
+                        refreshingCompletion=false
+                        if(completionSavePending||savedVersion<0){completionSavePending=false;save()}
+                        render(backend.state)
+                    }.onFailure {
+                        refreshingCompletion=false;completionReadFailed=true;launchButton?.isEnabled=false
+                        draftStatus.text="Результат получен, но не удалось перечитать сохранённую установку. Откройте раздел повторно."
+                    }
+                }
             }
-            val stored=AndroidDeployHistory.entries(store.get("deployResults")).firstOrNull {it.result.optString("deployment_id")==draftId}?.result?:boundResult
-            output.removeAllViews();(if(same && s.result!=null) s.result else stored)?.let {
-                output.addView(text("Последний подтверждённый результат установки"));result(output,it)
+            if(!initializing&&!refreshingCompletion&&!completionReadFailed&&!s.running&&savedVersion<0&&saveVersion==0)save()
+            val visible=if(same&&s.result!=null)s.result else stored
+            if(renderedOutput!=visible?.toString().orEmpty()) {
+                renderedOutput=visible?.toString().orEmpty();output.removeAllViews();visible?.let {
+                    output.addView(text("Последний подтверждённый результат установки"));result(output,it)
+                }
             }
+            launchButton?.isEnabled=!s.running&&!refreshingCompletion&&!completionReadFailed&&savedVersion==saveVersion&&draftStatus.text.isEmpty()
             if(s.result!=null || !s.running) pageRefresh?.invoke()
         }
-        val observer: (AndroidDeployState) -> Unit={ state -> activity.runOnUiThread { if(!activity.isFinishing && !activity.isDestroyed) render(state) } }
+        val observer: (AndroidDeployState) -> Unit={ state -> activity.runOnUiThread { if(!detached&&layout.isAttachedToWindow&&!activity.isFinishing && !activity.isDestroyed) render(state) } }
         attachedListener=observer;backend.listener=observer
         render(backend.state)
         launchButton=button(AndroidDeployPresentation.action(options.optBoolean("create",true),recipeId)) {
             runCatching {
                 val keyAuth=AndroidDeployPresentation.usesSshKey(draft.optString("sshAuth"),draft.optString("privateKey").isNotBlank())
-                save()
-                require(draftStatus.text.isEmpty()){ "Сначала исправьте данные установки" }
+                require(savedVersion==saveVersion&&draftStatus.text.isEmpty()){ "Дождитесь сохранения данных установки" }
                 val t=AndroidDeployTarget(draft.optString("host"),draft.optString("user","root"),draft.optString("sshPort","22").toInt(),if(keyAuth) "" else draft.optString("sshPassword"),if(keyAuth) draft.optString("privateKey") else "",if(keyAuth) draft.optString("keyPassword") else "",draft.optString("panelPort","8443").toInt(),draft.optString("panelUser","mcrf"),draft.getString("panelPassword"),draft.optString("domain"),JSONObject(options.toString()),operationId=draft.getString("operationId"),deploymentId=draftId,deploymentName=deploymentName)
                 AndroidDeployPlan.validate(recipeId,t)
                 ThemedDialogBuilder(activity).setTitle(if(savedPanel==null)"Установить на ${t.host}?" else "Добавить транспорт на ${t.host}?").setMessage(if(savedPanel==null)AndroidDeployPresentation.confirmation(options.optBoolean("create",true),recipeId)else "Будет создано новое подключение. Существующие подключения сохраняются; установщик и перезапуск панели не запускаются.")
@@ -335,10 +606,10 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
                         runCatching { if(savedPanel==null)backend.start(recipeId,t)else backend.addTransport(recipeId,t,savedPanel) }.onSuccess { started -> if(!started) status.text="Другая операция уже выполняется" }.onFailure { status.text=it.message }
                     }.show()
             }.onFailure { status.text=it.message }
-        }.apply { tag="androidDeploy.submit" }
+        }.apply { tag="androidDeploy.submit";isEnabled=false }
         if(savedPanel!=null)launchButton?.text="Добавить транспорт без переустановки"
-        layout.addView(launchButton)
-        layout.addView(button("Остановить операцию") { backend.cancel() })
+        execution.addView(launchButton)
+        execution.addView(button("Остановить операцию") { backend.cancel() })
         if(recipeId=="swg") {
             val group=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL;tag="androidDeploy.newCallGroup"}
             group.addView(button("Новая группа звонков VK") {
@@ -347,8 +618,9 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
                 status.text="Новая группа подготовлена. Звонки будут созданы только после запуска установки."
             })
             group.addView(text("Только для отдельной установки SWG. Эта кнопка не устанавливает панель и не создаёт звонки сразу.").apply {textSize=12f;setTextColor(Loft.MUTED)})
-            callGroupActions=group;layout.addView(group);updateCallGroupActions()
+            callGroupActions=group;execution.addView(group);updateCallGroupActions()
         }
+        initializing=false;if(!backend.state.running)save()
         return layout
     }
     private fun showTrust(s: AndroidDeployState) {
@@ -363,7 +635,7 @@ class AndroidDeployUi(private val activity: Activity,private val store: AndroidD
     }
     /** Dismissing a destroyed Activity's dialog never grants or rejects the operation-owned request. */
     fun back()=browserUi?.back()?:false
-    fun detach() { if(backend.listener===attachedListener) backend.listener=null;attachedListener=null;pageRefresh=null;browserUi=null;trustDialog?.dismiss();trustDialog=null;displayedTrustId="" }
+    fun detach() { detached=true;browserUi?.detach();if(backend.listener===attachedListener) backend.listener=null;attachedListener=null;pageRefresh=null;browserUi=null;trustDialog?.dismiss();trustDialog=null;displayedTrustId="" }
     private fun result(layout:LinearLayout,r:JSONObject) {
         layout.addView(text(if(r.optString("recipe_id")==S3BypassProfile.KIND)"Сервис установлен на VPS" else "Панель готова · подключения сохранены"))
         if(r.optBoolean("provision_requested")&&!r.optBoolean("provision_complete"))

@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <application android:label="MCRF owned Slipstream fixture" android:extractNativeLibs="true" android:allowBackup="false">
+        <meta-data android:name="org.mcrf.fixture.hashes" android:value="${fixtureHashes}" />
+    </application>
+    <instrumentation android:name=".Runner" android:targetPackage="org.mcrf.slipstreamfixtures" android:label="Owned Slipstream native checks" />
+</manifest>

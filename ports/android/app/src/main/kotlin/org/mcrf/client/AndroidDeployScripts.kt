@@ -59,6 +59,8 @@ if not os.environ.get('MCRF_PANEL_API_TOKEN'):
                 env("MCRF_PANEL_URL","https://$authority:${t.panelPort}");env("MCRF_PANEL_USER",t.panelUser);env("MCRF_PANEL_PASS",t.panelPassword)
             }
             "swg" -> {
+                require(recipe.repository=="SanityProtocol/swg-panel" && recipe.file=="bootstrap.sh" && Regex("[0-9a-f]{40}").matches(recipe.commit))
+                env("SWG_REPO","https://github.com/${recipe.repository}")
                 env("SWG_REF",recipe.commit);env("BASIC_USER",t.panelUser);env("BASIC_PASS",t.panelPassword);env("PANEL_DOMAIN","$authority:${t.panelPort}")
                 env("PORT",t.panelPort.toString());env("TLS_MODE","selfsigned");env("SERVE_MODE","internal");env("MANAGE_IFACES","")
                 s.append("(umask 022; bash installer.sh master)\nsystemctl is-active --quiet swg-panel-server\n")
@@ -80,7 +82,7 @@ if not os.environ.get('MCRF_PANEL_API_TOKEN'):
         require(match.value.contains("rm -rf /usr/local/go"))
         return source.replaceRange(match.range,goInstaller+"\n").replace(before,"  DEPLOY_REVISION="+q(recipe.commit))
             .replace(archive,"  archive_ref=\"\$DEPLOY_REVISION\"")
-            .replace(clone,"  git init --quiet \"\$upstream_src\"\n  git -C \"\$upstream_src\" remote add origin \"\$UPSTREAM_REPO\"\n  git -C \"\$upstream_src\" fetch --quiet --depth 1 origin 'edcf77a1848a72370cfba9f346d3b897b61e7e7d'\n  git -C \"\$upstream_src\" checkout --quiet --detach FETCH_HEAD")
+            .replace(clone,"  git init --quiet \"\$upstream_src\"\n  git -C \"\$upstream_src\" remote add origin \"\$UPSTREAM_REPO\"\n  git -C \"\$upstream_src\" fetch --quiet --depth 1 origin '${AndroidDeployOpenFlux.CORE_COMMIT}'\n  git -C \"\$upstream_src\" checkout --quiet --detach FETCH_HEAD\n  python3 - \"\$PREFIX/source/deploy/panel\" <<'MCRF_PANEL_SCRIPT_PY'\n${AndroidDeployOpenFlux.panelPatch}\nMCRF_PANEL_SCRIPT_PY")
     }
     internal val provisioning = """
 import base64
@@ -264,16 +266,105 @@ def provision_3xui(api, options, host, links, sleep=time.sleep):
                      + "#" + urllib.parse.quote("MCRF · VLESS " + mode.upper()))
 
 
+OPENFLUX_SCRIPT_KEY = "d8bf9c958b994c2faab886cade5f28213f254911f87abe5e34756a289ae91354"
+# Independent deploy lock: OpenFluxTransports index 9349c01a4f2dd707f33f5a316beb9b56b77e56bd.
+OPENFLUX_SCRIPTS = {
+    "yandex": ("1.1.0", "fe71e62d235edbc3c6f94d66e22ddbdbe37e011e126724a8e4d38625d2f92b22"),
+    "vyandex": ("1.1.0", "98febe3eb6ce988b02b8267f5e029b8c61939551ff859981e045f451f0babfa5"),
+    "boards": ("1.1.0", "7c687bca83ad1d9aa5154081e385c55a1d10af91d444f038f6bbb018de5260f4"),
+    "mailru": ("1.1.2", "faa3774ea691fa37c5991b798bc969e9391c653765def3ebc47911abe77c8563"),
+    "cupsonline": ("1.1.0", "b9feab761df9d2c0acdf77db78a33d624b3525f25c483ad4628be7ddf6b355fb"),
+    "oneme-iceinject": ("1.1.0", "cc9f492bec9cb8f07f1125bcb645f4e74bd4997a373e311ba1bd0e1576f73dc9"),
+    "oneme-webrtc": ("1.1.0", "e61dc4a7d45d777a6431b1adbbf919be84c68de85bdf301ae1282aa3a3bf2ed3"),
+    "mtslink": ("1.0.0", "a68315d73e97dd74c137285debe635e9ba46d1e194416beb5eb9c412d6f46b79"),
+    "bitrix": ("1.0.0", "8c83e3562bd366994385ba70dbaa53d1bb019fbb8ef3efaf7634ab2904a01c49"),
+    "pruffme": ("1.0.0", "4208936d124658bbc1b98b6836106eaceaf945b688ed694fee965bd22b871e7e"),
+}
+
+
+def openflux_script_options(value):
+    if not isinstance(value, str) or len(value) > 8192:
+        raise ProvisionError("Параметры script превышают лимит черновика.")
+    try:
+        data = json.loads(value)
+    except (ValueError, TypeError):
+        raise ProvisionError("Script: нужны имя пакета, URL и настройки JSON.")
+    if not isinstance(data, dict) or set(data) - {"name", "url", "settings"} or not isinstance(data.get("name"), str) or data["name"] not in OPENFLUX_SCRIPTS:
+        raise ProvisionError("Нет закреплённого подписанного script-пакета.")
+    url, settings = data.get("url", ""), data.get("settings", {})
+    if not isinstance(url, str) or len(url) > 8192 or any(ord(c) < 32 or ord(c) == 127 or c in "#;" for c in url):
+        raise ProvisionError("URL script не подходит для серверной конфигурации.")
+    if not isinstance(settings, dict) or len(settings) > 64 or any(not re.fullmatch(r"[A-Za-z0-9_.-]{1,128}", key) or not isinstance(v, str) or len(v) > 8192 for key, v in settings.items()):
+        raise ProvisionError("Настройки script должны быть JSON-объектом строк.")
+    return {"name": data["name"], "url": url, "settings": settings}
+
+
+def prepare_openflux_script(name):
+    import os
+    import pathlib
+    import subprocess
+    import tempfile
+    import urllib.request
+    version, digest = OPENFLUX_SCRIPTS[name]
+    directory = pathlib.Path("/var/lib/openflux-deploy/scripts/mcrf-9349c01a4f2dd707")
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if directory.is_symlink():
+        raise ProvisionError("Каталог script-пакетов не должен быть символической ссылкой.")
+    path = directory / (name + ".flux")
+    temporary = None
+    try:
+        existing = path.read_bytes() if path.is_file() and not path.is_symlink() and path.stat().st_size <= 4 * 1024 * 1024 else b""
+        if hashlib.sha256(existing).hexdigest() != digest:
+            url = "https://github.com/p1neappleXpress/OpenFluxTransports/releases/download/{0}-v{1}/{0}-{1}.flux".format(name, version)
+            with urllib.request.urlopen(url, timeout=30) as response:
+                payload = response.read(4 * 1024 * 1024 + 1)
+            if len(payload) > 4 * 1024 * 1024 or hashlib.sha256(payload).hexdigest() != digest:
+                raise ProvisionError("SHA-256 script-пакета не совпал; подключение не создавалось.")
+            fd, temporary = tempfile.mkstemp(prefix=".mcrf-", dir=str(directory))
+            with os.fdopen(fd, "wb") as output:
+                output.write(payload)
+                output.flush()
+                os.fsync(output.fileno())
+            candidate = temporary
+        else:
+            candidate = str(path)
+        checked = subprocess.run(["/var/lib/openflux-deploy/bin/openflux", "--inspect-script", "--data=" + candidate, "--pubkey=" + OPENFLUX_SCRIPT_KEY], capture_output=True, timeout=15, check=False)
+        report = json.loads(checked.stdout) if checked.returncode == 0 else {}
+        if report.get("ok") is not True or report.get("signature") != "valid" or report.get("official") is not True:
+            raise ProvisionError("Подпись script-пакета не подтверждена; подключение не создавалось.")
+        if temporary:
+            os.replace(temporary, path)
+            temporary = None
+    except ProvisionError:
+        raise
+    except Exception:
+        raise ProvisionError("Не удалось подготовить подписанный script-пакет; подключение не создавалось.")
+    finally:
+        if temporary:
+            os.unlink(temporary)
+
+
 def provision_openflux(api, options, host, links, username, password, sleep=time.sleep):
-    api.request("POST", "/api/login", {"username": username, "password": password}, action=True)
-    kind = options.get("transport")
-    if kind not in ("yandex", "vyandex", "boards", "telemost", "mailru", "cupsonline", "direct"):
+    kind = options.get("transport", "direct")
+    if kind not in ("yandex", "vyandex", "boards", "telemost", "mailru", "cupsonline", "avito", "direct", "script"):
         raise ProvisionError("Неподдерживаемый транспорт OpenFlux.")
+    script = openflux_script_options(options.get("carrier_url", "")) if kind == "script" else None
+    url = script["url"] if script else options.get("carrier_url", "") if kind != "direct" else ""
+    if kind in ("avito", "cupsonline") and (not isinstance(url, str) or len(url) > 8192 or url and not re.fullmatch(r"[A-Za-z0-9+/_=-]+", url)):
+        raise ProvisionError("Для Cups/Avito нужен код комнат либо пустое поле.")
+    api.request("POST", "/api/login", {"username": username, "password": password}, action=True)
+    if script:
+        capabilities = api.request("GET", "/api/state")
+        if capabilities.get("mcrf_script_deploy") != 1:
+            raise ProvisionError("Обновите серверную панель для script-деплоя. Подключение не создавалось; панель не переустанавливалась.")
+        prepare_openflux_script(script["name"])
     config = {"name": "MCRF · " + kind, "enabled": True, "transport": kind,
-              "url": options.get("carrier_url", "") if kind not in ("direct", "cupsonline") else "",
+              "url": url,
               "mode": "l4", "codec": "batched", "debug": False, "auto_update": False,
-              "negotiate": False, "encryption_key_file": "",
-              "transports": [{"type": kind, "url": options.get("carrier_url", "") if kind not in ("direct", "cupsonline") else "", "priority": 100}]}
+              "negotiate": True, "encryption_key_file": "",
+              "transports": [{"type": kind, "url": url, "priority": 100}]}
+    if script:
+        config["transports"][0]["params"] = {"name": script["name"], "settings": script["settings"]}
     if kind == "direct":
         config["direct_listen"] = "0.0.0.0:" + str(checked_port(options["direct_port"]))
     print("MCRF_STEP|Создаём OpenFlux · " + kind, flush=True)
@@ -286,7 +377,9 @@ def provision_openflux(api, options, host, links, username, password, sleep=time
         row = next((r for r in state.get("connections", []) if r.get("id") == cid), None)
         if row and row.get("yandex_auth_required"):
             raise ProvisionError("Подключение создано, но требуется вход Yandex в панели OpenFlux.")
-        if row and row.get("running") and (kind != "cupsonline" or row.get("client_code")):
+        if row and row.get("last_error"):
+            raise ProvisionError("OpenFlux сообщил ошибку запуска. Проверьте настройки и журнал в панели; создание не повторялось.")
+        if row and row.get("running") and (kind not in ("cupsonline", "avito") or url or row.get("client_code")):
             if kind != "direct" or api.listener_ready(options["direct_port"]):
                 break
         sleep(1)

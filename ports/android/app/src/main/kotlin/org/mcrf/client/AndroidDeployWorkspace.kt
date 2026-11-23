@@ -20,6 +20,24 @@ object AndroidDeployWorkspace {
     }
     fun record(recipe:String,name:String,values:JSONObject,panelResultKey:String="")=JSONObject()
         .put("recipe",recipe).put("name",AndroidDeployInventory.name(name)).put("values",JSONObject(values.toString())).put("panelResultKey",panelResultKey)
+    /** Work on a detached copy; a stale confirmation cannot erase a completed installation. */
+    internal fun withoutDraft(current:JSONObject,id:String,results:JSONObject,inventory:JSONObject):JSONObject {
+        validate(current)
+        val next=JSONObject(current.toString())
+        val drafts=next.getJSONObject("drafts")
+        val item=drafts.optJSONObject(id)?:throw IllegalArgumentException("Черновик уже удалён. Обновите раздел.")
+        val operation=item.getJSONObject("values").optString("operationId")
+        require(item.getString("panelResultKey").isBlank()&&
+            inventory.optJSONObject("instances")?.has(id)!=true&&
+            results.keys().asSequence().none {key->results.getJSONObject(key).let {
+                it.optString("deployment_id")==id||(operation.isNotBlank()&&it.optString("operation_id")==operation)
+            }}) {"Установка уже имеет результат. Удалить можно только черновик."}
+        drafts.remove(id)
+        val selected=next.getJSONObject("selected")
+        selected.keys().asSequence().filter {selected.getString(it)==id}.toList().forEach(selected::remove)
+        validate(next)
+        return next
+    }
     fun validate(root:JSONObject){
         require(root.keys().asSequence().toSet()==setOf("schema","drafts","selected")&&root.get("schema")==1)
         val drafts=root.getJSONObject("drafts");val selected=root.getJSONObject("selected")

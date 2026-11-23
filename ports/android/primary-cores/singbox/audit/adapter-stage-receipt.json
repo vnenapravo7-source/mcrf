@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "latestVerifiedStage": {
+    "stage": "work/android-primary-stage-f386e3b1f236427c8542666076c17d5e",
+    "adapterBytes": 39671,
+    "adapterSha256": "2e0260cd4724d08b7795d51013a3a5ccc15e6398b0bad143bfc2fb94432cb05c",
+    "deviceReceipt": "work/ports-test-2026-10-14/integration-b4a0-device/device-result-20261014T215539163Z-eba5d77c.json",
+    "deviceScope": "Actual main/worker deferred TUN, VPN-bound HTTP/counters, STOP/restart/worker-death cleanup11PASS; not full retained area or final minified acceptance",
+    "moduleArm64ApkBytes": 30285206,
+    "moduleArm64ApkSha256": "c1e9e789584e8fde8b25b01d1520211c8b9fc8ff815566265db17be29cbee024"
+  },
+  "state": "adapter_compiled_and_static_verified; module_runtime_device_acceptance_pending",
+  "stage": "work/android-primary-stage-35a8d6ebf9424f3cb08537197148b876",
+  "module": "sing-box",
+  "choiceId": "singbox",
+  "coreApi": 1,
+  "spi": 1,
+  "entry": "org.mcrf.engines.singbox.SingBoxEngine",
+  "adapter": {
+    "relativePath": "sing-box/adapter.aar",
+    "bytes": 38226,
+    "sha256": "80d31389a39227b3f78f528ee8c87bceaf39245339670868b7e0a2e4d93ff615",
+    "classCount": 11,
+    "nativeIncluded": false,
+    "goOrLibboxOrParentSpiIncluded": false
+  },
+  "runtime": {
+    "relativePath": "sing-box/runtime.aar",
+    "bytes": 88565759,
+    "sha256": "cc8089f5ac7731c0b18b4d41ee0baf9a6171f2283781e00850649d4eb16f9678",
+    "nativeName": "libbox.so",
+    "abis": ["arm64-v8a", "armeabi-v7a", "x86_64"]
+  },
+  "archivedBuildEvidence": "ports/android/coordination/build-history/android-integration-5dd4faa9f74043d397a055fc400c1b29",
+  "historicalSnapshotIsNotRequired": true,
+  "retention": "Main keeps latest three completed app versions plus explicit active; no child cleanup/build/ADB",
+  "scope": "Small historical compile/static receipt plus current copied stage identity, not installable APK size or working release acceptance"
+}

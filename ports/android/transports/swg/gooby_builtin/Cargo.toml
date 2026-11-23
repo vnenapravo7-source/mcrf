@@ -1,0 +1,12 @@
+[package]
+name = "mcrf-gooby-builtin"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+[dependencies]
+anyhow = "=1.0.104"
+tokio = {version="1.53.1",features=["rt","net","time","io-util","macros","sync"]}
+tracing = "0.1"
+
+[workspace]

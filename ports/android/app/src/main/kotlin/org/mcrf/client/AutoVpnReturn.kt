@@ -14,7 +14,8 @@ object AutoVpnReturn {
         if(template.has("mcrf_carrier")||template.has("mcrf_bs"))return
         val catalogue=Connections(context).apply {load()}
         val tags=template.optJSONArray("outbounds")?.let {a->(0 until a.length()).mapNotNull {a.optJSONObject(it)?.optString("tag")}.toSet()}?:emptySet()
-        val ids=catalogue.entries().filter {it.carrier==null&&ServerImport.tag(it) in tags}.map {it.id}
+        if(catalogue.entries().any {it.whitelists&&ServerImport.tag(it) in tags})return
+        val ids=catalogue.entries().filter {!it.whitelists&&ServerImport.tag(it) in tags}.map {it.id}
         val raw=JSONObject().put("version",1).put("template",JSONObject(template.toString())).put("vpn",vpn)
             .put("port",port).put("routes",routes).put("core",core).put("ids",JSONArray(ids))
         validate(raw)
@@ -44,7 +45,7 @@ object AutoVpnReturn {
         val port=value.getInt("port")
         val ids=value.getJSONArray("ids").let {a->require(a.length()<=1000);(0 until a.length()).map {a.getString(it)}.toSet()}
         require(ids.all {it.matches(Regex("[0-9a-f]{64}"))})
-        val current=Connections(context).apply {load()}.entries().filter {it.carrier==null}.mapTo(hashSetOf()){it.id}
+        val current=ConnectionSections.entries(Connections(context).apply {load()}.entries(),false).mapTo(hashSetOf()){it.id}
         require(current.containsAll(ids)) {"Сохранённые VPN-серверы изменены или удалены."}
         val core=value.getString("core")
         require(core==ClientPrimarySelection.selected(context)) {"Основное ядро изменено; сначала подключи VPN вручную."}

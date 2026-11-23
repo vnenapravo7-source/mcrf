@@ -50,7 +50,8 @@ object ClientEvents {
         try {
             val file = File(context.filesDir, "client.log")
             val clean = redact(message).replace('\r', ' ').replace('\n', ' ').take(2000)
-            val line = "${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT).format(Date())} [$source] $clean\n"
+            val safeSource = redact(source).replace('\r', ' ').replace('\n', ' ').take(80)
+            val line = "${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT).format(Date())} [$safeSource] $clean\n"
             locked(context){
                 FileOutputStream(file,true).use {it.write(line.toByteArray(Charsets.UTF_8))}
                 val now=System.currentTimeMillis()

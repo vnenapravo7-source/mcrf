@@ -7,8 +7,8 @@ $taskStage=(Resolve-Path -LiteralPath $NativeStage).Path
 if($taskStage.Replace([char]92,[char]47) -notmatch '^D:/MCRF/Builds/Android/p3-steer-native-[a-f0-9]{32}$'){throw 'Exact owned Steer native stage required'}
 $taskReceipt=Get-Content "$taskStage/receipt.json" -Raw|ConvertFrom-Json -AsHashtable
 $taskCases=@('mcrf_socks_udp_test','mcrf_socks_local_udp_test','mcrf_socks_udp_wire_test')
-if($taskReceipt.newVersion -eq 16){$taskCases+='mcrf_private_socks_profile_test';if(!$taskReceipt.retainedSocks.unchangedFixtureSources){throw 'Retained exact SOCKS source proof required'}}
-if($taskReceipt.state -cne 'COMPILED_SOCKS_FIXTURE_VERIFIED' -or !$taskReceipt.sourceStable -or $taskReceipt.newVersion -notin @(15,16) -or @($taskCases|Where-Object {$_ -cnotin $taskReceipt.cases}).Count){throw 'All required actual C fixtures required before packaging'}
+if($taskReceipt.privateHelperProfile -eq 1){$taskCases+='mcrf_private_socks_profile_test';if($taskReceipt.retainedSocks -and !$taskReceipt.retainedSocks.unchangedFixtureSources){throw 'Retained exact SOCKS source proof required'}}
+if($taskReceipt.state -cne 'COMPILED_SOCKS_FIXTURE_VERIFIED' -or !$taskReceipt.sourceStable -or $taskReceipt.newVersion -notin @(15,16,17) -or @($taskCases|Where-Object {$_ -cnotin $taskReceipt.cases}).Count){throw 'All required actual C fixtures required before packaging'}
 $taskPrepared=$taskReceipt.preparedSource
 if($taskPrepared.Replace([char]92,[char]47) -notmatch '^D:/MCRF/Builds/Android/p3-steer-source-[a-f0-9]{32}$' -or $taskReceipt.sourceManifestSha256 -cne (Hash "$taskPrepared/SOURCE_MANIFEST.json")){throw 'Frozen original C/source closure changed'}
 foreach($taskRow in (Get-Content "$taskPrepared/SOURCE_MANIFEST.json" -Raw|ConvertFrom-Json)){
@@ -59,13 +59,13 @@ foreach($taskDependency in @($taskDescriptor.bundledDependencies)){
  $taskTo="$taskDestination/steer/$taskRelative";New-Item -ItemType Directory -Path (Split-Path $taskTo) -Force|Out-Null;Copy-Item "$taskPrepared/retained/$taskRelative" $taskTo
 }
 $taskProof.nonNativeUnchanged=$true;Save $taskProof "$taskDestination/steer/p3-socks-proof.json"
-if($taskReceipt.newVersion -eq 16){$taskProof.retainedSocks=$taskReceipt.retainedSocks;$taskProof.privateHelperProfile=1;Save $taskProof "$taskDestination/steer/p3-socks-proof.json"}
+if($taskReceipt.privateHelperProfile -eq 1){if($taskReceipt.retainedSocks){$taskProof.retainedSocks=$taskReceipt.retainedSocks};$taskProof.privateHelperProfile=1;Save $taskProof "$taskDestination/steer/p3-socks-proof.json"}
 $taskDescriptor.Remove('p1Candidate');$taskDescriptor.Remove('p2Candidate')
 $taskDescriptor.versionCode=15;$taskDescriptor.moduleVersion='0.3.3-mcrf.15';$taskDescriptor.sourceSha256=$taskReceipt.sourceManifestSha256
 $taskDescriptor.sourceVersion='0.3.3-mcrf-socks-udp.15';$taskDescriptor.p3SocksCandidate=$true;$taskDescriptor.p3SocksProofSha256=Hash "$taskDestination/steer/p3-socks-proof.json"
 $taskDescriptor.socksUdpSourcePort=1
-if($taskReceipt.newVersion -eq 16){
- $taskDescriptor.versionCode=16;$taskDescriptor.moduleVersion='0.3.3-mcrf.16';$taskDescriptor.sourceVersion='0.3.3-mcrf-private-helper.16';$taskDescriptor.privateHelperProfile=1
+if($taskReceipt.privateHelperProfile -eq 1){
+ $taskDescriptor.versionCode=[int]$taskReceipt.newVersion;$taskDescriptor.moduleVersion="0.3.3-mcrf.$($taskReceipt.newVersion)";$taskDescriptor.sourceVersion="0.3.3-mcrf-private-helper.$($taskReceipt.newVersion)";$taskDescriptor.privateHelperProfile=1
 }
 foreach($taskArtifact in $taskDescriptor.artifacts){$taskFile="$taskDestination/steer/$($taskArtifact.file)";$taskArtifact.sha256=Hash $taskFile;$taskArtifact.bytes=(Get-Item $taskFile).Length}
 Save @{version=1;modules=@{steer=$taskDescriptor}} "$taskDestination/receipt.json"

@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Snapshot,[string]$Device='192.168.7.234:45825',[string]$HostAddress='192.168.7.135',
+param([Parameter(Mandatory=$true)][string]$Snapshot,[string]$Device='192.168.100.234:45825',[string]$HostAddress='192.168.7.135',
     [Parameter(Mandatory=$true)][string]$PeerStage,[switch]$BlockCapture,[int]$HostPort=0,
     [ValidateSet('','udp4','udp6','tcp4','tcp6','tls-vpn','https-vpn','tls-direct','https-direct','tls-bad-name','https-bad-name','tls-untrusted','https-untrusted')][string]$ManagedDns='',
     [switch]$Ipv4Compatibility,[string]$WgApk='',

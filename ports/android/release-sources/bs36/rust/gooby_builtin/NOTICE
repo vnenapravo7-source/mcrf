@@ -1,0 +1,7 @@
+Gooby
+Copyright 2026 Gooby contributors
+
+Licensed under the Apache License, Version 2.0.
+
+This repository is an independent Rust implementation of a SOCKS5 traffic
+strategy engine. It does not contain copied source code from NoDPI.

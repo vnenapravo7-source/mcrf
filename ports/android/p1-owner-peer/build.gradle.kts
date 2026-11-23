@@ -1,6 +1,9 @@
 import java.security.MessageDigest
 import java.nio.file.Files
 plugins { id("com.android.application") }
+if (providers.gradleProperty("strictOwnerFixtureReceipt").isPresent || providers.gradleProperty("strictOwnerFixtureSha256").isPresent) {
+    apply(from = rootProject.file("strict-owner-fixture-gate.gradle.kts"))
+} else {
 val gateFile=file(requireNotNull(providers.gradleProperty("p1SourceReadyReceipt").orNull))
 val expectedSha=requireNotNull(providers.gradleProperty("p1SourceReadySha256").orNull)
 require(expectedSha.matches(Regex("[0-9a-f]{64}"))&&gateFile.isAbsolute&&gateFile.absoluteFile.normalize()==gateFile.canonicalFile&&
@@ -10,6 +13,7 @@ val bytes=gateFile.readBytes()
 require(MessageDigest.getInstance("SHA-256").digest(bytes).joinToString(""){"%02x".format(it.toInt()and 255)}==expectedSha)
 val gate=groovy.json.JsonSlurper().parse(bytes) as Map<*,*>
 require(gate["priority"].toString()=="1"&&gate["sourceReady"]==true&&gate["readyForBuild"]==true&&gate["allowCommonVerification"]==true&&gate["allowApkBuild"]==true)
+}
 android {
     namespace="org.mcrf.p1owner.peer"
     compileSdk=34

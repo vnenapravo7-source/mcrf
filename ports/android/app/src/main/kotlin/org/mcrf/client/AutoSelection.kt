@@ -4,12 +4,40 @@ import org.json.JSONObject
 
 /** Shared policy for native URL-test pools and the optional engine supervisor. */
 object AutoSelection {
+    const val SEQUENTIAL="sequential"
+    /** Keep the explicitly configured order; a ping must never reorder this mode. */
+    fun sequential(entries:List<ServerImport.Server>,ids:List<String>):List<ServerImport.Server> =
+        ids.mapNotNull {id->entries.firstOrNull {it.id==id&&it.configuration==null}}
+    fun allowedByQuota(server:String,subscription:String,hits:List<UsageQuotaStore.Hit>):Boolean = hits.none {hit->
+        hit.rule.action!=UsageQuotaPolicy.Action.WARN&&(
+            hit.rule.scope==UsageQuotaPolicy.Scope.SERVER&&hit.rule.subject==server ||
+                hit.rule.scope==UsageQuotaPolicy.Scope.SUBSCRIPTION&&hit.rule.subject==subscription)
+    }
+    /** Subscription ownership must be unique. Shared entries remain explicitly unknown. */
+    fun subscriptionMembership(subscriptions: List<JSONObject>): Map<String, String> {
+        val owners = linkedMapOf<String, MutableSet<String>>()
+        subscriptions.forEach { sub ->
+            val links = sub.getJSONArray("servers")
+            repeat(links.length()) { index -> ServerImport.read(links.getString(index)).forEach { entry -> owners.getOrPut(entry.id) { linkedSetOf() }.add(sub.getString("id")) } }
+        }
+        return owners.mapValues { it.value.singleOrNull() ?: UsageQuotaPolicy.UNKNOWN }
+    }
+    fun policyCandidates(entries: List<ServerImport.Server>, probes: JSONObject, now: Long, current: String,
+                         differentSubscription: String?, memberships: Map<String, String>): List<ServerImport.Server> =
+        entries.filter { entry ->
+            val proof = probes.optJSONObject(entry.id)
+            entry.id != current && entry.protocol !in AUTOMATIC_EXCLUDED && proof != null &&
+                proof.optLong("delay", -1) >= 0 && now - proof.optLong("at", 0) in 0..300_000 &&
+                (differentSubscription == null || differentSubscription != UsageQuotaPolicy.UNKNOWN &&
+                    memberships[entry.id]?.let { it != UsageQuotaPolicy.UNKNOWN && it != differentSubscription } == true)
+        }.sortedBy { probes.getJSONObject(it.id).getLong("delay") }
     const val LATENCY = "latency"
     const val BS_ENGINES = "bs-engines"
     @JvmField val ENGINE_PRIORITY = listOf("csqtt", "qwdtt", "wdtt", "openflux",S3BypassProfile.KIND)
     // URI import/display is not permission to run the excluded engine in a
     // background probe, startup pool or automatic failover.
     @JvmField val AUTOMATIC_EXCLUDED = setOf("openflux")
+    fun engineTier(entry:ServerImport.Server)=ENGINE_PRIORITY.indexOf(entry.protocol).let {if(it<0)Int.MAX_VALUE else it}
     fun prefer(candidateKind:String,candidateDelay:Long,currentKind:String,currentDelay:Long,tolerance:Int):Boolean {
         val candidateTier=ENGINE_PRIORITY.indexOf(candidateKind);val currentTier=ENGINE_PRIORITY.indexOf(currentKind)
         if(candidateKind in AUTOMATIC_EXCLUDED||candidateTier<0||currentTier<0||candidateDelay<0)return false
@@ -30,11 +58,11 @@ object AutoSelection {
             return if(delay>=0&&now-probe.optLong("at",0) in 0..300_000)delay else Long.MAX_VALUE
         }
         return entries.filter {it.id in selected&&eligible(it,policy)}.sortedWith(
-            compareBy<ServerImport.Server> {if(policy==BS_ENGINES)ENGINE_PRIORITY.indexOf(it.protocol)else 0}
+            compareBy<ServerImport.Server> {if(policy==BS_ENGINES)engineTier(it)else 0}
                 .thenBy {freshDelay(it)})
     }
     @JvmStatic @JvmOverloads fun eligible(entry: ServerImport.Server, policy: String = LATENCY) = entry.protocol !in AUTOMATIC_EXCLUDED && entry.configuration == null &&
-        if(policy == BS_ENGINES) entry.protocol in ENGINE_PRIORITY && entry.carrier != null else !entry.needsEngine()
+        if(policy == BS_ENGINES) entry.whitelists && (entry.protocol in ENGINE_PRIORITY && entry.carrier != null || !entry.needsEngine()) else !entry.whitelists && !entry.needsEngine()
     @JvmStatic @JvmOverloads fun proven(entries: List<ServerImport.Server>, selected: Set<String>, probes: JSONObject, now: Long, policy: String = LATENCY): List<ServerImport.Server> {
         require(policy == LATENCY || policy == BS_ENGINES) { "Неизвестный режим автовыбора." }
         val candidates = entries.filter { entry ->
@@ -42,6 +70,6 @@ object AutoSelection {
             val permitted = eligible(entry,policy)
             permitted && entry.id in selected && result != null && result.optLong("delay", -1) >= 0 && now-result.optLong("at", 0) in 0..300_000
         }
-        return if (policy == LATENCY) candidates else candidates.sortedWith(compareBy<ServerImport.Server> { ENGINE_PRIORITY.indexOf(it.protocol) }.thenBy { probes.getJSONObject(it.id).getLong("delay") })
+        return if (policy == LATENCY) candidates else candidates.sortedWith(compareBy<ServerImport.Server> { engineTier(it) }.thenBy { probes.getJSONObject(it.id).getLong("delay") })
     }
 }

@@ -10,7 +10,7 @@ function Save($Value,[string]$Path){[IO.File]::WriteAllText($Path,($Value|Conver
 $taskPreparedRoot=(Resolve-Path -LiteralPath $PreparedSource).Path.Replace([char]92,[char]47)
 if($taskPreparedRoot.Replace([char]92,[char]47) -notmatch '^D:/MCRF/Builds/Android/p3-steer-source-[a-f0-9]{32}$'){throw 'New isolated Steer source required'}
 $taskPrepared=Get-Content "$taskPreparedRoot/receipt.json" -Raw|ConvertFrom-Json
-if($taskPrepared.state -cne 'SOURCE_PREPARED_NOT_COMPILED' -or $taskPrepared.newVersion -notin @(15,16) -or $taskPrepared.manifestSha256 -cne (Hash "$taskPreparedRoot/SOURCE_MANIFEST.json")){throw 'Frozen source-bound Steer source required'}
+if($taskPrepared.state -cne 'SOURCE_PREPARED_NOT_COMPILED' -or $taskPrepared.newVersion -notin @(15,16,17) -or $taskPrepared.manifestSha256 -cne (Hash "$taskPreparedRoot/SOURCE_MANIFEST.json")){throw 'Frozen source-bound Steer source required'}
 $taskRetained=$null
 if($taskPrepared.newVersion -eq 16){
  if(!$RetainedSocksStage -or $taskPrepared.privateHelperProfile -ne 1){throw 'Private helper revision needs retained unchanged SOCKS evidence'}
@@ -43,6 +43,7 @@ $taskScratch="D:/MCRF/Builds/Android/p3c-$([guid]::NewGuid().ToString('N').Subst
 Copy-Item "$taskPreparedRoot/SOURCE_MANIFEST.json" "$taskStage/source-manifest.json";Copy-Item "$taskPreparedRoot/receipt.json" "$taskStage/prepared-source.json"
 $taskReceipt=@{state='BUILDING';kind='steer';newVersion=15;baselineDescriptorVersion=$taskPrepared.baselineDescriptorVersion;sourceStable=$false;producerComplete=$false;sourceManifestSha256=Hash "$taskStage/source-manifest.json";preparedSource=$taskPreparedRoot;nativeScratch=$taskScratch;producerSha256=Hash $PSCommandPath;cmakeSha256=Hash $Cmake;ninjaSha256=Hash $Ninja;artifacts=@();fixtures=@();cases=@();nativeExecuted=$false;apkBuilt=$false}
 $taskReceipt.newVersion=$taskPrepared.newVersion
+if($taskPrepared.privateHelperProfile -eq 1){$taskReceipt.privateHelperProfile=1}
 if($taskRetained){$taskReceipt.cases=@($taskRetained.cases);$taskReceipt.ownedAttempts=@($taskRetained.ownedAttempts);$taskReceipt.retainedSocks=@{stage=$taskRetainedRoot;receiptSha256=Hash "$taskRetainedRoot/receipt.json";unchangedFixtureSources=$true;testsReplayed=$false}}
 Save $taskReceipt "$taskStage/receipt.json"
 try{
@@ -50,10 +51,10 @@ try{
   $taskBuild="$taskScratch/$taskAbi";New-Item -ItemType Directory -Path $taskBuild|Out-Null
   $taskArgs=@('-S',"$taskPreparedRoot/source/android-vpn/core/src/main/cpp",'-B',$taskBuild,'-G','Ninja',"-DCMAKE_MAKE_PROGRAM=$Ninja","-DCMAKE_TOOLCHAIN_FILE=$Ndk/build/cmake/android.toolchain.cmake","-DANDROID_NDK=$Ndk","-DANDROID_ABI=$taskAbi",'-DANDROID_PLATFORM=android-29','-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON','-DCMAKE_BUILD_TYPE=Release','-DCMAKE_OBJECT_PATH_MAX=180',"-DMCRF_TLS49_MANIFEST=$taskPreparedRoot/tls.json","-DMCRF_CODEC49_ARCHIVES=$taskPreparedRoot/inputs",'-DFETCHCONTENT_UPDATES_DISCONNECTED=ON')
   & $Cmake @taskArgs *> "$taskStage/configure-$taskAbi.log";if($LASTEXITCODE){throw "Steer configure failed: $taskAbi"}
-  $taskTargets=if($taskRetained){@('steer_vpn','mcrf_private_socks_profile_test')}else{@('steer_vpn','mcrf_socks_udp_test','mcrf_socks_local_udp_test','mcrf_socks_udp_wire_test')}
+  $taskTargets=if($taskRetained){@('steer_vpn','mcrf_private_socks_profile_test')}elseif($taskPrepared.privateHelperProfile -eq 1){@('steer_vpn','mcrf_socks_udp_test','mcrf_socks_local_udp_test','mcrf_socks_udp_wire_test','mcrf_private_socks_profile_test')}else{@('steer_vpn','mcrf_socks_udp_test','mcrf_socks_local_udp_test','mcrf_socks_udp_wire_test')}
   & $Cmake --build $taskBuild --target @taskTargets --parallel 4 *> "$taskStage/build-$taskAbi.log";if($LASTEXITCODE){throw "Steer/SOCKS fixture compile failed: $taskAbi"}
   New-Item -ItemType Directory -Path "$taskStage/$taskAbi"|Out-Null
-  $taskNames=if($taskRetained){@('libsteer_vpn.so','mcrf_private_socks_profile_test')}else{@('libsteer_vpn.so','mcrf_socks_udp_test','mcrf_socks_local_udp_test','mcrf_socks_udp_wire_test')}
+  $taskNames=if($taskRetained){@('libsteer_vpn.so','mcrf_private_socks_profile_test')}elseif($taskPrepared.privateHelperProfile -eq 1){@('libsteer_vpn.so','mcrf_socks_udp_test','mcrf_socks_local_udp_test','mcrf_socks_udp_wire_test','mcrf_private_socks_profile_test')}else{@('libsteer_vpn.so','mcrf_socks_udp_test','mcrf_socks_local_udp_test','mcrf_socks_udp_wire_test')}
   foreach($taskName in $taskNames){
    $taskFrom="$taskBuild/$taskName";$taskTo="$taskStage/$taskAbi/$taskName";Copy-Item -LiteralPath $taskFrom -Destination $taskTo
    $taskBytes=[IO.File]::ReadAllBytes($taskTo);$taskMachine=if($taskAbi -ceq 'arm64-v8a'){183}else{62}

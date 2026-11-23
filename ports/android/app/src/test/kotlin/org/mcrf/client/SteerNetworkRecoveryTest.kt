@@ -8,7 +8,9 @@ class SteerNetworkRecoveryTest {
     @Test fun recoveryBarrierIsReleasedBeforeEffectiveSteerHealthIsRearmed() {
         val file=listOf(File("src/main/kotlin/org/mcrf/client/McrfVpnService.kt"),File("app/src/main/kotlin/org/mcrf/client/McrfVpnService.kt")).first {it.isFile}
         val source=file.readText().replace("\r\n","\n")
-        val reset=source.substringAfter("private fun resetConnections(reason:String)").substringBefore("private val preferences")
+        // Reconstruction moved out of the queue admission function into the bounded retry owner.
+        val reset=source.substringAfter("private fun runRecovery(session:RuntimeStart)").substringBefore("private val preferences")
+        assertTrue(reset.contains("if(!recoveryLive(session)||networkRecovery!==session)return@execute"))
         val arm="if(bs==null&&sessionPrimaryChoice==\"steer\"&&autoAllowed())"
         val at=reset.indexOf(arm)
         assertTrue(at>0)
@@ -16,6 +18,6 @@ class SteerNetworkRecoveryTest {
         assertTrue(reset.substring(at).contains("currentStart?.takeIf {it.requested==requested}?.let {scheduleSteerHealth(it)}"))
         // Preferred Steer may have an effective sing-box WG session. Do not
         // rearm based only on the saved preference or bypass AUTO_OFF.
-        assertFalse(reset.substring(at,reset.indexOf("ClientEvents.record",at)).contains("ClientPrimarySelection.selected"))
+        assertFalse(reset.substring(at).substringBefore("}catch(error:Exception)").contains("ClientPrimarySelection.selected"))
     }
 }

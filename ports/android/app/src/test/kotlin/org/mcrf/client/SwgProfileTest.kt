@@ -63,11 +63,15 @@ class SwgProfileTest {
         assertEquals(first.getString("device_id"),second.getString("device_id"));assertNotEquals(first.getString("socks_pass"),second.getString("socks_pass"))
         profile.put("device_id","existing-binding");assertEquals("existing-binding",SwgProfile.privateConfig(profile,23400,23401,"one","first","installation").getString("device_id"))
     }
-    @Test fun rejectsSevenCallsInvalidHostsMissingParametersAndInjection() {
+    @Test fun expandedCallPoolsRoundTripButInvalidHostsMissingParametersAndInjectionAreRejected() {
         for(type in SwgProfile.TYPES) {
-            listOf(json(type).put("hashes",JSONArray(calls+"fixture-call-7-0123456789abcdef")), json(type).put("server","bad/path"),
+            // The call-count cap was intentionally removed; byte/worker bounds remain enforced.
+            val expanded=json(type).put("hashes",JSONArray(calls+"fixture-call-7-0123456789abcdef"))
+            assertEquals(7,SwgProfile.fromJson("fixture",expanded).carrier!!.getJSONArray("hashes").length())
+            assertEquals(7,ServerImport.read(SwgProfile.share(expanded)).single().carrier!!.getJSONArray("hashes").length())
+            listOf(json(type).put("server","bad/path"),
                 json(type).put("password","secret|injection"), json(type).put("hashes",JSONArray()),json(type).put("workers",100),
-                json(type).put("device_id","x\ncommand")).filterNot { type == "qwdtt" && it.getJSONArray("hashes").length() == 7 }.forEach { candidate -> reject { SwgProfile.fromJson(candidate.toString(),candidate) } }
+                json(type).put("device_id","x\ncommand")).forEach { candidate -> reject { SwgProfile.fromJson(candidate.toString(),candidate) } }
         }
         reject { ServerImport.read("qwdtt://config?peer=fixture.invalid:56000&peer=other:1234&pass=secret&hashes=${calls[0]}") }
         reject { ServerImport.read("csqtt://connect?v=1&host=fixture.invalid&peer=46000&password=secret&hashes=${calls[0]}") }

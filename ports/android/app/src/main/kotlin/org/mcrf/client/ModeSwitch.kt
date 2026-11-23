@@ -11,23 +11,50 @@ import android.widget.Button
 import android.widget.LinearLayout
 import java.util.function.Consumer
 
-/** One moving pill with native keyboard and TalkBack-accessible positions. */
-class ModeSwitch @JvmOverloads constructor(private val activity: MainActivity, vpn: Boolean, private val changed: Consumer<Boolean>,private val titles:List<String> = listOf("VPN","Только прокси"),private val glyphs:List<String> = listOf("shield","proxy"),private val compact:Boolean=false) : LinearLayout(activity) {
+/** Two modes with native keyboard and TalkBack-accessible positions. */
+class ModeSwitch @JvmOverloads constructor(private val activity: MainActivity, vpn: Boolean, private val changed: Consumer<Boolean>,private val titles:List<String> = listOf("VPN","Только прокси"),private val glyphs:List<String> = listOf("shield","proxy"),private val compact:Boolean=false,private val formStyle:Boolean=false,private val vertical:Boolean=false) : LinearLayout(activity) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var fraction = if (vpn) 0f else 1f
     private var animator: ValueAnimator? = null
     private var shownMode:Boolean?=null
     private val buttons = mutableListOf<Button>()
     init {
-        setWillNotDraw(false); setPadding(activity.dp(4), activity.dp(if(compact)0 else 4), activity.dp(4), activity.dp(if(compact)0 else 4))
-        minimumHeight = activity.dp(if(compact)48 else 56); orientation = HORIZONTAL
+        setWillNotDraw(false); isBaselineAligned = false
+        setPadding(activity.dp(4), activity.dp(0), activity.dp(4), activity.dp(0))
+        minimumHeight = activity.dp(48); orientation = if(vertical)VERTICAL else HORIZONTAL
         listOf(true, false).forEachIndexed { index, value ->
             val button = object : Button(activity) {
                 private val label = android.text.TextPaint(Paint.ANTI_ALIAS_FLAG)
                 override fun onDraw(canvas: Canvas) {
                     val selected = if (index == 0) 1f-fraction else fraction
+                    if(vertical){
+                        val color=Loft.mix(Loft.MUTED,Loft.INK,selected)
+                        val size=activity.dp(16)
+                        activity.icon(glyphs[index],color).apply {
+                            val left=(width-size)/2
+                            val top=activity.dp(4)
+                            setBounds(left,top,left+size,top+size)
+                            draw(canvas)
+                        }
+                        label.color=color;label.typeface=typeface;label.textSize=textSize;label.textScaleX=textScaleX
+                        label.textAlign=Paint.Align.CENTER
+                        val title=text.toString()
+                        val available=(width-activity.dp(8)).coerceAtLeast(1)
+                        val measured=label.measureText(title)
+                        if(measured>available)label.textSize*=available/measured
+                        val y=height-activity.dp(16)-(label.ascent()+label.descent())/2
+                        canvas.drawText(title,width/2f,y,label)
+                        if(selected>0f){
+                            label.color=Loft.mix(Loft.LINE,Loft.ACCENT,selected)
+                            val half=activity.dp(5)*selected
+                            val bottom=(height-activity.dp(4)).toFloat()
+                            canvas.drawRect(width/2f-half,bottom-activity.dp(2),width/2f+half,bottom,label)
+                        }
+                        tag="mode-rendered:$title"
+                        return
+                    }
                     val color = Loft.mix(Loft.MUTED, Loft.onAccent(), selected)
-                    label.color = color; label.textSize = textSize; label.typeface = typeface
+                    label.color = color; label.textSize = textSize; label.typeface = typeface;label.textScaleX=textScaleX
                     val iconSize = if(glyphs[index].isEmpty())0 else activity.dp(18); val gap = if(iconSize==0)0 else activity.dp(7)
                     val plainAvailable=(width-activity.dp(16)).coerceAtLeast(0)
                     val withIcon=(plainAvailable-iconSize-gap).coerceAtLeast(0)
@@ -53,22 +80,36 @@ class ModeSwitch @JvmOverloads constructor(private val activity: MainActivity, v
                         setBounds(left.toInt(), top, left.toInt()+iconSize, top+iconSize);draw(canvas)
                     }
                     val metrics = label.fontMetrics
-                    canvas.drawText(title, left+drawnIcon+drawnGap, height/2f-(metrics.ascent+metrics.descent)/2, label)
+                    // Optical centring: Android's sans metrics make short Cyrillic
+                    // labels look one pixel lower inside the compact pill.
+                    canvas.drawText(title, left+drawnIcon+drawnGap, height/2f-activity.dp(1)-(metrics.ascent+metrics.descent)/2, label)
                 }
                 override fun onInitializeAccessibilityNodeInfo(info: AccessibilityNodeInfo) {
                     super.onInitializeAccessibilityNodeInfo(info)
                     info.className = "android.widget.RadioButton"; info.isCheckable = true; info.isChecked = isSelected
                 }
             }.apply {
-                text = titles[index]; isAllCaps = false; textSize = if(compact)11f else 12f
+                text = titles[index]; isAllCaps = false; textSize = if(vertical)9f else if(formStyle)13f else if(compact)11f else 12f
                 typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                 minHeight = activity.dp(48); minimumHeight = activity.dp(48); minWidth = 0; minimumWidth = 0
                 setPadding(0, 0, 0, 0); stateListAnimator = null
-                background = RippleDrawable(ColorStateList.valueOf(Loft.ripple()), null, activity.flat(Color.WHITE, 24, 0))
+                val mask=activity.flat(Color.WHITE,if(vertical)6 else if(formStyle)12 else 20,0)
+                background = if(vertical){
+                    val feedback=android.graphics.drawable.StateListDrawable().apply {
+                        val states=intArrayOf(android.R.attr.state_pressed,android.R.attr.state_focused)
+                        states.forEach {state->
+                            addState(intArrayOf(state),android.graphics.drawable.InsetDrawable(
+                                activity.flat(android.graphics.Color.TRANSPARENT,6,Loft.ACCENT),activity.dp(2)))
+                        }
+                        addState(intArrayOf(),android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+                    }
+                    RippleDrawable(ColorStateList.valueOf(Loft.ripple()),feedback,mask)
+                }else RippleDrawable(ColorStateList.valueOf(Loft.ripple()),null,
+                    android.graphics.drawable.InsetDrawable(mask,activity.dp(4),activity.dp(if(formStyle)0 else if(compact)8 else 4),activity.dp(4),activity.dp(if(formStyle)0 else if(compact)8 else 4)))
                 contentDescription = titles[index]
                 setOnClickListener { changed.accept(value) }
             }
-            buttons.add(button); addView(button, LayoutParams(0, activity.dp(48), 1f))
+            buttons.add(button); addView(button,if(vertical)LayoutParams(-1,activity.dp(48))else LayoutParams(0, activity.dp(48), 1f))
         }
         setMode(vpn, false)
     }
@@ -95,16 +136,21 @@ class ModeSwitch @JvmOverloads constructor(private val activity: MainActivity, v
     private fun redraw() { invalidate(); buttons.forEach { it.invalidate() } }
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        if(vertical)return
         // Compact visual pill retains two full 48dp keyboard/touch targets.
-        val top=if(compact)activity.dp(8).toFloat()else 0f
+        val top=if(compact&&!formStyle)activity.dp(8).toFloat()else 0f
         val bottom=height-top
-        val radius = (bottom-top)/2f
+        val radius = if(formStyle)activity.dp(12).toFloat()else (bottom-top)/2f
         paint.style = Paint.Style.FILL; paint.color = Loft.FIELD
         canvas.drawRoundRect(0f, top, width.toFloat(), bottom, radius, radius, paint)
         val inset = activity.dp(4).toFloat(); val half = (width - 2*inset)/2
         val left = inset + half*fraction
         paint.style = Paint.Style.FILL; paint.color = Loft.ACCENT
         canvas.drawRoundRect(left, top+inset, left+half, bottom-inset, radius-inset, radius-inset, paint)
+    }
+    override fun onAttachedToWindow(){
+        super.onAttachedToWindow()
+        AppTypography.applyTree(this)
     }
     override fun onDetachedFromWindow() { animator?.cancel(); super.onDetachedFromWindow() }
 }

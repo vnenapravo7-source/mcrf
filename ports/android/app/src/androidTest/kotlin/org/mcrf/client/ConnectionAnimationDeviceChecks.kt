@@ -69,7 +69,7 @@ object ConnectionAnimationDeviceChecks {
                 vpnSpans[0].onClick(vpnHeader)
                 pass(root.findViewWithTag<View>("screen-Главная")!=null&&activity.selected==selected,"VPN header link preserves selection")
                 prefs.edit().putString(ConnectionAppearance.STYLE,ConnectionAppearance.CLASSIC).commit();activity.render()
-                pass(root.findViewWithTag<View>("connection-primary") is RoundConnectionButton&&root.findViewWithTag<View>("home-metrics").visibility==View.GONE,"Classic control hides speed/session metrics")
+                pass(root.findViewWithTag<View>("connection-primary-toggle") is ToggleConnectionButton&&root.findViewWithTag<View>("connection-status-progress")!=null,"Retired classic preference resolves to toggle and progress")
                 pass(root.findViewWithTag<android.widget.LinearLayout>("auto-bs-control").orientation==android.widget.LinearLayout.HORIZONTAL,"AutoDetect label and picker share one row in VPN")
                 activity.navigate(ClientSettingsNavigation.WHITELISTS)
                 pass(root.findViewWithTag<android.widget.LinearLayout>("auto-bs-control").orientation==android.widget.LinearLayout.HORIZONTAL,"AutoDetect label and picker share one row in BS")

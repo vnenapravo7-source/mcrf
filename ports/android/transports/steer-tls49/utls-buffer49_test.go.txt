@@ -1,0 +1,27 @@
+// Source-only new scoped fixtures; do not rerun unrelated upstream TLS suites.
+package tls
+
+import (
+    "bytes"
+    "testing"
+)
+
+func TestMCRFBufferedRecord49(t *testing.T){
+    wire:=[]byte{23,3,3,0,4,1,2,3,4}
+    for cut:=0;cut<=len(wire);cut++{
+        var c Conn;_,_=c.rawInput.Write(wire[:cut])
+        if c.MCRFBuffered49(false)!=(cut==len(wire)){t.Fatal("partial record published as ready",cut)}
+        if c.MCRFBuffered49(true)!=(cut>0){t.Fatal("Vision raw pending disappeared",cut)}
+    }
+}
+
+func TestMCRFPendingOrderAndNoTLSWriterDetach49(t *testing.T){
+    var c Conn
+    _,_=c.rawInput.Write([]byte("wire"));c.input=*bytes.NewReader([]byte("plain"))
+    out:=make([]byte,3);var combined []byte
+    for c.MCRFBuffered49(true){n:=c.MCRFTakePending49(out);if n==0{t.Fatal("pending stalled")};combined=append(combined,out[:n]...)}
+    if string(combined)!="plainwire"{t.Fatal("pending lost or reordered")}
+    if c.isHandshakeComplete.Load(){t.Fatal("receive drain changed handshake state")}
+    // No conn.Close, close_notify, out state, activeCall or TLS write-detach
+    // operation exists in MCRFTakePending49; the opposite direction stays TLS.
+}

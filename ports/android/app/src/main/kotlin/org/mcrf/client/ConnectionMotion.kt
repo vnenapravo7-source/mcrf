@@ -11,11 +11,15 @@ class ConnectionMotion {
     fun currentSignal()=signal?:Signal.IDLE
     private var since=0L
     private var effect=false
+    var exitStyle=ConnectionAppearance.MONOLITH
+        private set
     fun observe(next:Signal,now:Long) {
         if(next==signal)return
         val old=signal
         // Cleanup becoming idle must not restart or truncate the fall.
         if(old==Signal.STOPPING&&next==Signal.IDLE){signal=next;return}
+        if(next==Signal.STOPPING||next==Signal.FAILED||next==Signal.IDLE&&(old==Signal.CONNECTED||old==Signal.CONNECTING))
+            exitStyle=ConnectionAppearance.exits.keys.random()
         signal=next;since=now
         effect=when(next){Signal.CONNECTED->old==Signal.CONNECTING;Signal.FAILED->old!=null&&old!=Signal.FAILED;Signal.STOPPING->old!=null&&old!=Signal.IDLE;Signal.IDLE->old==Signal.CONNECTED||old==Signal.CONNECTING;else->false}
     }

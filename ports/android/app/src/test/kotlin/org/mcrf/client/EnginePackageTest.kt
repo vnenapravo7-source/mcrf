@@ -49,9 +49,15 @@ class EnginePackageTest {
         assertTrue(EnginePackage.allowed(URI("https://release-assets.githubusercontent.com/file?signature=fixture")))
     }
     @Test fun streamingIntegrityAndBounds() {
-        val asset = EnginePackage.find(releases(), "arm64-v8a"); val output = ByteArrayOutputStream(); var last = 0L
-        EnginePackage.copyVerified(ByteArrayInputStream(bytes), output, asset, { false }, { last = it })
-        assertEquals(asset.bytes, last); assertArrayEquals(bytes, output.toByteArray())
+        val asset = EnginePackage.find(releases(), "arm64-v8a")
+        val output = ByteArrayOutputStream()
+        val progress = mutableListOf<Int>()
+        EnginePackage.copyVerified(ByteArrayInputStream(bytes), output, asset, { false }) { received ->
+            assertEquals(output.size().toLong(), received)
+            progress += AppUpdatePresentation.progressPercent(received, asset.bytes)
+        }
+        assertEquals(listOf(93, 100), progress)
+        assertArrayEquals(bytes, output.toByteArray())
         listOf(bytes.copyOf(69999), bytes + byteArrayOf(0), bytes.clone().apply { this[7] = 0 }).forEach {
             fails { EnginePackage.copyVerified(ByteArrayInputStream(it), ByteArrayOutputStream(), asset, { false }, {}) }
         }

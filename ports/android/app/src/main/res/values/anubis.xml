@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="anubis_observer_label">MCRF · Anubis</string>
+    <string name="anubis_observer_description">Переключает VPN MCRF при открытии выбранных приложений. Служба получает события открытия окон. Это позволяет выключить VPN после выхода из выбранного приложения. Содержимое экрана не читается.</string>
+</resources>

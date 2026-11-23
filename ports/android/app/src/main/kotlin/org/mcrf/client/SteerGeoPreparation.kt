@@ -14,8 +14,8 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.security.MessageDigest
 
 /** SOURCE ONLY explicit Geo preparation and read-only origin-bound capture.
- * No preview/start download, no old sing-box-cache fallback. The UI must invoke
- * prepare explicitly; a record is committed only after ALL categories succeed.
+ * Ordinary previews never download. Imported profile connections may refresh
+ * only their own validated cached sources; a record is committed only after ALL categories succeed.
  * Content-addressed category files may remain after cancellation, but the prior
  * usable record and routing/profile settings are not replaced on failure.
  */
@@ -23,7 +23,7 @@ internal object SteerGeoPreparation {
     private val prepareLock=java.util.concurrent.locks.ReentrantLock()
     private fun sha(bytes:ByteArray)=MessageDigest.getInstance("SHA-256").digest(bytes).joinToString(""){"%02x".format(it.toInt() and 255)}
     internal fun identity(state:JSONObject,plan:SteerGeoProjection.Plan)=sha((GeoDataConfig.value(state).toString()+"\n"+plan.neededSelectors.joinToString(",")).toByteArray(Charsets.UTF_8))
-    private fun sourceName(state:JSONObject,kind:String)=sha(GeoDataConfig.value(state).getString("${kind}Url").toByteArray(Charsets.UTF_8))+".dat"
+    private fun sourceName(state:JSONObject,kind:String)=GeoDataConfig.sourceName(GeoDataConfig.value(state),kind)
     private fun host(context:Context) {
         require(Looper.myLooper()!=Looper.getMainLooper()){"Подготовка геоданных выполняется в фоне."}
         require(context.packageName=="org.mcrf.client"&&context.applicationInfo.uid==android.os.Process.myUid())
@@ -81,15 +81,23 @@ internal object SteerGeoPreparation {
         val captured=JSONObject(state.toString());GeoDataConfig.validate(GeoDataConfig.value(captured))
         val plan=SteerGeoProjection.plan(captured);checkCurrent(current)
         if(plan.neededSelectors.isEmpty())return 0
+        PresetAssets.requireSteerGeo(context,captured,plan.neededSelectors.toSet())
         val directory=root(context.filesDir.toPath(),true);val pins=JSONArray();val sources=JSONArray();var total=0L
         val kinds=plan.neededSelectors.map {plan.selector(it).getString("kind")}.toSet()
+        val refreshDeadline=System.nanoTime()+30_000_000_000L
         for(kind in kinds){
             checkCurrent(current)
             val sourcePath=directory.resolve(sourceName(captured,kind))
             val newSource=!Files.exists(sourcePath,NOFOLLOW_LINKS)
-            val bytes=if(newSource)GeoDataConfig.fetchForSteer(context,GeoDataConfig.value(captured),kind) else read(sourcePath,64*1024*1024)
-            val sourceSha=sha(bytes)
+            val before=if(newSource)null else fingerprint(sourcePath,64L*1024*1024)
             val codes=plan.neededSelectors.map {plan.selector(it)}.filter {it.getString("kind")==kind}.map {it.getString("code")}.toSet()
+            val settings=GeoDataConfig.value(captured);val refreshing=settings.has("cacheNamespace")
+            fun validate(bytes:ByteArray) {val data=SteerGeoDat.Dataset(bytes,codes);codes.forEach {code->data.convert(kind,code)}}
+            val bytes=if(refreshing)GeodataRefresh.bytes(
+                {GeoDataConfig.fetchForSteer(context,settings,kind,refreshDeadline)},
+                {GeoDataConfig.cachedProfileBytes(context,settings,kind,::validate)},::validate)
+                else if(newSource)GeoDataConfig.fetchForSteer(context,settings,kind)else read(sourcePath,64*1024*1024)
+            val sourceSha=sha(bytes)
             val dataset=SteerGeoDat.Dataset(bytes,codes);val converted=hashMapOf<String,ByteArray>()
             sources.put(JSONObject().put("kind",kind).put("file",sourceName(captured,kind)).put("bytes",bytes.size).put("sha256",sourceSha))
             for(index in plan.neededSelectors){
@@ -104,15 +112,19 @@ internal object SteerGeoPreparation {
                 pins.put(JSONObject().put("selector",index).put("file","$digest.json").put("sha256",digest).put("bytes",compiled.size)
                     .put("kind",kind).put("code",selector.getString("code")))
             }
-            if(newSource){
+            if(newSource||refreshing){
                 // Only absent DATs may be published. A racing refresh must not
                 // be overwritten by the earlier fetch; identical bytes may be reused.
                 checkCurrent(current)
                 GeoDataConfig.withSourceWriteLock(context,GeoDataConfig.value(captured),kind){destination ->
                     checkCurrent(current)
                     require(destination.toPath()==sourcePath)
-                    if(Files.exists(sourcePath,NOFOLLOW_LINKS))require(fingerprint(sourcePath,64L*1024*1024)==Fingerprint(bytes.size.toLong(),sourceSha))
-                    else write(sourcePath,bytes)
+                    if(Files.exists(sourcePath,NOFOLLOW_LINKS)) {
+                        val actual=fingerprint(sourcePath,64L*1024*1024)
+                        require(actual==before||actual==Fingerprint(bytes.size.toLong(),sourceSha)){"Геоданные изменились во время обновления."}
+                    }
+                    write(sourcePath,bytes)
+                    GeoDataConfig.rememberProfileBytes(context,settings,kind,bytes)
                 }
             }
         }

@@ -1,0 +1,13 @@
+[package]
+name = "mcrf-packet-endpoint"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+libc = "=0.2.191"
+
+[workspace]

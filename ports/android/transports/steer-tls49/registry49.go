@@ -1,0 +1,135 @@
+// Code derived without protocol logic changes from pinned Xray e662c22ab109.
+// MPL-2.0; upstream tls.go SHA256 a6f1f93540fe13bed196d91b38883dcbe013d79f43284e508d6fb8452ffbd238.
+// Registry ONLY: does not import Xray runtime, dispatcher or any engine.
+// Extracted source is independently compared with the pinned registry in the
+// common source audit; do not hand-edit individual names or remap identities.
+package main
+
+import (
+	"crypto/rand"
+	utls "github.com/refraction-networking/utls"
+	"math/big"
+)
+
+// Exact pinned core.go version bytes, not Steer/app release numbering.
+// core.go SHA256 bd82bca5ca984bccdf5449d34d68bcfae0225822d7d8326bb4a8ddcb69d516fc.
+const realityVersionX49 byte = 26
+const realityVersionY49 byte = 9
+const realityVersionZ49 byte = 9
+
+func init() {
+	bigInt, _ := rand.Int(rand.Reader, big.NewInt(int64(len(ModernFingerprints))))
+	stopAt := int(bigInt.Int64())
+	i := 0
+	for _, v := range ModernFingerprints {
+		if i == stopAt {
+			PresetFingerprints["random"] = v
+			break
+		}
+		i++
+	}
+	weights := utls.DefaultWeights
+	weights.TLSVersMax_Set_VersionTLS13 = 1
+	weights.FirstKeyShare_Set_CurveP256 = 0
+	randomized := utls.HelloRandomizedALPN
+	randomized.Seed, _ = utls.NewPRNGSeed()
+	randomized.Weights = &weights
+	randomizednoalpn := utls.HelloRandomizedNoALPN
+	randomizednoalpn.Seed, _ = utls.NewPRNGSeed()
+	randomizednoalpn.Weights = &weights
+	PresetFingerprints["randomized"] = &randomized
+	PresetFingerprints["randomizednoalpn"] = &randomizednoalpn
+}
+
+func GetFingerprint(name string) (fingerprint *utls.ClientHelloID) {
+	if name == "" {
+		return &utls.HelloChrome_Auto
+	}
+	if fingerprint = PresetFingerprints[name]; fingerprint != nil {
+		return
+	}
+	if fingerprint = ModernFingerprints[name]; fingerprint != nil {
+		return
+	}
+	if fingerprint = OtherFingerprints[name]; fingerprint != nil {
+		return
+	}
+	return
+}
+
+var PresetFingerprints = map[string]*utls.ClientHelloID{
+	// Recommended preset options in GUI clients
+	"chrome":           &utls.HelloChrome_Auto,
+	"firefox":          &utls.HelloFirefox_Auto,
+	"safari":           &utls.HelloSafari_Auto,
+	"ios":              &utls.HelloIOS_Auto,
+	"android":          &utls.HelloAndroid_11_OkHttp,
+	"edge":             &utls.HelloEdge_Auto,
+	"360":              &utls.Hello360_Auto,
+	"qq":               &utls.HelloQQ_Auto,
+	"random":           nil,
+	"randomized":       nil,
+	"randomizednoalpn": nil,
+	"unsafe":           nil,
+}
+
+var ModernFingerprints = map[string]*utls.ClientHelloID{
+	// One of these will be chosen as `random` at startup
+	"hellofirefox_120": &utls.HelloFirefox_120,
+	"hellofirefox_148": &utls.HelloFirefox_148,
+	"hellochrome_120":  &utls.HelloChrome_120,
+	"hellochrome_131":  &utls.HelloChrome_131,
+	"hellochrome_133":  &utls.HelloChrome_133,
+	"helloios_13":      &utls.HelloIOS_13,
+	"helloios_14":      &utls.HelloIOS_14,
+	"helloedge_106":    &utls.HelloEdge_106,
+	"hellosafari_26_3": &utls.HelloSafari_26_3,
+	"hello360_11_0":    &utls.Hello360_11_0,
+	"helloqq_11_1":     &utls.HelloQQ_11_1,
+}
+
+var OtherFingerprints = map[string]*utls.ClientHelloID{
+	// Golang, randomized, auto, and fingerprints that are too old
+	"hellogolang":             &utls.HelloGolang,
+	"hellorandomized":         &utls.HelloRandomized,
+	"hellorandomizedalpn":     &utls.HelloRandomizedALPN,
+	"hellorandomizednoalpn":   &utls.HelloRandomizedNoALPN,
+	"hellofirefox_auto":       &utls.HelloFirefox_Auto,
+	"hellofirefox_55":         &utls.HelloFirefox_55,
+	"hellofirefox_56":         &utls.HelloFirefox_56,
+	"hellofirefox_63":         &utls.HelloFirefox_63,
+	"hellofirefox_65":         &utls.HelloFirefox_65,
+	"hellofirefox_99":         &utls.HelloFirefox_99,
+	"hellofirefox_102":        &utls.HelloFirefox_102,
+	"hellofirefox_105":        &utls.HelloFirefox_105,
+	"hellochrome_auto":        &utls.HelloChrome_Auto,
+	"hellochrome_58":          &utls.HelloChrome_58,
+	"hellochrome_62":          &utls.HelloChrome_62,
+	"hellochrome_70":          &utls.HelloChrome_70,
+	"hellochrome_72":          &utls.HelloChrome_72,
+	"hellochrome_83":          &utls.HelloChrome_83,
+	"hellochrome_87":          &utls.HelloChrome_87,
+	"hellochrome_96":          &utls.HelloChrome_96,
+	"hellochrome_100":         &utls.HelloChrome_100,
+	"hellochrome_102":         &utls.HelloChrome_102,
+	"hellochrome_106_shuffle": &utls.HelloChrome_106_Shuffle,
+	"helloios_auto":           &utls.HelloIOS_Auto,
+	"helloios_11_1":           &utls.HelloIOS_11_1,
+	"helloios_12_1":           &utls.HelloIOS_12_1,
+	"helloandroid_11_okhttp":  &utls.HelloAndroid_11_OkHttp,
+	"helloedge_85":            &utls.HelloEdge_85,
+	"helloedge_auto":          &utls.HelloEdge_Auto,
+	"hellosafari_16_0":        &utls.HelloSafari_16_0,
+	"hellosafari_auto":        &utls.HelloSafari_Auto,
+	"hello360_auto":           &utls.Hello360_Auto,
+	"hello360_7_5":            &utls.Hello360_7_5,
+	"helloqq_auto":            &utls.HelloQQ_Auto,
+
+	// Chrome betas
+	"hellochrome_100_psk":              &utls.HelloChrome_100_PSK,
+	"hellochrome_112_psk_shuf":         &utls.HelloChrome_112_PSK_Shuf,
+	"hellochrome_114_padding_psk_shuf": &utls.HelloChrome_114_Padding_PSK_Shuf,
+	"hellochrome_115_pq":               &utls.HelloChrome_115_PQ,
+	"hellochrome_115_pq_psk":           &utls.HelloChrome_115_PQ_PSK,
+	"hellochrome_120_pq":               &utls.HelloChrome_120_PQ,
+}

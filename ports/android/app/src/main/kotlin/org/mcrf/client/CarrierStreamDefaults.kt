@@ -26,7 +26,9 @@ internal object CarrierStreamDefaults {
         val requested=if(explicit)p.getInt(OVERRIDE)else settings.optInt(kind,default(kind))
         val calls=p.optJSONArray("hashes")?.length()?:0
         val automatic=p.optString("vk_anon_path")=="auto_js"||p.optString("hash_source")=="auto"||p.optString("vk_hash_mode")=="auto_js"
-        val maximum=if(kind=="csqtt25")minOf(100,if(automatic||p.optBoolean("allow_hash_redistribution"))100 else calls.coerceAtLeast(1)*10)
+        // Pinned SWG 252/253 admits the full worker range even for manual
+        // hashes without redistribution. Keep earlier implementations unchanged.
+        val maximum=if(kind=="csqtt25")minOf(100,if(CsqttSwgVersions.needsNewRuntime(p)||automatic||p.optBoolean("allow_hash_redistribution"))100 else calls.coerceAtLeast(1)*10)
             else minOf(values(kind).last(),(if(automatic)maxOf(6,p.optInt("vk_call_count",6))else calls.coerceAtLeast(1))*27)
         require(!explicit||requested<=maximum){"Ручное число потоков больше доступного для звонков этого сервера."}
         val count=requested.coerceAtMost(maximum)
@@ -35,6 +37,9 @@ internal object CarrierStreamDefaults {
         if(kind=="csqtt")p.put("extra_streams",count>72)
         return p
     }
+    /** UI hook for an already applied profile: show Extra for >70 without
+     * rewriting a saved global value or per-server override. */
+    fun usesExtendedCsqtt25Range(effective:JSONObject)=CsqttSwgVersions.needsNewRuntime(effective)&&effective.optInt("workers",0)>70
     fun load(context:Context):JSONObject=synchronized(ProfileStore.storageLock) {
         val source=ProfileStore(context,"preferences.enc").read()
         val value=(if(source.isBlank())JSONObject()else JSONObject(source)).optJSONObject(SECTION)?:JSONObject()

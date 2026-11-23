@@ -1,0 +1,4 @@
+func (c *utlsALPNWrapper) HandshakeContext(ctx context.Context) error {
+    if err:=mcrfApplyALPN49(c.UConn,c.nextProtocols);err!=nil {return err}
+    return c.UConn.HandshakeContext(ctx)
+}

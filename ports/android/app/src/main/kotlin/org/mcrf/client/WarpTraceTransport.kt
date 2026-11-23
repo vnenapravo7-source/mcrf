@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.util.Base64
 import java.util.concurrent.CancellationException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -13,13 +14,12 @@ import javax.net.ssl.SNIHostName
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 
-/** Strict authenticated loopback SOCKS -> HTTPS. No direct fallback and no global proxy/auth state. */
+/** Authenticated HTTP CONNECT over loopback, then end-to-end HTTPS through WARP. */
 object WarpTraceTransport {
     private const val HOST = "www.cloudflare.com"
     fun fetch(port: Int, user: String, password: String, cancelled: () -> Boolean): String {
         require(port in 1024..65535)
-        val username=user.toByteArray(Charsets.UTF_8);val secret=password.toByteArray(Charsets.UTF_8)
-        require(username.size in 1..255 && secret.size in 1..255)
+        require(user.length in 1..64 && ':' !in user && password.length in 16..128 && (user+password).all { it.code in 33..126 })
         val socket=Socket();val finished=AtomicBoolean()
         val watchdog=Executors.newSingleThreadScheduledExecutor { task -> Thread(task,"mcrf-warp-trace-cancel").apply {isDaemon=true} }
         val deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(20)
@@ -27,16 +27,7 @@ object WarpTraceTransport {
         try {
             if(cancelled()) throw CancellationException()
             socket.connect(InetSocketAddress("127.0.0.1",port),3000);socket.soTimeout=10000
-            val out=socket.getOutputStream();val input=socket.getInputStream()
-            out.write(byteArrayOf(5,1,2));out.flush()
-            require(input.read()==5 && input.read()==2) {"Проверочный прокси не подтвердил аутентификацию."}
-            out.write(byteArrayOf(1,username.size.toByte()));out.write(username);out.write(secret.size);out.write(secret);out.flush()
-            require(input.read()==1 && input.read()==0) {"Проверочный прокси отклонил доступ."}
-            val host=HOST.toByteArray(Charsets.US_ASCII)
-            out.write(byteArrayOf(5,1,0,3,host.size.toByte()));out.write(host);out.write(byteArrayOf(1,187.toByte()));out.flush()
-            require(input.read()==5 && input.read()==0 && input.read()==0) {"Туннель WARP не открыл HTTPS."}
-            val length=when(input.read()) {1 -> 4;4 -> 16;3 -> input.read().also {require(it in 1..255)};else -> error("Некорректный ответ SOCKS.")}
-            repeat(length+2) {require(input.read()>=0)}
+            connectProxy(socket,user,password)
             val tls=(SSLSocketFactory.getDefault() as SSLSocketFactory).createSocket(socket,HOST,443,true) as SSLSocket
             tls.use {
                 it.sslParameters=it.sslParameters.apply {endpointIdentificationAlgorithm="HTTPS";serverNames=listOf(SNIHostName(HOST))}
@@ -49,11 +40,25 @@ object WarpTraceTransport {
         } catch(error: Exception) {
             if(cancelled() || Thread.currentThread().isInterrupted) throw CancellationException("Проверка WARP отменена.")
             throw IllegalArgumentException("HTTPS trace через выбранный туннель WARP не получен.")
-        } finally {finished.set(true);watchdog.shutdownNow();try {socket.close()} catch(_: Exception){};secret.fill(0)}
+        } finally {finished.set(true);watchdog.shutdownNow();try {socket.close()} catch(_: Exception){}}
     }
-    internal fun readBody(input: InputStream): String {
-        var headerBytes=0
-        fun line(): String {
+    private fun connectProxy(socket:Socket,user:String,password:String) {
+        val output=socket.getOutputStream()
+        val credentials=("$user:$password").toByteArray(Charsets.US_ASCII)
+        val basic=try {Base64.getEncoder().encode(credentials)} finally {credentials.fill(0)}
+        try {
+            output.write("CONNECT $HOST:443 HTTP/1.1\r\nHost: $HOST:443\r\nProxy-Authorization: Basic ".toByteArray(Charsets.US_ASCII))
+            output.write(basic)
+            output.write(byteArrayOf(13,10,13,10))
+            output.flush()
+        } finally {basic.fill(0)}
+        val lines=HeaderLines(socket.getInputStream())
+        require(lines.read().matches(Regex("HTTP/1\\.[01] 200(?: .*)?"))) {"Туннель WARP не открыл HTTPS."}
+        while(lines.read().isNotEmpty()) Unit
+    }
+    private class HeaderLines(private val input:InputStream) {
+        private var headerBytes=0
+        fun read():String {
             val output=ByteArrayOutputStream()
             while(true) {
                 val byte=input.read();require(byte>=0 && ++headerBytes<=16384) {"Некорректные заголовки trace."}
@@ -61,6 +66,10 @@ object WarpTraceTransport {
                 require(byte in 32..126 || byte==13 || byte==9);output.write(byte)
             }
         }
+    }
+    internal fun readBody(input: InputStream): String {
+        val lines=HeaderLines(input)
+        fun line()=lines.read()
         require(line().matches(Regex("HTTP/1\\.[01] 200(?: .*)?"))) {"Trace не подтвердил HTTP200."}
         val headers=linkedMapOf<String,String>()
         while(true) {val text=line();if(text.isEmpty())break;val parts=text.split(':',limit=2);require(parts.size==2)

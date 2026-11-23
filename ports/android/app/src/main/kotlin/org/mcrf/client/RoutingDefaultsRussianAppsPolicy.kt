@@ -3,12 +3,25 @@ package org.mcrf.client
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** An ordinary visible rule, owned only by this picker. Legacy exclusions are never inferred as ours. */
+/** Owns the visible RU-app selection. Its enabled direct rules project to the Android VPN scope. */
 object RoutingDefaultsRussianAppsPolicy {
     const val RULE_ID = "mcrf-ru-app-direct"
+    internal const val INVITE_RULE_ID = "invite-ru-app-direct"
     private const val OWNER = "ru-app-picker"
     private fun owned(rule:JSONObject)=rule.optString("id")==RULE_ID && rule.optString("managedBy")==OWNER
     private fun strings(array:JSONArray?)=if(array==null)emptySet() else (0 until array.length()).map {array.getString(it)}.toSet()
+    internal fun systemRule(rule:JSONObject):Boolean {
+        val invite=rule.optString("id")==INVITE_RULE_ID&&rule.optString("name")=="RU-app · напрямую"
+        return (owned(rule)||invite)&&rule.optString("mode")=="apps"&&rule.optString("target")=="direct"&&
+            !rule.has("nativeMatch")&&!rule.optBoolean("invert")
+    }
+    internal fun systemPackages(state:JSONObject):Set<String> {
+        val rules=state.getJSONArray("rules")
+        return (0 until rules.length()).asSequence().map(rules::getJSONObject)
+            .filter {it.optBoolean("enabled",true)&&systemRule(it)}
+            .flatMap {RouteRules.parse(it.getString("text")).getValue("package_name").asSequence()}
+            .toCollection(linkedSetOf())
+    }
     fun selected(state:JSONObject):Set<String> {
         val rules=state.getJSONArray("rules")
         return (0 until rules.length()).map {rules.getJSONObject(it)}.filter(::owned)

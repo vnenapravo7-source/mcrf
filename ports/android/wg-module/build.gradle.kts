@@ -8,6 +8,7 @@ val receipt = groovy.json.JsonSlurper().parse(stage.resolve("receipt.json")) as 
 val runtime = stage.resolve("wg-backend.aar")
 val p1Candidate = providers.gradleProperty("p1WgCandidate").orNull == "true"
 val p2Candidate = providers.gradleProperty("p2WgCandidate").orNull == "true"
+val ownerIsolationCandidate = receipt["vpnOwnerIsolation"].toString() == "1"
 val releaseAllowed=providers.gradleProperty("historicalCsqttReleaseReceipt").orNull?.let {path->
     val proofFile=file(path)
     val digest=MessageDigest.getInstance("SHA-256").digest(proofFile.readBytes()).joinToString(""){"%02x".format(it.toInt() and 255)}
@@ -18,6 +19,14 @@ val releaseAllowed=providers.gradleProperty("historicalCsqttReleaseReceipt").orN
     true
 }?:false
 require(!(p1Candidate && p2Candidate)) { "P1/P2 candidate authorities cannot be mixed" }
+if (ownerIsolationCandidate) {
+    require(!p1Candidate && !p2Candidate)
+    require(receipt["hostEvidenceSha256"].toString().matches(Regex("[0-9a-f]{64}")))
+    require(receipt["managedDnsContract"] == "owned_kernel_dns_nat_v1" &&
+        receipt["packetPipeContract"] == "owned_unix_dgram_v1" &&
+        receipt["executedPipeCases"].toString() == "6" &&
+        (receipt["encryptedPipeProtocols"] as? List<*>)?.map { it.toString() }?.sorted() == listOf("AWG3", "AWG3_1", "WG"))
+}
 if (p2Candidate) {
     val gateFile=file(requireNotNull(providers.gradleProperty("p2SourceReadyReceipt").orNull))
     val gateSha=requireNotNull(providers.gradleProperty("p2SourceReadySha256").orNull)
@@ -64,16 +73,21 @@ android {
         applicationId = "org.mcrf.engines.wg"
         minSdk = 29
         targetSdk = 34
-        versionCode = if (p2Candidate && releaseAllowed) 5 else if (p2Candidate) 4 else if (p1Candidate) 3 else 2
-        versionName = if (p2Candidate && releaseAllowed) "0.1.0-mcrf.5" else if (p2Candidate) "0.1.0-p2-candidate.4" else if (p1Candidate) "0.1.0-p1-candidate.3" else "0.1.0-candidate.2"
+        versionCode = if (ownerIsolationCandidate) 6 else if (p2Candidate && releaseAllowed) 5 else if (p2Candidate) 4 else if (p1Candidate) 3 else 2
+        versionName = if (ownerIsolationCandidate) "0.1.0-owner-candidate.6" else if (p2Candidate && releaseAllowed) "0.1.0-mcrf.5" else if (p2Candidate) "0.1.0-p2-candidate.4" else if (p1Candidate) "0.1.0-p1-candidate.3" else "0.1.0-candidate.2"
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_1_8; targetCompatibility = JavaVersion.VERSION_1_8 }
     sourceSets.getByName("main").java.srcDir("../transports/wg-backend/android/src")
     if (p1Candidate) listOf("debug", "release").forEach { sourceSets.getByName(it).manifest.srcFile("src/p1Candidate/AndroidManifest.xml") }
     if (p2Candidate) (if(releaseAllowed)listOf("debug","release") else listOf("debug")).forEach {sourceSets.getByName(it).manifest.srcFile("src/p2Candidate/AndroidManifest.xml")}
+    if (ownerIsolationCandidate) listOf("debug", "release").forEach { sourceSets.getByName(it).manifest.srcFile("src/p2Candidate/AndroidManifest.xml") }
     packaging { jniLibs { useLegacyPackaging = true; keepDebugSymbols += "**/*.so" } }
     splits { abi { isEnable = true; reset(); include("arm64-v8a", "armeabi-v7a", "x86_64"); isUniversalApk = false } }
     buildTypes { release { if (project.findProperty("testRelease") == "true") signingConfig = signingConfigs.getByName("debug") } }
 }
 dependencies { compileOnly(project(":primary-spi")); implementation(files(runtime)) }
 androidComponents.beforeVariants { variant -> if(p2Candidate && variant.buildType!="debug"&&!releaseAllowed)variant.enable=false }
+androidComponents.onVariants { variant ->
+    if (providers.gradleProperty("compactEngineDex").orNull == "true")
+        variant.packaging.dex.useLegacyPackaging.set(true)
+}

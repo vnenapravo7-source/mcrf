@@ -1,158 +1,157 @@
 package org.mcrf.client
 
-import android.widget.Button
+import android.view.Gravity
+import android.view.View
+import android.widget.*
 import org.json.JSONObject
-import org.mcrf.client.MainActivity.Operation
+import java.util.function.Consumer
 
-/** Local draft only. Cancel never edits routes, global selection or auto marks. */
-internal class RouteServerPicker(private val activity:MainActivity,initial:JSONObject) {
-    private var selected=RouteServerPlan.ids(initial).toSet()
-    private var revision=0L
-    private var choicesDialog:android.app.AlertDialog?=null
-    val view:Button=activity.button(if(selected.isEmpty())DEFAULT else "Сервер: сохранённый выбор",false).apply {
-        tag="route-server-picker";contentDescription="Выбрать сервер этого правила"
-        gravity=android.view.Gravity.START or android.view.Gravity.CENTER_VERTICAL
-        minHeight=activity.dp(56);minimumHeight=activity.dp(56)
-        setPadding(activity.dp(16),activity.dp(14),activity.dp(16),activity.dp(14))
-        compoundDrawablePadding=activity.dp(12)
-        setCompoundDrawablesRelative(null,null,activity.icon("down",Loft.MUTED).apply {setBounds(0,0,activity.dp(16),activity.dp(16))},null)
+/** Detached per-rule choice. Cancel never changes routes or the home automatic pool. */
+internal class RouteServerPicker(private val activity:MainActivity,initial:JSONObject,private val entries:List<ServerImport.Server>?=null) {
+    private var edited=false
+    private var selectedIds:Set<String> = RouteServerPlan.ids(initial).toSet()
+    private var automaticSelection=initial.has(RouteServerPlan.POOL)
+    private var interval=initial.optJSONObject(RouteServerPlan.AUTO)?.optInt("interval",60)?:60
+    private var tolerance=initial.optJSONObject(RouteServerPlan.AUTO)?.optInt("tolerance",50)?:50
+    private var policy=initial.optJSONObject(RouteServerPlan.AUTO)?.optString("mode",BsAutoSelectionPolicy.FASTEST)?:BsAutoSelectionPolicy.FASTEST
+    private var failureOnly=initial.optJSONObject(RouteServerPlan.AUTO)?.optBoolean("failureOnly",false)?:false
+    private var preferred=initial.optJSONObject(RouteServerPlan.AUTO)?.optString("preferred").orEmpty()
+    private var choicesPopup:PopupWindow?=null
+    val view:Button=activity.button(if(selectedIds.isEmpty())DEFAULT else "Сервер · ${selectedIds.size}",false).apply {
+        tag="route-server-picker";minWidth=0;minimumWidth=0;minHeight=activity.dp(56);textSize=13f;maxLines=2
+        gravity=Gravity.CENTER;setPadding(activity.dp(8),0,activity.dp(8),0);DropdownStyle.value(activity,this)
+        RouteChoiceUi.style(activity,this)
         setOnClickListener {choose()}
+        addOnAttachStateChangeListener(object:View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(v:View)=Unit
+            override fun onViewDetachedFromWindow(v:View){choicesPopup?.dismiss()}
+        })
     }
-    init { if(selected.isNotEmpty())load(false) }
-    private fun choose(){load(true)}
-    private fun load(show:Boolean) {
-        val ticket=++revision
+    init {refresh()}
+    private fun refresh(){view.text=if(selectedIds.isEmpty())DEFAULT else if(automaticSelection)"Авто · ${selectedIds.size}"else"Сервер · 1"}
+    private fun choose() {
+        if(choicesPopup?.isShowing==true)return
+        entries?.let {show(it.filter(RouteServerPlan::selectable));return}
         view.isEnabled=false
-        activity.readPresentation(Operation {
+        activity.readPresentation(MainActivity.Operation {
             try {
-                val catalogue=Connections(activity);catalogue.load()
-                val entries=catalogue.entries().filter {RouteServerPlan.selectable(it)}
-                val groups=SubscriptionGrouping.groups(entries,catalogue.subscriptions()).filter {it.id!=null&&it.entries.size>=2}
-                activity.runOnUiThread {
-                    if(ticket!=revision||activity.isDestroyed||activity.isFinishing)return@runOnUiThread
-                    view.isEnabled=true
-                    fun refresh(){view.text=when {
-                        selected.isEmpty()->DEFAULT
-                        selected.any {id->entries.none {it.id==id}}->"Сервер удалён или несовместим — выберите другой"
-                        selected.size>1->"Группа · ${selected.size} серверов · самый быстрый"
-                        else->"Сервер: ${label(entries.single {it.id in selected})}"
-                    }}
-                    refresh()
-                    if(show&&view.isAttachedToWindow) {
-                        val draft=selected.toMutableSet()
-                        var dialog:android.app.AlertDialog?=null
-                        val serverList=android.widget.ListView(activity).apply {
-                            tag="route-server-options"
-                            choiceMode=android.widget.ListView.CHOICE_MODE_MULTIPLE
-                            adapter=object:android.widget.ArrayAdapter<String>(activity,android.R.layout.simple_list_item_multiple_choice,entries.map(::label)) {
-                                override fun getView(position:Int,convertView:android.view.View?,parent:android.view.ViewGroup):android.view.View =
-                                    (super.getView(position,convertView,parent) as android.widget.CheckedTextView).apply {
-                                        setTextColor(Loft.INK);checkMarkTintList=android.content.res.ColorStateList.valueOf(Loft.ACCENT)
-                                        minHeight=activity.dp(64);textSize=13f;maxLines=3
-                                        setPadding(activity.dp(12),activity.dp(12),activity.dp(12),activity.dp(12))
-                                        compoundDrawablePadding=activity.dp(12)
-                                        val bs=entries[position].carrier!=null
-                                        setCompoundDrawablesRelative(activity.icon(if(bs)"rkn"else"shield",Loft.MUTED).apply {setBounds(0,0,activity.dp(20),activity.dp(20))},null,null,null)
-                                        contentDescription="${if(bs)"БС"else"VPN"}: ${label(entries[position])}"
-                                    }
-                            }
-                            divider=android.graphics.drawable.ColorDrawable(Loft.LINE);dividerHeight=activity.dp(1)
-                            entries.forEachIndexed {index,entry->setItemChecked(index,entry.id in draft)}
-                            setOnItemClickListener {_,_,index,_->if(isItemChecked(index))draft.add(entries[index].id)else draft.remove(entries[index].id)}
-                        }
-                        val groupButton=activity.button("Выбрать группу подписки…",false).apply {
-                            tag="route-subscription-group"
-                            contentDescription="Выбрать все текущие серверы группы подписки; сохраняется набор, а не будущие изменения подписки"
-                            setOnClickListener {anchor->ThemedActionMenu(activity,anchor).apply {
-                                groups.forEachIndexed {index,group->menu.add(0,index,index,"${group.title} · ${group.entries.size}")}
-                                setOnMenuItemClickListener {item->
-                                    val group=groups[item.itemId]
-                                    if(group.entries.size>32)activity.alert("Группа серверов","В этой группе больше 32 серверов. Выберите нужные серверы вручную.")
-                                    else {
-                                        draft.clear();draft.addAll(group.entries.map {it.id})
-                                        entries.forEachIndexed {index,entry->serverList.setItemChecked(index,entry.id in draft)}
-                                        text="${group.title} · ${draft.size} серверов"
-                                    }
-                                    true
-                                }
-                                show()
-                            }}
-                        }
-                        fun fastestButton(bs:Boolean)=activity.button(if(bs)"Быстрый БС"else"Быстрый VPN",false).apply {
-                            tag=if(bs)"route-fastest-bs"else"route-fastest-vpn"
-                            contentDescription=if(bs)"Самый быстрый БС из сохранённых серверов"else"Самый быстрый VPN из сохранённых серверов"
-                            textSize=13f
-                            val pool=RouteServerPlan.fastestEntries(entries,bs)
-                            isEnabled=pool.isNotEmpty()
-                            setOnClickListener {
-                                if(pool.size>32||(bs&&pool.size>8)){
-                                    activity.alert("Группа серверов",if(bs)"В группе БС больше 8 транспортов. Выберите нужные серверы вручную."else"В группе больше 32 серверов. Выберите нужные серверы вручную.")
-                                    return@setOnClickListener
-                                }
-                                draft.clear();draft.addAll(pool.map {it.id})
-                                entries.forEachIndexed {index,entry->serverList.setItemChecked(index,entry.id in draft)}
-                                groupButton.text="${if(bs)"Быстрый БС"else"Быстрый VPN"} · ${draft.size}"
-                            }
-                        }
-                        val builder=ThemedDialogBuilder(activity).setTitle("Серверы правила · самый быстрый из группы")
-                            .setPositiveButton("Выбрать",null).setNegativeButton("Отмена",null)
-                        // Do not combine native AlertDialog list + custom panel: Samsung can
-                        // give the list the full window height and push every action offscreen.
-                        builder.setView(object:android.widget.LinearLayout(activity) {
-                            override fun onMeasure(widthSpec:Int,heightSpec:Int) {
-                                val visible=android.graphics.Rect()
-                                activity.window.decorView.getWindowVisibleDisplayFrame(visible)
-                                val available=visible.height().takeIf {it>0}?:resources.displayMetrics.heightPixels
-                                val cap=(available*.60f).toInt()
-                                val parentCap=if(android.view.View.MeasureSpec.getMode(heightSpec)==android.view.View.MeasureSpec.UNSPECIFIED)cap else android.view.View.MeasureSpec.getSize(heightSpec)
-                                super.onMeasure(widthSpec,android.view.View.MeasureSpec.makeMeasureSpec(minOf(cap,parentCap),android.view.View.MeasureSpec.EXACTLY))
-                            }
-                        }.apply {
-                            tag="route-server-dialog-content"
-                            orientation=android.widget.LinearLayout.VERTICAL;setPadding(activity.dp(16),activity.dp(16),activity.dp(16),activity.dp(12))
-                            addView(activity.button(DEFAULT,false).apply {setPadding(activity.dp(16),activity.dp(12),activity.dp(16),activity.dp(12));setOnClickListener {revision++;selected=emptySet();refresh();dialog?.dismiss()}},android.widget.LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=activity.dp(12)})
-                            if(groups.isNotEmpty()) {
-                                addView(groupButton,android.widget.LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=activity.dp(8)})
-                            }
-                            addView(android.widget.LinearLayout(activity).apply {
-                                addView(fastestButton(false),android.widget.LinearLayout.LayoutParams(0,-2,1f).apply {marginEnd=activity.dp(4)})
-                                addView(fastestButton(true),android.widget.LinearLayout.LayoutParams(0,-2,1f).apply {marginStart=activity.dp(4)})
-                            },android.widget.LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=activity.dp(12)})
-                            addView(serverList,android.widget.LinearLayout.LayoutParams(-1,0,1f).apply {bottomMargin=activity.dp(12)})
-                            addView(activity.text("Проверка при подключении и раз в минуту. Выбор группы сохраняет её текущий состав; выигрывает сервер с меньшим пингом.",12,Loft.MUTED))
-                        })
-                        val shown=builder.create();dialog=shown
-                        choicesDialog=shown
-                        shown.setOnDismissListener {if(choicesDialog===shown)choicesDialog=null}
-                        shown.setOnShowListener {shown.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                            if(draft.size>32){activity.alert("Серверы правила","Можно выбрать до 32 серверов.");return@setOnClickListener}
-                            if(draft.any {id->entries.none {it.id==id}}){activity.alert("Серверы правила","Удалите из выбора отсутствующие серверы кнопкой «Текущий сервер» и выберите заново.");return@setOnClickListener}
-                            revision++;selected=draft.toSet();refresh();shown.dismiss()
-                        }}
-                        shown.show()
-                    }
-                }
-            }catch(_:Exception){activity.runOnUiThread {
-                if(ticket==revision&&!activity.isDestroyed){view.isEnabled=true;view.text="Не удалось прочитать серверы — повторить"}
-            }}
+                val catalogue=Connections(activity).apply {load()}
+                val entries=catalogue.entries().filter(RouteServerPlan::selectable)
+                activity.runOnUiThread {if(view.isAttachedToWindow&&!activity.isFinishing&&!activity.isDestroyed){view.isEnabled=true;show(entries)}}
+            } catch(_:Exception) {activity.runOnUiThread {view.isEnabled=true;if(view.isAttachedToWindow&&!activity.isDestroyed&&!activity.isFinishing)activity.alert("Сервер правила","Не удалось прочитать серверы.")}}
             ""
         })
     }
-    fun write(rule:JSONObject) {
-        rule.remove(RouteServerPlan.KEY);rule.remove(RouteServerPlan.POOL)
-        if(rule.optString("target","proxy")=="proxy")when(selected.size) {
-            0->Unit
-            1->rule.put(RouteServerPlan.KEY,selected.single())
-            else->rule.put(RouteServerPlan.POOL,org.json.JSONArray(selected.sorted()))
+    private fun show(entries:List<ServerImport.Server>)=with(activity) {
+        val draft=OrderedServerChoices(selectedIds.toList())
+        var auto=automaticSelection
+        var bs=entries.firstOrNull {it.id in draft.ids()}?.whitelists==true
+        var seconds=interval
+        var deviation=tolerance
+        var mode=policy
+        var onlyFailure=failureOnly
+        val body=EditorLayout.body(this)
+        val toggle=Switch(this).apply {
+            text="Автовыбор";tune(this);minHeight=dp(48);isChecked=auto
+            setSingleLine(true);maxLines=1;includeFontPadding=false
+            textSize=13f;gravity=Gravity.CENTER_VERTICAL
+            minWidth=0;minimumWidth=0;setPadding(0,0,0,0)
         }
-        RouteServerPlan.validate(rule)
+        val settings=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;visibility=if(auto)View.VISIBLE else View.GONE}
+        val strategy=button("",false).apply {tag="route-auto-strategy";textSize=13f;maxLines=1;DropdownStyle.value(this@with,this);RouteChoiceUi.style(this@with,this);visibility=if(auto)View.VISIBLE else View.GONE
+            includeFontPadding=false;setPadding(dp(4),dp(8),dp(4),dp(8))
+            setAutoSizeTextTypeUniformWithConfiguration(10,13,1,android.util.TypedValue.COMPLEX_UNIT_SP)
+            setCompoundDrawablesRelative(null,null,icon("down",Loft.MUTED).apply {setBounds(0,0,dp(12),dp(12))},null);compoundDrawablePadding=dp(4)}
+        val strategyChoices=LinearLayout(this).apply {
+            orientation=LinearLayout.VERTICAL;visibility=View.GONE;tag="route-auto-strategy-choices"
+            background=Loft.popupBackground(this@with);setPadding(dp(6),dp(4),dp(6),dp(4))
+        }
+        fun strategyLabel(){strategy.text=when(mode){AutoSelection.SEQUENTIAL->"Последовательно";BsAutoSelectionPolicy.RECENT->"Последний выбранный";else->"Самый быстрый"}}
+        strategyLabel()
+        body.addView(LinearLayout(this).apply {
+            gravity=Gravity.CENTER_VERTICAL;isBaselineAligned=false
+            addView(toggle,LinearLayout.LayoutParams(-2,dp(48)).apply {marginEnd=dp(8)})
+            addView(strategy,LinearLayout.LayoutParams(0,-2,1f))
+        },space(0,8))
+        val times=(listOf(15,30,60,180,300,600,1800,3600)+seconds).distinct().sorted()
+        val cadence=CarrierOption(this,times.map {CarrierOption.Value(AutoCheckIntervals.label(it),"")},times.indexOf(seconds).coerceAtLeast(0),{}).apply {describe("Проверять","Интервал проверки только этой группы серверов.")}
+        cadence.onSelectionChanged={seconds=times[it]}
+        cadence.routeChoices()
+        val tolerances=(AutoSelectionDeviation.milliseconds+deviation).distinct().sorted()
+        val difference=CarrierOption(this,tolerances.map {CarrierOption.Value("$it мс","")},tolerances.indexOf(deviation).coerceAtLeast(0),{}).apply {describe("Отклонение","Смена сервера при выигрыше по задержке на это значение.")}
+        difference.onSelectionChanged={deviation=tolerances[it]}
+        difference.routeChoices()
+        settings.addView(strategyChoices);settings.addView(cadence);settings.addView(difference)
+        val failure=Switch(this).apply {text="Менять только при сбое";tune(this);minHeight=dp(48);isChecked=onlyFailure;setOnCheckedChangeListener {_,on->onlyFailure=on}}
+        settings.addView(failure)
+        body.addView(settings,space(0,8))
+        val list=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;tag="route-server-options"}
+        val hint=text("Стрелки задают порядок последовательного выбора.",12,Loft.MUTED)
+        var visible=emptyList<ServerImport.Server>()
+        fun redraw(){
+            visible=entries.filter {ConnectionSections.belongs(it,bs)&&(!auto||it.protocol !in AutoSelection.AUTOMATIC_EXCLUDED)}
+            val sequential=mode==AutoSelection.SEQUENTIAL
+            hint.visibility=if(auto&&sequential)View.VISIBLE else View.GONE
+            cadence.visibility=if(sequential)View.GONE else View.VISIBLE
+            difference.visibility=if(sequential)View.GONE else View.VISIBLE
+            failure.visibility=if(sequential)View.GONE else View.VISIBLE
+            OrderedServerChoicesUi.render(activity,list,visible,draft,auto&&sequential,auto,::redraw)
+        }
+        fun renderStrategies(){
+            strategyChoices.removeAllViews()
+            val modes=RouteEditorAuto.pickerModes+if(policy==BsAutoSelectionPolicy.RECENT)listOf(BsAutoSelectionPolicy.RECENT)else emptyList()
+            modes.map {when(it){AutoSelection.SEQUENTIAL->"Последовательно";BsAutoSelectionPolicy.RECENT->"Последний выбранный";else->"Самый быстрый"}}.forEachIndexed {index,label->
+                strategyChoices.addView(button(label,false).apply {
+                    DropdownStyle.apply(this@with,this);RouteChoiceUi.style(this@with,this);gravity=Gravity.START or Gravity.CENTER_VERTICAL
+                    isSelected=modes[index]==mode
+                    setTextColor(if(isSelected)Loft.ACCENT else Loft.INK)
+                    setOnClickListener {mode=modes[index];strategyLabel();strategyChoices.visibility=View.GONE;redraw()}
+                },LinearLayout.LayoutParams(-1,dp(48)))
+            }
+        }
+        renderStrategies()
+        strategy.setOnClickListener {renderStrategies();strategyChoices.visibility=if(strategyChoices.visibility==View.VISIBLE)View.GONE else View.VISIBLE}
+        lateinit var family:ModeSwitch
+        family=ModeSwitch(this,!bs,Consumer {vpn->
+            family.setMode(vpn,true);bs=!vpn;draft.clear();redraw()
+        },listOf("VPN","БС"),listOf("shield","rkn"))
+        body.addView(family,space(0,8))
+        body.addView(hint,space(0,8))
+        body.addView(list)
+        toggle.setOnCheckedChangeListener {_,on->
+            auto=on;settings.visibility=if(on)View.VISIBLE else View.GONE
+            strategy.visibility=if(on)View.VISIBLE else View.GONE
+            if(!on&&draft.ids().size>1){val first=draft.ids().first();draft.clear();draft.select(first,true)}
+            redraw()
+        }
+        redraw()
+        body.addView(button(DEFAULT,false).apply {DropdownStyle.apply(this@with,this);RouteChoiceUi.style(this@with,this);setOnClickListener {edited=true;selectedIds=emptySet();automaticSelection=false;refresh();choicesPopup?.dismiss()}},space(8,0))
+        val panel=LinearLayout(this).apply {
+            orientation=LinearLayout.VERTICAL;setPadding(dp(8),dp(8),dp(8),dp(8))
+            addView(CompactUi.scroll(this@with,body),LinearLayout.LayoutParams(-1,-2,1f))
+        }
+        val actions=LinearLayout(this).apply {gravity=Gravity.END or Gravity.CENTER_VERTICAL;isBaselineAligned=false}
+        actions.addView(button("Отмена",false).apply {setOnClickListener {choicesPopup?.dismiss()}},LinearLayout.LayoutParams(0,-2,1f).apply {marginEnd=dp(8)})
+        actions.addView(button("Выбрать",false).apply {setOnClickListener {
+            val ids=if(auto&&draft.ids().isEmpty()&&mode!=AutoSelection.SEQUENTIAL)visible.map {it.id}.toSet()else draft.ids().toSet()
+            if(ids.isEmpty()){alert("Сервер правила",if(visible.isEmpty())"В разделе нет совместимых серверов."else"Отметьте серверы в нужном порядке.");return@setOnClickListener}
+            if(ids.any {id->visible.none {it.id==id}}){alert("Сервер правила","Выберите серверы одного раздела.");return@setOnClickListener}
+            if(ids.size>32||(bs&&ids.size>8)){alert("Сервер правила",if(bs)"Выберите до 8 серверов БС."else"Выберите до 32 серверов VPN.");return@setOnClickListener}
+            edited=true;selectedIds=ids;automaticSelection=auto;interval=seconds;tolerance=deviation;policy=mode;failureOnly=onlyFailure;preferred=preferred.takeIf {it in ids}?:ids.first();refresh();choicesPopup?.dismiss()
+        }},LinearLayout.LayoutParams(0,-2,1f))
+        panel.addView(actions,space(8,0))
+        val popup=RouteChoicePopup.centered(this,view,panel)
+        choicesPopup=popup
+        popup.setOnDismissListener {if(choicesPopup===popup)choicesPopup=null}
+    }
+    fun write(rule:JSONObject) {
+        RouteServerDraft.write(rule,edited,selectedIds.toList(),automaticSelection,interval,tolerance,policy,failureOnly,preferred)
     }
     companion object {
-        const val DEFAULT="Текущий сервер подключения"
+        const val DEFAULT="Текущий сервер"
         internal fun label(entry:ServerImport.Server):String {
-            val host=entry.host.let {if(':' in it)"[$it]"else it}
-            val endpoint=if(entry.port>0)"$host:${entry.port}"else host
-            return "${entry.name} · ${entry.label()}\n$endpoint"
+            val host=if(':' in entry.host)"[${entry.host}]"else entry.host
+            return "${entry.name} · ${entry.label()}\n$host${if(entry.port>0)":${entry.port}"else""}"
         }
     }
 }

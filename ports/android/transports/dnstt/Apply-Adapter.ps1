@@ -27,5 +27,24 @@ $taskNew=@'
 '@
 Replace-Exact $taskOld.Replace("`r`n","`n") $taskNew.Replace("`r`n","`n")
 Replace-Exact ("`tdefer sess.Close()") ("`tdefer sess.Close()`n`tif mobile != nil { defer mobileWatchSession(ln, sess.CloseChan())() } ")
+$taskUnderlayMain=@'
+func main() {
+	if mobile != nil {
+		var err error
+		mobileResolverUnderlay, err = newDNSTTUnderlay(os.Getenv(dnsttUnderlayEnv), dnsttBindProcess, dnsttBindSocket)
+		if err != nil {
+			mobileReport("DNSTT_UNDERLAY_REJECTED")
+			os.Exit(2)
+		}
+	}
+'@
+Replace-Exact 'func main() {' $taskUnderlayMain.Replace("`r`n","`n")
+Replace-Exact 'transport.Proxy = nil' ("transport.Proxy = nil`n`t`t`t`tif mobileResolverUnderlay.control != nil { transport.DialContext = mobileResolverUnderlay.httpDialer().DialContext }")
+Replace-Exact '(&tls.Dialer{}).DialContext' '(&tls.Dialer{NetDialer: mobileResolverUnderlay.dialer()}).DialContext'
+Replace-Exact 'net.ListenUDP("udp", nil)' 'mobileResolverUnderlay.listenUDP(context.Background())'
 [IO.File]::WriteAllText($taskMain,$taskText,[Text.UTF8Encoding]::new($false))
-foreach($taskName in @('mcrf_config.go','mcrf_lifecycle.go')){Copy-Item -LiteralPath "$PSScriptRoot/$taskName" -Destination "$taskModule/dnstt-client/$taskName" -Force}
+$taskUTLS=Join-Path $taskModule 'dnstt-client/utls.go'
+$taskText=[IO.File]::ReadAllText($taskUTLS).Replace("`r`n","`n")
+Replace-Exact 'dialer := &net.Dialer{}' 'dialer := mobileResolverUnderlay.dialer()'
+[IO.File]::WriteAllText($taskUTLS,$taskText,[Text.UTF8Encoding]::new($false))
+foreach($taskName in @('mcrf_config.go','mcrf_lifecycle.go','mcrf_underlay.go','mcrf_underlay_android.go','mcrf_underlay_other.go')){Copy-Item -LiteralPath "$PSScriptRoot/$taskName" -Destination "$taskModule/dnstt-client/$taskName" -Force}

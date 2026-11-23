@@ -33,6 +33,7 @@ object ConnectionDiagnostics {
         val final=when(types[route?.optString("final").orEmpty()]){"direct"->"напрямую";null->"иной/неизвестен";else->"через движок"}
         val dnsFinal=(0 until (servers?.length()?:0)).mapNotNull {servers!!.optJSONObject(it)}.firstOrNull {it.optString("tag")==dns?.optString("final")}
         val dnsType=dnsFinal?.optString("type")?.takeIf {it in setOf("local","udp","tcp","tls","quic","https","h3","hosts","fakeip") }?:"иной/неизвестен"
+        LocalDiagnostics.configuration(servers?.length() ?: 0, rules?.length() ?: 0, System.currentTimeMillis())
         return "Маршруты: напрямую=$direct, через движок=$via, блок=$blocked, служебные=$special; выход по умолчанию=$final; resolve=$resolves. DNS: серверов=${servers?.length()?:0}, правил=${dns?.optJSONArray("rules")?.length()?:0}, явных detour=$detours, по умолчанию=$dnsType. Счётчики конфигурации, не проверка трафика."
     }
 }

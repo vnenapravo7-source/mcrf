@@ -53,6 +53,6 @@ internal object CompactProtocolPolicy {
         val out=JSONObject().put("type","socks").put("server","127.0.0.1").put("server_port",port).put("version","5")
             .put("username",user).put("password",password)
         return ServerImport.Server(original=entry.original,name=entry.name,protocol="socks",host="127.0.0.1",port=port,
-            outbound=out,endpoint=null,configuration=null,carrier=null,profileDns=entry.profileDns.toList())
+            outbound=out,endpoint=null,configuration=null,carrier=null,profileDns=entry.profileDns.toList(),whitelists=entry.whitelists)
     }
 }

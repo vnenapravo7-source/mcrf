@@ -24,6 +24,17 @@ internal class CarrierProcessGroup(private val executable:File,private val direc
         return "MCRF_OWNER_ACK|$nonce\n"
     }
     @Synchronized fun admitted():Boolean=root!=null
+    /** Revalidate the exact acknowledged root before accepting its private FD.
+     * A saved numeric PID alone cannot prove ownership after process retirement. */
+    @Synchronized fun verifiedRootPid():Int {
+        val original=checkNotNull(root){"CARRIER_GROUP_NOT_ADMITTED"}
+        val current=CarrierProcessGroupProof.stat(original.pid,File("/proc/${original.pid}/stat").readText())
+        check(CarrierProcessGroupProof.owned(current,original.birth,android.os.Process.myPid(),
+            Os.stat("/proc/${original.pid}").st_uid,android.os.Process.myUid(),
+            Os.readlink("/proc/${original.pid}/exe"),executable.canonicalPath,
+            Os.readlink("/proc/${original.pid}/cwd"),directory.canonicalPath)){"CARRIER_GROUP_IDENTITY_CHANGED"}
+        return original.pid
+    }
     /** Off-UI, retain exact owner/module lease until ESRCH confirms the ENTIRE
      * verified group vanished. Permission/IO failures or interrupts are NOT ACKs.
      * Without a bound root no ACK could be sent, hence no child could be spawned. */

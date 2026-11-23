@@ -17,7 +17,7 @@ class QuickTileCommandTest {
         assertNull(QuickTileCommand.decode(first,"{\"command\":\"rules\",\"at\":1.5}",2000))
     }
     @Test fun commandNeedsAnExactFreshPrivateTicketAndAllowlistedAction() {
-        for(command in listOf("vpn","bs","rules","auto-bs")) {
+        for(command in listOf("vpn","bs","rules","auto-bs","anubis")) {
             assertTrue(QuickTileCommand.valid("owned-ticket","owned-ticket",command,0))
             assertTrue(QuickTileCommand.valid("owned-ticket","owned-ticket",command,60_000))
             assertFalse(QuickTileCommand.valid("forged-ticket","owned-ticket",command,0))
@@ -26,6 +26,7 @@ class QuickTileCommandTest {
             assertFalse(QuickTileCommand.valid("owned-ticket","owned-ticket",command,60_001))
         }
         assertFalse(QuickTileCommand.valid("owned-ticket","owned-ticket","install",0))
+        assertFalse(QuickTileCommand.valid("owned-ticket","owned-ticket","widget-connect",0))
         assertFalse(QuickTileCommand.valid("owned-ticket","owned-ticket",null,0))
         assertFalse(QuickTileCommand.valid("","","vpn",0))
     }

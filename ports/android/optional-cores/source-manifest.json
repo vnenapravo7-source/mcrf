@@ -1,0 +1,212 @@
+{
+  "files": [
+    {
+      "path": "app/src/androidTest/kotlin/org/mcrf/client/OptionalCoreDeviceChecks.kt",
+      "sha256": "3f7ea5fafb2fe1256596e26ecd49db4fb0cb078eddcb2aca944090ec6b401efb"
+    },
+    {
+      "path": "app/src/main/kotlin/org/mcrf/client/OptionalCoreCapabilities.kt",
+      "sha256": "b8fe02f50ee30decfa8778902f3def1864cf546280ba9efd9d88bb7288dda1d0"
+    },
+    {
+      "path": "app/src/main/kotlin/org/mcrf/client/OptionalCoreConfig.kt",
+      "sha256": "5f3ab4be18595398f1f2cd550e90b8f8c60f099d1d49578d22628122204ef0bb"
+    },
+    {
+      "path": "app/src/main/kotlin/org/mcrf/client/OptionalCorePages.kt",
+      "sha256": "0f2e2f0788492bd75cd2100f2d7f681dea8b20059c294b835ccfd43ecc7dc655"
+    },
+    {
+      "path": "app/src/main/kotlin/org/mcrf/client/OptionalCorePlan.kt",
+      "sha256": "a6de899900d911805908bbf9ec27e9fc37fe6491a71fe7f984a6db1b69fcfa3a"
+    },
+    {
+      "path": "app/src/main/kotlin/org/mcrf/client/OptionalCoreProbe.kt",
+      "sha256": "ee9bd8fac40b8c719db300d62e14bb04df99f08d41eff5d88531534c62fe42b7"
+    },
+    {
+      "path": "app/src/main/kotlin/org/mcrf/client/OptionalCoreProcess.kt",
+      "sha256": "1c97755e718024b1148c2726ebcb22a4faeb32aa8d9811364edff06d58d280e5"
+    },
+    {
+      "path": "app/src/main/kotlin/org/mcrf/client/OptionalCoreRetirement.kt",
+      "sha256": "b70dbc45d7ea33e112400f2e4bb074ba2415989e6be161a5f9f5021d44c42d8c"
+    },
+    {
+      "path": "app/src/main/kotlin/org/mcrf/client/OptionalCoreSession.kt",
+      "sha256": "c8f8f7abc9a71d140a65bf57dfd02cd39e8ba031a4de6130690a0d92692f0a80"
+    },
+    {
+      "path": "app/src/main/kotlin/org/mcrf/client/OptionalCoreSettings.kt",
+      "sha256": "0438a91175f56643818720b9d0816537ff084dd333f67bd0dc4fb31e5a7654e9"
+    },
+    {
+      "path": "app/src/main/kotlin/org/mcrf/client/OptionalCoreStore.kt",
+      "sha256": "5b34d8b4576444fa9cda54d2f8fa492355b803090c3099d4b195eddde5dc2ec8"
+    },
+    {
+      "path": "app/src/main/kotlin/org/mcrf/client/OptionalCoreTuning.kt",
+      "sha256": "3ccb864d94d041ec55024afbdd837168a0d02181495c1bba5248de28eb8f90eb"
+    },
+    {
+      "path": "app/src/main/kotlin/org/mcrf/client/OptionalCoreUi.kt",
+      "sha256": "da89063ec439fc1629d4a70978282c9407eb0f11312b7407ef7b721e08d81aa7"
+    },
+    {
+      "path": "app/src/main/kotlin/org/mcrf/client/XrayConfig.kt",
+      "sha256": "b198bc7a9bfeecb5d983f13b13c2dde85945c0ccf5f3a6657b2fb54ffa7f9d51"
+    },
+    {
+      "path": "app/src/test/kotlin/org/mcrf/client/OptionalCorePlanTest.kt",
+      "sha256": "6b126db0ecf22bde9db998200df1bd0f7a6a41958066f7723dada6b696c8c93f"
+    },
+    {
+      "path": "app/src/test/kotlin/org/mcrf/client/OptionalCoreProbeTest.kt",
+      "sha256": "102b999e804df89da2d063c2b3f104768d45ba371b63371f4f8790740b3e742b"
+    },
+    {
+      "path": "app/src/test/kotlin/org/mcrf/client/OptionalCoreTest.kt",
+      "sha256": "508de0e20ff9ad679bf358ceab5b5680288deef6213ce43e836997dd0abff668"
+    },
+    {
+      "path": "app/src/test/kotlin/org/mcrf/client/OptionalCoreTuningFixtures.kt",
+      "sha256": "c23b49c4a85240ba0aa6a7d8d0784f0cccef68fdc1f0c53c9979101d83a471c1"
+    },
+    {
+      "path": "app/src/test/kotlin/org/mcrf/client/OptionalCoreTuningTest.kt",
+      "sha256": "e44edffe963d2c2372847da52e2f70235871e78c4ca1122e6e821ccdbcff86f7"
+    },
+    {
+      "path": "optional-cores/bridge/bridge.go",
+      "sha256": "5e38686f9986901c237af9c899bfa4fd26c052797b93c91838bdf753977c3466"
+    },
+    {
+      "path": "optional-cores/bridge/bridge_test.go",
+      "sha256": "463e7fd2e8a12f80d793f967dc6e0d7840a6cfcab448e1ecaec3f0c82675369b"
+    },
+    {
+      "path": "optional-cores/bridge/go.mod",
+      "sha256": "719578d65659c4e540d6e69ad7b25e7e771fe5df46ad027a79d4c202f619a847"
+    },
+    {
+      "path": "optional-cores/build-fixtures.ps1",
+      "sha256": "1a67902f4c6262446af069d39b6a8e0cb17d0dba0791595c8bbc743328c45d8d"
+    },
+    {
+      "path": "optional-cores/build.ps1",
+      "sha256": "6657e1b83cf26584f7d1ed9e1525127a6e33ff8f63a04121f789767b9823cb14"
+    },
+    {
+      "path": "optional-cores/capability-matrix.json",
+      "sha256": "b295e3574a0bdbf8ff5cdbc19fd5564698bfb129c51e08f8ba1b3af1703976ca"
+    },
+    {
+      "path": "optional-cores/check-kotlin.ps1",
+      "sha256": "3a77eb802108fc4a4f760196ca979db1d3ce642e2eed469978e22fe786aa34e8"
+    },
+    {
+      "path": "optional-cores/current-candidate.json",
+      "sha256": "7d829de2dfaa5640f841b42c5a49599036b0c83a4e1f1e9e9b13e945445936db"
+    },
+    {
+      "path": "optional-cores/current-fixtures.json",
+      "sha256": "8cc374bbdf941ee7a4f06c591f24f9b6e4af63d45efb14a543629270323b0678"
+    },
+    {
+      "path": "optional-cores/current-integration-audit.json",
+      "sha256": "7d064791a950e12fe0f7afe2d7006dd53e73f0a4b24a0ab09a72205f5ba4e048"
+    },
+    {
+      "path": "optional-cores/current-kotlin.json",
+      "sha256": "875ade01e32fdddcb6891476d463a2caec51fc04770cbbbe192ad1212482958c"
+    },
+    {
+      "path": "optional-cores/licenses/qThrone-GPL-3.0.txt",
+      "sha256": "230184f60bae2feaf244f10a8bac053c8ff33a183bcc365b4d8b876d2b7f4809"
+    },
+    {
+      "path": "optional-cores/licenses/sing-box-LICENSE.txt",
+      "sha256": "650d5e3b99a446fb38e820fa87a49562e0c79eab868fff58618ac487a58e554c"
+    },
+    {
+      "path": "optional-cores/licenses/Xray-MPL-2.0.txt",
+      "sha256": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5"
+    },
+    {
+      "path": "optional-cores/patches/fragment-write.txt",
+      "sha256": "bb6e886d39e7a22812c6070e34e236cc6220f43697bc94f6ce3ee075ac576989"
+    },
+    {
+      "path": "optional-cores/patches/fragment_test.go.txt",
+      "sha256": "e74985213c76f0b04cde87bcf1ba94c32e593993d2b9c38d6d1e138945382fc3"
+    },
+    {
+      "path": "optional-cores/prepare_overlay.py",
+      "sha256": "462efb127b8093e0889065d8cdd9b10ed664cb08ff6564655f3b93fd1a17d704"
+    },
+    {
+      "path": "optional-cores/primary-core-audit.json",
+      "sha256": "99b9afff7d36b15c9becac87fd35fe18501f74fa527e5829cf338aa1940d098f"
+    },
+    {
+      "path": "optional-cores/README.md",
+      "sha256": "4d26c189fded5790beae8dff728c6c4f5a2aedf4d8544e1e08458332958095a5"
+    },
+    {
+      "path": "optional-cores/source-lock.json",
+      "sha256": "a534dbad34c41908b22b8d7a7faeb3db74164db796af847f3e3c9d292c1e013b"
+    },
+    {
+      "path": "optional-cores/verify_candidates.py",
+      "sha256": "10923a517cea7d78be15bf7f5b90cc26ee62c5883127e534ac8b9721e393bbe4"
+    },
+    {
+      "path": "optional-cores/verify_cli.py",
+      "sha256": "e9feb9dfe2c598f7859a23dafc6e26879d46734e1a3e1b2e8c60b80280e57fa8"
+    },
+    {
+      "path": "optional-cores/verify_feature_peer.py",
+      "sha256": "22a1e7db6b317fdeec2f2b7f97a1281bab47f2a8519b7fc2a5f69343415227ea"
+    },
+    {
+      "path": "optional-cores/verify_integration.py",
+      "sha256": "a609478def4eab3bb818908c3e3ceb4d754e3624be744ae1c70670237d0e4600"
+    },
+    {
+      "path": "transports/tls-core/go.mod",
+      "sha256": "6423799b759a5aca56ba8e83ee8dcc0f19d43c32f03f02236567ee3a98b90212"
+    },
+    {
+      "path": "transports/tls-core/go.sum",
+      "sha256": "abe03e641a3bdf4fd94a32e5312126b948ac6c33cf9c89a2d54351d691199a4b"
+    },
+    {
+      "path": "transports/tls-core/main.go",
+      "sha256": "31ed7a24b7189017bc3596ee6474ff5d0d426cee8808066ebdae43d30b9af908"
+    },
+    {
+      "path": "transports/tls-core/main_test.go",
+      "sha256": "202896d1349c3b238f08b192bd25b00f01f4cf454e607dc142a4738136d4d90d"
+    },
+    {
+      "path": "transports/xray/go.mod",
+      "sha256": "930219884cb515eb30e5800cca052b3d5c790b46de02c65e9161a254e79da2f5"
+    },
+    {
+      "path": "transports/xray/go.sum",
+      "sha256": "083b65d405e772b88b72041de867a6ce49ad11c3adb71b5c479bc7ce28ec0bba"
+    },
+    {
+      "path": "transports/xray/main.go",
+      "sha256": "577619ff14f1f7f90495c7191ba6b95cc3ac4b070fa6ce1debb3e9c24564d1e7"
+    },
+    {
+      "path": "transports/xray/main_test.go",
+      "sha256": "2c339fe4b6b707620e271ffcaae4131f4e12ce3e7dee5669727f781bc307ddc2"
+    },
+    {
+      "path": "transports/xray/testpeer/main.go",
+      "sha256": "e2778205e75627c4614d6ed7dbf8f59744eb4b8842cd899e6371b4ffb7ff0df7"
+    }
+  ]
+}

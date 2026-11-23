@@ -17,7 +17,7 @@ Assert-Source
 $taskStage="D:/MCRF/Builds/Android/p4-sstp-host-$([guid]::NewGuid().ToString('N'))";New-Item -ItemType Directory -Path $taskStage|Out-Null
 $taskProof=@{state='RUNNING';sourceManifestSha256=$taskSource.manifestSha256;failures=0;skipped=0;cases=@();androidRuntimeAccepted=$false;retainedTestsReplayed=$false}
 $taskRequired=@('TestMcrfSstpStrictConfigAndSecureDefaults','TestMcrfSstpRejectAmbiguousConfigAndEndpoint','TestMcrfSstpTypedCertificateFailureIsPreserved','TestMcrfSstpCloseUnblocksStalledDisconnect','TestMcrfSstpCancelDuringPostTLSHTTPHandshake')
-$taskRequired+='TestMcrfSstpOwnedTLSMSCHAPIPData'
+$taskRequired+=@('TestMcrfSstpOwnedTLSMSCHAPIPData','TestMcrfSstpUnderlayBeforeDial')
 $taskNames=@('GOOS','GOARCH','GOARM','CGO_ENABLED','GOROOT','GOENV','GOWORK','GOFLAGS','GOTOOLCHAIN','GOPROXY','GOPATH','GOMODCACHE','GOCACHE','GOTMPDIR');$taskOld=@{}
 foreach($taskName in $taskNames){$taskOld[$taskName]=[Environment]::GetEnvironmentVariable($taskName,'Process')}
 try {

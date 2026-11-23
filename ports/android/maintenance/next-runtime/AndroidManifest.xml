@@ -1,0 +1,5 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.mcrf.client.nextruntime" android:versionCode="1" android:versionName="1">
+  <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="34" />
+  <application android:label="MCRF isolated runtime checks" android:allowBackup="false" android:testOnly="true" />
+  <instrumentation android:name="org.mcrf.runtime.NextRuntimeInstrumentation" android:targetPackage="org.mcrf.client" android:functionalTest="true" />
+</manifest>

@@ -1,5 +1,6 @@
 param()
 $ErrorActionPreference='Stop'
+throw 'Historical OpenFluxTeam v0.16.0 producer retired. Use ../v0171/build.ps1 with the official pin; never reuse this receipt for v0.17.1.'
 $taskProject='D:/MCRF/Projects/MCRF'
 $taskCanonical=Split-Path $PSScriptRoot
 $taskPristine="$taskProject/work/android-upstream/openflux-team-v0.16.0"

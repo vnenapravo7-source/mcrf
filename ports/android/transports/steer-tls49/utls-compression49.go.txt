@@ -1,0 +1,35 @@
+// MCRF private overlay for refraction-networking/utls aa6edf4b11af (BSD-3-Clause).
+package tls
+
+import "sync"
+
+var mcrfDecoder49 struct {
+    sync.RWMutex
+    decode func(uint16,uint32,[]byte)([]byte,error)
+}
+
+// Install exactly once before the first external helper call. The external module
+// uses the SAME bounded C decoder as its native TLS diagnostic fixtures.
+func MCRFInstallDecoder49(f func(uint16,uint32,[]byte)([]byte,error)) bool {
+    mcrfDecoder49.Lock();defer mcrfDecoder49.Unlock()
+    if f==nil||mcrfDecoder49.decode!=nil{return false}
+    mcrfDecoder49.decode=f;return true
+}
+
+func (hs *clientHandshakeStateTLS13) mcrfDecompressCert49(m utlsCompressedCertificateMsg)(*certificateMsgTLS13,error){
+    supported:=false
+    for _,alg:=range hs.uconn.certCompressionAlgs{supported=supported||uint16(alg)==m.algorithm}
+    if !supported||m.uncompressedLength==0||m.uncompressedLength>40960||len(m.compressedCertificateMessage)==0||len(m.compressedCertificateMessage)>131072{
+        return nil,hs.c.sendAlert(alertBadCertificate)
+    }
+    mcrfDecoder49.RLock();decode:=mcrfDecoder49.decode;mcrfDecoder49.RUnlock()
+    if decode==nil{return nil,hs.c.sendAlert(alertBadCertificate)}
+    body,err:=decode(m.algorithm,m.uncompressedLength,m.compressedCertificateMessage)
+    if err!=nil||len(body)!=int(m.uncompressedLength){return nil,hs.c.sendAlert(alertBadCertificate)}
+    raw:=make([]byte,4+len(body));raw[0]=typeCertificate
+    raw[1]=byte(len(body)>>16);raw[2]=byte(len(body)>>8);raw[3]=byte(len(body));copy(raw[4:],body)
+    cert:=new(certificateMsgTLS13)
+    if !cert.unmarshal(raw){return nil,hs.c.sendAlert(alertBadCertificate)}
+    // Existing caller transcripts m.raw, not this decoded synthetic message.
+    return cert,nil
+}

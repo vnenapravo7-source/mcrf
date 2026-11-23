@@ -33,7 +33,7 @@ object Post55OptionalDeathDeviceChecks {
         check(plan.entries().map {it.tag}.toSet()==setOf("main","rule-only"))
         // The production loader still checks module package/signature/source/interface.
         // A missing module is a real blocker, never replaced by an unsigned fake binary.
-        val session=OptionalCoreSession.start(isolated,plan,BooleanSupplier {false},false,false)
+        val session=OptionalCoreSession.start(isolated,plan,BooleanSupplier {false},false,false,strictIngress=false)
         fun verify(condition:Boolean,message:String){check(condition){message};passed.accept(message)}
         try {
             val owners=OptionalCoreSession::class.java.getDeclaredField("byTag").apply {isAccessible=true}

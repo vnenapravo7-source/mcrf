@@ -100,7 +100,10 @@ class OptionalCoreTest {
         val goodChild=Child().apply {allowDeath=true};val badChild=Child()
         val good=ctor.newInstance(1080,"fixture-user-123456","fixture-pass-123456","xray");field.set(good,goodChild)
         val bad=ctor.newInstance(1081,"fixture-user-123456","fixture-pass-123456","xray");field.set(bad,badChild)
-        val session=OptionalCoreSession::class.java.getDeclaredConstructor(JSONObject::class.java,List::class.java).apply {isAccessible=true}.newInstance(JSONObject(),listOf(good,bad))
+        // Sessions now retain workers by outbound tag to isolate per-route failures.
+        val session=OptionalCoreSession::class.java.getDeclaredConstructor(JSONObject::class.java,Map::class.java,Long::class.javaObjectType)
+            .apply {isAccessible=true}.newInstance(JSONObject(),mapOf("good-route" to good,"bad-route" to bad),1L)
+        assertFalse(session.requiresUidBypass)
         try {session.close();fail("partial cleanup acknowledged")}catch(_:IllegalStateException){}
         assertTrue(good.isClosed());assertFalse(bad.isClosed());assertFalse(session.isClosed());assertFalse(session.isAlive())
         val writes=goodChild.stopWrites;badChild.allowDeath=true;session.close();session.close()

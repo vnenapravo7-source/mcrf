@@ -20,6 +20,7 @@ object AndroidBackup {
     private data class Section(val group: BackupDefaults.Group, val validate: (JSONObject) -> Unit)
     private val sections = java.util.concurrent.ConcurrentHashMap<String, Section>()
     private val additionalPreferences = java.util.concurrent.ConcurrentHashMap<String, Any>()
+    private val retiredBooleanPreferences = setOf("sakugaComponents", "appearanceGooPanel", "dynamicIsland")
     /** Original hook remains source/binary compatible; new settings default to the advanced group. */
     fun registerSection(key: String, validate: (JSONObject) -> Unit) = registerSection(key, BackupDefaults.Group.ADVANCED, validate)
     fun registerSection(key: String, group: BackupDefaults.Group, validate: (JSONObject) -> Unit) {
@@ -45,17 +46,18 @@ object AndroidBackup {
             val stores = ProfileStore.snapshot(context).toMutableMap()
             if (stores["connections.enc"].isNullOrEmpty()) stores["connections.enc"] = ConnectionCatalogue("").serialize()
             if (stores["routing.enc"].isNullOrEmpty()) { val routes = RoutingStore(context); routes.load(); stores["routing.enc"] = routes.snapshot().toString() }
-            val preferences = stores["preferences.enc"].orEmpty().let { if(it.isEmpty()) JSONObject() else JSONObject(it) }; val prefs = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+            val preferences = InviteCodeSync.historyPreferences(stores["preferences.enc"].orEmpty().let { if(it.isEmpty()) JSONObject() else JSONObject(it) }); val prefs = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
             val preferenceSnapshot = prefs.all
             preferenceKeys().forEach { key -> preferences.remove(key); preferenceSnapshot[key]?.let { preferences.put(key, it) } }
             // A last-started runtime target is not portable authorization to auto-connect elsewhere.
             preferences.remove(AutoVpnReturn.KEY)
+            retiredBooleanPreferences.forEach(preferences::remove)
             preferences.put("localProxy",proxyAuth)
             validatePreferences(preferences)
             stores["preferences.enc"] = preferences.toString()
             JSONObject().put("version", 1).put("createdAt", System.currentTimeMillis()).put("stores", JSONObject(stores as Map<*, *>)).toString().toByteArray(Charsets.UTF_8)
         }
-        return try { BackupCodec.encrypt(source, password) } finally { source.fill(0) }
+        return try { if(password.isEmpty())BackupCodec.pack(source)else BackupCodec.encrypt(source, password) } finally { source.fill(0) }
     }
     @JvmStatic fun validate(source: JSONObject): Map<String, String> {
         require(source.getInt("version") == 1) { "Неизвестная версия бэкапа." }
@@ -67,33 +69,54 @@ object AndroidBackup {
         } }
         ConnectionCatalogue(values.getValue("connections.enc")).serialize()
         RoutingStore.validate(JSONObject(values.getValue("routing.enc")))
-        val preferences = JSONObject(values.getValue("preferences.enc"))
-        val hadRuntimeTarget=preferences.has(AutoVpnReturn.KEY)
+        val rawPreferences = JSONObject(values.getValue("preferences.enc"))
+        val preferences = InviteCodeSync.historyPreferences(rawPreferences)
+        val hadRuntimeTarget=preferences.has(AutoVpnReturn.KEY)||preferences.length()!=rawPreferences.length()
         preferences.remove(AutoVpnReturn.KEY)
         validatePreferences(preferences)
         values.getValue("profile.enc").takeIf(String::isNotEmpty)?.let { ProfileConfig.build(it, preferences.optBoolean("tun", true), preferences.optInt("port", 10808)) }
         return if(hadRuntimeTarget)values+("preferences.enc" to preferences.toString())else values
     }
     @JvmStatic fun restore(context: Context, file: ByteArray, password: CharArray) {
-        val plain = BackupCodec.decrypt(file, password)
+        // Non-UI callers keep their explicit restore contract; the interactive path uses prepare/apply.
+        val preview=prepareRestore(context,file,password)
+        applyRestore(context,preview)
+    }
+    internal fun prepareRestore(context:Context,file:ByteArray,password:CharArray):ChangePreview {
+        val plain = if(BackupCodec.isPortable(file))BackupCodec.unpack(file)else BackupCodec.decrypt(file, password)
         val values = try { validate(decodeDocument(plain)).toMutableMap() } finally { plain.fill(0) }
+        return synchronized(ProfileStore.storageLock) {
+            val before=ProfileStore.historySnapshot(context)
+            // Resolve destination-only credentials BEFORE preview, never again during apply.
+            val snapshot=prepareRestoreValues(values,before)
+            validateRestoreValues(context,snapshot)
+            ChangePreview.prepare(before,snapshot)
+        }
+    }
+    internal fun prepareRestoreValues(values:Map<String,String>,before:Map<String,String>):Map<String,String> {
+        val preferences=JSONObject(values.getValue("preferences.enc"))
+        if(!preferences.has("localProxy")) {
+            val destination=JSONObject(before.getValue("preferences.enc").ifBlank {"{}"}).optJSONObject("localProxy")
+            preferences.put("localProxy",destination?.let(LocalProxyConfig::validate)?:LocalProxyConfig.generate())
+        }
+        return values+("preferences.enc" to preferences.toString())
+    }
+    private fun validateRestoreValues(context:Context,values:Map<String,String>) {
+        validatePreferences(JSONObject(values.getValue("preferences.enc")))
         PresetAssets.validate(context,JSONObject(values.getValue("routing.enc")))
         val validator = runtimeValidator
         val config = values.getValue("profile.enc").takeIf(String::isNotEmpty)?.let { source ->
             val preferences = JSONObject(values.getValue("preferences.enc"))
             ProfileConfig.build(source, preferences.optBoolean("tun", true), preferences.optInt("port", 10808)).apply { remove("mcrf_carrier") }.toString()
         }
-        runtimeValidatedCommit(config, validator?.let { installed -> { built -> installed.validate(context,built) } }) {
-          synchronized(ProfileStore.storageLock) {
-            // Backups created before authenticated local sharing have no credentials.
-            // Keep the destination credentials instead of silently regenerating them.
-            val preferences = JSONObject(values.getValue("preferences.enc"))
-            if(!preferences.has("localProxy")) {
-                preferences.put("localProxy",LocalProxySettings.value(context))
-                values["preferences.enc"] = preferences.toString()
+        runtimeValidatedCommit(config, validator?.let { installed -> { built -> installed.validate(context,built) } }) {}
+    }
+    internal fun applyRestore(context:Context,preview:ChangePreview)=synchronized(ProfileStore.storageLock) {
+        preview.apply({ProfileStore.historySnapshot(context)},{validateRestoreValues(context,it)}) {values->
+            require(ChangeHistoryStore.local(context).checkpoint(ProfileStore.historySnapshot(context))) {
+                "Текущий набор слишком велик для безопасного отката."
             }
-            ProfileStore.replaceAll(context, values)
-          }
+            ProfileStore.withoutHistory {ProfileStore.replaceAll(context,values)}
         }
         // The activity is recreated by the restore UI. Preferences are applied from the
         // committed generation on startup, also after a crash at this exact point.
@@ -123,10 +146,16 @@ object AndroidBackup {
         true
     }
     internal fun validatePreferences(values: JSONObject) {
+        BehaviorScheduleStore.register()
+        InviteCodeSync.registerBackup()
+        InviteCodeSync.validateLocalPreferences(values)
         if(values.has(ConnectionAppearance.STYLE))require(values.getString(ConnectionAppearance.STYLE) in ConnectionAppearance.choices){"Неизвестное оформление подключения."}
         if(values.has(ConnectionAppearance.EXIT))require(values.getString(ConnectionAppearance.EXIT) in ConnectionAppearance.exits){"Неизвестное оформление отключения."}
         require(values.optString("autoPolicy",AutoSelection.LATENCY) in setOf(AutoSelection.LATENCY,AutoSelection.BS_ENGINES))
-        require(values.keys().asSequence().all { it in preferenceKeys()+sectionKeys()+"localProxy" }) { "Неизвестные параметры бэкапа: зарегистрируйте новые секции до восстановления." }
+        val supportedKeys = preferenceKeys()+sectionKeys()+"localProxy"+InviteCodeSync.localPreferenceKeys()+retiredBooleanPreferences
+        require(values.keys().asSequence().all { it in supportedKeys }) { "Неизвестные параметры бэкапа: зарегистрируйте новые секции до восстановления." }
+        // Old backup and history documents carry this flag. No live setting restores it.
+        retiredBooleanPreferences.filter(values::has).forEach { require(values.get(it) is Boolean) }
         sections.forEach { (key, section) -> if(values.has(key)) section.validate(values.getJSONObject(key)) }
         // Retired encrypted section is opaque data: never activate, normalize or migrate its access values.
         if(values.has("webDavBackup")) values.getJSONObject("webDavBackup")

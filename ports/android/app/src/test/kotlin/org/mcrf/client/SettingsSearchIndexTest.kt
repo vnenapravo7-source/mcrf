@@ -4,6 +4,19 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SettingsSearchIndexTest {
+    @Test fun graduatedFunctionsAreDiscoverableAtTheirSettingsDestination() {
+        val words=SettingsSearchIndex.keywords(ClientSettingsNavigation.BETA)
+        assertFalse(SettingsSearchIndex.matches("поведение mcrf в разных сетях",words))
+        assertFalse(SettingsSearchIndex.matches("здоровье",words))
+        assertFalse(SettingsSearchIndex.matches("локальная диагностика",words))
+        assertTrue(SettingsSearchIndex.matches("автовосстановление",SettingsSearchIndex.keywords(ClientSettingsNavigation.BEHAVIOR)))
+        assertTrue(SettingsSearchIndex.matches("kill switch",SettingsSearchIndex.keywords(ClientSettingsNavigation.VPN)))
+        assertTrue(SettingsSearchIndex.matches("рандомное оформление каждый раз",SettingsSearchIndex.keywords(ClientSettingsNavigation.APPEARANCE)))
+        assertTrue(SettingsSearchIndex.matches("ssid профиль серверы",SettingsSearchIndex.keywords(ClientSettingsNavigation.CONDITIONS)))
+        assertTrue(SettingsSearchIndex.matches("расписание маршруты",SettingsSearchIndex.keywords(ClientSettingsNavigation.SCHEDULE)))
+        assertEquals(SettingsSearchIndex.keywords(ClientSettingsNavigation.CONDITIONS),SettingsSearchIndex.keywords(ClientSettingsNavigation.SCHEDULE))
+        assertFalse(SettingsSearchIndex.matches("расписание",words))
+    }
     @Test fun primaryEngineSettingsAreDiscoverableByBothEngineNames() {
         val words=SettingsSearchIndex.keywords(ClientSettingsNavigation.CORE)
         assertTrue(SettingsSearchIndex.matches("sing-box",words))
@@ -31,5 +44,7 @@ class SettingsSearchIndexTest {
         assertTrue(SettingsSearchIndex.matches("движки csqtt",SettingsSearchIndex.keywords(ClientSettingsNavigation.UPDATES)))
         assertTrue(SettingsSearchIndex.matches("tls xray сброс",SettingsSearchIndex.keywords(ClientSettingsNavigation.ADVANCED)))
         assertTrue(SettingsSearchIndex.matches("bootstrap подключение серверов",SettingsSearchIndex.keywords(ClientSettingsNavigation.DNS)))
+        assertTrue(SettingsSearchIndex.matches("настройки dns домены",SettingsSearchIndex.keywords(ClientSettingsNavigation.VPN)))
+        assertTrue(SettingsSearchIndex.matches("geoip geosite базы загрузка",SettingsSearchIndex.keywords(ClientSettingsNavigation.ADVANCED)))
     }
 }

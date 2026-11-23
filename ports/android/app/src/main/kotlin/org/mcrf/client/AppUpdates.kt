@@ -10,7 +10,8 @@ object AppUpdates {
     private var started=false
     private var pending:AppRelease?=null
     private var shownDialog:AlertDialog?=null
-    fun blocksOtherPrompt()=pending!=null||shownDialog?.isShowing==true||AppUpdateInstallUi.isShowing()
+    internal fun discardBetaOffer(){if(pending?.asset?.version?.let(MobileBetaUpdates::isBetaTag)==true)pending=null}
+    fun blocksOtherPrompt()=pending!=null||shownDialog?.isShowing==true||AppUpdateInstallUi.isShowing()||EngineUpdateMigrationUi.isShowing()
     private fun releases():JSONArray {
         val all=JSONArray()
         for(page in 1..10) {
@@ -31,17 +32,21 @@ object AppUpdates {
     }
     fun onStart(activity:MainActivity){
         if(started)return;started=true
+        EngineUpdateUi.onProcessLaunch(activity)
         Thread({try {
             val abi=EnginePackage.abi(Build.SUPPORTED_ABIS.toList(),android.os.Process.is64Bit())
             val data=releases()
-            val found=AppRelease.find(data,abi)?.let {AppRelease.withHistory(it,data,BuildConfig.VERSION_NAME)}?:return@Thread
+            val found=AppRelease.find(data,abi,BuildConfig.OFFLINE_EDITION,activity.prefs.getBoolean(MobileBetaUpdates.KEY,false),BuildConfig.VERSION_CODE.toLong())?.let {AppRelease.withHistory(it,data,BuildConfig.VERSION_NAME,it.prerelease)}?:return@Thread
             activity.runOnUiThread {if(AppUpdatePresentation.newer(found.asset.version,BuildConfig.VERSION_NAME)&&activity.prefs.getString("ignoredUpdate",null)!=found.asset.version){pending=found;offerPending(activity)}}
         }catch(_:Exception){/* A failed background check never interrupts connection controls. */}},"mcrf-update-check").start()
     }
     fun offerPending(activity:MainActivity){
-        val found=pending?:return
-        if(!AppUpdatePresentation.newer(found.asset.version,BuildConfig.VERSION_NAME)){pending=null;return}
-        if(activity.isFinishing||activity.isDestroyed||!activity.hasWindowFocus()||EngineStartupUpdates.isShowing())return
+        val found=pending?:run {
+            if(!blocksOtherPrompt()&&!EngineStartupUpdates.isShowing())EngineUpdateMigrationUi.offer(activity)
+            return
+        }
+        if(found.prerelease&&!activity.prefs.getBoolean(MobileBetaUpdates.KEY,false)||!AppUpdatePresentation.newer(found.asset.version,BuildConfig.VERSION_NAME)){pending=null;return}
+        if(activity.isFinishing||activity.isDestroyed||!activity.hasWindowFocus()||EngineStartupUpdates.isShowing()||EngineUpdateMigrationUi.isShowing())return
         pending=null
         showDialog(activity,found)
     }
@@ -84,12 +89,29 @@ object AppUpdates {
             }
             dialog
     }
+    internal fun checkInline(activity:MainActivity,result:(String,Boolean)->Unit) {
+        Thread({
+            var found:AppRelease?=null
+            val message=runCatching {
+                val abi=EnginePackage.abi(Build.SUPPORTED_ABIS.toList(),android.os.Process.is64Bit())
+                val data=releases()
+                val published=AppRelease.find(data,abi,BuildConfig.OFFLINE_EDITION,activity.prefs.getBoolean(MobileBetaUpdates.KEY,false),BuildConfig.VERSION_CODE.toLong())?.let {AppRelease.withHistory(it,data,BuildConfig.VERSION_NAME,it.prerelease)}
+                found=published?.takeIf {AppUpdatePresentation.newer(it.asset.version,BuildConfig.VERSION_NAME)}
+                when {published==null->"APK для $abi пока не опубликован";found==null->"Установлена актуальная версия";else->"Доступна версия ${found!!.asset.version}"}
+            }
+            activity.runOnUiThread {
+                if(activity.isFinishing||activity.isDestroyed)return@runOnUiThread
+                result(message.getOrElse {"Не удалось проверить обновления. Попробуйте ещё раз."},message.isFailure)
+                if(message.isSuccess)found?.let {pending=it;offerPending(activity)}
+            }
+        },"mcrf-update-manual").start()
+    }
     fun check(activity:MainActivity) {
         var release:AppRelease?=null
         activity.run(MainActivity.Operation {
             val abi=EnginePackage.abi(Build.SUPPORTED_ABIS.toList(),android.os.Process.is64Bit())
             val data=releases()
-            val found=AppRelease.find(data,abi)?.let {AppRelease.withHistory(it,data,BuildConfig.VERSION_NAME)}
+            val found=AppRelease.find(data,abi,BuildConfig.OFFLINE_EDITION,activity.prefs.getBoolean(MobileBetaUpdates.KEY,false),BuildConfig.VERSION_CODE.toLong())?.let {AppRelease.withHistory(it,data,BuildConfig.VERSION_NAME,it.prerelease)}
             if(found==null) "Android APK для $abi ещё не опубликован в репозитории."
             else {
                 if(!AppUpdatePresentation.newer(found.asset.version,BuildConfig.VERSION_NAME)) "Установлена актуальная версия Android."

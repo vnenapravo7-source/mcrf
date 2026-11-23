@@ -1,0 +1,34 @@
+package dialer
+
+import (
+	"context"
+	"errors"
+	"net/netip"
+	"testing"
+
+	"github.com/sagernet/sing-box/option"
+	M "github.com/sagernet/sing/common/metadata"
+	"github.com/sagernet/sing/service"
+)
+
+func TestMCRFPhysicalControllerRejectsTCPAndUDP(t *testing.T) {
+	blocked := errors.New("owned socket binding refusal")
+	ctx := service.ContextWith(context.Background(), &McrfPhysicalControl{Bind: func(int) error { return blocked }})
+	dialer, err := NewDefault(ctx, option.DialerOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := M.SocksaddrFrom(netip.MustParseAddr("127.0.0.1"), 1)
+	if conn, err := dialer.DialContext(ctx, "tcp", target); !errors.Is(err, blocked) {
+		if conn != nil {
+			conn.Close()
+		}
+		t.Fatalf("TCP did not return the binding refusal: %v", err)
+	}
+	if conn, err := dialer.ListenPacket(ctx, target); !errors.Is(err, blocked) {
+		if conn != nil {
+			conn.Close()
+		}
+		t.Fatalf("UDP did not return the binding refusal: %v", err)
+	}
+}

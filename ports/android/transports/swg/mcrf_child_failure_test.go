@@ -23,3 +23,12 @@ func TestMcrfChildFailureStructuredErrorAndTerminalControls(t *testing.T) {
 	message=mcrfPublicChildFailure(nil,"\x1b[31merror: denied\x1b[0m\u202e password=unknown-secret")
 	if strings.Contains(message,"\x1b")||strings.Contains(message,"\u202e")||strings.Contains(message,"unknown-secret"){t.Fatal("control or credential survived")}
 }
+func TestMcrfChildFailureForwardsOnlyBoundedTypedVKLimits(t *testing.T) {
+	for _,kind:=range []string{"FLOOD","RATE","CAPTCHA"} {
+		line:="MCRF_VK_LIMIT|"+kind+"|60"
+		if mcrfPublicChildFailure(nil,line)!=line {t.Fatal("typed VK pause dropped")}
+	}
+	for _,line:=range []string{"MCRF_VK_LIMIT|RATE|0","MCRF_VK_LIMIT|RATE|3601","MCRF_VK_LIMIT|UNKNOWN|60","MCRF_VK_LIMIT|FLOOD|60|private","MCRF_VK_LIMIT|FLOOD|60\nprivate","MCRF_VK_LIMIT|FLOOD|+60"} {
+		if mcrfPublicChildFailure(nil,line)!="" {t.Fatal("invalid or private limit forwarded")}
+	}
+}

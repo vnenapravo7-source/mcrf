@@ -1,7 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
     <permission android:name="org.mcrf.client.permission.P1_OWNER" android:protectionLevel="signature" />
     <uses-permission android:name="org.mcrf.client.permission.P1_OWNER" />
-    <application android:label="${debugApplicationLabel}" tools:replace="android:label">
+    <application android:label="${debugApplicationLabel}" android:supportsRtl="true" tools:replace="android:label">
+        <activity android:name=".BottomNavigationDragActivity" android:process=":navigationFixture" android:exported="false" />
         <service android:name=".OpenFluxReviewPeerService" android:exported="false" android:process=":openfluxReviewPeer" />
         <service android:name=".OpenFluxReviewForeignPeerService" android:exported="false" android:isolatedProcess="true" android:process=":openfluxReviewForeign" />
         <service android:name=".DebugLanSharingService" android:exported="false" android:process=":lanFixture" android:foregroundServiceType="specialUse">

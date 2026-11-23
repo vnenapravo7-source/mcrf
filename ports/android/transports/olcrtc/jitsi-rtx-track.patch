@@ -1,0 +1,23 @@
+diff --git a/internal/engine/jitsi/negotiate.go b/internal/engine/jitsi/negotiate.go
+--- a/internal/engine/jitsi/negotiate.go
++++ b/internal/engine/jitsi/negotiate.go
+@@ -7,6 +7,7 @@
+ 	"fmt"
+ 	"net"
+ 	"strconv"
++	"strings"
+ 	"time"
+ 
+ 	pioninterceptor "github.com/pion/interceptor"
+@@ -342,6 +343,11 @@
+ 
+ func (s *Session) handleRemoteTrack(track *webrtc.TrackRemote, recv *webrtc.RTPReceiver) {
+ 	if track.Kind() != webrtc.RTPCodecTypeVideo {
++		return
++	}
++	// RTX is auxiliary and must not reserve the primary video's SSRC.
++	if strings.EqualFold(track.Codec().MimeType, webrtc.MimeTypeRTX) {
++		go drainTrack(track)
+ 		return
+ 	}
+ 	ssrc := uint32(track.SSRC())

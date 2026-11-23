@@ -45,6 +45,15 @@ internal class CarrierFailureDetail(private val engine:String,profile:JSONObject
         if(clean.isBlank()||lines.lastOrNull()==clean)return
         lines.addLast(clean);while(lines.size>3)lines.removeFirst()
     }
+    @Synchronized fun journalLine(raw:String):String? {
+        if(raw.length>4096||raw.contains(privateOutput))return null
+        val text=raw.replace(ansi,"").trim()
+        if(text.startsWith("MCRF_")||text.startsWith("CAPTCHA_")||text.startsWith("{")||text.startsWith("[{")||text.startsWith("CONFIG|"))return null
+        if(!text.contains(failure)&&!text.contains("warning",true))return null
+        var clean=text
+        secrets.forEach {clean=clean.replace(it,"[скрыто]")}
+        return ClientEvents.redact(clean).replace(controls," ").take(400).takeIf {it.isNotBlank()}
+    }
     @Synchronized fun describe(stage:String,exit:Int?):String {
         val code=exit?.let {"код завершения=$it"}?:"код завершения ещё недоступен"
         val reason=if(lines.isEmpty())phaseDetail?.let {"последний этап: $it"}?:"дочерний процесс не сообщил причину"else lines.joinToString(" | ")+phaseDetail?.let {" | последний этап: $it"}.orEmpty()

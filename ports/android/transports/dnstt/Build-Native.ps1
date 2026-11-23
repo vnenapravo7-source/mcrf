@@ -17,14 +17,14 @@ function Assert-Source {
  }
 }
 Assert-Source
-$taskRequired=@('TestMcrfDnsttStrictPrivateConfig','TestMcrfDnsttRejectsUnsafeEndpoints','TestMcrfDnsttPreservesResolverAndRemoteCredentials','TestMcrfDnsttLocalAuthRejectsUnauthenticatedClient','TestMcrfDnsttRemoteAuthPreservesProtocolBoundary','TestMcrfDnsttDeadSessionClosesItsListener','TestMcrfDnsttSessionWatcherRetiresWithoutClosingLiveListener')
+$taskRequired=@('TestMcrfDnsttStrictPrivateConfig','TestMcrfDnsttRejectsUnsafeEndpoints','TestMcrfDnsttPreservesResolverAndRemoteCredentials','TestMcrfDnsttLocalAuthRejectsUnauthenticatedClient','TestMcrfDnsttRemoteAuthPreservesProtocolBoundary','TestMcrfDnsttDeadSessionClosesItsListener','TestMcrfDnsttSessionWatcherRetiresWithoutClosingLiveListener','TestMcrfDnsttUnderlayRejectsInvalidHandle','TestMcrfDnsttUnderlayRejectsUnboundSocket')
 $taskHost=Get-Content -LiteralPath $HostEvidence -Raw|ConvertFrom-Json
 if($taskHost.state -cne 'PASS_P3_DNSTT_HOST' -or $taskHost.sourceManifestSha256 -cne $taskPrepared.manifestSha256 -or $taskHost.failures -ne 0 -or $taskHost.skipped -ne 0 -or @($taskRequired|Where-Object {$_ -cnotin $taskHost.cases}).Count){throw 'All new DNSTT config/auth/lifecycle checks required'}
 $taskLog=Join-Path (Split-Path $HostEvidence) 'dnstt-host-tests.jsonl'
 if(!$taskHost.logSha256 -or (Hash $taskLog) -cne $taskHost.logSha256){throw 'Source-bound DNSTT host log changed'}
 $taskStage="D:/MCRF/Builds/Android/p3-dnstt-native-$([guid]::NewGuid().ToString('N'))";New-Item -ItemType Directory -Path "$taskStage/licenses"|Out-Null
 $taskGo='D:/MCRF/Projects/MCRF/work/toolchains/go1.26.8/go/bin/go.exe';$taskTools="$Ndk/toolchains/llvm/prebuilt/windows-x86_64/bin"
-$taskReceipt=@{state='BUILDING';kind='dnstt';repository=$taskLock.module;commit=$taskLock.commit;source=$taskPrepared.module;sourceStable=$false;sourceManifestSha256=$taskPrepared.manifestSha256;hostEvidenceSha256=Hash $HostEvidence;toolchainSha256=Hash $taskGo;artifacts=@();nativeExecuted=$false;apkBuilt=$false;producerComplete=$false;dnsttContract=1;packageVersionCode=5;packageVersionName='dnstt-v1.20260501.0-mcrf.5'}
+$taskReceipt=@{state='BUILDING';kind='dnstt';repository=$taskLock.module;commit=$taskLock.commit;source=$taskPrepared.module;sourceStable=$false;sourceManifestSha256=$taskPrepared.manifestSha256;hostEvidenceSha256=Hash $HostEvidence;toolchainSha256=Hash $taskGo;artifacts=@();nativeExecuted=$false;apkBuilt=$false;producerComplete=$false;dnsttContract=1;dnsttUnderlayContract=1;packageVersionCode=6;packageVersionName='dnstt-v1.20260501.0-mcrf.6'}
 Copy-Item -LiteralPath "$PreparedSource/SOURCE_MANIFEST.json" -Destination "$taskStage/source-manifest.json"
 Copy-Item -LiteralPath "$PreparedSource/receipt.json" -Destination "$taskStage/prepared-source.json"
 Copy-Item -LiteralPath $HostEvidence -Destination "$taskStage/host-evidence.json";Copy-Item -LiteralPath $taskLog -Destination "$taskStage/dnstt-host-tests.jsonl"
@@ -57,6 +57,11 @@ try {
   $taskSegments=@(& "$taskTools/llvm-readelf.exe" --program-headers --wide $taskBinary);if($LASTEXITCODE){throw 'ELF read failed'};$taskLoads=@($taskSegments|Where-Object {$_ -match '^\s*LOAD\s'})
   if(!$taskLoads.Count){throw 'Missing ELF load segments'}
   foreach($taskLoad in $taskLoads){if($taskLoad -notmatch '^\s*LOAD\s+0x([0-9a-fA-F]+)\s+0x([0-9a-fA-F]+).*\s+0x([0-9a-fA-F]+)\s*$'){throw 'Unknown ELF format'};if([Convert]::ToUInt64($Matches[3],16) -lt 16384 -or [Convert]::ToUInt64($Matches[1],16)%16384 -ne [Convert]::ToUInt64($Matches[2],16)%16384){throw 'DNSTT ELF is not16KiB aligned'}}
+  $taskSymbols=@(& "$taskTools/llvm-readelf.exe" --dyn-syms --wide $taskBinary)
+  if($LASTEXITCODE -or -not ($taskSymbols -match '\bUND\s+android_setprocnetwork\b') -or -not ($taskSymbols -match '\bUND\s+android_setsocknetwork\b')){
+   throw 'DNSTT Android network binding imports are missing'
+  }
+  if(![Text.Encoding]::ASCII.GetString($taskBytes).Contains('MCRF_DNSTT_UNDERLAY')){throw 'DNSTT network binding marker is missing'}
   $taskReceipt.artifacts+=@{abi=$taskAbi;file="$taskAbi/libdnstt.so";bytes=(Get-Item -LiteralPath $taskBinary).Length;sha256=Hash $taskBinary;elfChecked=$true;nativeExecuted=$false}
   # Build info is read, never execute a target ELF to discover dependencies.
   $taskInfo=@(& $taskGo version -m $taskBinary);if($LASTEXITCODE){throw 'Native build info unavailable'}

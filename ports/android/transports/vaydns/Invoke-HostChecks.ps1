@@ -11,7 +11,7 @@ function Assert-Source {
 }
 Assert-Source
 $taskStage="D:/MCRF/Builds/Android/p3-vaydns-host-$([guid]::NewGuid().ToString('N'))";New-Item -ItemType Directory -Path $taskStage|Out-Null
-$taskProof=@{state='RUNNING';sourceManifestSha256=$taskSource.manifestSha256;failures=0;skipped=0;cases=@();androidRuntimeAccepted=$false}
+$taskProof=@{state='RUNNING';sourceManifestSha256=$taskSource.manifestSha256;vaydnsUnderlayContract=$taskSource.vaydnsUnderlayContract;failures=0;skipped=0;cases=@();androidRuntimeAccepted=$false}
 $taskNames=@('GOOS','GOARCH','GOARM','CGO_ENABLED','GOROOT','GOENV','GOWORK','GOFLAGS','GOTOOLCHAIN','GOPROXY','GOPATH','GOMODCACHE','GOCACHE','GOTMPDIR','MCRF_VAYDNS_TEST_SERVER','MCRF_VAYDNS_TEST_CLIENT');$taskOld=@{}
 foreach($taskName in $taskNames){$taskOld[$taskName]=[Environment]::GetEnvironmentVariable($taskName,'Process')}
 try {
@@ -36,7 +36,14 @@ try {
   if($taskEvent.Action -ceq 'pass' -and $taskEvent.Test){$taskPassed+=$taskEvent.Test}
  }
  $taskProof.cases=@($taskPassed|Sort-Object -Unique)
- if($taskExit -ne 0 -or $taskProof.failures -ne 0 -or $taskProof.skipped -ne 0 -or $taskProof.cases.Count -ne 16){throw 'All16 NEW VayDNS checks must pass, without skipped/retained substitutions'}
+ $taskExpected=16
+ if($taskSource.vaydnsUnderlayContract -eq 1){
+  $taskExpected+=2
+  foreach($taskCase in @('TestMcrfUnderlayAdmissionRejectsInvalidAndUnavailableNetwork','TestMcrfUnderlayFailedSocketBindBlocksDoHDoTAndUDP')){
+   if($taskCase -cnotin $taskProof.cases){throw "Required VayDNS underlay test missing: $taskCase"}
+  }
+ }
+ if($taskExit -ne 0 -or $taskProof.failures -ne 0 -or $taskProof.skipped -ne 0 -or $taskProof.cases.Count -ne $taskExpected){throw "All $taskExpected VayDNS checks must pass without skips"}
  Assert-Source;$taskProof.state='PASS_P3_VAYDNS_HOST';$taskProof.logSha256=Hash "$taskStage/vaydns-host-tests.jsonl"
  $taskProof.peerSha256=Hash $env:MCRF_VAYDNS_TEST_SERVER;$taskProof.clientSha256=Hash $env:MCRF_VAYDNS_TEST_CLIENT
 }catch{$taskProof.state='FAILED_PRESERVED';$taskProof.failure=$_.Exception.Message;throw}

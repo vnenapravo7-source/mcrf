@@ -39,6 +39,51 @@ class EnginePreviewChannelTest {
             .put(release(EnginePackage.CATALOGUE_RELEASE,asset(EnginePackage.CATALOGUE_RELEASE,code=6)))
         assertEquals(6L,EnginePackage.find(releases,"arm64-v8a","sing-box",tag).versionCode)
     }
+    @Test fun reservedReleaseTagsCannotMasqueradeAsStable() {
+        for(preview in listOf(tag,MobileBetaUpdates.TAG)) {
+            val misplaced=release(preview,asset(preview,code=99)).put("prerelease",false)
+            val releases=JSONArray().put(misplaced)
+                .put(release(EnginePackage.CATALOGUE_RELEASE,asset(EnginePackage.CATALOGUE_RELEASE,code=6)))
+            assertEquals(6L,EnginePackage.find(releases,"arm64-v8a","sing-box").versionCode)
+            assertEquals(6L,EnginePackage.find(releases,"arm64-v8a","sing-box",preview).versionCode)
+        }
+    }
+    @Test fun disablingPreviewKeepsNewerInstalledEngineUntilStableCatchesUp() {
+        val betaInstalled=installed(7,sha7,42)
+        assertTrue(EngineStartupPolicy.discover(data(),"arm64-v8a",betaInstalled).updates.isEmpty())
+        val stableUpdate=JSONArray().put(release(EnginePackage.CATALOGUE_RELEASE,
+            asset(EnginePackage.CATALOGUE_RELEASE,code=8,sha="d".repeat(64))))
+        assertEquals(8L,EngineStartupPolicy.discover(stableUpdate,"arm64-v8a",betaInstalled).updates.single().versionCode)
+    }
+    @Test fun optedInMobileBetaUsesNewestSemanticReleaseForEachKindAndAbi() {
+        val pinned=MobileBetaUpdates.TAG
+        val latest="android-v2.10.0-beta.9"
+        val earlier="android-v2.9.0-beta.99999"
+        val catalogue=EnginePackage.CATALOGUE_RELEASE
+        val releases=JSONArray().put(release(earlier,asset(earlier,code=9)))
+            .put(release(catalogue,asset(catalogue,code=6),asset(catalogue,"tgws",code=4)))
+            .put(release(pinned,asset(pinned,code=7),asset(pinned,"wdtt",code=4)))
+            .put(release(latest,asset(latest,code=9),asset(latest,"wdtt",abi="x86_64",code=5)))
+        assertEquals(latest,EnginePackage.find(releases,"arm64-v8a","sing-box",pinned).version)
+        assertEquals(latest,EngineStartupPolicy.discover(releases,"arm64-v8a",installed(),pinned).updates.single().version)
+        assertEquals(pinned,EnginePackage.find(releases,"arm64-v8a","wdtt",pinned).version)
+        assertEquals(catalogue,EnginePackage.find(releases,"arm64-v8a","tgws",pinned).version)
+        assertEquals(catalogue,EnginePackage.find(releases,"arm64-v8a","sing-box").version)
+    }
+    @Test fun invalidFutureBetaFallsBackAndLowerEngineCodeCannotMaskUpgrade() {
+        val pinned=MobileBetaUpdates.TAG
+        val latest="android-v2.0.1-beta.1"
+        val invalid="android-v2.0.2-beta.1"
+        val draft="android-v2.0.3-beta.1"
+        val catalogue=EnginePackage.CATALOGUE_RELEASE
+        val releases=JSONArray().put(release(pinned,asset(pinned,code=7)))
+            .put(release(latest,asset(latest,code=5)))
+            .put(release(invalid,asset(invalid,code=99,sha="bad")))
+            .put(release(draft,asset(draft,code=99)).put("draft",true))
+        assertEquals(pinned,EnginePackage.find(releases,"arm64-v8a","sing-box",pinned).version)
+        releases.put(release(catalogue,asset(catalogue,code=8)))
+        assertEquals(catalogue,EnginePackage.find(releases,"arm64-v8a","sing-box",pinned).version)
+    }
     @Test fun previewDoesNotReplaceOtherEnginesOrInstallAbsentModules() {
         val releases=JSONArray().put(release(tag,asset(tag,"wdtt",code=99)))
             .put(release(EnginePackage.CATALOGUE_RELEASE,asset(EnginePackage.CATALOGUE_RELEASE,"wdtt",code=5)))
@@ -64,9 +109,14 @@ class EnginePreviewChannelTest {
     @Test fun actualStartupAndManualDiscoveryUseExactAppChannel() {
         fun source(name:String)=listOf(File("src/main/kotlin/org/mcrf/client/$name.kt"),File("app/src/main/kotlin/org/mcrf/client/$name.kt")).first{it.isFile}.readText()
         val startup=source("EngineStartupUpdates")
-        assertTrue(startup.contains("EngineStartupPolicy.discover(catalogue(),abi,installed,EnginePreviewChannel.tag(BuildConfig.VERSION_NAME))"))
-        assertFalse(startup.contains("/releases/tags/"));assertTrue(startup.contains("/releases?per_page=30"))
-        assertTrue(source("EnginePackages").contains("EnginePackage.find(releases,abi,it,EnginePreviewChannel.tag(BuildConfig.VERSION_NAME))"))
-        assertTrue(startup.contains("setNegativeButton(\"Позже\""));assertTrue(startup.contains("activity.updateInstalledEngines(assets)"))
+        assertTrue(startup.contains("val beta=activity.prefs.getBoolean(MobileBetaUpdates.KEY,false)"))
+        assertTrue(startup.contains("val releases=EnginePackages.catalogue(beta)"))
+        assertTrue(startup.contains("EngineStartupPolicy.discover(releases,abi,installed,MobileBetaUpdates.TAG.takeIf {beta})"))
+        val packages=source("EnginePackages")
+        assertTrue(packages.contains("/releases?per_page=30"));assertTrue(packages.contains("/releases/tags/"))
+        assertTrue(packages.contains("EnginePackage.find(releases, abi, kind, MobileBetaUpdates.TAG.takeIf { beta })"))
+        val discovery=startup.substringAfter("fun onOpen(").substringBefore("internal fun installed(")
+        assertFalse(discovery.contains("setPositiveButton("))
+        assertTrue(startup.contains("activity.updateInstalledEngines(assets)"))
     }
 }

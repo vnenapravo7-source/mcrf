@@ -16,6 +16,7 @@ import (
 // Version is mandatory at this boundary: an old profile must never select the 2.5 binary.
 type Profile struct {
 	Version                 string   `json:"csqtt_generation"`
+	Implementation          string   `json:"csqtt_implementation,omitempty"`
 	Peer                    string   `json:"peer"`
 	Password                string   `json:"password"`
 	Hashes                  []string `json:"hashes"`
@@ -34,6 +35,9 @@ type Profile struct {
 	Generation              int      `json:"generation,omitempty"`
 	Salt                    string   `json:"salt,omitempty"`
 	TurnTransport           string   `json:"turn_transport"`
+	GoobyEnabled            bool     `json:"gooby_enabled,omitempty"`
+	GoobyStrategy           string   `json:"gooby_strategy,omitempty"`
+	SRTPMode                string   `json:"srtp_mode,omitempty"`
 	CustomTurnIPs           []string `json:"custom_turn_ips,omitempty"`
 	SOCKS                   string   `json:"socks,omitempty"`
 	SOCKSUser               string   `json:"socks_user,omitempty"`
@@ -78,6 +82,26 @@ func ReadProfile(r io.Reader) (Profile, error) {
 	if decoder.Decode(&extra) != io.EOF {
 		return Profile{}, errors.New("invalid private CSQTT 2.5 profile")
 	}
+	// An absent field keeps native AUTO. Explicit null/empty/non-string values
+	// must not collapse to the same Go zero value and silently select AUTO.
+	if raw, exists := fields["srtp_mode"]; exists {
+		var mode string
+		if json.Unmarshal(raw, &mode) != nil || !validSRTPMode(mode) {
+			return Profile{}, errors.New("invalid private CSQTT 2.5 profile")
+		}
+	}
+	if raw, exists := fields["gooby_enabled"]; exists {
+		value := strings.TrimSpace(string(raw))
+		if value != "true" && value != "false" {
+			return Profile{}, errors.New("invalid private CSQTT 2.5 profile")
+		}
+	}
+	if raw, exists := fields["gooby_strategy"]; exists {
+		var strategy string
+		if json.Unmarshal(raw, &strategy) != nil || !validGoobyStrategy(strategy) {
+			return Profile{}, errors.New("invalid private CSQTT 2.5 profile")
+		}
+	}
 	normalized, _ := json.Marshal(fields)
 	decoder = json.NewDecoder(strings.NewReader(string(normalized)))
 	decoder.DisallowUnknownFields()
@@ -93,6 +117,12 @@ func ReadProfile(r io.Reader) (Profile, error) {
 func clean(s string, max int) bool {
 	return len(s) > 0 && len(s) <= max && !strings.ContainsRune(s, '|') && strings.IndexFunc(s, unicode.IsControl) < 0
 }
+func validGoobyStrategy(mode string) bool {
+	return mode == "current" || mode == "gentle" || mode == "extended"
+}
+func validSRTPMode(mode string) bool {
+	return mode == "auto" || mode == "wrap-srtp" || mode == "dtls-srtp"
+}
 func address(s string, loopback bool) bool {
 	host, port, err := net.SplitHostPort(s)
 	n, e := strconv.Atoi(port)
@@ -101,7 +131,7 @@ func address(s string, loopback bool) bool {
 }
 func (p Profile) Validate() error {
 	invalid := errors.New("invalid private CSQTT 2.5 profile")
-	if p.Version != "2.5" || !address(p.Peer, false) || !address(p.Listen, true) || !clean(p.Password, 1024) || !clean(p.DeviceID, 256) {
+	if !validImplementation(p.Implementation) || p.Version != "2.5" || !address(p.Peer, false) || !address(p.Listen, true) || !clean(p.Password, 1024) || !clean(p.DeviceID, 256) {
 		return invalid
 	}
 	if p.ExactWorkers {
@@ -123,7 +153,10 @@ func (p Profile) Validate() error {
 	default:
 		return invalid
 	}
-	if !p.ExactWorkers && !p.AllowHashRedistribution && p.HashMode == "manual" && p.Workers > len(p.Hashes)*10 {
+	// SWG 252/253's actual start path admits up to 100 for manual hashes,
+	// independently of redistribution. Retain 251's existing admission rule.
+	newWorkerPolicy := p.Implementation == "swg-panel-2.5.2" || p.Implementation == "swg-panel-2.5.3"
+	if !newWorkerPolicy && !p.ExactWorkers && !p.AllowHashRedistribution && p.HashMode == "manual" && p.Workers > len(p.Hashes)*10 {
 		return invalid
 	}
 	seen := map[string]bool{}
@@ -146,6 +179,12 @@ func (p Profile) Validate() error {
 		return invalid
 	}
 	if p.TurnTransport != "udp" && p.TurnTransport != "tcp" {
+		return invalid
+	}
+	if (p.GoobyStrategy != "" && !validGoobyStrategy(p.GoobyStrategy)) || (p.GoobyEnabled && p.TurnTransport != "tcp") {
+		return invalid
+	}
+	if p.SRTPMode != "" && !validSRTPMode(p.SRTPMode) {
 		return invalid
 	}
 	if (p.Fingerprint != "" && !clean(p.Fingerprint, 64)) || (p.Obfs != "unified" && p.Obfs != "audio" && p.Obfs != "video") ||
@@ -194,6 +233,16 @@ func Prepare(p Profile) (LaunchSpec, error) {
 	args := []string{"-peer", p.Peer, "-listen", p.Listen, "-n", strconv.Itoa(p.Workers),
 		"-captcha-mode", p.CaptchaMode, "-vk-auth-mode", p.VKAuthMode,
 		"-obfs", p.Obfs, "-turn-transport", p.TurnTransport, "-vk-hash-mode", p.HashMode}
+	if p.GoobyEnabled {
+		args = append(args, "--gooby")
+		if p.GoobyStrategy != "" && p.GoobyStrategy != "current" {
+			args = append(args, "--gooby-strategy", p.GoobyStrategy)
+		}
+	}
+	// Preserve old argv exactly when omitted; the original native default is AUTO.
+	if p.SRTPMode != "" {
+		args = append(args, "-srtp-mode", p.SRTPMode)
+	}
 	if p.Fingerprint != "" {
 		args = append(args, "-fingerprint", p.Fingerprint)
 	}

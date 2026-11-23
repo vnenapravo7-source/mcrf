@@ -12,7 +12,16 @@ import android.widget.LinearLayout
 import kotlin.math.ceil
 
 /** Uses attach, not OnShowListener: owners keep their validation and consent callbacks. */
-class ThemedDialogBuilder(context:Context):AlertDialog.Builder(context) {
+class ThemedDialogBuilder(context:Context,private val maxHeightFraction:Float=.85f,private val compactActions:Boolean=false,private val widthFraction:Float=1f,private val surface:((Context)->android.graphics.drawable.Drawable)?=null):AlertDialog.Builder(context) {
+    override fun setCustomTitle(customTitleView:View?):ThemedDialogBuilder=apply {
+        fun align(node:View) {
+            node.textAlignment=View.TEXT_ALIGNMENT_VIEW_START
+            if(node is TextView)node.gravity=android.view.Gravity.START or android.view.Gravity.CENTER_VERTICAL
+            if(node is ViewGroup)repeat(node.childCount){align(node.getChildAt(it))}
+        }
+        customTitleView?.let(::align)
+        super.setCustomTitle(customTitleView)
+    }
     override fun create():AlertDialog=super.create().also {dialog->
         fun reserveActions(root:View) {
             val buttons=listOf(AlertDialog.BUTTON_NEGATIVE,AlertDialog.BUTTON_NEUTRAL,AlertDialog.BUTTON_POSITIVE)
@@ -45,18 +54,45 @@ class ThemedDialogBuilder(context:Context):AlertDialog.Builder(context) {
         dialog.window?.decorView?.addOnAttachStateChangeListener(object:View.OnAttachStateChangeListener {
             override fun onViewDetachedFromWindow(view:View)=Unit
             override fun onViewAttachedToWindow(view:View){
-                fun background(){dialog.window?.setBackgroundDrawable(android.graphics.drawable.GradientDrawable().apply {
+                AppTypography.watch(view)
+                TvUi.outlineFocus(view)
+                fun background(){dialog.window?.setBackgroundDrawable(surface?.invoke(view.context)?:android.graphics.drawable.GradientDrawable().apply {
                     setColor(Loft.dialogSurface());cornerRadius=24*view.resources.displayMetrics.density
                 })}
                 background()
                 dialog.window?.setDimAmount(.5f)
+                fun boundWindow() {
+                    val metrics=view.resources.displayMetrics
+                    val widthDp=if(TvUi.enabled(view.context))800 else 560
+                    val width=(minOf((widthDp*metrics.density).toInt(),metrics.widthPixels-(32*metrics.density).toInt())*widthFraction).toInt()
+                    val cap=(metrics.heightPixels*maxHeightFraction.coerceIn(.3f,.85f)).toInt()
+                    dialog.window?.let {window->
+                        val height=if(view.height>cap)cap else window.attributes.height
+                        if(window.attributes.width!=width||window.attributes.height!=height)window.setLayout(width,height)
+                    }
+                    val titleId=view.resources.getIdentifier("alertTitle","id","android")
+                    val templateId=view.resources.getIdentifier("title_template","id","android")
+                    (view.findViewById<View>(templateId) as? LinearLayout)?.apply {
+                        val start=android.view.Gravity.START or android.view.Gravity.CENTER_VERTICAL
+                        if(gravity!=start)gravity=start
+                    }
+                    view.findViewById<TextView>(titleId)?.apply {
+                        if(gravity!=android.view.Gravity.START)gravity=android.view.Gravity.START
+                        if(textAlignment!=View.TEXT_ALIGNMENT_VIEW_START)textAlignment=View.TEXT_ALIGNMENT_VIEW_START
+                        // setMaxLines always requests layout, even for the same value.
+                        if(maxLines!=3)maxLines=3
+                    }
+                }
                 // Android can install its default inset background after attaching decor.
                 // Reapply after show completes without replacing the owner's OnShowListener.
                 fun tint(node:View){
                     when(node){
-                        is EditText->{node.setTextColor(Loft.INK);node.setHintTextColor(Loft.MUTED);node.background=Loft.fieldBackground(node.context)}
+                        is EditText->{
+                            node.setTextColor(Loft.INK);node.setHintTextColor(Loft.MUTED)
+                            if(node.background !is CompactUi.FieldSurface)node.background=Loft.fieldBackground(node.context)
+                        }
                         is Button->if(node.id in listOf(android.R.id.button1,android.R.id.button2,android.R.id.button3)){
-                            StandardButtons.style(node.context,node,node.text.toString())
+                            if(compactActions)StandardButtons.compact(node.context,node)else StandardButtons.style(node.context,node,node.text.toString())
                         }
                         // Native alert labels need tinting. App-owned labels already
                         // carry semantic title/secondary/selection colors; keep those.
@@ -66,9 +102,10 @@ class ThemedDialogBuilder(context:Context):AlertDialog.Builder(context) {
                     if(node is ViewGroup)repeat(node.childCount){tint(node.getChildAt(it))}
                 }
                 tint(view)
+                MathTextMotion.bindTree(view)
                 reserveActions(view)
-                view.addOnLayoutChangeListener {_,_,_,_,_,_,_,_,_->if(dialog.isShowing)reserveActions(view)}
-                view.post {if(dialog.isShowing){background();tint(view);reserveActions(view)}}
+                view.addOnLayoutChangeListener {_,_,_,_,_,_,_,_,_->if(dialog.isShowing){reserveActions(view);boundWindow()}}
+                view.post {if(dialog.isShowing){background();tint(view);reserveActions(view);boundWindow()}}
             }
         })
     }

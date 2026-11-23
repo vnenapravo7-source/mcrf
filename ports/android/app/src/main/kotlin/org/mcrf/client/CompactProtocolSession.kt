@@ -27,13 +27,15 @@ internal class CompactProtocolSession private constructor(
             require(steer.metaData?.getInt("org.mcrf.engines.steer.socks-udp-source-port")==1){"Обнови Steer: для протокольного модуля нужен закреплённый UDP-порт и безопасный разбор пакетов."}
             require(steer.metaData?.getInt("org.mcrf.engines.steer.private-helper-profile")==1){"Обнови Steer: установленная версия не принимает защищённый локальный вход протокольного модуля."}
             if(EnginePackages.missing(context,setOf(CompactProtocolPolicy.KIND)).isNotEmpty())throw ClientOptionalCoreRequired(CompactProtocolPolicy.KIND)
-            return CompactProtocolPolicy.request(entry,ServerBootstrapPolicy.capture(state).optionalContext(requireNotNull(entry.outbound)))
-                .copy(certificateStore=CoreTuningStore(context).load().certificateStore)
+            return standaloneRequest(context,entry,state)
         }
+        fun standaloneRequest(context:Context,entry:ServerImport.Server,state:JSONObject):OptionalCoreConfig.Request =
+            CompactProtocolPolicy.request(entry,ServerBootstrapPolicy.capture(state).optionalContext(requireNotNull(entry.outbound)))
+                .copy(certificateStore=CoreTuningStore(context).load().certificateStore)
         fun start(context:Context,entry:ServerImport.Server,state:JSONObject,networkHandle:Long,cancelled:BooleanSupplier):CompactProtocolSession {
             require(networkHandle>0&&!cancelled.asBoolean){"Физическая сеть протокольного модуля недоступна."}
             val request=preflight(context,entry,state).copy(physicalNetworkHandle=networkHandle)
-            val worker=OptionalCoreProcess.start(context,request,cancelled,true,false)
+            val worker=OptionalCoreProcess.start(context,request,cancelled,true,false,strictIngress=true)
             try{
                 require(!cancelled.asBoolean){"Запуск протокольного модуля отменён."}
                 val effective=CompactProtocolPolicy.effective(entry,worker.port,worker.username,worker.password)

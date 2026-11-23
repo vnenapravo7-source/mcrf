@@ -20,11 +20,11 @@ class PacketDnsTransportTest {
     private val query=PacketDnsWire.query("owned.invalid",1,771)
     private val response=PacketDnsWire.reply(query,0,listOf(InetAddress.getByAddress(byteArrayOf(10,77,0,1))))
     private fun now()=System.nanoTime()/1000000
-    private class Harness(allow:Boolean=true){
+    private class Harness(allow:Boolean=true,lease:((Int,Int,InetSocketAddress,Boolean,Long)->Closeable)?=null){
         val fds=Collections.synchronizedSet(hashSetOf<Closeable>());val policies=Collections.synchronizedList(mutableListOf<Boolean>())
         var systemCalls=0
         val transport=PacketDnsTransport({socket,direct->assertTrue(socket.isBound);assertFalse(socket.isConnected);policies+=direct},{_,direct->policies+=direct},
-            {_,_->systemCalls++;throw IllegalStateException("no implicit resolver")},{allow},{System.nanoTime()/1000000},{}, {fds+=it},{fds-=it})
+            {_,_->systemCalls++;throw IllegalStateException("no implicit resolver")},{allow},{System.nanoTime()/1000000},{}, {fds+=it},{fds-=it},lease)
     }
     @Test fun udpTruncationRetriesOnlySameEndpointTcpAndClosesEverySocket(){
         ServerSocket(0,1,loopback).use {server->DatagramSocket(InetSocketAddress(loopback,server.localPort)).use {datagram->
@@ -37,9 +37,12 @@ class PacketDnsTransportTest {
                     DataOutputStream(socket.getOutputStream()).apply {writeShort(response.size);write(response);flush()}}
             }
             try{
-                val h=Harness();val endpoint=PacketManagedDnsPlan.Endpoint("udp","127.0.0.1",server.localPort,"","")
+                val acquired=mutableListOf<Int>();val retired=mutableListOf<Int>()
+                val h=Harness(lease={protocol,port,target,direct,deadline->assertTrue(port>0);assertEquals(server.localPort,target.port);assertFalse(direct);assertTrue(deadline>now());acquired+=protocol;Closeable{retired+=protocol}})
+                val endpoint=PacketManagedDnsPlan.Endpoint("udp","127.0.0.1",server.localPort,"","")
                 h.transport.Scope(now()+2500).use {scope->assertArrayEquals(response,h.transport.exchange(endpoint,query,false,listOf(loopback),scope))}
                 peer.get(3,TimeUnit.SECONDS);assertEquals(listOf(false,false),h.policies);assertTrue(h.fds.isEmpty());assertEquals(0,h.systemCalls)
+                assertEquals(listOf(17,6),acquired);assertEquals(acquired,retired)
             }finally{executor.shutdownNow()}
         }}
     }
@@ -76,5 +79,20 @@ class PacketDnsTransportTest {
         val h=Harness();val endpoint=PacketManagedDnsPlan.Endpoint("system","",53,"","")
         h.transport.Scope(now()+500).use {scope->assertThrows(IllegalArgumentException::class.java){h.transport.exchange(endpoint,query,false,emptyList(),scope)}}
         assertEquals(0,h.systemCalls);assertTrue(h.fds.isEmpty())
+    }
+    @Test fun rejectedNativeLeaseSendsNeitherUdpNorTcpAndClosesMaterializedSockets(){
+        ServerSocket(0,1,loopback).use{server->DatagramSocket(InetSocketAddress(loopback,server.localPort)).use{datagram->
+            server.soTimeout=50;datagram.soTimeout=50
+            val attempts=mutableListOf<Int>()
+            val h=Harness(lease={protocol,port,_,_,_->assertTrue(port>0);attempts+=protocol;throw java.io.IOException("owned rejection")})
+            for(type in listOf("udp","tcp")){
+                val endpoint=PacketManagedDnsPlan.Endpoint(type,"127.0.0.1",server.localPort,"","")
+                h.transport.Scope(now()+1000).use{scope->assertThrows(java.io.IOException::class.java){h.transport.exchange(endpoint,query,false,listOf(loopback),scope)}}
+                assertTrue(h.fds.isEmpty())
+            }
+            assertThrows(java.net.SocketTimeoutException::class.java){server.accept()}
+            assertThrows(java.net.SocketTimeoutException::class.java){datagram.receive(DatagramPacket(ByteArray(32),32))}
+            assertEquals(listOf(17,6),attempts);assertEquals(0,h.systemCalls)
+        }}
     }
 }

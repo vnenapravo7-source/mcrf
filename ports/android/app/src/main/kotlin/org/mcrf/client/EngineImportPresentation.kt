@@ -7,5 +7,15 @@ object EngineImportPresentation {
         if(names.distinct().size>1&&current!=null)append("\nСейчас: $current")
         append(if(received!=null)"\nЗагружено: $received"else"\nУстановку подтвердите в Android.")
     }
+    fun unifiedBs(total: String, savings: String?, hasLegacy: Boolean, received: String? = null): String =
+        buildString {
+            append("CSQTT и QWDTT теперь в одном движке.")
+            append(if (received != null) "\nЗагружено: $received из $total"
+                else if (savings != null) "\nПосле удаления старых APK освободится $savings."
+                else "\nРазмер загрузки: $total.")
+            append(if (hasLegacy) "\nПодтвердите окна Android: установку и каждое удаление."
+                else "\nПодтвердите установку в окне Android.")
+        }
+
     fun button(moduleOnly:Boolean)=if(moduleOnly)"Скачать и установить"else"Скачать и добавить"
 }

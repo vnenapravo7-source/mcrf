@@ -12,38 +12,19 @@ import android.os.Looper
 object EngineUpdateSchedule {
     const val JOB = BackgroundJobIds.ENGINES
     const val INTERVAL = 6 * 3_600_000L
-    fun schedule(context: Context) {
-        val scheduler = context.getSystemService(JobScheduler::class.java)
-        if (!EngineUpdates.automaticEligible(context)) { scheduler.cancel(JOB); return }
-        if (scheduler.getPendingJob(JOB)?.intervalMillis == INTERVAL) return
-        check(scheduler.schedule(JobInfo.Builder(JOB, ComponentName(context, EngineUpdateService::class.java))
-            .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true)
-            .setPeriodic(INTERVAL, 3_600_000L).setBackoffCriteria(30 * 60_000L, JobInfo.BACKOFF_POLICY_EXPONENTIAL)
-            .build()) == JobScheduler.RESULT_SUCCESS)
-        // First installation/explicit enable starts discovery now; existing jobs keep their cadence.
-        EngineUpdates.check(context,true)
+    private var attempted=false
+    @Synchronized fun schedule(context:Context) {
+        // Retire the old periodic job on upgrade. Restoring an Activity is not a launch.
+        context.getSystemService(JobScheduler::class.java).cancel(JOB)
+        if(attempted)return
+        attempted=true
+        if(EngineUpdates.automaticEligible(context))EngineUpdates.check(context,true)
     }
+
 }
 
-/** Discovery/download only. Android consent is queued for foreground UI. */
+/** Kept to retire persisted jobs from older app versions without scheduling another run. */
 class EngineUpdateService : JobService() {
-    private val handler = Handler(Looper.getMainLooper())
-    private var generation = 0
-    private var ownedRun:EngineUpdateRun?=null
-    override fun onStartJob(params: JobParameters): Boolean {
-        if (!EngineUpdates.automaticEligible(this)) return false
-        val attempt=EngineUpdates.checkScheduled(this)?:return false
-        ownedRun=attempt
-        val token = ++generation
-        handler.post(object : Runnable {
-            override fun run() {
-                if (token != generation) return
-                if (attempt.active) handler.postDelayed(this, 1000)
-                else {ownedRun=null;jobFinished(params,attempt.retry)}
-            }
-        })
-        return true
-    }
-    override fun onStopJob(params: JobParameters): Boolean { generation++;ownedRun?.cancel();ownedRun=null;return EngineUpdates.automaticEligible(this) }
-    override fun onDestroy() { generation++;ownedRun?.cancel();ownedRun=null;handler.removeCallbacksAndMessages(null);super.onDestroy() }
+    override fun onStartJob(params:JobParameters):Boolean=false
+    override fun onStopJob(params:JobParameters):Boolean=false
 }

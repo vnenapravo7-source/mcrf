@@ -102,6 +102,11 @@ try {
             Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'mcrf_wdtt_family_test.go') -Destination (Join-Path $taskSource 'go_client/mcrf_wdtt_family_test.go')
         }
     }finally{Pop-Location}
+    # Canonical producer inputs include P3; retained snapshots are immutable.
+    # This executes only while creating this run's independent source module.
+    $taskPerformanceModule=Join-Path $taskSource $(if($taskKind -ceq 'wdtt'){'go_client'}else{'qwdtt'})
+    $taskPerformanceKind=if($PrepareExpansion){$ExpansionKind}elseif($PrepareP2){$P2SourceKind}elseif($Csqtt25HostTest){'csqtt25'}elseif($CaptchaHostTest){'csqtt'}else{$taskKind}
+    & (Join-Path $PSScriptRoot 'performance/Apply-PerformanceSource.ps1') -ModuleSource $taskPerformanceModule -Kind $taskPerformanceKind -CanonicalProducer
     if($PrepareP2 -or $PrepareExpansion){
         $taskPreparedModule=Join-Path $taskSource $(if($taskKind -ceq 'wdtt'){'go_client'}else{'qwdtt'})
         $taskPreparedInputs=@(Get-ChildItem -LiteralPath $taskPreparedModule -Recurse -File|Where-Object {$_.Extension -eq '.go' -or $_.Name -in @('go.mod','go.sum')}|Sort-Object FullName|ForEach-Object {

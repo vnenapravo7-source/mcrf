@@ -1,0 +1,12 @@
+{
+  "repository": "p1neappleXpress/OpenFlux",
+  "commit": "f492a1a33b7581ad8f88118f97e0b866adda3cdc",
+  "gitBlobs": {
+    "go.mod": "3fa531a39191f590a1f603b54808d279c6d5953c",
+    "go.sum": "557e044355e282eff76d619bee6db4fe25fe551e",
+    "mobile/go.mod": "285314e3d7c0c9da622f7e8c012d7607ebd65da7",
+    "mobile/go.sum": "a482122e01e781b06a6a4fc60e6fb32bb30bd9bc",
+    "mobile/scriptassets/echo.js": "f210bfae74eb0047265c9e764334d7f614727410",
+    "mobile/scriptassets/echo.js.sig": "43c112f42a11d55bf9dbebb2d114c94e4ff90bed"
+  }
+}

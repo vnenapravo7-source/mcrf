@@ -6,8 +6,8 @@ object ClientPrimaryPreparationFailure {
     private val identity=setOf("PRIMARY_WORKER_PID_IDENTITY","PRIMARY_WORKER_HANDSHAKE","PRIMARY_WORKER_MANIFEST_PROCESS","PRIMARY_CORE_APK_HASH","PRIMARY_CORE_NATIVE_CLASSLOADER","PRIMARY_WORKER_UID","PRIMARY_WORKER_OWNER")
     private val pending=setOf("PRIMARY_WORKER_CLEANUP_PENDING","PRIMARY_WORKER_DEATH_TIMEOUT_LEASE_RETAINED","PRIMARY_WORKER_COMPONENT_BUSY","PRIMARY_CORE_UPDATE_BUSY","PRIMARY_WORKER_STOPPING")
     private val failed=setOf("PRIMARY_WORKER_FAILED","PRIMARY_WORKER_DIED","PRIMARY_WORKER_DISCONNECTED","PRIMARY_WORKER_IPC_DIED","PRIMARY_WORKER_IPC_REJECTED","PRIMARY_WORKER_COMMAND_TIMEOUT","PRIMARY_WORKER_COMMAND_FAILED","PRIMARY_WORKER_NOT_CONNECTED","PRIMARY_WORKER_STALE_REPLY","PRIMARY_WORKER_INTERRUPTED","PRIMARY_CORE_LOAD_FAILED","PRIMARY_CORE_RUN_FAILED","PRIMARY_CORE_EXITED_BEFORE_RUNNING")
-    private val terminal=setOf("PRIMARY_WORKER_SECURITY_DENIED","PRIMARY_WORKER_TRUST_REJECTED","PRIMARY_WORKER_FAILURE_CHAIN_INVALID")
-    private val known=startup+identity+pending+failed+terminal
+    private val terminal=setOf("PRIMARY_WORKER_SECURITY_DENIED","PRIMARY_WORKER_TRUST_REJECTED","PRIMARY_WORKER_FAILURE_CHAIN_INVALID","VPN_OWNER_ISOLATION_MODULE_REQUIRED")
+    private val known=startup+identity+pending+failed+terminal+"PRIMARY_BS_TUN_ADOPTION_TIMEOUT"
     private val generic=setOf("PRIMARY_WORKER_FAILED","PRIMARY_WORKER_COMMAND_FAILED")
     internal fun blocksRetryCode(code:String?)=code in identity||code in pending||code in terminal||code=="PRIMARY_WORKER_INTERRUPTED"
     /** Preserve terminal type across Bundle IPC without sending exception messages or profiles. */
@@ -46,6 +46,8 @@ object ClientPrimaryPreparationFailure {
     fun message(code:String):String {
         require(code in known)
         val description=when(code){
+            "PRIMARY_BS_TUN_ADOPTION_TIMEOUT"->"БС не завершил подключение системного VPN вовремя. Повторите подключение."
+            "VPN_OWNER_ISOLATION_MODULE_REQUIRED"->"Обновите пакет движка до версии с обязательной проверкой приложений VPN."
             "PRIMARY_WORKER_INTERRUPTED"->"Подготовка движка отменена или прервана. Запасной движок автоматически не запускается."
             "PRIMARY_WORKER_SECURITY_DENIED"->"Android или движок отклонил разрешение операции. Запасной движок автоматически не запускается; ограничения безопасности не обходились."
             "PRIMARY_WORKER_TRUST_REJECTED"->"Движок отклонил проверку сертификата или подлинности сервера. Проверьте сертификат и параметры TLS; запасной движок автоматически не запускается."

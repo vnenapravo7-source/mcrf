@@ -48,19 +48,24 @@ class CoreTuningForm(private val activity: MainActivity, initial: JSONObject, pr
     } catch(error: Exception) { status.text = error.message ?: "Не удалось сохранить."; status.setTextColor(Loft.ERROR);status.visibility=View.VISIBLE; false }
     fun section(title: String) {
         finishGroups();groupTitle=title
+        if(resetDefaults!=null) {
+            target=CompactUi.group(activity,view,title)
+            return
+        }
         activity.divider(target,8,12)
         target.addView(activity.text(title,15,Loft.INK).apply {
             setTypeface(null,android.graphics.Typeface.BOLD)
             setAccessibilityHeading(true)
         },activity.space(0,10))
     }
-    fun hint(text:String) {target.addView(activity.text(text,12,Loft.MUTED),activity.space(0,10))}
+    fun hint(text:String) {target.addView(SettingsHelp.view(activity,"",text),activity.space(0,10))}
     fun toggle(key: String,title: String,description: String) {
         groupKeys.add(key)
         val control = Switch(activity).apply { tag="setting.$key";text = title; textSize = 14f; setTextColor(Loft.INK); isChecked = state.getBoolean(key) }
         var reverting = false
         control.setOnCheckedChangeListener { _, checked -> if(!reverting && !update(key,checked)) { reverting = true; control.isChecked = !checked; reverting = false } }
-        target.addView(control); target.addView(activity.text(description,12,Loft.MUTED),activity.space(0,10))
+        activity.tune(control)
+        target.addView(control); target.addView(SettingsHelp.view(activity,if(key in setOf("insecure","disablePmtu"))"Важно"else"",description,key in setOf("insecure","disablePmtu")),activity.space(0,10))
     }
     fun field(key: String,title: String,description: String,integer: Boolean = false,secret: Boolean = false) {
         groupKeys.add(key)
@@ -86,11 +91,11 @@ class CoreTuningForm(private val activity: MainActivity, initial: JSONObject, pr
             override fun onViewAttachedToWindow(v: View) = Unit
             override fun onViewDetachedFromWindow(v: View) { flush() }
         })
-        target.addView(activity.field(title,control)); target.addView(activity.text(description,12,Loft.MUTED),activity.space(0,10))
+        target.addView(activity.field(title,control)); target.addView(SettingsHelp.view(activity,"",description),activity.space(0,10))
     }
     fun action(title: String,description: String,run: () -> Unit) {
         target.addView(activity.button(title,false).apply { setOnClickListener { flushPending(); run() } },activity.space(0,8))
-        target.addView(activity.text(description,12,Loft.MUTED),activity.space(0,14))
+        target.addView(SettingsHelp.view(activity,"",description),activity.space(0,14))
     }
     fun flushPending() { flushers.forEach { it() } }
 }

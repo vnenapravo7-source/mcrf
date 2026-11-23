@@ -14,9 +14,9 @@ internal object SwgInviteSubscription {
         val uri=URI(value.trim())
         val fragment=uri.rawFragment.orEmpty()
         val key=runCatching {Base64.getUrlDecoder().decode(fragment.padEnd((fragment.length+3)/4*4,'='))}.getOrNull()
-        require(uri.scheme=="https"&&uri.host in setOf("vnenapravo7.ru","outright7.site")&&uri.rawUserInfo==null&&uri.port in setOf(-1,443)&&
-            uri.rawQuery==null&&Regex("/wdtt/sub/[A-Za-z0-9_-]{16,256}").matches(uri.rawPath.orEmpty())&&key?.size==32){"Некорректная ссылка набора обхода."}
-        return uri.toString()
+        require(uri.scheme=="https"&&uri.host in setOf("179.254.154.28","vnenapravo7.ru","outright7.site")&&uri.rawUserInfo==null&&uri.port in setOf(-1,443)&&
+            uri.rawQuery==null&&Regex("/(?:wd|wdtt)/sub/[A-Za-z0-9_-]{16,256}").matches(uri.rawPath.orEmpty())&&key?.size==32){"Некорректная ссылка набора обхода."}
+        return URI("https",null,"179.254.154.28",-1,uri.rawPath.replaceFirst("/wdtt/","/wd/"),null,fragment).toString()
     }
 
     fun fetch(value:String,open:(URI)->HttpsURLConnection={it.toURL().openConnection() as HttpsURLConnection}):String {
@@ -39,9 +39,10 @@ internal object SwgInviteSubscription {
         data.optJSONArray("vk_links")?.let {array->for(i in 0 until array.length())stripVk(array.optString(i)).takeIf {it.isNotBlank()}?.let(vk::add)}
         val result=mutableListOf<String>();val peers=data.getJSONArray("peers")
         for(i in 0 until peers.length()){
-            val targets=peers.getJSONObject(i).optJSONArray("targets")?:continue
+            val targets=peers.getJSONObject(i).getJSONArray("targets")
             for(j in 0 until targets.length()){
                 val target=targets.getJSONObject(j)
+                require(target.optJSONObject("wdtt")!=null||target.optJSONObject("csqtt")!=null){"Неизвестный формат подключения набора обхода. Старые подключения сохранены."}
                 target.optJSONObject("wdtt")?.let {wd->
                     val hashes=hashes(wd.optString("vk_hash"),vk)
                     if(wd.optString("fork")=="qwdtt")result+=qwdtt(wd,hashes) else result+=wdtt(wd,hashes)
@@ -49,7 +50,8 @@ internal object SwgInviteSubscription {
                 target.optJSONObject("csqtt")?.let {cs->result+=csqtt(cs,hashes(cs.optString("vk_hash"),vk))}
             }
         }
-        require(result.isNotEmpty()&&result.size<=100){"В наборе обхода нет подключений."}
+        require(result.size<=100){"Слишком много подключений набора обхода. Старые подключения сохранены."}
+        if(result.isEmpty())return ""
         return org.json.JSONArray().apply {result.distinct().forEach {item->put(if(item.startsWith('{'))JSONObject(item)else item)}}.toString()
     }
 

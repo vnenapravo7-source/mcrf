@@ -16,7 +16,16 @@ foreach($taskRelative in (& git -C $taskUpstream ls-files)){
  $taskTo=Join-Path $taskModule $taskRelative;New-Item -ItemType Directory -Path (Split-Path $taskTo) -Force|Out-Null;Copy-Item -LiteralPath $taskFrom -Destination $taskTo
 }
 New-Item -ItemType Directory -Path "$taskModule/cmd/mcrf-olcrtc"|Out-Null
-foreach($taskName in @('config.go','private_config.go','main.go','failure.go','mcrf_test.go')){Copy-Item -LiteralPath "$PSScriptRoot/$taskName" -Destination "$taskModule/cmd/mcrf-olcrtc/$taskName"}
+foreach($taskName in @('config.go','private_config.go','main.go','failure.go','mcrf_test.go','underlay.go','underlay_android.go')){Copy-Item -LiteralPath "$PSScriptRoot/$taskName" -Destination "$taskModule/cmd/mcrf-olcrtc/$taskName"}
+Push-Location $taskModule
+try {
+ & git apply --whitespace=nowarn -- "$PSScriptRoot/socks-negotiation.patch"
+ if($LASTEXITCODE){throw 'Pinned OLCRTC SOCKS negotiation patch does not apply'}
+ & git apply --whitespace=nowarn -- "$PSScriptRoot/jitsi-rtx-track.patch"
+ if($LASTEXITCODE){throw 'Pinned OLCRTC Jitsi RTX patch does not apply'}
+}finally{Pop-Location}
+Copy-Item -LiteralPath "$PSScriptRoot/mcrf_socks_negotiation_test.go" -Destination "$taskModule/internal/client/mcrf_socks_negotiation_test.go"
+Copy-Item -LiteralPath "$PSScriptRoot/mcrf_rtx_track_test.go" -Destination "$taskModule/internal/engine/jitsi/mcrf_rtx_track_test.go"
 # Keep the GPL adapter notice as well as the original WTFPL protocol library.
 $taskLicense=(& git -C $taskAdapter show HEAD:LICENSE) -join "`n";if($LASTEXITCODE -or !$taskLicense.Contains('GNU GENERAL PUBLIC LICENSE')){throw 'Pinned adapter licence unavailable'}
 [IO.File]::WriteAllText("$taskModule/MCRF-ADAPTER-LICENSE",$taskLicense+"`n",[Text.UTF8Encoding]::new($false))

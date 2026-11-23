@@ -4,13 +4,14 @@ import android.view.View
 import android.widget.*
 import org.json.JSONObject
 
-class DnsEditor(private val activity: MainActivity, value: JSONObject) {
-    private val original=JSONObject(value.toString())
+class DnsEditor(private val activity: MainActivity, value: JSONObject, private val routeChoices:Boolean=false) {
+    private val original=DnsConfig.withoutRetiredPolicy(value)
     @JvmField val view = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
     private var previousProvider = value.getString("provider")
     private var previousProtocol = value.getString("protocol")
-    private val provider = activity.picker(DnsConfig.PROVIDERS, DnsConfig.PROVIDERS.indexOf(previousProvider))
-    private val protocol = activity.picker(DnsConfig.protocols(previousProvider), DnsConfig.protocols(previousProvider).indexOf(previousProtocol))
+    private fun picker(labels:Array<String>,index:Int)=if(routeChoices)RouteChoiceUi.spinner(activity,labels,index)else activity.picker(labels,index)
+    private val provider = picker(DnsConfig.PROVIDERS, DnsConfig.PROVIDERS.indexOf(previousProvider))
+    private val protocol = picker(DnsConfig.protocols(previousProvider), DnsConfig.protocols(previousProvider).indexOf(previousProtocol))
     private val custom = activity.editor("https://dns.example/dns-query").apply { setSingleLine(true); setText(value.optString("custom", "")) }
     private var changed: (() -> Unit)? = null
     private var draft:AdvancedDnsEditorChanges.VisibleDraft?=null
@@ -19,7 +20,8 @@ class DnsEditor(private val activity: MainActivity, value: JSONObject) {
     private fun notifyChange(){val callback=changed?:return;if(draft?.take(visible())==true){policyEdited=true;callback()}}
     init {
         fun compactField(label:String,control:View)=activity.field(label,control)
-        view.addView(compactField("Провайдер DNS", provider)); view.addView(compactField("Протокол DNS", protocol))
+        view.addView(compactField("Провайдер DNS", provider),activity.space(0,8)); view.addView(compactField("Протокол DNS", protocol),activity.space(0,8))
+        CompactUi.fieldSurface(activity,custom)
         view.addView(custom, activity.space(0, 8)); custom.visibility = if (previousProvider == "Свой") View.VISIBLE else View.GONE
         provider.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit

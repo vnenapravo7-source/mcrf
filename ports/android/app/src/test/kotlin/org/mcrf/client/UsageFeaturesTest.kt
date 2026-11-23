@@ -9,26 +9,28 @@ class UsageFeaturesTest {
         val modes=listOf("any","addresses","apps","in-apps","except-apps")
         for(mask in 1 until (1 shl all.size)){
             val selected=all.filterIndexed {index,_->mask and (1 shl index)!=0}.toSet()
+            val usesVpn=selected.any {it!=UsageFeatures.Feature.PROXY&&it!=UsageFeatures.Feature.TGWS}
             for(configured in modes){
                 val visible=UsageFeatures.routeModes(selected,configured)
-                assertEquals(if(mask==2)modes.filter {it=="any"||it=="addresses"||it==configured} else modes,visible)
+                assertEquals(if(usesVpn)modes else modes.filter {it=="any"||it=="addresses"||it==configured},visible)
                 assertTrue(configured in visible)
                 assertEquals("addresses",visible[visible.indexOf("addresses")]) // Preset selection uses filtered, not original indices.
             }
-            assertEquals(mask!=2,UsageFeatures.showRouteApps(selected))
+            assertEquals(usesVpn,UsageFeatures.showRouteApps(selected))
             assertTrue(UsageFeatures.showRouteApps(selected,configured=true))
-            assertEquals(mask!=2,UsageFeatures.showGlobalAppPolicies(selected))
+            assertEquals(usesVpn,UsageFeatures.showGlobalAppPolicies(selected))
             assertTrue(UsageFeatures.showGlobalAppPolicies(selected,configured=true))
-            assertEquals(if(mask==2)"Прокси" else "VPN",UsageFeatures.routedTrafficLabel(selected))
+            assertEquals(if(usesVpn)"VPN" else "Прокси",UsageFeatures.routedTrafficLabel(selected))
         }
     }
     @Test fun tunOnlyAdvancedControlsAndAddonFollowAllFeatureChoices() {
         val features=UsageFeatures.Feature.values()
         for(mask in 1 until (1 shl features.size)){
             val chosen=features.filterIndexed {index,_->mask and (1 shl index)!=0}.toSet()
-            assertEquals(mask!=2,UsageFeatures.showFakeIp(chosen))
-            assertEquals(mask and 2!=0&&mask!=2,UsageFeatures.showAndroidHttpProxy(chosen))
-            assertEquals(mask!=2,UsageFeatures.engine("wg-awg",chosen))
+            val usesVpn=chosen.any {it!=UsageFeatures.Feature.PROXY&&it!=UsageFeatures.Feature.TGWS}
+            assertEquals(usesVpn,UsageFeatures.showFakeIp(chosen))
+            assertEquals(UsageFeatures.Feature.PROXY in chosen&&usesVpn,UsageFeatures.showAndroidHttpProxy(chosen))
+            assertEquals(usesVpn,UsageFeatures.engine("wg-awg",chosen))
             assertTrue(UsageFeatures.showFakeIp(chosen,configured=true)) // Never hide the only way to repair a blocking saved VPN option.
             assertTrue(UsageFeatures.showAndroidHttpProxy(chosen,configured=true))
         }
@@ -40,13 +42,17 @@ class UsageFeaturesTest {
             assertEquals(mask and 3!=0,UsageFeatures.protocol("VLESS","sing-box-lx",chosen))
             assertEquals(mask and 7!=0,UsageFeatures.protocol("WireGuard / AmneziaWG","sing-box-lx",chosen))
             assertEquals(mask and 8!=0,UsageFeatures.protocol("CSQTT / WDTT / QWDTT","separate",chosen))
-            assertEquals(mask and 10!=0,UsageFeatures.protocol("Telegram WS","separate",chosen))
-            assertEquals(mask and 10!=0,UsageFeatures.engine("tgws",chosen))
+            assertEquals(UsageFeatures.Feature.TGWS in chosen,UsageFeatures.protocol("Telegram WS","separate",chosen))
+            assertEquals(UsageFeatures.Feature.TGWS in chosen,UsageFeatures.engine("tgws",chosen))
         }
     }
     @Test fun oldInstallationsKeepAllControlsAndUnknownDataDoesNotHideEverything() {
         assertEquals(UsageFeatures.all,UsageFeatures.decode(null))
         assertEquals(UsageFeatures.all,UsageFeatures.decode("future-feature"))
+        assertTrue(UsageFeatures.Feature.TGWS in UsageFeatures.decode("v2,proxy"))
+        assertTrue(UsageFeatures.Feature.TGWS in UsageFeatures.decode("v2,whitelist"))
+        assertFalse(UsageFeatures.Feature.TGWS in UsageFeatures.decode("v2,vpn"))
+        assertEquals(setOf(UsageFeatures.Feature.VPN,UsageFeatures.Feature.WHITELIST),UsageFeatures.firstLaunchDefaults)
     }
     @Test fun allNonEmptyCombinationsRoundTripInStableOrder() {
         val features=UsageFeatures.Feature.values()
@@ -87,7 +93,7 @@ class UsageFeaturesTest {
             assertTrue(UsageFeatures.visible("Маршрутизация",selected)) // Domain/IP rules also apply to local proxy traffic.
             assertEquals(UsageFeatures.Feature.PROXY in selected&&UsageFeatures.usesVpn(selected),UsageFeatures.showModeSwitch(selected))
             assertTrue(UsageFeatures.visible(ClientSettingsNavigation.ROOT,selected))
-            assertEquals(mask and 10!=0,UsageFeatures.telegram(selected))
+            assertEquals(UsageFeatures.Feature.TGWS in selected,UsageFeatures.telegram(selected))
             assertTrue(UsageFeatures.telegram(selected,wanted=true))
             assertTrue(UsageFeatures.telegram(selected,running=true))
             for(stored in listOf(false,true)){

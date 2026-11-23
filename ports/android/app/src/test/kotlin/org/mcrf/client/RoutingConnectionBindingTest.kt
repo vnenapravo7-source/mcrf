@@ -8,7 +8,7 @@ import org.junit.Test
 class RoutingConnectionBindingTest {
     private val a="a".repeat(64);private val b="b".repeat(64);private val c="c".repeat(64)
     private fun server(host:String)=ServerImport.read("socks5://127.0.0.1:$host").single()
-    private fun bs()=OpenFluxProfile.fromJson("fixture",JSONObject().put("type","openflux").put("name","UDP").put("negotiate",true).put("secret","synthetic-fixture-secret").put("transports",JSONArray().put(JSONObject().put("type","fluxfast").put("dial","127.0.0.1:32123"))))
+    private fun bs()=OpenFluxProfile.fromJson("fixture",JSONObject().put("type","openflux").put("name","UDP").put("negotiate",true).put("secret","synthetic-fixture-secret").put("transports",JSONArray().put(JSONObject().put("type","direct").put("dial","127.0.0.1:32123"))))
     private fun state(group:String="vpn")=RouteRules.defaults().apply{RoutingGroups.ensure(this);RoutingGroups.select(this,group);put(RoutingConnectionBinding.KEY,JSONObject().put("enabled",true));getJSONArray("rules").put(JSONObject().put("id","test").put("name","test").put("text","example.com").put("mode","addresses").put("target","proxy").put(RouteServerPlan.KEY,a))}
     private fun policy(mode:String=BsAutoSelectionPolicy.FASTEST,last:String="")=RoutingConnectionBinding.Policy(mode,last,last,60,45,false)
     @Test fun disabledIsBytePreserving(){val s=state().apply{getJSONObject(RoutingConnectionBinding.KEY).put("enabled",false)};assertEquals(s.toString(),RoutingConnectionBinding.prepare(s,emptyList(),false,policy(),JSONObject(),1).toString())}

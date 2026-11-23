@@ -1,0 +1,61 @@
+#[cfg(all(test, unix))]
+#[tokio::test]
+#[ignore = "Run by itself with the exact owned Go peer executable"]
+async fn mcrf_private_udp_paired_dispatcher() {
+    use std::{io::Read, process::{Child, Command}, time::Duration};
+    struct OwnedChild(Child);
+    impl Drop for OwnedChild {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+
+    let peer = std::env::var_os("MCRF_CSQTT_PRIVATE_UDP_GO_FIXTURE")
+        .expect("exact paired Go test binary required");
+    let mut key = [0u8; 32];
+    std::fs::File::open("/dev/urandom").unwrap().read_exact(&mut key).unwrap();
+    crate::mcrf_private_udp::install(key).unwrap();
+    let pool = PacketPool::new(128);
+    let stats = Arc::new(Stats::default());
+    let cancel = CancellationToken::new();
+    let (dispatcher, port) = @START@;
+    let mut child = OwnedChild(
+        Command::new(peer)
+            .args(["-test.run=^TestPrivatePacketUDPGoPeer$", "-test.v", "-test.timeout=8s"])
+            .env("MCRF_CSQTT_PRIVATE_UDP_TEST_PORT", port)
+            .env("MCRF_CSQTT_PRIVATE_UDP_KEY_V1", hex::encode(key))
+            .spawn()
+            .expect("start owned Go peer"),
+    );
+    let payload = [0x45, 0, 0, 28, 0, 0, 0, 0, 64, 17, 0, 0, 198, 18, 0, 1, 198, 18, 0, 2, 0x2e, 0xe0, 1, 0xbb, 0, 8, 0, 0];
+    let admitted = payload.len() as i64;
+    tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            if stats.total_bytes_up.load(std::sync::atomic::Ordering::Relaxed) >= admitted {
+                break;
+            }
+            assert!(child.0.try_wait().unwrap().is_none(), "Go peer exited before UDP admission");
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    }).await.expect("authenticated Go uplink not accepted");
+    // Every negative datagram is sent before the Go peer reads the Rust reply.
+    tokio::time::sleep(Duration::from_millis(150)).await;
+    assert_eq!(stats.total_bytes_up.load(std::sync::atomic::Ordering::Relaxed), admitted,
+        "forged datagram entered the dispatcher");
+    let mut packet = pool.acquire();
+    packet.set_read_len(payload.len()).unwrap();
+    packet.as_mut_slice().copy_from_slice(&payload);
+    dispatcher.return_packet(packet);
+    let status = tokio::time::timeout(Duration::from_secs(6), async {
+        loop {
+            if let Some(status) = child.0.try_wait().unwrap() {
+                break status;
+            }
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    }).await.expect("paired Go downlink timed out");
+    assert!(status.success(), "paired bidirectional/peer-replay fixture failed");
+    assert_eq!(stats.total_bytes_up.load(std::sync::atomic::Ordering::Relaxed), admitted);
+    dispatcher.shutdown().await;
+}

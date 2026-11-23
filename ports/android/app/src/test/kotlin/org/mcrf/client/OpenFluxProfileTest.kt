@@ -20,7 +20,10 @@ class OpenFluxProfileTest {
     }
     @Test fun everyOfficialShareTransportIsAccepted() {
         val p = profile(); val list = p.getJSONArray("transports")
-        listOf("yandex", "vyandex", "boards", "mailru", "cupsonline").forEach { list.put(JSONObject().put("type", it).put("url", "https://docs.example/$it")) }
+        listOf("yandex", "vyandex", "boards", "mailru", "cupsonline").forEach {
+            val url=if(it=="cupsonline")java.util.Base64.getUrlEncoder().withoutPadding().encodeToString("[\"room-a\",\"room-b\"]".toByteArray()) else "https://docs.example/$it"
+            list.put(JSONObject().put("type", it).put("url", url))
+        }
         assertEquals(6, ServerImport.read(OpenFluxProfile.share(p)).single().carrier!!.getJSONArray("transports").length())
     }
     @Test fun streamModeIsNotMisreadAsEncryptedSession() {
@@ -52,5 +55,18 @@ class OpenFluxProfileTest {
         val edited = ConnectionEdits.apply(entry, JSONObject().put("name", "Edited").put("carrier", changed))
         val link = ConnectionEdits.share(edited, true); assertTrue(link.startsWith("openflux://v1/"))
         val imported = ServerImport.read(link).single(); assertEquals("Edited", imported.name); assertEquals("new.example", imported.host); assertEquals(8443, imported.port)
+    }
+    @Test fun officialLegacyAliasesAndNestedDirectDialAreMigratedWithoutChangingEndpoint() {
+        val legacy=profile();val direct=legacy.getJSONArray("transports").getJSONObject(0)
+        direct.remove("dial");direct.put("params",JSONObject().put("dial","legacy.example:9443"))
+        legacy.getJSONArray("transports").put(JSONObject().put("type","volga").put("url","https://docs.example/legacy"))
+        val parsed=OpenFluxProfile.fromJson("saved-pre-017",legacy).carrier!!
+        assertEquals("legacy.example",OpenFluxProfile.fromJson("saved-pre-017",legacy).host)
+        assertEquals("legacy.example:9443",parsed.getJSONArray("transports").getJSONObject(0).getString("dial"))
+        assertEquals("vyandex",parsed.getJSONArray("transports").getJSONObject(1).getString("type"))
+    }
+    @Test fun unknownProtocolNamesAreActionableButSanitized() {
+        try{OpenFluxProfile.fromJson("saved",profile().apply{getJSONArray("transports").getJSONObject(0).put("type","old-protocol")});fail()}
+        catch(error:IllegalArgumentException){assertTrue(error.message!!.contains("old-protocol"));assertTrue(error.message!!.contains("v0.17.1"))}
     }
 }

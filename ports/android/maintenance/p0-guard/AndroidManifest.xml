@@ -1,0 +1,5 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.mcrf.client.guard" android:versionCode="1" android:versionName="1">
+    <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="34" />
+    <application android:label="MCRF P0 data guard" android:allowBackup="false" />
+    <instrumentation android:name="org.mcrf.guard.GuardInstrumentation" android:targetPackage="org.mcrf.client" android:label="Read-only P0 data guard" />
+</manifest>

@@ -63,9 +63,9 @@ object AndroidDeployPlan {
                 require(Regex("[A-Za-z0-9_.-]{0,128}").matches(o.optString("grpc_service")))
             }
             "openflux" -> {
-                val t=o.optString("transport","direct");require(t in listOf("direct","yandex","vyandex","boards","telemost","mailru","cupsonline"))
+                AndroidDeployOpenFlux.validate(o)
+                val t=o.optString("transport","direct")
                 if(t=="direct") port("direct_port",5443)
-                else if(t!="cupsonline") { val link=o.optString("carrier_url");val u=URI(link);require(link.length<=8192 && u.scheme=="https" && u.host!=null && u.userInfo==null && link.none { it.isISOControl() }) { "Нужна HTTPS-ссылка сервиса" } }
             }
             "swg" -> {
                 if(o.has("swg_profiles")) {

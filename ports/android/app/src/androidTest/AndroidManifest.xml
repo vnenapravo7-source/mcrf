@@ -1,5 +1,79 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <instrumentation android:name="org.mcrf.client.DeviceSmokeInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.ManagedAppFreezeAdbPhysicalInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.RequestGoobyInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.BsOwnedNetworkBindingInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.VayDnsOwnedServiceInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.BsDnsKernelInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.BsNativeDnsFrontendInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.BsNativeTcpPolicyInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.RequestEditorRowsInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.EdgePanelVisibilityInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.CsqttLiveStreamsInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.RequestOriginalPacketInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.ReleaseRoutingCodecInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.RequestRoutingInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.RequestRollbackInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.RequestModuleRollbackInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.RequestExitCountryInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.RequestVisualInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.OfflineBundledInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.FloatingNotchInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.BottomNavigationDragInstrumentation"
+        android:targetPackage="org.mcrf.client" android:targetProcesses="org.mcrf.client:navigationFixture" />
+    <instrumentation android:name="org.mcrf.client.ManualAppearanceInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.BottomNavigationAppearanceInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.TransportComparisonUiInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.DiagnosticsRuntimeInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.CsqttEffectiveConfigReadOnlyInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.CsqttOriginalClipboardInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.VkCredentialBackoffInstrumentation"
+        android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.Csqtt253RuntimeInstrumentation"
+        android:targetPackage="org.mcrf.client" android:targetProcesses="org.mcrf.client:csqttRuntimeFixture" />
+    <instrumentation android:name="org.mcrf.client.NovemberBackupInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.NovemberInstallerInstrumentation"
+        android:targetPackage="org.mcrf.client" />
     <application>
         <uses-library android:name="android.test.mock" android:required="true" />
     </application>
+    <instrumentation android:name="org.mcrf.client.RequestR2Instrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.RequestInviteLayoutInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.RequestNovember10Instrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.InviteEndpointDiagnosticInstrumentation" android:targetPackage="org.mcrf.client" android:targetProcesses="org.mcrf.client:inviteDiagnostic" />
+    <instrumentation android:name="org.mcrf.client.ResourceMonitorStartupInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.InviteSnapshotInstrumentation" android:targetPackage="org.mcrf.client" android:targetProcesses="org.mcrf.client:inviteSnapshotFixture" />
+    <instrumentation android:name="org.mcrf.client.ResourceMonitorDualInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.BsNativeUdpPolicyInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.BsNativeBootstrapInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.BsNativePhysicalBootstrapInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.BsNativePhysicalDirectOwnerInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.BsNamedEgressInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.BsNativePhysicalRouterEntryInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.MixedCarrierSteerInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.BsNativeServiceInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.BsNativePhysicalServiceInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.ManagedAppFreezeInstrumentation" android:targetPackage="org.mcrf.client" />
+    <instrumentation android:name="org.mcrf.client.AppLaunchShortcutsInstrumentation" android:targetPackage="org.mcrf.client" />
 </manifest>
+

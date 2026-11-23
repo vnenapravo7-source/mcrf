@@ -46,7 +46,7 @@ func failure(err error) string {
 		return "SSTP_NETWORK_TIMEOUT"
 	}
 	switch err.Error() {
-	case "SSTP_NETSTACK", "SSTP_LOCAL_LISTENER", "SSTP_LOCAL_ACCEPT", "SSTP_SESSION_CLOSED":
+	case "SSTP_NETSTACK", "SSTP_LOCAL_LISTENER", "SSTP_LOCAL_ACCEPT", "SSTP_SESSION_CLOSED", "SSTP_UNDERLAY_BIND":
 		return err.Error()
 	}
 	// This function accepts a terminal error, NEVER an informational log line.
@@ -74,6 +74,11 @@ func run(ctx context.Context, p profile) error {
 		mode = tunnel.TLSCustomCA
 	}
 	cfg := tunnel.Config{Server: p.Server, Port: p.ServerPort, SNI: p.SNI, Username: p.Username, Password: p.Password, TLSMode: mode, CACerts: []byte(p.CA), EnableIPv6: true, KeepAlive: 30 * time.Second, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	underlay, err := newSSTPUnderlay(os.Getenv(sstpUnderlayEnv), bindSSTPProcess, bindSSTPSocket)
+	if err != nil {
+		return errors.New("SSTP_UNDERLAY_BIND")
+	}
+	cfg.McrfNetDialer = underlay
 	dialCtx, stopDial := context.WithTimeout(ctx, 30*time.Second)
 	sess, result, err := tunnel.Dial(dialCtx, cfg)
 	stopDial()

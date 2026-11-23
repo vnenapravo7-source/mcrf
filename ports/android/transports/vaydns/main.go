@@ -139,6 +139,10 @@ func readConfig(reader io.Reader) (config, error) {
 }
 
 func run(ctx context.Context, c config) error {
+	handle, err := requestedUnderlay()
+	if err != nil {
+		return errors.New("physical network admission")
+	}
 	kind, address := client.ResolverTypeDOH, c.DoH
 	if c.DoT != "" {
 		kind, address = client.ResolverTypeDOT, c.DoT
@@ -149,6 +153,14 @@ func run(ctx context.Context, c config) error {
 	resolver, err := client.NewResolver(kind, address)
 	if err != nil {
 		return errors.New("resolver configuration")
+	}
+	if handle != 0 {
+		resolver.DialerControl = underlayControl(handle)
+		if kind == client.ResolverTypeDOH {
+			transport := underlayHTTP(resolver.DialerControl)
+			defer transport.CloseIdleConnections()
+			resolver.RoundTripper = transport
+		}
 	}
 	// Preserve upstream's resolver wire/socket policy; do not trade random
 	// source ports for one persistent fingerprint as a hidden optimisation.

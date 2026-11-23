@@ -12,11 +12,13 @@ import org.json.JSONObject
 /** Read-only credentials: shared spacing, a hidden password and one copy target per field. */
 internal object AndroidDeployPanelAccessUi {
     fun show(activity:MainActivity,result:JSONObject):android.app.AlertDialog {
-        val body=EditorLayout.body(activity).apply {tag="androidDeploy.panelAccess"}
+        val body=EditorLayout.body(activity).apply {tag="androidDeploy.panelAccess";setPadding(activity.dp(16),activity.dp(16),activity.dp(16),activity.dp(16))}
         fun field(title:String,value:String,display:String=value,monospace:Boolean=false,secret:Boolean=false) {
             val row=LinearLayout(activity).apply {
                 gravity=Gravity.CENTER_VERTICAL
                 minimumHeight=activity.dp(48)
+                background=Loft.fieldBackground(activity)
+                setPadding(activity.dp(12),activity.dp(8),activity.dp(8),activity.dp(8))
                 addView(activity.text(display,if(monospace)12 else 14,Loft.INK).apply {
                     tag="androidDeploy.panelAccess.value.$title"
                     setPadding(0,activity.dp(8),activity.dp(12),activity.dp(8))

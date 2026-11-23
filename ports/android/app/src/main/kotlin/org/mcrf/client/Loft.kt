@@ -25,24 +25,33 @@ object Loft {
     @JvmStatic fun selection() = HomeUiTheme.palette(dark).selected
     @JvmStatic fun onAccent() = HomeUiTheme.palette(dark).onAccent
     @JvmStatic fun ripple() = HomeUiTheme.ripple(dark)
-    @JvmStatic fun rootBackground(context:Context):Drawable = Backdrop(context.resources.displayMetrics.density)
+    @JvmStatic fun rootBackground(context:Context):Drawable =
+        if(!HomeUiTheme.amoled)Backdrop(context.resources.displayMetrics.density)
+        else if(HomeUiTheme.amoledGradient)HomeUiTheme.gradient()
+        else android.graphics.drawable.ColorDrawable(Color.BLACK)
     @JvmStatic @JvmOverloads fun glass(context:Context,radius:Int=20):Drawable = Glass(context.resources.displayMetrics.density,radius.toFloat())
     @JvmStatic fun connectionFill():Int=(SURFACE and 0x00ffffff) or (179 shl 24)
-    /** Thirty percent transparent fill; text, logo and animation retain full opacity. */
-    @JvmStatic fun connectionSurface(context:Context):Drawable = GradientDrawable().apply {
-        val density=context.resources.displayMetrics.density
-        setColor(connectionFill())
-        cornerRadius=20*density
-        setStroke(kotlin.math.max(1,density.roundToInt()),HomeUiTheme.glassEdge(dark))
-    }
+    /** Shared chromatic gradient at seventy percent opacity; content stays fully opaque. */
+    @JvmStatic fun connectionSurface(context:Context):Drawable =
+        Glass(context.resources.displayMetrics.density,20f,connection=true)
     @JvmStatic fun fieldBackground(context:Context):Drawable = GradientDrawable().apply {
         setColor(translucent(FIELD));cornerRadius=12*context.resources.displayMetrics.density
         setStroke(context.resources.displayMetrics.density.roundToInt().coerceAtLeast(1),LINE)
     }
+    /** One quiet rounded outline for route and DNS form controls. */
+    @JvmStatic fun controlBackground(context:Context):Drawable = GradientDrawable().apply {
+        val density=context.resources.displayMetrics.density
+        setColor(mix(SURFACE,FIELD,.35f));cornerRadius=14*density
+        setStroke(density.roundToInt().coerceAtLeast(1),mix(SURFACE,LINE,.7f))
+    }
+    @JvmStatic fun foldHeaderBackground(context:Context):Drawable {
+        val mask=GradientDrawable().apply {setColor(Color.WHITE);cornerRadius=12*context.resources.displayMetrics.density}
+        return RippleDrawable(ColorStateList.valueOf(ripple()),null,mask)
+    }
     @JvmStatic @JvmOverloads fun buttonBackground(context:Context,primary:Boolean=false,selected:Boolean=false):Drawable {
         val density=context.resources.displayMetrics.density
         fun surface(disabled:Boolean,focused:Boolean=false)=GradientDrawable().apply {
-            val base=if(primary)ACCENT else if(selected)selection()else SURFACE
+            val base=if(primary)ACCENT else if(selected)selection()else mix(SURFACE,ACCENT,if(dark).22f else .12f)
             setColor((base and 0x00ffffff) or ((if(disabled)128 else 230) shl 24));cornerRadius=14*density
             setStroke((density*(if(focused)2 else 1)).roundToInt().coerceAtLeast(1),if(focused||selected)ACCENT else LINE)
         }
@@ -52,6 +61,20 @@ object Loft {
             addState(intArrayOf(),surface(false))
         }
         return RippleDrawable(ColorStateList.valueOf(ripple()),states,null)
+    }
+    /** Scoped editor actions: shared gradient, rounded pressed/focus ripple, faded disabled fill. */
+    @JvmStatic fun gradientButtonBackground(context:Context):Drawable {
+        val density=context.resources.displayMetrics.density
+        val content=android.graphics.drawable.StateListDrawable().apply {
+            addState(intArrayOf(-android.R.attr.state_enabled),Glass(density,14f).apply {alpha=128})
+            addState(intArrayOf(),Glass(density,14f))
+        }
+        val feedback=ColorStateList(arrayOf(
+            intArrayOf(-android.R.attr.state_enabled),intArrayOf(android.R.attr.state_pressed),
+            intArrayOf(android.R.attr.state_focused),intArrayOf()),
+            intArrayOf(Color.TRANSPARENT,ripple(),ripple(),ripple()))
+        val mask=GradientDrawable().apply {setColor(Color.WHITE);cornerRadius=14*density}
+        return RippleDrawable(feedback,content,mask)
     }
     /** Flat grouped-list rows: only the container owns rounded corners and borders. */
     @JvmStatic fun rowBackground(context:Context,selected:Boolean):Drawable = RippleDrawable(
@@ -65,6 +88,13 @@ object Loft {
     @JvmStatic fun popupBackground(context:Context):Drawable = GradientDrawable().apply {
         setColor(dialogSurface());cornerRadius=12*context.resources.displayMetrics.density
         setStroke(context.resources.displayMetrics.density.roundToInt().coerceAtLeast(1),LINE)
+    }
+    /** The control popup uses card colours, with one opaque fill and one outline. */
+    @JvmStatic fun controlPopupBackground(context:Context):Drawable {
+        val stops=SurfacePalette.stops(SURFACE,ACCENT,HomeUiTheme.palette(dark).glow,dark)
+        return GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(stops.start,stops.middle,stops.end).map {it or 0xff000000.toInt()}.toIntArray()).apply {
+            cornerRadius=20*context.resources.displayMetrics.density
+        }
     }
     @JvmStatic fun warpIcon(context:Context,color:Int=ACCENT):Drawable = Icon("warp",color,context.resources.displayMetrics.density)
     @JvmStatic fun mix(first: Int, second: Int, amount: Float): Int {
@@ -108,21 +138,41 @@ object Loft {
         }
         override fun setAlpha(alpha: Int) { paint.alpha = alpha; invalidateSelf() }
         override fun setColorFilter(filter: ColorFilter?) { paint.colorFilter = filter }
+        @Suppress("OVERRIDE_DEPRECATION")
         override fun getOpacity() = PixelFormat.OPAQUE
     }
-    class Glass(private val density: Float, private val radius: Float) : Drawable() {
+    /** Retain one per drawing owner. Draw the existing path, then clear Paint.shader. */
+    class SurfaceBrush @JvmOverloads constructor(private val connection: Boolean = false) {
+        private val cache = SurfacePalette.Cache<Shader> { left, top, right, bottom, stops ->
+            LinearGradient(left,top,right,bottom,
+                intArrayOf(stops.start,stops.middle,stops.end),floatArrayOf(0f,.5f,1f),Shader.TileMode.CLAMP)
+        }
+
+        fun shader(bounds: Rect): Shader? = shader(
+            bounds.left.toFloat(),bounds.top.toFloat(),bounds.right.toFloat(),bounds.bottom.toFloat())
+
+        fun shader(bounds: RectF): Shader? = shader(bounds.left,bounds.top,bounds.right,bounds.bottom)
+
+        /** Empty/non-finite bounds return null and never replace the last valid cache entry. */
+        fun shader(left: Float, top: Float, right: Float, bottom: Float): Shader? =
+            cache.value(left,top,right,bottom,SURFACE,ACCENT,HomeUiTheme.palette(dark).glow,dark,connection)
+    }
+
+    class Glass @JvmOverloads constructor(private val density: Float, private val radius: Float,
+                                          private val connection: Boolean = false) : Drawable() {
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val brush = SurfaceBrush(connection)
         override fun draw(canvas: Canvas) {
-            val b = bounds; val edge = density*.5f
+            val b = bounds; val edge = if(connection)0f else density*.5f
+            if(b.width()<=0||b.height()<=0)return
             paint.style = Paint.Style.FILL
-            paint.shader=null;paint.color=SURFACE
+            paint.shader=brush.shader(b)
             canvas.drawRoundRect(b.left+edge, b.top+edge, b.right-edge, b.bottom-edge, radius*density, radius*density, paint)
-            paint.shader = null; paint.style = Paint.Style.STROKE; paint.strokeWidth = density
-            paint.color = mix(SURFACE,LINE,.55f)
-            canvas.drawRoundRect(b.left+edge, b.top+edge, b.right-edge, b.bottom-edge, radius*density, radius*density, paint)
+            paint.shader = null
         }
         override fun setAlpha(alpha: Int) { paint.alpha = alpha; invalidateSelf() }
         override fun setColorFilter(filter: ColorFilter?) { paint.colorFilter = filter }
+        @Suppress("OVERRIDE_DEPRECATION")
         override fun getOpacity() = PixelFormat.TRANSLUCENT
     }
     class PowerSurface(private val density: Float) : Drawable() {
@@ -143,6 +193,7 @@ object Loft {
         }
         override fun setAlpha(alpha: Int) { paint.alpha = alpha; invalidateSelf() }
         override fun setColorFilter(filter: ColorFilter?) { paint.colorFilter = filter }
+        @Suppress("OVERRIDE_DEPRECATION")
         override fun getOpacity() = PixelFormat.TRANSLUCENT
     }
     class Dial(private val outer: Boolean) : Drawable() {
@@ -173,6 +224,7 @@ object Loft {
         }
         override fun setAlpha(alpha: Int) { opacity = alpha; invalidateSelf() }
         override fun setColorFilter(filter: ColorFilter?) { paint.colorFilter = filter }
+        @Suppress("OVERRIDE_DEPRECATION")
         override fun getOpacity() = PixelFormat.TRANSLUCENT
     }
     class Icon(private val kind: String, private val color: Int, private val density: Float) : Drawable() {
@@ -194,16 +246,50 @@ object Loft {
                 "servers" -> { canvas.drawRoundRect(4f,3f,20f,10f,2f,2f,paint); canvas.drawRoundRect(4f,14f,20f,21f,2f,2f,paint); circle(7,6.5f,.3f); circle(7,17.5f,.3f); line(12,6.5f,17,6.5f); line(12,17.5f,17,17.5f) }
                 "proxy" -> { circle(5,12,2); circle(19,12,2); line(7,12,17,12); path(10,4,14,4,14,8); path(14,20,10,20,10,16) }
                 "telegram" -> {path(2,10,22,3,17,22,10,16,2,10);path(10,16,16,9);path(10,16,10,21,13,18)}
+                "plus" -> {line(5,12,19,12);line(12,5,12,19)}
+                "vk" -> {
+                    // Transparent VK wordmark; curved terminals, no square logo plate.
+                    paint.style=Paint.Style.FILL
+                    val mark=Path().apply {
+                        moveTo(1f,5f);lineTo(4.5f,5f)
+                        cubicTo(4.8f,9.3f,6.5f,12.7f,9.4f,13.5f)
+                        lineTo(9.4f,5f);lineTo(12.7f,5f);lineTo(12.7f,9.9f)
+                        cubicTo(15.5f,9.6f,17.4f,6.6f,18.1f,5f)
+                        lineTo(21.7f,5f);cubicTo(21.1f,7.7f,18.8f,10.5f,17.1f,11.6f)
+                        cubicTo(19.3f,12.7f,21.9f,15.2f,23f,19f)
+                        lineTo(19f,19f);cubicTo(18.2f,16.5f,16.3f,14.2f,12.7f,13.8f)
+                        lineTo(12.7f,19f);lineTo(12.1f,19f)
+                        cubicTo(5.1f,19f,1.6f,14.1f,1f,5f);close()
+                    }
+                    canvas.drawPath(mark,paint)
+                }
                 "warp", "cloudflare" -> { val p=Path().apply {moveTo(4f,16f);cubicTo(1f,16f,1f,10f,6f,10f);cubicTo(6f,3f,16f,3f,17f,10f);cubicTo(23f,8f,24f,16f,20f,16f);lineTo(4f,16f)};canvas.drawPath(p,paint);path(4,19,20,19) }
                 "routes" -> { path(5,20,5,13,19,13,19,4); path(15,8,19,4,23,8); circle(5,4,2); line(5,6,5,8); circle(19,20,2); line(19,16,19,18) }
                 "deploy" -> { path(9,15,9,8,12,3,15,8,15,15,9,15); circle(12,9,1.4f); path(9,11,5,15,5,18,9,16); path(15,11,19,15,19,18,15,16); path(10,18,12,21,14,18) }
                 "settings" -> { line(4,6,20,6); line(4,12,20,12); line(4,18,20,18); knob(8f,6f); knob(16f,12f); knob(10f,18f) }
+                "auto-selection" -> {line(4,6,20,6);line(4,12,14,12);line(4,18,10,18);path(15,16,18,19,22,14)}
                 "gear" -> { line(5,3,5,21);line(12,3,12,21);line(19,3,19,21);canvas.drawRoundRect(2f,7f,8f,11f,1f,1f,paint);canvas.drawRoundRect(9f,14f,15f,18f,1f,1f,paint);canvas.drawRoundRect(16f,5f,22f,9f,1f,1f,paint) }
+                "cog" -> {
+                    val outline=Path()
+                    repeat(32){i->
+                        val angle=PI*i/16
+                        val radius=if(i%4==1||i%4==2)10.5 else 8.2
+                        val x=(12+cos(angle)*radius).toFloat();val y=(12+sin(angle)*radius).toFloat()
+                        if(i==0)outline.moveTo(x,y)else outline.lineTo(x,y)
+                    }
+                    outline.close();canvas.drawPath(outline,paint);circle(12,12,3.2)
+                }
                 "sun" -> {circle(12,12,4);repeat(8){val angle=it*PI/4;line(12+cos(angle)*7,12+sin(angle)*7,12+cos(angle)*9,12+sin(angle)*9)}}
                 "moon" -> {val p=Path().apply {moveTo(18f,17f);cubicTo(8f,22f,1f,9f,11f,4f);cubicTo(8f,11f,12f,17f,18f,17f)};canvas.drawPath(p,paint)}
                 "logs" -> { canvas.drawRoundRect(3f,4f,21f,20f,3f,3f,paint);path(7,9,10,12,7,15);line(13,15,17,15) }
                 "power" -> { canvas.drawArc(4f,4f,20f,20f,-55f,290f,false,paint); line(12,2,12,11) }
+                "eye", "eye-off" -> {
+                    val eye=Path().apply {moveTo(2f,12f);quadTo(12f,0f,22f,12f);quadTo(12f,24f,2f,12f);close()}
+                    canvas.drawPath(eye,paint);circle(12,12,3)
+                    if(kind=="eye-off")line(3,3,21,21)
+                }
                 "info" -> {circle(12,12,8.5f);line(12,11,12,16);paint.style=Paint.Style.FILL;circle(12,7.7f,.9f);paint.style=Paint.Style.STROKE}
+                "play" -> {path(8,4,20,12,8,20,8,4)}
                 "stop" -> canvas.drawRoundRect(6f,6f,18f,18f,2f,2f,paint)
                 "shield", "shield-active" -> { path(12,2,21,6,20,14,17,19,12,22,7,19,4,14,3,6,12,2); if (kind == "shield-active") path(8,12,11,15,16,9) }
                 "add" -> { line(12,5,12,19); line(5,12,19,12) }
@@ -219,6 +305,7 @@ object Loft {
                 "file" -> { path(6,3,14,3,19,8,19,21,6,21,6,3); path(14,3,14,8,19,8) }
                 "folder" -> path(3,7,3,20,21,20,21,7,11,7,9,4,3,4,3,7)
                 "clipboard" -> { canvas.drawRoundRect(5f,5f,19f,21f,2f,2f,paint); path(9,5,9,2,15,2,15,5,9,5); line(8,10,16,10); line(8,14,16,14) }
+                "mail" -> {canvas.drawRoundRect(3f,5f,21f,19f,2f,2f,paint);path(3,6,12,13,21,6)}
                 "copy" -> {canvas.drawRoundRect(8f,8f,21f,21f,2f,2f,paint);path(16,5,16,3,3,3,3,16,5,16)}
                 "download" -> {path(12,3,12,16);path(7,11,12,16,17,11);path(4,17,4,21,20,21,20,17)}
                 "trash" -> {path(4,6,20,6);path(7,6,8,21,16,21,17,6);path(9,6,9,3,15,3,15,6);line(10,10,10,17);line(14,10,14,17)}
@@ -239,6 +326,7 @@ object Loft {
         }
         override fun setAlpha(alpha: Int) { opacity = alpha; invalidateSelf() }
         override fun setColorFilter(filter: ColorFilter?) { paint.colorFilter = filter }
+        @Suppress("OVERRIDE_DEPRECATION")
         override fun getOpacity() = PixelFormat.TRANSLUCENT
     }
 }

@@ -89,6 +89,7 @@ class SingBoxPlatformAdapter(private val generation: Long,private val host: Engi
             "closeDefaultInterfaceMonitor"->{close();null}
             "localDNSTransport"->dns()
             "useProcFS"->platform.features(generation).procFs
+            "requireVpnOwnerIsolation"->{current();config.mode=="vpn"&&platform.requiresVpnOwnerIsolation(generation)}
             "underNetworkExtension"->platform.features(generation).networkExtension
             "includeAllNetworks"->platform.features(generation).includeAllNetworks
             "usePlatformShell","usePlatformBridge"->false // no shell/bridge implementation in this adapter

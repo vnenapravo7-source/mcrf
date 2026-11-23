@@ -7,29 +7,42 @@ import org.json.JSONObject
 object PacketRoutingSnapshot {
     /** Pure preparation is deliberately NOT an admitted runtime snapshot. In particular,
      * captured BLOCK projections must still pass the shared host/worker capability gate. */
-    class Prepared internal constructor(val captured:PacketRouteEnvelope.Captured,dns:List<String>,directApps:List<String>) {
+    internal class AppScope(direct:List<String>,selected:List<String>) {
+        val directApps:List<String> = java.util.Collections.unmodifiableList(direct.toList())
+        val selectedApps:List<String> = java.util.Collections.unmodifiableList(selected.toList())
+
+        fun allowedApps(hostPackage:String):List<String> {
+            require(hostPackage !in directApps) { "Компактному WG нужен доступ MCRF к собственной сети VPN." }
+            // The host verifies readiness through its VPN network, as in Steer.
+            return if(selectedApps.isEmpty() || hostPackage in selectedApps) selectedApps else selectedApps + hostPackage
+        }
+    }
+    class Prepared internal constructor(val captured:PacketRouteEnvelope.Captured,dns:List<String>,internal val apps:AppScope) {
         val dns:List<String> = java.util.Collections.unmodifiableList(dns.toList())
-        val directApps:List<String> = java.util.Collections.unmodifiableList(directApps.toList())
+        val directApps:List<String> get() = apps.directApps
         override fun toString()="PacketRoutingPrepared(redacted)"
     }
-    class Result internal constructor(val captured:PacketRouteEnvelope.Captured,dns:List<String>,directApps:List<String>) {
+    class Result internal constructor(val captured:PacketRouteEnvelope.Captured,dns:List<String>,internal val apps:AppScope) {
         val routes:List<String> = captured.projection.tun
         val dns:List<String> = java.util.Collections.unmodifiableList(dns.toList())
-        val directApps:List<String> = java.util.Collections.unmodifiableList(directApps.toList())
+        val directApps:List<String> get() = apps.directApps
     }
     fun capture(state:JSONObject,plan:CompactWireGuardPlan.Plan,admission:PacketRouteEnvelope.Admission=PacketRouteEnvelope.Admission.LEGACY_IP,managedDnsAdmission:Boolean=false,ipv4Only:Boolean=false):Result {
         val prepared=prepare(state,plan,ipv4Only)
         // Production admission remains CLOSED for captured drop until the complete
         // native leak/drop/permitted-after-block gate is accepted, on BOTH ends.
         PacketRouteEnvelope.workerPlan(plan,prepared.captured.settings,admission,managedDnsAdmission)
-        return Result(prepared.captured,prepared.dns,prepared.directApps)
+        return Result(prepared.captured,prepared.dns,prepared.apps)
     }
     fun prepare(state:JSONObject,plan:CompactWireGuardPlan.Plan,ipv4Only:Boolean=false):Prepared {
         RoutingStore.validate(state)
-        RouteServerPlan.requireSingleServerCore(state)
+        require(RouteServerPlan.activeIds(state).isEmpty()) {"Компактный WG/AWG не поддерживает отдельные серверы для правил."}
         require(state.getString("defaultTarget")=="proxy") {"Компактный WG: выход по умолчанию должен быть VPN."}
-        require(state.optString("appMode","all")=="all") {"Компактный WG: режим «только выбранные приложения» пока недоступен."}
-        require((state.optJSONArray("vpnApps")?.length()?:0)==0) {"Компактный WG: принудительный VPN отдельных приложений пока недоступен."}
+        val include=state.optString("appMode","all")=="include"
+        val appScope=RoutingAppPolicies.systemScope(state)
+        require(include||appScope.forced.isEmpty()) {
+            "Компактный WG: принудительный VPN отдельных приложений пока недоступен."
+        }
         require(!RemoteRoutingConfig.value(state).optBoolean("adblock")) {"Компактный WG: встроенный DNS-фильтр рекламы пока недоступен."}
         RemoteRoutingConfig.value(state).optJSONArray("profiles")?.let {a->
             require((0 until a.length()).none {a.getJSONObject(it).optBoolean("enabled",true)}) {"Компактный WG: импортированные наборы маршрутов пока требуют sing-box."}
@@ -40,7 +53,8 @@ object PacketRoutingSnapshot {
         val appRules=mutableListOf<Pair<List<String>,PacketIpRoutes.Target>>()
         val rules=GeoDataConfig.orderedRules(state)
         repeat(rules.length()) {index->val rule=rules.getJSONObject(index)
-            if(!rule.optBoolean("enabled",true))return@repeat
+            if(!rule.optBoolean("enabled",true)||RoutingDefaultsRussianAppsPolicy.systemRule(rule)||
+                rule.getString("id") in appScope.projected)return@repeat
             require(!rule.has("invert")||rule.opt("invert") is Boolean){"Компактный WG: инверсия должна быть логическим значением."}
             require(PresetRules.ids(rule).isEmpty()&&!rule.has("dns")) {
                 "Компактный WG: готовые/геосписки и отдельный DNS правила пока недоступны."
@@ -71,21 +85,30 @@ object PacketRoutingSnapshot {
             }
             if(mode!="addresses") {
                 require(groups.getValue("process_name").isEmpty()&&groups.getValue("process_path").isEmpty()) {"Компактный WG: нужны пакеты Android, не процессы Windows."}
-                require(target!=PacketIpRoutes.Target.BLOCK||groups.getValue("package_name").isEmpty()) {"Компактный WG: блокировка приложения требует проверки владельца каждого потока, не исключения из VPN."}
-                groups.getValue("package_name").takeIf {it.isNotEmpty()}?.let {appRules+=it to target}
+                val apps=groups.getValue("package_name").filterNot(appScope.direct::contains)
+                require(target!=PacketIpRoutes.Target.BLOCK||apps.isEmpty()) {"Компактный WG: блокировка приложения требует проверки владельца каждого потока, не исключения из VPN."}
+                if(apps.isNotEmpty())appRules+=apps to target
             }
         }
         require(ipRules.isEmpty()||appRules.isEmpty()) {"Компактный WG: смешанные правила по IP и приложениям пока требуют sing-box."}
-        val direct=linkedSetOf<String>()
-        state.getJSONArray("excludedApps").let {a->repeat(a.length()){direct+=a.getString(it)}}
+        val direct=appScope.direct.toCollection(linkedSetOf())
         val claimed=hashSetOf<String>()
         for((apps,target) in appRules)for(app in apps)if(claimed.add(app)&&target==PacketIpRoutes.Target.DIRECT)direct+=app
+        val selected=if(include) {
+            val configured=state.getJSONArray("vpnApps")
+            val packages=(0 until configured.length()).map(configured::getString).distinct()
+            require(packages.isNotEmpty()&&packages.none(direct::contains)) {
+                "Компактный WG: выбранные приложения должны быть заданы и не могут идти напрямую."
+            }
+            packages
+        } else emptyList()
+        val apps=AppScope(direct.toList(),selected)
         val captured=PacketRouteEnvelope.capture(plan.routes,ipRules)
         if(PacketManagedDnsPlan.needed(state,plan,ipv4Only)){
             val dns=PacketManagedDnsPlan.prepare(state,plan,ipv4Only)
             val managed=PacketRouteEnvelope.withManagedDns(captured,dns,PacketManagedDnsPlan.aliases(plan))
             PacketManagedDnsPlan.validate(dns,plan,managed.projection)
-            return Prepared(managed,requireNotNull(managed.dns),direct.toList())
+            return Prepared(managed,requireNotNull(managed.dns),apps)
         }
         val dns=if(plan.dns.isNotEmpty())plan.dns else {
             val server=DnsConfig.build(state.getJSONObject("globalDns"),"chosen","bootstrap")
@@ -95,6 +118,6 @@ object PacketRoutingSnapshot {
             listOf(server.getString("server"))
         }
         PacketDnsSnapshot.validate(plan,captured.projection,dns)
-        return Prepared(PacketRouteEnvelope.withDns(captured,dns),dns,direct.toList())
+        return Prepared(PacketRouteEnvelope.withDns(captured,dns),dns,apps)
     }
 }

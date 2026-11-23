@@ -6,13 +6,13 @@ import android.os.*
 
 /** IPC keeps the Telegram physical-network binding out of the VPN/UI process. */
 class TelegramBridge(private val context: Context, private val changed: () -> Unit) {
-    data class State(val wanted:Boolean=false,val running:Boolean=false,val message:String="Выключен",val port:Int=DEFAULT_PORT,val transport:String="")
+    data class State(val wanted:Boolean=false,val running:Boolean=false,val message:String="Выключен",val port:Int=DEFAULT_PORT,val transport:String="",val webSocketFailure:String?=null)
     var state=State(); private set
     private var bound=false
     private var remote:Messenger?=null
     private val inbox=Messenger(Handler(Looper.getMainLooper()) { message ->
         if(message.what==STATE) {
-            state=State(message.data.getBoolean("wanted"),message.data.getBoolean("running"),message.data.getString("message").orEmpty(),message.data.getInt("port",DEFAULT_PORT),message.data.getString("transport").orEmpty())
+            state=State(message.data.getBoolean("wanted"),message.data.getBoolean("running"),message.data.getString("message").orEmpty(),message.data.getInt("port",DEFAULT_PORT),message.data.getString("transport").orEmpty(),message.data.getString("webSocketFailure"))
             changed()
         };true
     })

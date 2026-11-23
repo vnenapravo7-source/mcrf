@@ -23,10 +23,24 @@ import android.app.Notification as AndroidNotification
 class ProbeService : ClientPrimaryHostPlatform() {
     private val worker = Executors.newSingleThreadExecutor()
     private val probes = Executors.newFixedThreadPool(4)
+    private val diagnosticDeadlines = Executors.newSingleThreadScheduledExecutor()
     @Volatile private var cancelled = false
     @Volatile private var core: ClientPrimaryWorker? = null
     private val generation = AtomicLong(System.nanoTime().coerceAtLeast(1))
     private val running = AtomicBoolean(false)
+    @Volatile private var comparisonNetwork: Long? = null
+    private val comparisonCompletionLock = Any()
+    private var comparisonDestroyed = false
+    private var comparisonCompletion: (() -> Unit)? = null
+
+    private fun comparisonRetired(): Boolean {
+        val network = comparisonNetwork ?: return false
+        val manager = getSystemService(android.net.ConnectivityManager::class.java)
+        return ClientPrimarySelection.selected(this) != "singbox" || DirectAccessCheck.physical(this)?.networkHandle != network ||
+            McrfVpnService.hasActiveSession() || McrfVpnService.cleanupPending() || manager.allNetworks.any {
+                manager.getNetworkCapabilities(it)?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN) == true
+            }
+    }
 
     private fun cancelProbe() {
         cancelled = true
@@ -64,6 +78,14 @@ class ProbeService : ClientPrimaryHostPlatform() {
         if (Build.VERSION.SDK_INT >= 34) startForeground(21, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         else startForeground(21, notification)
         val input = intent.getStringExtra("input")
+        val comparisonId = intent.getStringExtra("transportComparisonRun")
+        val comparisonDeadline = intent.getLongExtra("transportComparisonDeadline", 0)
+        // Bound only this accepted run; never cancel a different service owner's probe.
+        val comparisonTimer = if (comparisonId != null) diagnosticDeadlines.schedule({ cancelProbe() },
+            (comparisonDeadline - SystemClock.elapsedRealtime()).coerceIn(1, 25_000), TimeUnit.MILLISECONDS) else null
+        val comparisonPathWatcher = if (comparisonId != null) diagnosticDeadlines.scheduleWithFixedDelay({
+            try { if (comparisonRetired()) cancelProbe() } catch (_: Exception) { cancelProbe() }
+        }, 0, 100, TimeUnit.MILLISECONDS) else null
         worker.execute {
             var optionalProbe: OptionalCoreProbe.Session? = null
             var transport: NativeCarrier? = null
@@ -84,6 +106,16 @@ class ProbeService : ClientPrimaryHostPlatform() {
                 require(file.canonicalFile.parentFile == cacheDir.canonicalFile &&
                     file.name.matches(Regex("mcrf-probe-input-[0-9a-f-]{36}\\.json"))) { "PROBE_INPUT_PATH" }
                 val request = file.inputStream().use { JSONObject(String(ImportIO.read(it), Charsets.UTF_8)) }
+                if (comparisonId != null) {
+                    require(comparisonId.matches(Regex("[0-9a-f-]{36}")) && request.getString("transportComparisonRun") == comparisonId &&
+                        request.getLong("transportComparisonDeadline") == comparisonDeadline &&
+                        SystemClock.elapsedRealtime() < comparisonDeadline && request.getJSONArray("servers").length() == 1 &&
+                        request.getJSONArray("carriers").length() == 0 && !request.optBoolean("providerDiagnostic") &&
+                        request.optString("backend", "singbox") == "singbox" && request.getString("url") == TransportComparisonPlan.ENDPOINT) { "TRANSPORT_COMPARISON_REQUEST" }
+                    comparisonNetwork = request.getLong("transportComparisonNetwork")
+                    require(transportComparisonIdentity(this) == request.getString("transportComparisonIdentity")) { "TRANSPORT_COMPARISON_IDENTITY" }
+                    ensureActive()
+                }
                 val array = request.getJSONArray("servers")
                 require(array.length() in 1..256) { "PROBE_SERVER_COUNT" }
                 val servers = (0 until array.length()).map {
@@ -116,8 +148,39 @@ class ProbeService : ClientPrimaryHostPlatform() {
                 engineUsage = EngineUpdateGate.acquireUsage(this) ?: throw IOException("PROBE_MODULE_UPDATE")
                 ensureActive()
                 backend=request.optString("backend","singbox")
-                require(backend in setOf("singbox","steer")) {"PROBE_BACKEND"}
-                if(backend=="steer") {
+                require(backend in setOf("singbox","steer","carrier")) {"PROBE_BACKEND"}
+                fun measureCarrier(id:String,item:JSONObject,latency:(NativeCarrier)->Long){
+                    try {
+                        ensureActive()
+                        val profile=JSONObject(item.getJSONObject("profile").toString()).put("probe_only",true)
+                        val vk=if(profile.optString("type") in SwgProfile.TYPES)VkCredentialBackoffStore(this)else null
+                        val ticket=vk?.serverPingTicket()
+                        val cancel=java.util.function.BooleanSupplier {cancelled}
+                        val activeTransport=if(vk!=null)NativeCarrier.startForServerProbe(this,profile,cancel)
+                        else NativeCarrier.start(this,profile,cancel,60000,providerDiagnostic,providerVersion){events->
+                            providerStage.set(if(events==null)JSONObject().put("state","not_reported").toString()
+                                else JSONObject().put("state","reported").put("events",JSONObject(events)).toString())
+                        }
+                        transport=activeTransport
+                        ensureActive()
+                        val delay=latency(activeTransport)
+                        ensureActive()
+                        val accepted=delay>=0&&vk?.confirmServerPing(ticket,profile)!=false
+                        ledger.record(id,if(accepted)delay else -1)
+                    }catch(error:Exception){
+                        diagnostic.set("carrier/core: other")
+                        nativeStage=EngineUpdateOpenFluxDiagnostics.nativeFailure(error)
+                        ledger.record(id,-1)
+                        check(core==null){"PROBE_PRIMARY_CLEANUP"}
+                    }finally{
+                        if(core==null){transport?.close();transport=null}
+                    }
+                }
+                if(backend=="carrier"){
+                    require(!providerDiagnostic&&java.net.URI(url).scheme=="https"&&carriers.size==servers.size&&
+                        carriers.values.all {ProbePlan.independentCarrier(it.getJSONObject("profile"))}){"PROBE_CARRIER_SCOPE"}
+                    for((id,item) in carriers)measureCarrier(id,item){CarrierSocksSwitch.probe(it,url,10000)}
+                }else if(backend=="steer") {
                     errorText="Не удалось проверить серверы собственным движком Steer. Замена на sing-box не выполнялась."
                     require(!providerDiagnostic&&carriers.isEmpty()) {"STEER_PROBE_NO_CARRIER"}
                     moduleSha=request.getString("moduleSha256");probeNetwork=request.getLong("networkHandle")
@@ -193,28 +256,13 @@ class ProbeService : ClientPrimaryHostPlatform() {
                     }
                 }
                 // Exactly one carrier and one fresh native worker at a time; no native reload.
-                for ((id, item) in carriers) {
-                    try {
-                        ensureActive()
-                        val profile = JSONObject(item.getJSONObject("profile").toString()).put("probe_only", true)
-                        val activeTransport = NativeCarrier.start(this, profile, java.util.function.BooleanSupplier { cancelled },60000,providerDiagnostic,providerVersion) {events->
-                            providerStage.set(if(events==null)JSONObject().put("state","not_reported").toString()
-                                else JSONObject().put("state","reported").put("events",JSONObject(events)).toString())
-                        }
-                        transport = activeTransport
-                        ensureActive()
-                        val tag = item.getString("tag")
-                        val copied = CarrierAddressFamily.apply(ClientPrimaryProbeConfig.carrier(config, tag, activeTransport.port, activeTransport.username, activeTransport.password),EngineModules.carrierKind(profile))
-                        withCore(copied) { primary -> measure(primary, id, tag) }
-                    } catch (error: Exception) {
-                        diagnostic.set("carrier/core: other")
-                        nativeStage = EngineUpdateOpenFluxDiagnostics.nativeFailure(error)
-                        ledger.record(id, -1)
-                        check(core == null) { "PROBE_PRIMARY_CLEANUP" }
-                    } finally {
-                        // Keep the bridge alive until its primary worker's confirmed death.
-                        if (core == null) { transport?.close(); transport = null }
-                    }
+                for ((id, item) in carriers) measureCarrier(id,item){activeTransport->
+                    val tag=item.getString("tag")
+                    val profile=item.getJSONObject("profile")
+                    val copied=CarrierAddressFamily.apply(ClientPrimaryProbeConfig.carrier(config,tag,activeTransport.port,activeTransport.username,activeTransport.password),EngineModules.carrierKind(profile))
+                    var delay=-1L
+                    withCore(copied){primary->if(!cancelled)delay=primary.health(tag,url,10000)}
+                    delay
                 }
                 }
                 completionCode = if (cancelled) 3 else 0
@@ -260,17 +308,26 @@ class ProbeService : ClientPrimaryHostPlatform() {
                     if(BuildConfig.DEBUG&&providerDiagnostic)putString("providerStage",providerStage.get())
                 }
                 stopForeground(STOP_FOREGROUND_REMOVE)
-                try { receiver?.send(completionCode, completion) } catch (_: Exception) { }
+                if (comparisonId == null) try { receiver?.send(completionCode, completion) } catch (_: Exception) { }
                 cancelled = true
+                comparisonTimer?.cancel(false)
+                comparisonPathWatcher?.cancel(false)
                 running.set(false)
                 lifetime.finish(run, cleanupComplete, values)
+                if (comparisonId != null) {
+                    val notify = { try { receiver?.send(completionCode, completion); Unit } catch (_: Exception) { } }
+                    val deliverNow = synchronized(comparisonCompletionLock) {
+                        if (comparisonDestroyed) true else { comparisonCompletion = notify; false }
+                    }
+                    if (deliverNow) notify()
+                }
                 stopSelf()
             }
         }
         return START_NOT_STICKY
     }
 
-    private fun ensureActive() { if (cancelled) throw CancellationException("PROBE_CANCELLED") }
+    private fun ensureActive() { if (cancelled || comparisonRetired()) throw CancellationException("PROBE_CANCELLED") }
 
     private fun withSteerCore(profile:String,host:String,url:String,network:Long,protectSockets:Boolean):Long {
         ensureActive();check(core==null) {"STEER_PROBE_PRIMARY_STILL_RUNNING"}
@@ -312,7 +369,7 @@ class ProbeService : ClientPrimaryHostPlatform() {
         val runGeneration = generation.incrementAndGet()
         val port = ServerSocket(0, 1, InetAddress.getByName("127.0.0.1")).use { it.localPort }
         val settings = ClientPrimarySelection.envelope(ClientPrimaryProbeConfig.isolated(config, port), false, false)
-        val platform = forRun(runGeneration, { cancelled }, { throw IOException("PROBE_TUN_DISABLED") }, { _, _ -> })
+        val platform = forRun(runGeneration, { cancelled || comparisonRetired() }, { throw IOException("PROBE_TUN_DISABLED") }, { _, _ -> })
         try {
             val primary = try {
                 ClientPrimaryWorker.connect(this, "singbox", runGeneration, platform, ClientPrimaryProbeWorkerService::class.java)
@@ -347,12 +404,131 @@ class ProbeService : ClientPrimaryHostPlatform() {
         cancelProbe()
         // Existing jobs must reach their finally blocks; do not interrupt native child cleanup.
         probes.shutdown()
+        diagnosticDeadlines.shutdownNow()
         worker.shutdown()
         super.onDestroy()
+        val notify = synchronized(comparisonCompletionLock) {
+            comparisonDestroyed = true; comparisonCompletion.also { comparisonCompletion = null }
+        }
+        notify?.invoke()
     }
 
     companion object {
         const val QUIESCE = "org.mcrf.client.PROBE_QUIESCE"
         private val lifetime = ClientPrimaryProbeLifecycle()
+
+        /** Beta A/B capability: one disposable sing-box PROXY diagnostic. No active
+         * TUN isolation is claimed by that provider; refuse instead of switching it.
+         * Fixed 204 endpoint, one node/call, existing finite native URLTest budget.
+         * Ordinary failures are samples; path/provider/ownership changes abort the run. */
+        internal fun transportComparisonIdentity(context: android.content.Context): String {
+            require(ClientPrimarySelection.selected(context) == "singbox") { "TRANSPORT_COMPARISON_PROVIDER" }
+            val network = DirectAccessCheck.physical(context)?.networkHandle ?: error("TRANSPORT_COMPARISON_NETWORK")
+            val installed = EngineUpdatePrimary.installation(context, "sing-box")
+            return "$network:${ClientPrimaryWorkerWire.hashFile(File(installed.sourceDir))}"
+        }
+        internal fun transportComparisonDiagnostic(context: android.content.Context, profile: ServerImport.Server,
+                                                   expectedCancellation: Long, expectedIdentity: String): Long? {
+            require(TransportComparisonPlan.supported(profile)) { "TRANSPORT_COMPARISON_UNSUPPORTED_PROFILE" }
+            val manager = context.getSystemService(android.net.ConnectivityManager::class.java)
+            val physical = DirectAccessCheck.physical(context)?.networkHandle ?: error("Нет физической сети.")
+            fun admitted() {
+                require(ClientPrimarySelection.selected(context) == "singbox") { "A/B: установленный провайдер не поддерживает этот изолированный замер." }
+                require(DirectAccessCheck.physical(context)?.networkHandle == physical && !McrfVpnService.hasActiveSession() &&
+                    !McrfVpnService.cleanupPending() && manager.allNetworks.none {
+                        manager.getNetworkCapabilities(it)?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN) == true
+                    }) { "A/B: изоляция при активном VPN или изменении сети недоступна. Соединение не переключалось." }
+                require(!SafeModeStore(context).enabled() && !CaptivePortalMonitor.blocksAutomatic(context)) { "A/B: безопасный режим или сеть не готова." }
+                require(ProbeCoordinator.cancellationToken() == expectedCancellation) { "TRANSPORT_COMPARISON_RETIRED" }
+                require(transportComparisonIdentity(context) == expectedIdentity) { "TRANSPORT_COMPARISON_IDENTITY_CHANGED" }
+                require(!EngineUpdates.installationPending(context) && !EngineUpdateScripts.mutationPending()) { "TRANSPORT_COMPARISON_UPDATE" }
+            }
+            admitted()
+            require(ProbeCoordinator.measurements == null) { "Другая диагностика уже выполняется." }
+            val generated = ServerImport.build(listOf(profile), profile.id, false, 60, 50, "Cloudflare")
+            val extensions = OptionalCoreStore(context).load()
+            val tuning = CoreTuningStore(context).load()
+            require(!OptionalCorePlan(generated, extensions, tuning).requiresWorkers) { "A/B: профиль требует дополнительного диагностического провайдера." }
+            // Use the existing provider service directly. Its lifetime.begin rejects
+            // contention immediately, avoiding the general coordinator's blocking queue.
+            val runId = java.util.UUID.randomUUID().toString()
+            val deadline = SystemClock.elapsedRealtime() + 25_000
+            val port = ServerSocket(0, 1, InetAddress.getByAddress(byteArrayOf(127, 0, 0, 1))).use { it.localPort }
+            val config = ProfileConfig.build(generated.toString(), false, port).put("inbounds", org.json.JSONArray())
+                .put("log", JSONObject().put("disabled", true))
+            val request = JSONObject().put("config", config).put("extraSettings", extensions.json())
+                .put("transportSettings", tuning.json()).put("carriers", org.json.JSONArray())
+                .put("url", TransportComparisonPlan.ENDPOINT).put("transportComparisonRun", runId).put("transportComparisonDeadline", deadline)
+                .put("transportComparisonNetwork", physical).put("transportComparisonIdentity", expectedIdentity)
+                .put("servers", org.json.JSONArray().put(JSONObject().put("id", profile.id).put("tag", ServerImport.tag(profile))))
+            val file = File(context.cacheDir, "mcrf-probe-input-$runId.json")
+            val latch = java.util.concurrent.CountDownLatch(1)
+            val result = AtomicReference<Long?>(); val completed = AtomicBoolean()
+            val replies = ProbeReplyWindow()
+            var ownsInput = false
+            val receiver = object : ResultReceiver(Handler(Looper.getMainLooper())) {
+                override fun onReceiveResult(code: Int, data: Bundle?) { replies.deliver {
+                    if (code != 2) {
+                        val delays = data?.getBundle("delays")
+                        if (code == 0 && delays != null && delays.keySet() == setOf(profile.id)) {
+                            @Suppress("DEPRECATION") val delay = delays.get(profile.id)
+                            if (delay is Long && delay in -1..60_000) { result.set(delay.takeIf { it >= 0 }); completed.set(true) }
+                        }
+                        latch.countDown()
+                    }
+                } }
+            }
+            try {
+                val bytes = request.toString().toByteArray(Charsets.UTF_8)
+                require(bytes.size <= ServerImport.MAX_BYTES)
+                check(file.createNewFile()); ownsInput = true
+                android.system.Os.chmod(file.absolutePath, 0x180); file.writeBytes(bytes)
+                admitted()
+                context.startForegroundService(Intent(context, ProbeService::class.java).putExtra("input", file.absolutePath)
+                    .putExtra("result", receiver).putExtra("transportComparisonRun", runId).putExtra("transportComparisonDeadline", deadline))
+                require(latch.await(30, TimeUnit.SECONDS) && completed.get()) { "TRANSPORT_COMPARISON_PROVIDER_UNAVAILABLE" }
+                admitted()
+                return result.get()
+            } finally {
+                replies.close(); if (ownsInput) file.delete()
+                // A late worker drains under its own deadline/lifetime. No global STOP.
+            }
+        }
+
+        /** Local Beta helper, NOT a service command: never instantiates a core or starts VPN.
+         * Async Android DNS has a cancellation signal and a hard wait deadline. */
+        internal fun sampleHealth(context: android.content.Context, host: String, port: Int,
+                                  network: android.net.Network, cancellation: HealthCancellation): ProtocolHealthCheck.TcpSample {
+            require(host.length in 1..253 && host.matches(Regex("[A-Za-z0-9._:-]+")) && port in 1..65535)
+            val addresses = AtomicReference<List<InetAddress>>(emptyList())
+            val dnsDone = java.util.concurrent.CountDownLatch(1)
+            val signal = CancellationSignal()
+            val ownership = cancellation.attach { signal.cancel(); dnsDone.countDown() }
+            try {
+                cancellation.check()
+                val literal = RouteRules.literal(host)
+                if (literal != null) { addresses.set(listOf(literal)); dnsDone.countDown() }
+                else android.net.DnsResolver.getInstance().query(network, host, android.net.DnsResolver.FLAG_EMPTY,
+                    java.util.concurrent.Executor { it.run() }, signal,
+                    object : android.net.DnsResolver.Callback<List<InetAddress>> {
+                        override fun onAnswer(answer: List<InetAddress>, rcode: Int) {
+                            if (rcode == 0) addresses.set(answer.take(8))
+                            dnsDone.countDown()
+                        }
+                        override fun onError(error: android.net.DnsResolver.DnsException) { dnsDone.countDown() }
+                    })
+                if (!dnsDone.await(HealthSettings.TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS))
+                    throw IOException("HEALTH_DNS_TIMEOUT")
+                cancellation.check()
+                require(DirectAccessCheck.physical(context)?.networkHandle == network.networkHandle) { "HEALTH_NETWORK_CHANGED" }
+                val address = addresses.get().firstOrNull() ?: throw IOException("HEALTH_DNS_UNAVAILABLE")
+                return ProtocolHealthCheck.sample(cancellation) {
+                    cancellation.check()
+                    if (DirectAccessCheck.physical(context)?.networkHandle != network.networkHandle)
+                        throw java.util.concurrent.CancellationException("HEALTH_NETWORK_CHANGED")
+                    ProtocolHealthCheck.tcpPing(java.net.InetSocketAddress(address, port), cancellation) { network.bindSocket(it) }
+                }
+            } finally { signal.cancel(); ownership.close() }
+        }
     }
 }

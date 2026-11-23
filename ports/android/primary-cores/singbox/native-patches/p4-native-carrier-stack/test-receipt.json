@@ -1,0 +1,24 @@
+{
+  "state": "NATIVE_FACTORY_TESTED_NOT_INTEGRATED",
+  "published": false,
+  "productionIntegration": false,
+  "baseline": "3d3d3db3a2ccef3b1a8eb71b831ed2461c54b94d",
+  "parentOverlaySha256": "232bba16863df23a310dab2abf8d0541afa4032ff09f4fe57b172fed3d685636",
+  "files": [
+    {
+      "file": "transport/wireguard/mcrf_carrier_stack.go",
+      "sha256": "9871dfce0e922f4ca12e198a43eb0788c7d999b5a574b5c753d88ae031f12d09"
+    },
+    {
+      "file": "transport/wireguard/mcrf_carrier_stack_test.go",
+      "sha256": "19dd3bcc3ae855166f52ad2ceda656d0804b25052fa7c55664714cb39819db7c"
+    }
+  ],
+  "executedAbi": "linux-amd64 on Android emulator-5556 kernel",
+  "elfSha256": "7a5d2a681ad2cb31bf38cc5fc180ebdd2c50fe8c87add2b361d672b17853ec83",
+  "testLogSha256": "78bfb0b29ce0092400cbba35a05f7cf9e01afbbf1fc808855636f35324754288",
+  "goOverlaySha256": "f62f956ddaa543bcc9a2d6b8822c5d8811269c5c66590f7085c8adfa32f2f786",
+  "cases": 3,
+  "csqttProviderContacted": false,
+  "throughputMeasured": false
+}

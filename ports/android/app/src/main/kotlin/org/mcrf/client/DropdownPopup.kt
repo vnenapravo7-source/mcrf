@@ -8,8 +8,49 @@ import android.widget.ScrollView
 
 /** Anchored choice list shared by settings, route groups and log retention. */
 internal object DropdownPopup {
-    data class Item(val label:String,val help:String?=null,val icon:String?=null)
+    data class Item(val label:String,val help:String?=null,val icon:String?=null,val selectable:Boolean=true)
+    /** Custom editor with its own fixed footer; position uses screen coordinates. */
+    fun showContent(activity:MainActivity,anchor:View,content:View,widthDp:Int=360,attachedToField:Boolean=false,surface:android.graphics.drawable.Drawable=Loft.popupBackground(activity)):PopupWindow {
+        AppTypography.watch(content)
+        val frame=android.graphics.Rect().also {anchor.getWindowVisibleDisplayFrame(it)}
+        if(frame.isEmpty)frame.set(0,0,activity.resources.displayMetrics.widthPixels,activity.resources.displayMetrics.heightPixels)
+        val location=IntArray(2).also {anchor.getLocationOnScreen(it)}
+        val gap=if(attachedToField)0 else activity.dp(4)
+        val footer=if(attachedToField)anchor.rootView.findViewById<View>(android.R.id.button1)else null
+        val bottom=if(footer!=null&&footer.isShown)minOf(frame.bottom,IntArray(2).also {footer.getLocationOnScreen(it)}[1]-activity.dp(12))else frame.bottom
+        val below=(bottom-location[1]-anchor.height-gap).coerceAtLeast(0)
+        val above=(location[1]-frame.top-gap).coerceAtLeast(0)
+        val maximum=(if(attachedToField)below else maxOf(above,below)).coerceAtLeast(1)
+        val width=(if(attachedToField)anchor.width else maxOf(anchor.width,activity.dp(widthDp))).coerceAtMost((frame.width()-activity.dp(24)).coerceAtLeast(1))
+        content.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(maximum,View.MeasureSpec.AT_MOST))
+        val popup=PopupWindow(content,width,content.measuredHeight.coerceAtMost(maximum),true).apply {
+            isOutsideTouchable=true;setBackgroundDrawable(surface);elevation=activity.dp(8).toFloat()
+        }
+        // PopupWindow performs the screen-to-parent-window translation. Feeding
+        // screen coordinates to showAtLocation inside a Dialog added its offset twice.
+        popup.showAsDropDown(anchor,0,gap,if(attachedToField)Gravity.START else Gravity.END)
+        // Automatic controls can expand after opening; remeasure the scroll and
+        // footer together and keep the popup beside its original anchor.
+        TvUi.outlineFocus(content)
+        val observer=content.viewTreeObserver
+        val listener=android.view.ViewTreeObserver.OnGlobalLayoutListener {
+            if(popup.isShowing) {
+                runCatching {
+                    content.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(maximum,View.MeasureSpec.AT_MOST))
+                    val height=content.measuredHeight.coerceAtMost(maximum)
+                    if(height!=popup.height)popup.update(anchor,0,gap,width,height)
+                }
+            }
+        }
+        observer.addOnGlobalLayoutListener(listener)
+        content.addOnAttachStateChangeListener(object:View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(view:View)=Unit
+            override fun onViewDetachedFromWindow(view:View){if(observer.isAlive)observer.removeOnGlobalLayoutListener(listener)}
+        })
+        return popup
+    }
     fun show(activity:MainActivity,anchor:View,title:String?,items:List<Item>,selected:Int,startAtTop:Boolean=false,
+        surface:android.graphics.drawable.Drawable=Loft.popupBackground(activity),
         changed:(Int)->Unit):PopupWindow {
         val body=LinearLayout(activity).apply {
             orientation=LinearLayout.VERTICAL;setPadding(activity.dp(8),activity.dp(8),activity.dp(8),activity.dp(8))
@@ -19,7 +60,7 @@ internal object DropdownPopup {
         val width=maxOf(anchor.width,activity.dp(224)).coerceAtMost((availableWidth-activity.dp(24)).coerceAtLeast(1))
         val popup=PopupWindow(activity).apply {
             isFocusable=true;isOutsideTouchable=true;this.width=width;height=android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-            setBackgroundDrawable(Loft.popupBackground(activity));elevation=activity.dp(8).toFloat()
+            setBackgroundDrawable(surface);elevation=activity.dp(8).toFloat()
         }
         title?.let {body.addView(activity.text(it,14,Loft.MUTED).apply {
             setPadding(activity.dp(12),activity.dp(8),activity.dp(12),activity.dp(12))
@@ -29,8 +70,8 @@ internal object DropdownPopup {
                 gravity=Gravity.CENTER_VERTICAL;isBaselineAligned=false
             }
             row.addView(activity.button(item.label,false).apply {
+                tag="dropdown-option-$index"
                 DropdownStyle.apply(activity,this);maxLines=3;gravity=Gravity.START or Gravity.CENTER_VERTICAL
-                typeface=android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.NORMAL)
                 item.icon?.let {name->setCompoundDrawablesRelative(activity.icon(name,Loft.INK).apply {setBounds(0,0,activity.dp(20),activity.dp(20))},null,null,null);compoundDrawablePadding=activity.dp(8)}
                 setTextColor(if(index==selected)Loft.ACCENT else Loft.INK)
                 isSelected=index==selected;contentDescription=item.label+if(index==selected)" · выбрано"else""
@@ -38,7 +79,7 @@ internal object DropdownPopup {
             },LinearLayout.LayoutParams(0,-2,1f))
             row.addView(View(activity).apply {
                 importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO
-                background=object:android.graphics.drawable.Drawable(){
+                background=if(!item.selectable)android.graphics.drawable.InsetDrawable(activity.icon("arrow",Loft.MUTED),activity.dp(6),activity.dp(14),activity.dp(6),activity.dp(14))else object:android.graphics.drawable.Drawable(){
                     private val paint=android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
                     override fun draw(canvas:android.graphics.Canvas){
                         val x=bounds.exactCenterX();val y=bounds.exactCenterY()
@@ -71,12 +112,24 @@ internal object DropdownPopup {
                 super.onMeasure(widthMeasureSpec,View.MeasureSpec.makeMeasureSpec(maximum,View.MeasureSpec.AT_MOST))
             }
         }.apply {addView(body);isFillViewport=false}
+        AppTypography.watch(body)
         popup.contentView=scroll
         scroll.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(maximum,View.MeasureSpec.AT_MOST))
         popup.height=scroll.measuredHeight.coerceAtMost(maximum)
         val x=(location[0]+anchor.width-width).coerceIn(frame.left+activity.dp(12),(frame.right-width-activity.dp(12)).coerceAtLeast(frame.left+activity.dp(12)))
         val y=if(below>=popup.height)location[1]+anchor.height+gap else (location[1]-gap-popup.height).coerceAtLeast(frame.top)
-        popup.showAtLocation(anchor,Gravity.TOP or Gravity.LEFT,x,y)
+        // A popup anchor can be inside another popup. Its subwindow token is
+        // invalid for a sibling window; use the owning application decor.
+        val token=anchor.applicationWindowToken
+        val windowAnchor=if(anchor.windowToken==token)anchor else
+            android.view.inspector.WindowInspector.getGlobalWindowViews().firstOrNull {it.windowToken==token}
+                ?:activity.window.decorView
+        popup.showAtLocation(windowAnchor,Gravity.TOP or Gravity.LEFT,x,y)
+        if (TvUi.enabled(activity)) {
+            TvUi.outlineFocus(scroll)
+            val first=if(startAtTop||selected !in items.indices)0 else selected
+            body.findViewWithTag<View>("dropdown-option-$first")?.requestFocus()
+        }
         if(!startAtTop&&selected in items.indices)scroll.post {
             val choice=body.getChildAt((if(title==null)0 else 1)+selected*2)
             scroll.scrollTo(0,(choice.top-(popup.height-choice.height)/2).coerceAtLeast(0))

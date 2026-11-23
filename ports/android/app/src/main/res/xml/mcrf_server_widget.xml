@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_description"
+    android:initialLayout="@layout/mcrf_server_widget"
+    android:previewLayout="@layout/mcrf_server_widget"
+    android:minWidth="160dp"
+    android:minHeight="144dp"
+    android:minResizeWidth="152dp"
+    android:minResizeHeight="144dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="3"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

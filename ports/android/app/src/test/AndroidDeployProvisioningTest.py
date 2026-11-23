@@ -20,12 +20,14 @@ literal = re.search(r'internal val provisioning = """\n(.*?)\n"""\.trimIndent\(\
 literal = literal.replace("${'$'}", "$")
 embedded = types.ModuleType("mcrf_provision")
 exec(compile(literal, "AndroidDeployScripts.provisioning", "exec"), embedded.__dict__)
-fixture = (root / "ports/android/app/src/test/fixtures/ProvisioningChecks20261013.py").read_text(encoding="utf-8-sig")
+fixture = (root / "wpf/tests/ProvisioningChecks20261013.py").read_text(encoding="utf-8-sig")
 fixture = re.sub(r'source = pathlib\.Path.*?spec\.loader\.exec_module\(p\)', 'p = embedded', fixture, count=1, flags=re.S)
 # Windows fixtures use the older common comma serializer. Preserve their API checks,
 # but decode Android exports using each original protocol's separator rules.
 old_decode = 'urllib.parse.parse_qs(urllib.parse.urlsplit(r["connections"][0]).query)["hashes"][0].split(",")'
 fixture = fixture.replace(old_decode, 'android_hashes(r["connections"][0], kind)')
+# Room transports accept room codes, not the document URL used by legacy generic fixtures.
+fixture = fixture.replace('options(transport=kind)', 'options(transport=kind, carrier_url="" if kind == "cupsonline" else "https://docs.example/test")')
 def android_hashes(link, kind):
     query = urllib.parse.urlsplit(link).query
     raw = next(part.split("=", 1)[1] for part in query.split("&") if part.startswith("hashes="))
@@ -34,9 +36,30 @@ def android_hashes(link, kind):
     decoded = urllib.parse.unquote_plus(raw)
     return decoded.splitlines() if kind == "qwdtt" else decoded.split(",")
 suite_module = types.ModuleType("AndroidDeployProvisioningFixtures")
-suite_module.__dict__.update(embedded=embedded, android_hashes=android_hashes, __file__=str(root / "ports/android/app/src/test/fixtures/ProvisioningChecks20261013.py"))
+suite_module.__dict__.update(embedded=embedded, android_hashes=android_hashes, __file__=str(root / "wpf/tests/ProvisioningChecks20261013.py"))
 exec(compile(fixture, "AndroidDeployProvisioningFixtures", "exec"), suite_module.__dict__)
 qr_exports = []
+
+
+class AndroidRawPanel(suite_module.FakePanel):
+    """Android QWDTT readiness includes the node-confirmed RAW listener."""
+    def __init__(self, raw_port=56003):
+        super().__init__("swg")
+        self.raw_port = raw_port
+        self.raw_requested = False
+
+    def request(self, method, path, body=None, **kwargs):
+        response = super().request(method, path, body, **kwargs)
+        if method == "POST" and path == "/api/wdtt/set":
+            self.raw_requested = body.get("raw") is True
+        if method == "GET" and path == "/api/state" and self.raw_requested:
+            for snapshot in response["data"].get("snapshots", {}).values():
+                for record in snapshot.get("wdtt", []):
+                    if record.get("iface") == self.iface and self.raw_port is not None:
+                        record["raw_port"] = self.raw_port
+        return response
+
+
 class AndroidOriginalCodecTests(unittest.TestCase):
     def test_expanded_call_payload_keeps_size_and_duplicate_guards(self):
         valid = ["https://vk.ru/call/join/" + base64.urlsafe_b64encode(bytes([i])*32).decode() for i in range(7)]
@@ -51,7 +74,7 @@ class AndroidOriginalCodecTests(unittest.TestCase):
             calls = ["https://vk.ru/call/join/"+value for value in hashes]
             for kind in ("qwdtt", "wdtt", "csqtt"):
                 with self.subTest(count=count, kind=kind):
-                    api = suite_module.FakePanel("swg")
+                    api = AndroidRawPanel() if kind == "qwdtt" else suite_module.FakePanel("swg")
                     result = embedded.configure_initial(suite_module.result(), "swg", suite_module.options(relay_kind=kind, vk_calls=calls), "fixture.example", api, lambda _: None)
                     self.assertTrue(result["provision_complete"])
                     link = result["connections"][0]
@@ -65,6 +88,16 @@ class AndroidOriginalCodecTests(unittest.TestCase):
                     elif kind == "csqtt":
                         self.assertEqual(count-1, raw.count("+"))
                         self.assertNotIn("%2B", raw)
+    def test_qwdtt_missing_or_wrong_raw_port_never_confirms_provisioning(self):
+        for port in (None, 56004):
+            with self.subTest(raw_port=port):
+                api = AndroidRawPanel(raw_port=port)
+                result = embedded.configure_initial(suite_module.result(), "swg",
+                    suite_module.options(relay_kind="qwdtt"), "fixture.example", api, lambda _: None)
+                self.assertFalse(result["provision_complete"])
+                self.assertEqual([], result["connections"])
+                self.assertIn("узел не подтвердил", result["provision_error"])
+                self.assertEqual(1, sum(path == "/api/wdtt/set" for _, path, _, _ in api.requests))
 class AndroidSwgMultiTests(unittest.TestCase):
     def profiles(self):
         return [dict(kind=kind, enabled=True, relay_port=56000+i, wg_port=51820+i,
@@ -127,7 +160,8 @@ class AndroidSwgMultiTests(unittest.TestCase):
 if only_new:
     suite = unittest.TestSuite(AndroidOriginalCodecTests(name) for name in (
         "test_expanded_call_payload_keeps_size_and_duplicate_guards",
-        "test_expanded_calls_preserved_by_original_separator_order"))
+        "test_expanded_calls_preserved_by_original_separator_order",
+        "test_qwdtt_missing_or_wrong_raw_port_never_confirms_provisioning"))
 else:
     suite = unittest.defaultTestLoader.loadTestsFromModule(suite_module)
     suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(AndroidSwgMultiTests))

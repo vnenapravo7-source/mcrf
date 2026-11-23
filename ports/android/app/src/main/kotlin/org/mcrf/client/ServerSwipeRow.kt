@@ -12,20 +12,24 @@ import android.widget.*
 import kotlin.math.abs
 import org.mcrf.client.ServerSwipeGesture.Panel
 
-/** Disclosure only: rightward shares, leftward manages; edit is never translated. */
-class ServerSwipeRow(private val activity:MainActivity,private val row:ServerRow,id:String,
-    private val delete:Runnable,actions:List<ShareAction>,ping:Runnable,pingEnabled:Boolean=true,private val lastInGroup:Boolean=false):FrameLayout(activity) {
+/** Physical rightward: share/section; leftward: ping/delete. Editing uses long press. */
+class ServerSwipeRow(private val activity:MainActivity,private val row:View,id:String,
+    private val delete:Runnable,actions:List<ShareAction>,ping:Runnable,pingEnabled:Boolean=true,private val lastInGroup:Boolean=false,private val subscriptionShare:(()->Unit)?=null,private val editSubscription:(()->Unit)?=null):FrameLayout(activity) {
     data class ShareAction(val icon:String,val label:String,val run:Runnable)
+    private val serverRow=row as? ServerRow
+    private val sectionAction=serverRow?.let {ServerSectionChoice.actionLabel(it.server)}
+    private fun editRow(){if(serverRow!=null)serverRow.edit()else editSubscription?.invoke()}
+    private val manageLabel=if(subscriptionShare==null)"Пинг и удаление подключения"else"Обновить и удалить подписку"
+    private val shareWidth=if(sectionAction==null)48 else 96
     private val cornerPath=Path()
     private val selection=GradientDrawable().apply {setColor(if(row.isSelected)Loft.translucent(Loft.selection())else Color.TRANSPARENT)}
     fun refreshPresentation() {
         selection.setColor(if(row.isSelected)Loft.translucent(Loft.selection())else Color.TRANSPARENT)
-        contentDescription="${row.contentDescription}. Свайп вправо — отправка ссылки и QR; влево — пинг и удаление."
+        contentDescription="${row.contentDescription}. Свайп вправо — поделиться${sectionAction?.let {" и перенести в $it"}.orEmpty()}; влево — ${manageLabel.lowercase()}. Удержание — редактировать."
         invalidate()
     }
     private val area=object:FrameLayout(activity) {
-        // The moving foreground is transparent so selection spans the fixed pencil.
-        // Clip action trays to the revealed interval instead of letting icons bleed through.
+        // Clip trays to the revealed interval so controls never bleed through the row.
         override fun drawChild(canvas:Canvas,child:View,time:Long):Boolean {
             val save=canvas.save()
             try {
@@ -35,43 +39,50 @@ class ServerSwipeRow(private val activity:MainActivity,private val row:ServerRow
             }finally{canvas.restoreToCount(save)}
         }
     }.apply {clipChildren=true;clipToPadding=true}
-    private val share=LinearLayout(activity).apply {tag="server-share-$id";gravity=Gravity.CENTER_VERTICAL;isBaselineAligned=false}
+    private val share=LinearLayout(activity).apply {tag="server-share-tray-$id";gravity=Gravity.CENTER_VERTICAL;isBaselineAligned=false}
     private val manage=LinearLayout(activity).apply {tag="server-manage-$id";gravity=Gravity.CENTER_VERTICAL;isBaselineAligned=false}
     private var panel=Panel.NONE
     private var startPanel=Panel.NONE
     private var downX=0f;private var downY=0f
-    private var dragging=false;private var vertical=false;private var closeTap=false;private var editTouch=false
+    private var dragging=false;private var vertical=false;private var closeTap=false
     private val slop=ViewConfiguration.get(context).scaledTouchSlop.toFloat()
     private val shareAccessibility=View.generateViewId()
     private val manageAccessibility=View.generateViewId()
+    private val editAccessibility=View.generateViewId()
     init {
-        require(actions.size==4)
+        // Keep the existing caller signature; the shared popup owns current, safe exports.
+        require(actions.size==4||subscriptionShare!=null)
         tag="server-swipe-$id";clipChildren=true;clipToPadding=true
         background=selection
         row.background=Loft.rowBackground(activity,false)
-        contentDescription="${row.contentDescription}. Свайп вправо — отправка ссылки и QR; влево — пинг и удаление."
-        val edit=requireNotNull(row.findViewWithTag<View>("server-edit-$id"))
-        row.removeView(edit)
-        addView(area,LayoutParams(-1,-2).apply {rightMargin=activity.dp(48)})
-        actions.forEachIndexed {index,action->share.addView(activity.iconButton(action.icon,action.label).apply {
-            tag="server-share-$index-$id";setOnClickListener {settle(Panel.NONE);action.run.run()}
-        },LinearLayout.LayoutParams(0,activity.dp(48),1f))}
-        manage.addView(activity.iconButton("ping","Пинг подключения").apply {
+        refreshPresentation()
+        addView(area,LayoutParams(-1,-2))
+        share.addView(activity.iconButton("share","Поделиться ${serverRow?.server?.name ?: "подпиской"}").apply {
+            tag="server-share-$id";setOnClickListener {settle(Panel.NONE);if(subscriptionShare!=null)subscriptionShare.invoke()else ServerShareUi.show(activity,id)}
+        },LinearLayout.LayoutParams(activity.dp(48),activity.dp(48)))
+        sectionAction?.let {target->share.addView(activity.button(target,false).apply {
+            tag="server-section-$id";contentDescription="Использовать ${serverRow?.server?.name ?: "подпиской"} только в $target"
+            setPadding(0,0,0,0);minimumWidth=0;minWidth=0
+            setOnClickListener {
+                settle(Panel.NONE)
+                if(activity.working())return@setOnClickListener
+                activity.run(MainActivity.Operation {ServerEditorCommit.moveToSection(activity,requireNotNull(serverRow).server,!serverRow.server.whitelists);"Назначение $target сохранено"},true)
+            }
+        },LinearLayout.LayoutParams(activity.dp(48),activity.dp(48)))}
+        manage.addView(activity.iconButton(if(subscriptionShare==null)"ping"else"refresh",if(subscriptionShare==null)"Пинг подключения"else"Обновить подписку").apply {
             tag="server-ping-$id";isEnabled=pingEnabled;setOnClickListener {settle(Panel.NONE);ping.run()}
         },LinearLayout.LayoutParams(activity.dp(48),activity.dp(48)))
         manage.addView(activity.iconButton("trash","Удалить подключение").apply {
             tag="server-delete-$id";setOnClickListener {settle(Panel.NONE);delete.run()}
         },LinearLayout.LayoutParams(activity.dp(48),activity.dp(48)))
-        area.addView(share,LayoutParams(activity.dp(192),-1,Gravity.LEFT))
+        area.addView(share,LayoutParams(activity.dp(shareWidth),-1,Gravity.LEFT))
         area.addView(manage,LayoutParams(activity.dp(96),-1,Gravity.RIGHT))
         area.addView(row,LayoutParams(-1,-2))
-        addView(edit,LayoutParams(activity.dp(48),activity.dp(48),Gravity.RIGHT or Gravity.CENTER_VERTICAL))
-        // Consume a stationary hold without selecting the server on release or revealing trays.
-        row.setOnLongClickListener {true}
+        row.setOnLongClickListener {settle(Panel.NONE);editRow();true}
         isFocusable=true
         settle(Panel.NONE,false)
     }
-    private fun revealWidth(value:Panel)=activity.dp(if(value==Panel.SHARE)192 else 96).coerceAtMost(area.width).toFloat()
+    private fun revealWidth(value:Panel)=if(value==Panel.NONE)0f else activity.dp(if(value==Panel.SHARE)shareWidth else 96).coerceAtMost(area.width).toFloat()
     private fun position(value:Panel)=when(value){Panel.NONE->0f;Panel.SHARE->revealWidth(value);Panel.MANAGE->-revealWidth(value)}
     private fun settle(value:Panel,animate:Boolean=true) {
         panel=value;row.animate().cancel()
@@ -87,16 +98,16 @@ class ServerSwipeRow(private val activity:MainActivity,private val row:ServerRow
         val corners=ServerRowShape.corners(resources.displayMetrics.density,w,h,lastInGroup)
         selection.cornerRadii=corners
         cornerPath.reset();cornerPath.addRoundRect(RectF(0f,0f,w.toFloat(),h.toFloat()),corners,Path.Direction.CW)
-        share.layoutParams=share.layoutParams.apply {width=activity.dp(192).coerceAtMost((w-activity.dp(48)).coerceAtLeast(0))}
+        share.layoutParams=share.layoutParams.apply {width=activity.dp(shareWidth).coerceAtMost(w)}
     }
     override fun dispatchDraw(canvas:Canvas) {
         val save=canvas.save()
         try {if(lastInGroup)canvas.clipPath(cornerPath);super.dispatchDraw(canvas)}finally{canvas.restoreToCount(save)}
     }
     private fun begin(event:MotionEvent) {
-        downX=event.x;downY=event.y;startPanel=panel;dragging=false;vertical=false;editTouch=event.x>=area.right
+        downX=event.x;downY=event.y;startPanel=panel;dragging=false;vertical=false
         // A tap on the still-covering foreground during animation closes it.
-        closeTap=!editTouch&&panel!=Panel.NONE&&when(panel) {
+        closeTap=panel!=Panel.NONE&&when(panel) {
             Panel.SHARE->event.x>minOf(revealWidth(panel),row.translationX)
             Panel.MANAGE->event.x<maxOf(area.width-revealWidth(panel),area.width+row.translationX)
             else->false
@@ -104,7 +115,6 @@ class ServerSwipeRow(private val activity:MainActivity,private val row:ServerRow
     }
     override fun onInterceptTouchEvent(event:MotionEvent):Boolean {
         if(event.actionMasked==MotionEvent.ACTION_DOWN){begin(event);return closeTap}
-        if(editTouch)return super.onInterceptTouchEvent(event)
         if(event.pointerCount>1){settle(startPanel);dragging=false;vertical=true;return true}
         if(event.actionMasked==MotionEvent.ACTION_MOVE&&!vertical) {
             val dx=event.x-downX;val dy=event.y-downY
@@ -115,7 +125,6 @@ class ServerSwipeRow(private val activity:MainActivity,private val row:ServerRow
     }
     override fun onTouchEvent(event:MotionEvent):Boolean {
         if(event.actionMasked==MotionEvent.ACTION_DOWN){begin(event);return true}
-        if(editTouch)return super.onTouchEvent(event)
         val dx=event.x-downX;val dy=event.y-downY
         if(event.pointerCount>1||!dx.isFinite()||!dy.isFinite()){settle(startPanel);dragging=false;vertical=true;return true}
         if(event.actionMasked==MotionEvent.ACTION_MOVE&&!vertical) {
@@ -130,7 +139,7 @@ class ServerSwipeRow(private val activity:MainActivity,private val row:ServerRow
             }
         }
         if(event.actionMasked==MotionEvent.ACTION_UP||event.actionMasked==MotionEvent.ACTION_CANCEL) {
-            val action=if(dragging)ServerSwipeGesture.finish(startPanel,dx,dy,maxOf(activity.dp(64).toFloat(),area.width*.25f),event.actionMasked==MotionEvent.ACTION_CANCEL)else ServerSwipeGesture.Action.NONE
+            val action=if(dragging)ServerSwipeGesture.finish(startPanel,dx,dy,activity.dp(64).toFloat(),event.actionMasked==MotionEvent.ACTION_CANCEL)else ServerSwipeGesture.Action.NONE
             settle(when(action) {
                 ServerSwipeGesture.Action.SHARE->Panel.SHARE
                 ServerSwipeGesture.Action.MANAGE->Panel.MANAGE
@@ -143,12 +152,14 @@ class ServerSwipeRow(private val activity:MainActivity,private val row:ServerRow
     }
     override fun onInitializeAccessibilityNodeInfo(info:AccessibilityNodeInfo) {
         super.onInitializeAccessibilityNodeInfo(info)
-        info.addAction(AccessibilityNodeInfo.AccessibilityAction(shareAccessibility,"Отправка ссылки и QR-кода"))
-        info.addAction(AccessibilityNodeInfo.AccessibilityAction(manageAccessibility,"Пинг и удаление подключения"))
+        info.addAction(AccessibilityNodeInfo.AccessibilityAction(shareAccessibility,"Поделиться${sectionAction?.let {" или перенести в $it"}.orEmpty()}"))
+        info.addAction(AccessibilityNodeInfo.AccessibilityAction(manageAccessibility,manageLabel))
+        info.addAction(AccessibilityNodeInfo.AccessibilityAction(editAccessibility,"Редактировать подключение"))
     }
     override fun performAccessibilityAction(action:Int,args:Bundle?):Boolean=when(action) {
         shareAccessibility->{settle(if(panel==Panel.SHARE)Panel.NONE else Panel.SHARE);true}
         manageAccessibility->{settle(if(panel==Panel.MANAGE)Panel.NONE else Panel.MANAGE);true}
+        editAccessibility->{settle(Panel.NONE);editRow();true}
         else->super.performAccessibilityAction(action,args)
     }
     override fun onDetachedFromWindow(){row.animate().cancel();super.onDetachedFromWindow()}

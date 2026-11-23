@@ -8,6 +8,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class EngineInstallerHardeningTest {
+    @Test fun catalogueAggregateRequiresTheLegacyPackageId() {
+        val dedicated=EngineModules.packageName("wdtt")
+        assertTrue(EngineArchivePolicy.matchesPackage(EngineModules.LEGACY,null,catalogueAggregate=true))
+        assertFalse(EngineArchivePolicy.matchesPackage(dedicated,null,catalogueAggregate=true))
+        assertTrue(EngineArchivePolicy.matchesPackage(dedicated,null))
+        assertTrue(EngineArchivePolicy.matchesPackage(BsEngineContract.PACKAGE,"csqtt25"))
+        assertFalse(EngineArchivePolicy.matchesPackage(BsEngineContract.PACKAGE,"wdtt"))
+    }
     private fun rejected(key:String,action:()->Unit) {
         val error=try {action();null} catch(e:IllegalArgumentException) {e}
         assertNotNull("Must reject $key",error)

@@ -1,0 +1,36 @@
+{
+  "state": "PROCESS_FD_NATIVE_UDP_FIXTURE_PASSED_NOT_PRODUCTION_INTEGRATED",
+  "productionIntegration": false,
+  "published": false,
+  "goVersion": "1.26.8",
+  "executedAbi": "linux-amd64 on Android emulator-5556 kernel",
+  "files": [
+    {
+      "file": "mcrf_native_carrier_e2e_test.go",
+      "sha256": "7f841354e68d7a3c45ee6cb100be886d5ccce781c4c9cfc2334b12119a17bf70"
+    },
+    {
+      "file": "mcrf_packet_port_unix.go",
+      "sha256": "5bec8852772be73e8869bc1799e8b3a461dc20296ec3df225caee44b2f0bbd96"
+    },
+    {
+      "file": "mcrf_packet_port_unix_test.go",
+      "sha256": "f4feef4193bf82ce7f3db91529467b652d516c98bdbef63abe8a7015fcc583b2"
+    }
+  ],
+  "testBinarySha256": "2a9f14dd9df083910320864e1904b6c7dbf538d79d1678dd19517a8eeb87baf7",
+  "log": "native-carrier-e2e-execution-round6.log",
+  "logSha256": "71729dafd016e2debe51db15c043524108262ff792fd11d5a6fc6389a259d0e1",
+  "overlaySha256": "6a832c3b500adbe71991024fbaea239d0afb8b4cbd5205a64af9cdb862d4ece5",
+  "workspaceSha256": "4cc8ab1b6bdca77199265918bb48308675af5be66a72f0dcb73a768e0a0cada2",
+  "topLevelCases": 4,
+  "invalidPacketSubcases": [
+    "cancel",
+    "truncated",
+    "foreign",
+    "ancillary"
+  ],
+  "providerContacted": false,
+  "throughputMeasured": false,
+  "scope": "Actual nativegVisor TCP64bytes and UDP4096fragmented via adoptedSCM_RIGHTS FD into separate Gochild, same RelayIP/connectedUDP, owned surrogate originalIP dispatcher, return/reassembly and all tasks retired. No real Rust crypto/TURN or full app routing claim."
+}

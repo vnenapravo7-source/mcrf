@@ -45,12 +45,12 @@ object AppPicker {
         showDialog(activity,title,apps,previous,save,null)
     }
     /** Show a cancellable window first; package/label reads never queue behind VPN or saves. */
-    @JvmStatic fun showLoading(activity:MainActivity,title:String,previous:Supplier<Set<String>>,save:Consumer<Set<String>>):AlertDialog? {
+    @JvmStatic @JvmOverloads fun showLoading(activity:MainActivity,title:String,previous:Supplier<Set<String>>,save:Consumer<Set<String>>,selectedFirst:Boolean=false,itemActions:((View,String)->Boolean)?=null,extraControl:View?=null):AlertDialog? {
         if(activity.isFinishing||activity.isDestroyed)return null
         loadingDialog?.get()?.takeIf {it.isShowing&&loadingActivity?.get()===activity}?.let {return it}
-        return showDialog(activity,title,null,emptySet(),save,previous).also {loadingDialog=WeakReference(it);loadingActivity=WeakReference(activity)}
+        return showDialog(activity,title,null,emptySet(),save,previous,selectedFirst,itemActions,extraControl).also {loadingDialog=WeakReference(it);loadingActivity=WeakReference(activity)}
     }
-    private fun showDialog(activity:MainActivity,title:String,apps:List<App>?,previous:Set<String>,save:Consumer<Set<String>>,loadPrevious:Supplier<Set<String>>?):AlertDialog {
+    private fun showDialog(activity:MainActivity,title:String,apps:List<App>?,previous:Set<String>,save:Consumer<Set<String>>,loadPrevious:Supplier<Set<String>>?,selectedFirst:Boolean=false,itemActions:((View,String)->Boolean)?=null,extraControl:View?=null):AlertDialog {
         val selected = previous.toMutableSet()
         var choices=emptyList<App>()
         fun replaceChoices(available:List<App>){
@@ -64,13 +64,18 @@ object AppPicker {
         val gate=AppPickerLoadGate()
         lateinit var dialog:AlertDialog
         val form = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL;isFocusableInTouchMode=true; setPadding(activity.dp(16), activity.dp(12), activity.dp(16), 0) }
+        extraControl?.let {form.addView(it,activity.space(0,8))}
         val search = activity.editor("Поиск по названию или пакету").apply { setSingleLine(true) }
         form.addView(search, activity.space(0, 4))
         val system = Switch(activity).apply { text = "Показать системные"; activity.tune(this) }; form.addView(system)
         val count = activity.text("", 12, Loft.MUTED)
         form.addView(count, activity.space(4, 8))
         // Flexible viewport shrinks for the keyboard instead of pushing actions off-screen.
-        val list = AppSelectionList(activity,selected) { count.text="Выбрано: ${selected.size}" }
+        lateinit var list:AppSelectionList
+        lateinit var filterNow:()->Unit
+        list=AppSelectionList(activity,selected) {
+            if(selectedFirst)filterNow() else count.text="Выбрано: ${selected.size}"
+        }.apply {this.itemActions=itemActions}
         form.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
         val visible = mutableListOf<App>()
         fun filter() {
@@ -78,6 +83,7 @@ object AppPicker {
             visible.clear(); visible.addAll(choices.filter {
                 HomeUiAppFilter.matches(it.id, it.label, it.system, it.id in selected, query, system.isChecked)
             })
+            if(selectedFirst)visible.sortBy {it.id !in selected}
             list.submit(visible.map {AppSelectionList.Item(it.id,it.label,it.id,it.installed)})
             count.text = if(loaded)"Выбрано: ${selected.size} · показано: ${visible.size}"else"Загружаем приложения…"
         }
@@ -105,6 +111,7 @@ object AppPicker {
                 }
             }
         }
+        filterNow=::filter
         system.isEnabled=loaded
         system.setOnCheckedChangeListener { _, value -> if(value&&!systemsLoaded)requestLoad(true,false)else filter() }
         search.addTextChangedListener(object : TextWatcher {

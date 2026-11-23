@@ -1,8 +1,24 @@
 package org.mcrf.client
 
+import java.io.File
 import java.util.zip.ZipFile
 
 internal object EngineArchivePolicy {
+    fun matchesPackage(packageId:String,expectedEngine:String?,catalogueAggregate:Boolean=false):Boolean = when {
+        catalogueAggregate -> expectedEngine==null && packageId==EngineModules.LEGACY
+        expectedEngine==null -> packageId==EngineModules.LEGACY || EngineModules.kind(packageId)!=null
+        else -> packageId==EngineModules.packageName(expectedEngine) ||
+            packageId==BsEngineContract.PACKAGE && expectedEngine in BsEngineContract.engines
+    }
+
+    fun nativeAbis(file:File):Set<String> = ZipFile(file).use { zip ->
+        zip.entries().asSequence().filter { !it.isDirectory&&it.name.startsWith("lib/") }.map { entry ->
+            val parts=entry.name.split('/')
+            require(parts.size==3)
+            parts[1]
+        }.toSet()
+    }
+
     fun requireCatalogVersion(actual:Long,expected:Long?) {
         require(expected==null||actual==expected) {
             "Версия APK движка ($actual) не совпадает с каталогом ($expected). Установка отменена."

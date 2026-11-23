@@ -5,6 +5,8 @@ import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.net.InetAddress
 import java.net.ServerSocket
+import java.net.Socket
+import java.util.Base64
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -12,6 +14,16 @@ import java.util.concurrent.atomic.AtomicBoolean
 class WarpTraceTransportTest {
     private val body="warp=on\nloc=NL\ncolo=AMS\n"
     private fun read(value: String)=WarpTraceTransport.readBody(ByteArrayInputStream(value.toByteArray(Charsets.US_ASCII)))
+    private fun readConnect(socket:Socket):java.io.BufferedReader {
+        val input=socket.getInputStream().bufferedReader(Charsets.US_ASCII)
+        val target="www.cloudflare.com:443"
+        val auth=Base64.getEncoder().encodeToString("fixture:fixture-password-only".toByteArray(Charsets.US_ASCII))
+        assertEquals("CONNECT $target HTTP/1.1",input.readLine())
+        assertEquals("Host: $target",input.readLine())
+        assertEquals("Proxy-Authorization: Basic $auth",input.readLine())
+        assertEquals("",input.readLine())
+        return input
+    }
     @Test fun boundedFixedAndChunkedBody() {
         assertEquals(body,read("HTTP/1.1 200 OK\r\nContent-Length: ${body.length}\r\n\r\n$body"))
         assertEquals(body,read("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n${body.length.toString(16)}\r\n$body\r\n0\r\n\r\n"))
@@ -34,9 +46,11 @@ class WarpTraceTransportTest {
             val worker=Executors.newSingleThreadExecutor()
             try {
                 val peer=worker.submit {server.accept().use { socket ->
-                    socket.soTimeout=2000;val input=socket.getInputStream()
-                    assertEquals(5,input.read());assertEquals(1,input.read());assertEquals(2,input.read())
-                    socket.getOutputStream().write(byteArrayOf(5,0));socket.getOutputStream().flush()
+                    socket.soTimeout=2000
+                    val input=readConnect(socket)
+                    socket.getOutputStream().write("HTTP/1.1 407 Proxy Authentication Required\r\n\r\n".toByteArray(Charsets.US_ASCII))
+                    socket.getOutputStream().flush()
+                    assertEquals(-1,input.read())
                 }}
                 assertThrows(IllegalArgumentException::class.java) {WarpTraceTransport.fetch(server.localPort,"fixture","fixture-password-only") {false}}
                 peer.get(3,TimeUnit.SECONDS)
@@ -48,11 +62,8 @@ class WarpTraceTransportTest {
             val worker=Executors.newFixedThreadPool(2);val cancelled=AtomicBoolean()
             try {
                 val peer=worker.submit {server.accept().use { socket ->
-                    socket.soTimeout=3000;val input=socket.getInputStream()
-                    repeat(3) {assertTrue(input.read()>=0)}
-                    socket.getOutputStream().write(byteArrayOf(5,2));socket.getOutputStream().flush()
-                    assertEquals(1,input.read());val user=input.read();repeat(user) {assertTrue(input.read()>=0)}
-                    val secret=input.read();repeat(secret) {assertTrue(input.read()>=0)}
+                    socket.soTimeout=3000
+                    val input=readConnect(socket)
                     cancelled.set(true)
                     assertEquals(-1,input.read())
                 }}

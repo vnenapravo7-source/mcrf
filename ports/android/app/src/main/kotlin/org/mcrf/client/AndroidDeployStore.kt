@@ -22,6 +22,19 @@ class AndroidDeployStore(context: Context) : VkRelayPersistence {
         AndroidDeployBackupSettings.validate(value)
         val root=root();root.put(AndroidDeployBackupSettings.SECTION,value);preferences.write(root.toString())
     }
+    internal data class Snapshot(val inventory:JSONObject,val workspace:JSONObject,val results:JSONObject)
+    /** One encrypted read/migration for a screen, called on the storage worker. */
+    internal fun snapshot():Snapshot = synchronized(ProfileStore.storageLock) {
+        val all=read();val results=all.optJSONObject("deployResults")?:JSONObject()
+        val oldInventory=all.optJSONObject(AndroidDeployInventory.SECTION)?:JSONObject()
+        val oldWorkspace=all.optJSONObject(AndroidDeployWorkspace.SECTION)?:JSONObject()
+        val inventory=AndroidDeployInventory.fromHistory(oldInventory,results)
+        val workspace=AndroidDeployWorkspace.migrate(oldWorkspace,all.optJSONObject("deployDrafts")?:JSONObject())
+        if(oldInventory.toString()!=inventory.toString()||oldWorkspace.toString()!=workspace.toString()) {
+            all.put(AndroidDeployInventory.SECTION,inventory).put(AndroidDeployWorkspace.SECTION,workspace);write(all)
+        }
+        Snapshot(JSONObject(inventory.toString()),JSONObject(workspace.toString()),JSONObject(results.toString()))
+    }
     override fun get(section: String): JSONObject = synchronized(ProfileStore.storageLock) { JSONObject(read().optJSONObject(section)?.toString() ?: "{}") }
     override fun update(section: String,change: (JSONObject) -> Unit) = synchronized(ProfileStore.storageLock) {
         val value=read();val current=value.optJSONObject(section) ?: JSONObject();change(current);value.put(section,current);write(value)
@@ -64,6 +77,26 @@ class AndroidDeployStore(context: Context) : VkRelayPersistence {
         val all=read();all.put(AndroidDeployWorkspace.SECTION,root)
         all.optJSONObject(AndroidDeployInventory.SECTION)?.optJSONObject("instances")?.optJSONObject(id)?.put("name",AndroidDeployInventory.name(name))
         write(all)
+    }
+    /** Deletes local draft data only. The remote lease also closes the start/delete race. */
+    fun deleteDraft(id:String) {
+        val lease="delete-draft-"+java.util.UUID.randomUUID()
+        check(RemoteServerOperationGate.acquire(lease)) {"Дождитесь завершения операции сервера."}
+        try {
+            synchronized(ProfileStore.storageLock) {
+                val all=read()
+                val results=all.optJSONObject("deployResults")?:JSONObject()
+                val inventory=all.optJSONObject(AndroidDeployInventory.SECTION)?:JSONObject()
+                val workspace=AndroidDeployWorkspace.migrate(all.optJSONObject(AndroidDeployWorkspace.SECTION)?:JSONObject(),all.optJSONObject("deployDrafts")?:JSONObject())
+                val next=AndroidDeployWorkspace.withoutDraft(workspace,id,results,inventory)
+                // Retire the matching pre-workspace copy as well; never touch another recipe's draft.
+                val recipe=workspace.getJSONObject("drafts").getJSONObject(id).getString("recipe")
+                val migratedId=java.util.UUID.nameUUIDFromBytes(("mcrf.deploy.draft.$recipe").toByteArray(Charsets.UTF_8)).toString()
+                if(id==migratedId)all.optJSONObject("deployDrafts")?.remove(recipe)
+                all.put(AndroidDeployWorkspace.SECTION,next)
+                write(all)
+            }
+        }finally {RemoteServerOperationGate.release(lease)}
     }
     fun selectedDeployment(recipe:String):String = synchronized(ProfileStore.storageLock) {
         workspace().getJSONObject("selected").optString(recipe).ifBlank {newDeployment(recipe,recipe+" · новая установка")}

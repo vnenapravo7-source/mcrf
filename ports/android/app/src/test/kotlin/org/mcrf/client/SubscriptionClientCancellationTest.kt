@@ -71,7 +71,9 @@ class SubscriptionClientCancellationTest {
         assertEquals(1,fetch(connection).servers.size);assertTrue(connection.disconnected)
         val timeout=Connection(ByteArrayInputStream(byteArrayOf()),status={throw SocketTimeoutException("owned timeout")})
         val error=assertThrows(IllegalArgumentException::class.java){fetch(timeout)}
-        assertTrue(error.message!!.contains("30"));assertFalse(Thread.currentThread().isInterrupted)
+        assertTrue(error.message!!.startsWith("SUBSCRIPTION_TIMEOUT:"))
+        assertTrue(error.cause is SocketTimeoutException);assertFalse(Thread.currentThread().isInterrupted)
+        assertTrue(timeout.connectTimeout in 1..30_000);assertTrue(timeout.readTimeout in 1..30_000)
         assertTrue(timeout.disconnected)
     }
 }

@@ -11,6 +11,13 @@ object GeoDataConfig {
     fun defaults() = JSONObject().put("source", "Loyalsoldier").put("geoipUrl", "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat")
         .put("geositeUrl", "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat").put("selectors", JSONArray())
     fun value(state: JSONObject) = state.optJSONObject("geoData") ?: defaults()
+    /** The standard DLC-derived datasets call the Russian domain group category-ru.
+     * Custom datasets keep their own category names, including a literal ru. */
+    fun categoryCode(s: JSONObject, kind: String, code: String): String {
+        val standard = s.optString("geositeUrl") in setOf(
+            defaults().getString("geositeUrl"), "https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat")
+        return if (kind == "geosite" && code.equals("ru", true) && standard) "category-ru" else code
+    }
     /** Compatibility importer calls this for actual Happ/incy dataset references; no network side effects. */
     fun fromProvider(document: JSONObject): JSONObject {
         val s=defaults();val selectors=JSONArray();val providerRules=JSONArray()
@@ -26,7 +33,8 @@ object GeoDataConfig {
                 if(text.isBlank())return@repeat
                 val match=JSONObject()
                 if(text.startsWith("geoip:")||text.startsWith("geosite:")){
-                    val index=selectors.length();selectors.put(JSONObject().put("kind",text.substringBefore(':')).put("code",text.substringAfter(':')).put("target",target).put("bound",true))
+                    val kind=text.substringBefore(':');val code=categoryCode(s,kind,text.substringAfter(':'))
+                    val index=selectors.length();selectors.put(JSONObject().put("kind",kind).put("code",code).put("target",target).put("bound",true))
                     match.put("rule_set",JSONArray().put("mcrf-geo-$index"))
                 }else if(suffix=="Ip")match.put("ip_cidr",JSONArray(RouteRules.parse(text).getValue("ip_cidr").also {require(it.isNotEmpty()){"Неверная IP-запись провайдера."}}))
                 else when {
@@ -46,11 +54,13 @@ object GeoDataConfig {
         val source=state.getJSONArray("rules");val provider=value(state).optJSONArray("providerRules")?:return source
         val out=JSONArray();var added=false
         repeat(source.length()){i -> val r=source.getJSONObject(i)
-            if(!added&&r.optString("builtinPreset")=="outside-ru"){repeat(provider.length()){j ->out.put(provider.getJSONObject(j))};added=true};out.put(r)
+            if(!added&&RouteRules.countryPreset(r)){repeat(provider.length()){j ->out.put(provider.getJSONObject(j))};added=true};out.put(r)
         }
         if(!added)repeat(provider.length()){out.put(provider.getJSONObject(it))};return out
     }
     fun validate(s: JSONObject) {
+        ImportedRuleProviders.validate(s)
+        if(s.has("cacheNamespace"))require(s.getString("cacheNamespace").matches(Regex("profile-[a-f0-9]{32}")))
         require(s.getString("source") in setOf("Loyalsoldier", "v2fly", "custom"))
         for (k in listOf("geoip", "geosite")) RemoteRoutingConfig.https(s.getString("${k}Url"))
         val a = s.getJSONArray("selectors"); require(a.length() <= 64)
@@ -72,29 +82,59 @@ object GeoDataConfig {
             }
         }
     }
-    private fun digest(s: String) = MessageDigest.getInstance("SHA-256").digest(s.toByteArray()).joinToString("") { "%02x".format(it.toInt() and 255) }
-    private fun root(context: Context): File = File(context.filesDir, "mcrf-geodata").also {
+    private fun digest(s: String) = digest(s.toByteArray(Charsets.UTF_8))
+    private fun digest(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) }
+    private fun root(context: Context, create: Boolean = true): File = File(context.filesDir, "mcrf-geodata").also {
         require(!java.nio.file.Files.isSymbolicLink(it.toPath()) && it.canonicalFile.parentFile == context.filesDir.canonicalFile)
-        if (!it.isDirectory) check(it.mkdir())
+        if (create && !it.isDirectory) check(it.mkdir() || it.isDirectory)
+    }
+    internal fun sourceName(s:JSONObject,kind:String):String {
+        require(kind in setOf("geoip","geosite"))
+        val namespace=if(s.has("cacheNamespace"))s.getString("cacheNamespace").also {require(it.matches(Regex("profile-[a-f0-9]{32}")))}+"-" else ""
+        return namespace+digest(s.getString("${kind}Url"))+".dat"
     }
     fun file(context: Context, s: JSONObject, kind: String): File {
-        require(kind in setOf("geoip", "geosite")); return File(root(context), "${digest(s.getString("${kind}Url"))}.dat").also { require(!java.nio.file.Files.isSymbolicLink(it.toPath())) }
+        require(kind in setOf("geoip", "geosite")); return File(root(context), sourceName(s,kind)).also { require(!java.nio.file.Files.isSymbolicLink(it.toPath())) }
+    }
+    private fun lastProfileFile(context:Context,s:JSONObject,kind:String):File? {
+        if(!s.has("cacheNamespace"))return null
+        val ns=s.getString("cacheNamespace");require(ns.matches(Regex("profile-[a-f0-9]{32}"))&&kind in setOf("geoip","geosite"))
+        return File(root(context),"$ns-$kind-last.dat").also {require(!java.nio.file.Files.isSymbolicLink(it.toPath()))}
+    }
+    internal fun cachedProfileBytes(context:Context,s:JSONObject,kind:String,check:(ByteArray)->Unit):ByteArray? {
+        for(candidate in listOfNotNull(file(context,s,kind),lastProfileFile(context,s,kind))) {
+            if(!candidate.isFile||candidate.length() !in 1..(64L*1024*1024))continue
+            val bytes=candidate.readBytes()
+            try {check(bytes);return bytes}catch(e:Exception){if(e is InterruptedException||e is java.util.concurrent.CancellationException)throw e}
+        }
+        return null
+    }
+    internal fun rememberProfileBytes(context:Context,s:JSONObject,kind:String,bytes:ByteArray) {
+        val file=lastProfileFile(context,s,kind)?:return
+        for(suffix in listOf(".new",".bak"))require(!java.nio.file.Files.isSymbolicLink(File(file.parentFile,file.name+suffix).toPath()))
+        val atomic=android.util.AtomicFile(file);val output=atomic.startWrite()
+        try {output.write(bytes);atomic.finishWrite(output)}catch(e:Exception){atomic.failWrite(output);throw e}
     }
     fun status(context: Context, s: JSONObject, kind: String): String = file(context, s, kind).let { if (it.isFile) "${it.length() / 1024} КБ · ${java.text.DateFormat.getDateTimeInstance().format(java.util.Date(it.lastModified()))}" else "Ещё не загружен" }
     /** Explicit Steer preparation validates this byte snapshot with its bounded
      * selective reader BEFORE publishing a DAT file. No legacy Proto.fields. */
-    internal fun fetchForSteer(context:Context,s:JSONObject,kind:String):ByteArray {
+    internal fun fetchForSteer(context:Context,s:JSONObject,kind:String,deadlineNanos:Long?=null):ByteArray {
         validate(s);require(kind in setOf("geoip","geosite"))
-        return fetchBytes(context,s,kind)
+        return fetchBytes(context,s,kind,deadlineNanos)
     }
-    private fun fetchBytes(context:Context,s:JSONObject,kind:String)=RemoteRoutingConfig.fetch(s.getString("${kind}Url"),64*1024*1024){RemoteRoutingNetwork.open(context,it)}
+    private fun fetchBytes(context:Context,s:JSONObject,kind:String,deadlineNanos:Long?=null):ByteArray =
+        if(deadlineNanos==null)RemoteRoutingConfig.fetch(s.getString("${kind}Url"),64*1024*1024){RemoteRoutingNetwork.open(context,it)}
+        else RemoteRoutingConfig.fetchWithin(s.getString("${kind}Url"),64*1024*1024,deadlineNanos){RemoteRoutingNetwork.open(context,it)}
     /** All DAT publishers use this same nonblocking cross-process fence. It is
      * never acquired by read-only preview/capture, which must not create files. */
     internal fun <T> withSourceWriteLock(context:Context,s:JSONObject,kind:String,action:(File)->T):T {
         val requested=file(context,s,kind);val destination=requested.canonicalFile
         require(destination.parentFile==File(context.filesDir,"mcrf-geodata").canonicalFile&&destination.name==requested.name)
         for(suffix in listOf(".new",".bak"))require(!java.nio.file.Files.isSymbolicLink(File(destination.parentFile,destination.name+suffix).toPath()))
-        val lockPath=File(destination.parentFile,destination.name+".lock").toPath()
+        // A changed URL still writes the SAME profile-owned last-good DAT.
+        // Serialize the profile/kind, not just its current URL hash.
+        val lockName=if(s.has("cacheNamespace"))s.getString("cacheNamespace")+"-$kind.lock" else destination.name+".lock"
+        val lockPath=File(destination.parentFile,lockName).toPath()
         require(!java.nio.file.Files.isSymbolicLink(lockPath)&&(!java.nio.file.Files.exists(lockPath,java.nio.file.LinkOption.NOFOLLOW_LINKS)||
             java.nio.file.Files.isRegularFile(lockPath,java.nio.file.LinkOption.NOFOLLOW_LINKS)))
         java.nio.channels.FileChannel.open(lockPath,java.nio.file.StandardOpenOption.CREATE,java.nio.file.StandardOpenOption.WRITE,java.nio.file.LinkOption.NOFOLLOW_LINKS).use {channel ->
@@ -103,16 +143,19 @@ object GeoDataConfig {
             try{return action(destination)}finally{lease.release()}
         }
     }
-    fun download(context: Context, s: JSONObject, kind: String, force: Boolean = false, activeSelectors:Set<Int>?=null): File {
+    fun download(context: Context, s: JSONObject, kind: String, force: Boolean = false, activeSelectors:Set<Int>?=null,refreshDeadlineNanos:Long?=null): File {
         validate(s);val cached=file(context,s,kind)
         if(!force&&cached.isFile)return cached // preserve ordinary cached reads without creating a writer lock
         return withSourceWriteLock(context,s,kind){destination ->
         if (!force && destination.isFile) return@withSourceWriteLock destination
-        val bytes = fetchBytes(context,s,kind)
         val checked=if(activeSelectors==null)s else JSONObject(s.toString()).put("selectors",JSONArray(activeSelectors.map {s.getJSONArray("selectors").getJSONObject(it)}))
-        validateDownload(bytes,kind,checked)
+        val bytes=if(s.has("cacheNamespace"))GeodataRefresh.bytes(
+            {fetchBytes(context,s,kind,refreshDeadlineNanos)},
+            {cachedProfileBytes(context,s,kind){validateDownload(it,kind,checked)}},
+            {validateDownload(it,kind,checked)}) else fetchBytes(context,s,kind,refreshDeadlineNanos).also {validateDownload(it,kind,checked)}
         val atomic = android.util.AtomicFile(destination); val output = atomic.startWrite()
         try { output.write(bytes); atomic.finishWrite(output) } catch (e: Exception) { atomic.failWrite(output); throw e }
+        rememberProfileBytes(context,s,kind,bytes)
         destination
         }
     }
@@ -169,22 +212,68 @@ object GeoDataConfig {
             if(selector.has("managedRule"))require(selector.get("managedRule") is Boolean)
             !selector.optBoolean("managedRule") || i in referenced}.toSet()
     }
+    internal class MissingSources(private val settings: JSONObject, private val selectors: Set<Int>, val kinds: Set<String>) {
+        fun download(context: Context, deadline: Long) {
+            for (kind in kinds) {
+                val force = file(context, settings, kind).let { it.isFile && it.length() !in 1..(64L * 1024 * 1024) }
+                GeoDataConfig.download(context, settings, kind, force, selectors, deadline)
+            }
+        }
+    }
+
+    /** Read only. A source is needed only when at least one effective selector references it. */
+    internal fun missingSources(context: Context, state: JSONObject, needed: Set<Int> = neededSelectors(state)): MissingSources? {
+        if (needed.isEmpty()) return null
+        val settings = value(state)
+        validate(settings)
+        val directory = root(context, create = false)
+        val selectors = settings.getJSONArray("selectors")
+        val kinds = needed.map { selectors.getJSONObject(it).getString("kind") }.toSet()
+        val missing = kinds.filterTo(linkedSetOf()) { kind ->
+            fun plausible(name: String): Boolean = File(directory, name).let {
+                require(!java.nio.file.Files.isSymbolicLink(it.toPath()))
+                it.isFile && it.length() in 1..(64L * 1024 * 1024)
+            }
+            if (plausible(sourceName(settings, kind))) false
+            else if (!settings.has("cacheNamespace")) true
+            else {
+                val fallback = "${settings.getString("cacheNamespace")}-$kind-last.dat"
+                if (!plausible(fallback)) true else {
+                    val required = JSONObject(settings.toString()).put("selectors", JSONArray(needed.map(selectors::getJSONObject)))
+                    cachedProfileBytes(context, settings, kind) { validateDownload(it, kind, required) } == null
+                }
+            }
+        }
+        return if (missing.isEmpty()) null else MissingSources(JSONObject(settings.toString()), needed.toSet(), missing)
+    }
+
     /** Native .dat is never passed to sing-box; convert selected category into a source rule-set. */
     fun resolve(context: Context, state: JSONObject): Map<String, String> {
         val s = value(state); validate(s); val a = s.getJSONArray("selectors")
+        val refreshDeadline=System.nanoTime()+30_000_000_000L
         val needed=neededSelectors(state)
-        return needed.associate { i ->
-            val r = a.getJSONObject(i); val source = download(context, s, r.getString("kind"),activeSelectors=needed)
-            val compiled = convert(source.readBytes(), r.getString("kind"), r.getString("code"))
-            val target = File(root(context), "${digest(source.name + source.lastModified() + r.toString())}.json")
-            require(!java.nio.file.Files.isSymbolicLink(target.toPath()))
-            val atomic = android.util.AtomicFile(target); val out = atomic.startWrite()
-            try { out.write(compiled.toString().toByteArray()); atomic.finishWrite(out) } catch (e: Exception) { atomic.failWrite(out); throw e }
-            "geo-$i" to target.absolutePath
+        val sources=needed.map {a.getJSONObject(it).getString("kind")}.distinct().associateWith {kind->
+            download(context,s,kind,force=s.has("cacheNamespace"),activeSelectors=needed,refreshDeadlineNanos=refreshDeadline.takeIf {s.has("cacheNamespace")})
+        }
+        return ImportedRuleProviders.resolve(context,s,refreshDeadline)+needed.associate { i ->
+            val r = a.getJSONObject(i); val source = sources.getValue(r.getString("kind"))
+            // Snapshot and compiled publication share the DAT publisher's cross-process fence.
+            // Modification time alone can alias two downloads and overwrite a runtime asset.
+            withSourceWriteLock(context,s,r.getString("kind")) { destination ->
+                require(destination==source.canonicalFile&&destination.length() in 1..(64L*1024*1024))
+                val bytes=destination.readBytes()
+                val compiled = convert(bytes, r.getString("kind"), r.getString("code"))
+                val target = File(root(context), "${digest(source.name + digest(bytes) + r.toString())}.json")
+                require(!java.nio.file.Files.isSymbolicLink(target.toPath()))
+                for(suffix in listOf(".new",".bak"))require(!java.nio.file.Files.isSymbolicLink(File(target.parentFile,target.name+suffix).toPath()))
+                val atomic = android.util.AtomicFile(target); val out = atomic.startWrite()
+                try { out.write(compiled.toString().toByteArray(Charsets.UTF_8)); atomic.finishWrite(out) } catch (e: Exception) { atomic.failWrite(out); throw e }
+                "geo-$i" to target.absolutePath
+            }
         }
     }
     fun attach(config: JSONObject, state: JSONObject, paths: Map<String, String>, proxy: String, direct: String) {
-        val a = value(state).getJSONArray("selectors"); if (a.length() == 0) return
+        val a = value(state).getJSONArray("selectors"); ImportedRuleProviders.attach(config,value(state),paths);if (a.length() == 0) return
         val route = config.getJSONObject("route"); val sets = route.optJSONArray("rule_set") ?: JSONArray().also { route.put("rule_set", it) }
         val added = JSONArray()
         val needed=neededSelectors(state)
@@ -219,8 +308,12 @@ object GeoDataConfig {
     }
     fun convert(bytes: ByteArray, kind: String, code: String): JSONObject {
         require(kind in setOf("geoip", "geosite")); require(bytes.size <= 64 * 1024 * 1024)
-        val selected = Proto(bytes).fields().asSequence().filter { it.number == 1 }.map { Proto(it.bytes ?: error("Некорректная запись geo")).fields() }
-            .firstOrNull { fields -> fields.firstOrNull { it.number == 1 }?.bytes?.toString(Charsets.UTF_8)?.equals(code, true) == true } ?: error("Категория $kind:$code отсутствует в файле.")
+        val categories = Proto(bytes).fields().filter { it.number == 1 }
+        fun find(name: String) = categories.asSequence().map { Proto(it.bytes ?: error("Некорректная запись geo")).fields() }
+            .firstOrNull { fields -> fields.firstOrNull { it.number == 1 }?.bytes?.toString(Charsets.UTF_8)?.equals(name, true) == true }
+        // Prefer a real ru entry in custom databases; alias only if it is absent.
+        val selected = find(code) ?: (if (kind == "geosite" && code.equals("ru", true)) find("category-ru") else null)
+            ?: error("Категория $kind:$code отсутствует в файле.")
         val rules = JSONArray()
         if (kind == "geoip") {
             val cidrs = JSONArray()

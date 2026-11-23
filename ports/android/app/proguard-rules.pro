@@ -59,3 +59,22 @@
 -keep class com.jcraft.jsch.jbcrypt.JBCrypt { *; }
 -keep class com.jcraft.jsch.jce.KeyPairGenRSA { *; }
 -keep class com.jcraft.jsch.jce.KeyPairGenECDSA { *; }
+-keep class com.github.luben.zstd.** { *; }
+-keep class org.mcrf.client.ManagedAppFreezeWorker {
+    public <init>(android.content.Context);
+}
+
+-keep class org.mcrf.client.ManagedAppFreezeAdbDaemon {
+    public static void main(java.lang.String[]);
+}
+
+-keepclasseswithmembers,includedescriptorclasses class org.mcrf.client.AnubisPairingNative {
+    private native boolean pair(byte[],byte[],byte[],org.mcrf.client.AnubisPairingNative$PairingFrames);
+}
+-keepclassmembers class org.mcrf.client.AnubisPairingNative$PairingFrames {
+    public byte[] exchangeFrame(int,byte[]);
+}
+-keep class org.conscrypt.Conscrypt {
+    public static java.security.Provider newProvider();
+    public static byte[] exportKeyingMaterial(javax.net.ssl.SSLSocket,java.lang.String,byte[],int);
+}

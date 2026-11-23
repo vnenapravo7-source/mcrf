@@ -56,13 +56,6 @@ object ClientPrimarySelection {
         // A present but invalid sing-box throws above; do not silently try the compact backend.
         return if(WgAddonPolicy.backend(preferred,present,false)==WgAddonPolicy.Backend.SING_BOX)"singbox" else preferred
     }
-    /** Denial-only presence check: even an invalid/disabled installed sing-box must not enable an addon fallback. */
-    fun requireCompactDownloadAllowed(context:Context) {
-        val present=try {
-            context.packageManager.getApplicationInfo(EngineModules.packageName("sing-box"),0);true
-        }catch(_:android.content.pm.PackageManager.NameNotFoundException){false}
-        WgAddonPolicy.requireDownloadAllowed(selected(context),present)
-    }
     fun select(context:Context,choice:String) {
         val core=ClientPrimaryCorePolicy.Core.parse(choice)
         EngineUpdatePrimary.installation(context,core.kind)
@@ -76,15 +69,16 @@ object ClientPrimarySelection {
     }
     fun envelope(config:JSONObject,vpn:Boolean,metered:Boolean)=JSONObject().put("schema",1)
         .put("mode",if(vpn)"vpn"else"proxy").put("metered",metered).put("config",JSONObject(config.toString())).toString()
-    fun steerSnapshot(context:Context,routing:JSONObject,vpn:Boolean,accepted:Boolean?=null):SteerMcrfSnapshotAdapter.Result {
+    fun steerSnapshot(context:Context,routing:JSONObject,vpn:Boolean,accepted:Boolean?=null,prepareCachedGeo:(()->Boolean)?=null):SteerMcrfSnapshotAdapter.Result {
         RouteServerPlan.requireSingleServerCore(routing)
-        val captured=RoutingGroups.runtime(routing)
+        val captured=RoutingAppPolicies.runtimeState(RoutingGroups.runtime(routing),vpn)
         val prefs=context.getSharedPreferences("MainActivity",Context.MODE_PRIVATE)
         val additional=JSONArray()
         val contract=steerContract(context)
         if(prefs.getBoolean("automatic",false)&&!contract.independentProbe)additional.put("automatic-selection")
         val extras=OptionalCoreStore(context).load()
         if(extras.xrayVlessDefault||extras.xrayMuxDefault||extras.customFragmentDefault||extras.mixedCaseSniDefault)additional.put("optional-core-defaults")
+        require(ImportedRuleProviders.rows(GeoDataConfig.value(captured)).isEmpty()){"Этот профиль Clash / Mihomo использует внешние rule-provider. Выберите sing-box для сохранения всех его условий."}
         val geoPlan=if(contract.model==2)org.mcrf.steerprep.SteerGeoProjection.plan(captured)else null
         val store=ClientTunStore(context);val loadedTun=store.load();val tun=loadedTun.json()
         // DNS address-family policy is NOT TUN capture/routing policy. Keep the
@@ -135,7 +129,15 @@ object ClientPrimarySelection {
             snapshot.put("ipv4Compatibility",loadedTun.ipv4Compatibility)
             if(captured.optString("appMode","all")=="include")snapshot.put("hostPackage",context.packageName)
             if(tun.getBoolean("mixedEnabled"))snapshot.put("localProxyAuth",store.auth())
-            if(geoPlan!=null&&geoPlan.neededSelectors.isNotEmpty())snapshot.put("geoManifest",SteerGeoPreparation.capture(context,captured,geoPlan))
+            if(geoPlan!=null&&geoPlan.neededSelectors.isNotEmpty()) {
+                if(GeoDataConfig.value(captured).has("cacheNamespace"))SteerGeoPreparation.prepare(context,captured){!Thread.currentThread().isInterrupted}
+                val manifest=try {SteerGeoPreparation.capture(context,captured,geoPlan)}catch(error:IllegalStateException) {
+                    val current=prepareCachedGeo?:throw error
+                    SteerGeoPreparation.prepare(context,captured,current)
+                    SteerGeoPreparation.capture(context,captured,geoPlan)
+                }
+                snapshot.put("geoManifest",manifest)
+            }
         }
         return SteerMcrfSnapshotAdapter.convert(snapshot.toString())
     }

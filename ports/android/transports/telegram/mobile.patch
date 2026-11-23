@@ -1,0 +1,63 @@
+diff --git a/internal/proxy/proxy.go b/internal/proxy/proxy.go
+--- a/internal/proxy/proxy.go
++++ b/internal/proxy/proxy.go
+@@ -20,1 +20,2 @@
+ 	"github.com/y0sy4/tg-ws-proxy-go/internal/config"
++	"github.com/y0sy4/tg-ws-proxy-go/internal/mcrfnet"
+@@ -254,1 +255,1 @@
+-		return net.DialTimeout(network, addr, timeout)
++		return mcrfnet.DialTimeout(network, addr, timeout)
+@@ -318,1 +318,2 @@
+-	s.warmupPool()
++	// A mobile idle bridge must not continually dial unreachable DCs.
++	if s.config.PoolSize > 0 { s.warmupPool() }
+diff --git a/internal/mtproto/mtproto.go b/internal/mtproto/mtproto.go
+--- a/internal/mtproto/mtproto.go
++++ b/internal/mtproto/mtproto.go
+@@ -47,1 +47,3 @@
+ 	// Decrypt bytes [56:64] to get protocol magic and DC ID
++	// TDLib encrypts the whole 64-byte header, transmits only the last 8 encrypted.
++	stream.XORKeyStream(make([]byte,56),zero64[:56])
+@@ -91,1 +93,2 @@
+ 	keystream := make([]byte, 8)
++	stream.XORKeyStream(make([]byte,56),zero64[:56])
+@@ -95,2 +98,2 @@
+-	data[60] = keystream[0] ^ byte(dc)
+-	data[61] = keystream[1] ^ byte(dc>>8)
++	data[60] = keystream[4] ^ byte(dc)
++	data[61] = keystream[5] ^ byte(dc>>8)
+diff --git a/internal/mtproto/mtproto_test.go b/internal/mtproto/mtproto_test.go
+--- a/internal/mtproto/mtproto_test.go
++++ b/internal/mtproto/mtproto_test.go
+@@ -32,1 +32,2 @@
++	stream.XORKeyStream(make([]byte,56),make([]byte,56))
+ 	stream.XORKeyStream(encrypted, plainData)
+@@ -69,1 +70,2 @@
++	stream.XORKeyStream(make([]byte,56),make([]byte,56))
+ 	stream.XORKeyStream(encrypted, plainData)
+@@ -117,1 +119,2 @@
++	stream.XORKeyStream(make([]byte,56),make([]byte,56))
+ 	stream.XORKeyStream(encrypted, plainData)
+diff --git a/internal/websocket/websocket.go b/internal/websocket/websocket.go
+--- a/internal/websocket/websocket.go
++++ b/internal/websocket/websocket.go
+@@ -88,1 +88,1 @@
+-			InsecureSkipVerify: true,
++			InsecureSkipVerify: false,
+@@ -103,1 +103,1 @@
+-			InsecureSkipVerify: true,
++			InsecureSkipVerify: false,
+@@ -101,1 +101,1 @@
+-	if err := rawConn.SetDeadline(time.Time{}); err != nil {
++	if err := rawConn.SetDeadline(time.Now().Add(timeout)); err != nil {
+@@ -162,1 +162,10 @@
++	if resp.Header.Get("Sec-WebSocket-Accept") != GenerateSecWebSocketAccept(wsKey) {
++		rawConn.Close()
++		return nil, ErrHandshakeFailed
++	}
++	if err := rawConn.SetDeadline(time.Time{}); err != nil {
++		rawConn.Close()
++		return nil, err
++	}
++
+ 	return &WebSocket{

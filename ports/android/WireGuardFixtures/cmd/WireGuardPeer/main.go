@@ -31,7 +31,11 @@ func run() error {
 	listenPort := flag.Int("listen-port", 0, "Optional fixed high UDP port for a narrowly authorized firewall rule")
 	publicDNS := flag.String("public-dns", "none", "Explicit fixed test DNS relay: none, dot or doh; no arbitrary target")
 	vlessFinal := flag.Bool("vless-final",false,"Exact independent final Steer TLS fixture, not a general proxy")
+	ownerQuic := flag.Bool("owner-quic", false, "Owned plain-WG QUIC verifier on the tunnel-only IPv4 address")
 	flag.Parse()
+	if *ownerQuic && (*version != "wg" || *vlessFinal || *publicDNS != "none") {
+		return fmt.Errorf("owner QUIC requires plain WG and no public DNS")
+	}
 	if *listenPort != 0 && (*listenPort < 1024 || *listenPort > 65535) {
 		return fmt.Errorf("invalid fixture UDP port")
 	}
@@ -123,6 +127,19 @@ func run() error {
 		return err
 	}
 	go server.Serve(listener6)
+	var quicPeer *ownedQuicPeer
+	if *ownerQuic {
+		socket, err := stack.ListenUDP(&net.UDPAddr{IP:net.IPv4(10, 77, 0, 1), Port:18444})
+		if err != nil {
+			return err
+		}
+		quicPeer, err = newOwnedQuicPeer(socket)
+		if err != nil {
+			_ = socket.Close()
+			return err
+		}
+		defer quicPeer.close()
+	}
 	clientConf := fmt.Sprintf("[Interface]\nName = MCRF isolated %s fixture\nPrivateKey = %s\nAddress = 10.77.0.2/32, fd77::2/128\nDNS = 10.77.0.1\nMTU = 1280\n%s[Peer]\nPublicKey = %s\nEndpoint = %s\nAllowedIPs = 10.77.0.1/32, fd77::1/128\nPersistentKeepalive = 5\n", *version, base64.StdEncoding.EncodeToString(clientKey.Bytes()), conf, base64.StdEncoding.EncodeToString(serverKey.PublicKey().Bytes()), net.JoinHostPort(ip.String(), port))
 	target := filepath.Join(*output, "client.conf")
 	file, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
@@ -134,7 +151,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	json.NewEncoder(os.Stdout).Encode(map[string]string{"event": "ready", "config_path": target, "url": "http://10.77.0.1:8080" + fixturePath, "url_ipv6": "http://[fd77::1]:8080" + fixturePath, "expected_body": expected, "version": *version, "note": "Local test fixture; not WARP/Internet/DNS/provider evidence. Expires in 5 minutes; STOP on stdin closes. Final receipt contains only handshake and byte counters, never private keys."})
+	ready := map[string]any{"event": "ready", "config_path": target, "url": "http://10.77.0.1:8080" + fixturePath, "url_ipv6": "http://[fd77::1]:8080" + fixturePath, "expected_body": expected, "version": *version, "note": "Local test fixture; not WARP/Internet/DNS/provider evidence. Expires in 5 minutes; STOP on stdin closes. Final receipt contains only handshake and byte counters, never private keys."}
+	if quicPeer != nil {
+		ready["quic"] = map[string]any{"port":18444, "certificate":quicPeer.certificate, "certificateSha256":quicPeer.certificatePin}
+	}
+	json.NewEncoder(os.Stdout).Encode(ready)
 	stopped := make(chan struct{})
 	go func() {
 		scanner := bufio.NewScanner(os.Stdin)
@@ -148,6 +169,11 @@ func run() error {
 	select {
 	case <-stopped:
 	case <-time.After(5 * time.Minute):
+	}
+	if quicPeer != nil {
+		if err := quicPeer.close(); err != nil {
+			return err
+		}
 	}
 	server.Close()
 	dns.Close()
@@ -172,7 +198,11 @@ func run() error {
 		}
 	}
 	dev.Close()
-	json.NewEncoder(os.Stdout).Encode(map[string]any{"event": "closed", "version": *version, "handshake_observed": counters["last_handshake_time_sec"] > 0, "http_requests": requests.Load(), "http_body_bytes": bodyBytes.Load(), "dns_requests": dns.total(),"dns_udp4":dns.udp4.Load(),"dns_udp6":dns.udp6.Load(),"dns_tcp4":dns.tcp4.Load(),"dns_tcp6":dns.tcp6.Load(),"dns_refused":dns.refused.Load(),"dns_sockets_closed":true,"tls_sockets_closed":true,"tls_untrusted_accepted":encrypted.accepted.Load(),"tls_untrusted_rejected":encrypted.rejected.Load(),"tls_application_bytes":encrypted.applicationBytes.Load(),"public_dns_mode":relay.kind,"public_dns_connections":relay.opened.Load(),"public_dns_tx":relay.upBytes.Load(),"public_dns_rx":relay.downBytes.Load(),"public_dns_refused":relay.refused.Load(),"public_dns_sockets_closed":true,"internal_dns_packets":audit.internalDNS.Load(), "decrypted_packets": audit.decrypted.Load(), "blocked_packets": audit.blocked.Load(), "tunnel_counters": counters, "note": "Owned HTTP/DNS/untrusted TLS refusal and explicitly selected fixed DNS relay only, not general Internet/provider acceptance. No private key is included."})
+	closed := map[string]any{"event": "closed", "version": *version, "handshake_observed": counters["last_handshake_time_sec"] > 0, "http_requests": requests.Load(), "http_body_bytes": bodyBytes.Load(), "dns_requests": dns.total(),"dns_udp4":dns.udp4.Load(),"dns_udp6":dns.udp6.Load(),"dns_tcp4":dns.tcp4.Load(),"dns_tcp6":dns.tcp6.Load(),"dns_refused":dns.refused.Load(),"dns_sockets_closed":true,"tls_sockets_closed":true,"tls_untrusted_accepted":encrypted.accepted.Load(),"tls_untrusted_rejected":encrypted.rejected.Load(),"tls_application_bytes":encrypted.applicationBytes.Load(),"public_dns_mode":relay.kind,"public_dns_connections":relay.opened.Load(),"public_dns_tx":relay.upBytes.Load(),"public_dns_rx":relay.downBytes.Load(),"public_dns_refused":relay.refused.Load(),"public_dns_sockets_closed":true,"internal_dns_packets":audit.internalDNS.Load(), "decrypted_packets": audit.decrypted.Load(), "blocked_packets": audit.blocked.Load(), "tunnel_counters": counters, "note": "Owned HTTP/DNS/untrusted TLS refusal and explicitly selected fixed DNS relay only, not general Internet/provider acceptance. No private key is included."}
+	if quicPeer != nil {
+		closed["quic"] = quicPeer.evidence()
+	}
+	json.NewEncoder(os.Stdout).Encode(closed)
 	return nil
 }
 func main() {

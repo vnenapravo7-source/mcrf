@@ -6,13 +6,13 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class WgAddonPolicyTest {
-    @Test fun installedSingBoxBlocksAddonDownloadEvenWhenSteerIsSelected() {
-        for(primary in listOf(null,"singbox","steer")) {
-            assertThrows(IllegalArgumentException::class.java) {WgAddonPolicy.requireDownloadAllowed(primary,true)}
-        }
-        WgAddonPolicy.requireDownloadAllowed("steer",false)
+    @Test fun standaloneCataloguePathPrefersTheAddonWhenInstalled() {
+        assertTrue(WgAddonPolicy.standalonePreferred(compactPresent=true,singBoxPresent=true))
+        assertTrue(WgAddonPolicy.standalonePreferred(compactPresent=true,singBoxPresent=false))
+        assertTrue(WgAddonPolicy.standalonePreferred(compactPresent=false,singBoxPresent=false))
+        assertFalse(WgAddonPolicy.standalonePreferred(compactPresent=false,singBoxPresent=true))
     }
-    @Test fun installedSingBoxAlwaysWinsEvenWithSteerSelectedAndAddonInstalled() {
+    @Test fun installedSingBoxKeepsPriorityOutsideTheStandalonePath() {
         for(primary in listOf(null,"singbox","steer")) for(compact in listOf(false,true)) {
             assertEquals(WgAddonPolicy.Backend.SING_BOX,WgAddonPolicy.backend(primary,true,compact))
             assertFalse(WgAddonPolicy.offerDownload(primary,true,compact,listOf("wireguard","awg")))
@@ -25,16 +25,13 @@ class WgAddonPolicyTest {
         assertFalse(WgAddonPolicy.offerDownload("steer",false,true,listOf("awg")))
         assertFalse(WgAddonPolicy.offerDownload("steer",false,false,listOf("tuic","vless")))
     }
-    @Test fun singBoxChoiceNeverPermitsAddonDownloadOrAutomaticFallback() {
-        assertThrows(IllegalArgumentException::class.java) {WgAddonPolicy.requireDownloadAllowed("singbox")}
+    @Test fun legacyProfileKeepsTheExplicitSingBoxChoice() {
         assertEquals(WgAddonPolicy.Backend.NEED_SING_BOX,WgAddonPolicy.backend("singbox",false,true))
         assertFalse(WgAddonPolicy.offerDownload("singbox",false,false,listOf("awg")))
     }
     @Test fun missingChoiceDoesNotInstallAnythingAndUnknownChoiceFails() {
         assertEquals(WgAddonPolicy.Backend.NEED_PRIMARY,WgAddonPolicy.backend(null,false,true))
-        assertThrows(IllegalArgumentException::class.java) {WgAddonPolicy.requireDownloadAllowed(null)}
         assertThrows(IllegalArgumentException::class.java) {WgAddonPolicy.backend("other",true,true)}
-        WgAddonPolicy.requireDownloadAllowed("steer")
     }
 
     private fun graph(selected:String)=JSONObject().put("route",JSONObject().put("final","proxy"))
@@ -61,6 +58,10 @@ class WgAddonPolicyTest {
         val wg=ServerImport.read("[Interface]\nPrivateKey=$key\nAddress=10.77.0.2/32\n[Peer]\nPublicKey=$key\nEndpoint=192.0.2.1:51820\nAllowedIPs=0.0.0.0/0").single()
         val plain=ServerImport.read("vless://00000000-0000-4000-8000-000000000001@example.org:443?security=none&type=tcp&encryption=none#plain").single()
         val all=listOf(plain,wg)
+        assertTrue(WgAddonPolicy.standaloneProfile(wg,vpn=true,automatic=false))
+        assertFalse(WgAddonPolicy.standaloneProfile(wg,vpn=false,automatic=false))
+        assertFalse(WgAddonPolicy.standaloneProfile(wg,vpn=true,automatic=true))
+        assertFalse(WgAddonPolicy.standaloneProfile(plain,vpn=true,automatic=false))
         assertTrue(WgAddonPolicy.usesWireGuard(ServerImport.build(all,wg.id,false,60,50,"Cloudflare")))
         assertFalse(WgAddonPolicy.usesWireGuard(ServerImport.build(all,plain.id,false,60,50,"Cloudflare")))
         assertTrue(WgAddonPolicy.usesWireGuard(ServerImport.build(all,wg.id,true,60,50,"Cloudflare")))

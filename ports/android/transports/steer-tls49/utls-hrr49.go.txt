@@ -1,0 +1,42 @@
+// MCRF private overlay for refraction-networking/utls aa6edf4b11af (BSD-3-Clause).
+package tls
+
+import (
+	"crypto/mlkem"
+	"errors"
+	"io"
+)
+
+// Randomized Hello may advertise the hybrid group without initially sharing it.
+// TLS13 permits the server to request that OFFERED group in HRR. The pinned
+// stdlib assumption "always shared first" is not true of randomized uTLS.
+// Caller retains all original HRR offer/repetition/transcript validation.
+func mcrfRetryKeys49(config *Config, group CurveID) (*keySharePrivateKeys, []keyShare, error) {
+	if group == X25519MLKEM768 {
+		classical, e := generateECDHEKey(config.rand(), X25519)
+		if e != nil {
+			return nil, nil, e
+		}
+		var seed [mlkem.SeedSize]byte
+		if _, e = io.ReadFull(config.rand(), seed[:]); e != nil {
+			return nil, nil, e
+		}
+		pq, e := mlkem.NewDecapsulationKey768(seed[:])
+		for i := range seed {
+			seed[i] = 0
+		}
+		if e != nil {
+			return nil, nil, e
+		}
+		data := append(pq.EncapsulationKey().Bytes(), classical.PublicKey().Bytes()...)
+		return &keySharePrivateKeys{curveID: group, ecdhe: classical, mlkemEcdhe: classical, mlkem: pq}, []keyShare{{group: group, data: data}}, nil
+	}
+	if _, ok := curveForCurveID(group); !ok {
+		return nil, nil, errors.New("tls: unsupported retry group")
+	}
+	key, e := generateECDHEKey(config.rand(), group)
+	if e != nil {
+		return nil, nil, e
+	}
+	return &keySharePrivateKeys{curveID: group, ecdhe: key}, []keyShare{{group: group, data: key.PublicKey().Bytes()}}, nil
+}

@@ -20,6 +20,8 @@ class SingBoxEngine(context: Context): Engine {
     private val application=context.applicationContext
     private val once=AtomicBoolean()
     private val packetRoutes=SingBoxPacketRoutes(application)
+    private val originalCarrierPackets=SingBoxOriginalCarrierPackets(application)
+    private val originalCarrierFailed=AtomicBoolean()
     private val stop=CountDownLatch(1)
     @Volatile private var runningGeneration=0L
     private val metrics=SingBoxMetricState()
@@ -33,9 +35,16 @@ class SingBoxEngine(context: Context): Engine {
         .put("proxyOnly",true).put("isolatedProbe",true).put("trafficSource","native-status-callback").put("blockedAttemptsAvailable",false)
         .put("oneRunPerProcess",true).apply {
             if(packetRoutes.advertised)put("packetRouteBridge",SingBoxPacketRoutes.CAPABILITY)
+            if(originalCarrierPackets.advertised)put("originalCarrierBridge",SingBoxOriginalCarrierPackets.CAPABILITY)
             if(SingBoxProtocolRoutes.advertised(application))put("protocolRouteDispatcher",SingBoxProtocolRoutes.CAPABILITY)
+            if(ownerIsolationAvailable)put("vpnOwnerIsolationContract",2)
         }.toString() }
     override fun capabilitiesJson(): String=capabilityJson
+    private val ownerIsolationAvailable by lazy {
+        PlatformInterface::class.java.methods.any {it.name=="requireVpnOwnerIsolation"}&&runCatching {
+            (Libbox::class.java.getMethod("vpnOwnerIsolationContract").invoke(null) as? Number)?.toInt()==2
+        }.getOrDefault(false)
+    }
     private fun capabilitySha256(): String=java.security.MessageDigest.getInstance("SHA-256")
         .digest(capabilityJson.toByteArray(Charsets.UTF_8)).joinToString("") {"%02x".format(it.toInt() and 255)}
     override fun validate(serverUrl: String,immutableSettingsJson: String): Engine.Validation = try {
@@ -59,12 +68,19 @@ class SingBoxEngine(context: Context): Engine {
     }
     override fun run(request: Engine.Request,host: Engine.Host) {
         require(once.compareAndSet(false,true)) { "FRESH_CORE_PROCESS_REQUIRED" }
+        try {runOwned(request,host)} finally {originalCarrierPackets.close()}
+    }
+    private fun runOwned(request: Engine.Request,host: Engine.Host) {
         packetRoutes.seal(request.settingsJson,request.generation)
+        originalCarrierPackets.seal(request.settingsJson,request.generation)
         val config=SingBoxRuntimeConfig.parse(request.settingsJson)
         require(request.borrowedTunFd == -1 && request.vpnNetworkHandle==0L) { "CORE_TUN_MODE_FD" }
         require(request.tunAcquisition==if(config.mode=="vpn")Engine.TunAcquisition.DEFERRED else Engine.TunAcquisition.NONE) { "CORE_TUN_ACQUISITION_MISMATCH" }
         require((config.mode!="vpn")== (request.mode==Engine.Mode.PROXY)) { "CORE_REQUEST_MODE_MISMATCH" }
         val platform=host.platform()
+        require(config.mode!="vpn"||!platform.requiresVpnOwnerIsolation(request.generation)||ownerIsolationAvailable) {
+            "SINGBOX_VPN_OWNER_ISOLATION_UNSUPPORTED"
+        }
         val directory=File(request.stateDirectory).canonicalFile
         require(directory.isDirectory && directory.path.startsWith(application.cacheDir.canonicalPath+File.separator) &&
             directory.name.startsWith("mcrf-run-") && !java.nio.file.Files.isSymbolicLink(File(request.stateDirectory).toPath())) { "CORE_STATE_DIRECTORY" }
@@ -85,11 +101,19 @@ class SingBoxEngine(context: Context): Engine {
                     "serviceStop"->{requestStop();null}
                     "serviceReload"->throw IOException("RECONNECT_REQUIRED")
                     "getSystemProxyStatus"->SystemProxyStatus()
-                    "writeDebugMessage"->null // never forward native messages containing profile secrets
+                    "writeDebugMessage"->{
+                        // Recognize one fixed signal only for an adopted endpoint.
+                        // Remote/debug text is never forwarded to the journal.
+                        if(originalCarrierPackets.selected && stop.count!=0L && !host.stopping(request.generation) &&
+                            args?.getOrNull(0)=="MCRF_ORIGINAL_CARRIER_FAILED") {
+                            originalCarrierFailed.set(true);requestStop()
+                        };null
+                    }
                     else->throw IOException("ANDROID_COMMAND_UNSUPPORTED_${method.name}")
                 }
             } as CommandServerHandler
             val started=Libbox.newCommandServer(handler,adapter.native);server=started
+            originalCarrierPackets.register(started)
             active.current();started.start();active.current();started.startOrReloadService(config.nativeJson(),OverrideOptions())
             active.current()
             synchronized(commands) {commandServer=started;commandsReady=true}
@@ -110,6 +134,7 @@ class SingBoxEngine(context: Context): Engine {
             active.current()
             host.state(request.generation,"RUNNING","") // lifecycle only, not connectivity/reachability
             while(!host.stopping(request.generation) && !stop.await(250,TimeUnit.MILLISECONDS)) { }
+            if(originalCarrierFailed.get())throw IOException("MCRF_ORIGINAL_CARRIER_FAILED")
         } finally {
             closeCommands()
             // Main's STOP ACK additionally waits for worker death and its owned TUN/PFD closure.
@@ -122,7 +147,11 @@ class SingBoxEngine(context: Context): Engine {
         val clients=synchronized(commands) {commandsReady=false;commandServer=null;commandClients.toList()}
         clients.forEach {try {it.disconnect()}catch(_:Exception) { }}
     }
-    override fun requestStop() {stop.countDown();closeCommands();packetRoutes.requestStop()}
+    override fun requestStop() {stop.countDown();closeCommands();packetRoutes.requestStop();originalCarrierPackets.close()}
+    fun attachOriginalCarrier(settings:String,spec:String,borrowedFd:Int,ownerPid:Int,generation:Long,host:Engine.Host) {
+        check(!once.get()&&stop.count!=0L&&!host.stopping(generation)){"ORIGINAL_CARRIER_PRESTART_REQUIRED"}
+        originalCarrierPackets.attach(settings,spec,borrowedFd,ownerPid,generation){stop.count==0L||host.stopping(generation)}
+    }
     /** Private source-only additive role. Only the exact marked native module
      * supports it; no new public/profile setting or old-engine fallback. */
     fun attachPacketRoute(settings:String,spec:String,borrowedFd:Int,ownerPid:Int,generation:Long,host:Engine.Host) {

@@ -1,0 +1,160 @@
+package listener
+
+import (
+	"context"
+	"errors"
+	"net"
+	"net/netip"
+	"testing"
+	"time"
+
+	"github.com/sagernet/sing-box/adapter"
+	"github.com/sagernet/sing/common/control"
+	M "github.com/sagernet/sing/common/metadata"
+)
+
+type testMcrfProxyPlatform struct {
+	adapter.PlatformInterface
+	lookup          func(*adapter.FindConnectionOwnerRequest) (*adapter.ConnectionOwner, error)
+	interfaces      []adapter.NetworkInterface
+	interfacesError error
+	tunAddresses    []netip.Addr
+}
+
+func (p testMcrfProxyPlatform) FindConnectionOwner(request *adapter.FindConnectionOwnerRequest) (*adapter.ConnectionOwner, error) {
+	return p.lookup(request)
+}
+
+func (p testMcrfProxyPlatform) NetworkInterfaces() ([]adapter.NetworkInterface, error) {
+	return p.interfaces, p.interfacesError
+}
+
+func (p testMcrfProxyPlatform) MyInterfaceAddress() []netip.Addr {
+	return p.tunAddresses
+}
+
+func TestMcrfOwnerAuthenticatedLANUsesAndroidOnLinkSnapshot(t *testing.T) {
+	local := M.SocksaddrFrom(netip.MustParseAddr("192.168.51.20"), 10808)
+	onLink := M.SocksaddrFrom(netip.MustParseAddr("192.168.51.44"), 44000)
+	otherLocal := M.SocksaddrFrom(netip.MustParseAddr("192.168.51.21"), 44001)
+	tun := M.SocksaddrFrom(netip.MustParseAddr("192.168.51.22"), 44002)
+	offLink := M.SocksaddrFrom(netip.MustParseAddr("192.168.52.44"), 44003)
+	interfaces := []adapter.NetworkInterface{
+		{Interface: control.Interface{Flags: net.FlagUp, Addresses: []netip.Prefix{netip.PrefixFrom(local.Addr, 24)}}},
+		{Interface: control.Interface{Flags: net.FlagUp, Addresses: []netip.Prefix{netip.PrefixFrom(otherLocal.Addr, 24)}}},
+	}
+	platform := testMcrfProxyPlatform{interfaces: interfaces, tunAddresses: []netip.Addr{tun.Addr},
+		lookup: func(*adapter.FindConnectionOwnerRequest) (*adapter.ConnectionOwner, error) {
+			return nil, errProxyOwnerRequired
+		}}
+	policy := &mcrfOwnerPolicy{platform: platform, authenticatedLAN: true}
+	ctx, admitted := policy.TCP(context.Background(), onLink, local)
+	if !admitted || !ctx.Value(mcrfAssociationKey{}).(mcrfOwnerAssociation).lan {
+		t.Fatal("authenticated on-link peer was not admitted")
+	}
+	for _, peer := range []M.Socksaddr{local, otherLocal, tun, offLink} {
+		if _, admitted := policy.TCP(context.Background(), peer, local); admitted {
+			t.Fatalf("unscoped owner or off-link peer admitted: %v", peer)
+		}
+	}
+	policy.authenticatedLAN = false
+	if _, admitted := policy.TCP(context.Background(), onLink, local); admitted {
+		t.Fatal("on-link address bypassed required authentication")
+	}
+	policy.authenticatedLAN = true
+	platform.interfacesError = errors.New("Android link snapshot unavailable")
+	policy.platform = platform
+	if _, admitted := policy.TCP(context.Background(), onLink, local); admitted {
+		t.Fatal("unverified topology granted remote access")
+	}
+}
+
+func TestMcrfOwnerLocalTCPDeniesMissingAndRejectsUnscopedAssociation(t *testing.T) {
+	local := M.SocksaddrFrom(netip.MustParseAddr("::ffff:127.0.0.1"), 10808)
+	peer := M.SocksaddrFrom(netip.MustParseAddr("::ffff:127.0.0.1"), 44000)
+	policy := &mcrfOwnerPolicy{platform: testMcrfProxyPlatform{lookup: func(req *adapter.FindConnectionOwnerRequest) (*adapter.ConnectionOwner, error) {
+		if req.IpProtocol != 6 || req.SourceAddress != "127.0.0.1" || req.SourcePort != 44000 ||
+			req.DestinationAddress != "127.0.0.1" || req.DestinationPort != 10808 {
+			t.Fatalf("lookup did not use the original accepted TCP tuple: %+v", req)
+		}
+		return nil, errProxyOwnerRequired
+	}}}
+
+	if _, allowed := policy.TCP(context.Background(), peer, local); allowed {
+		t.Fatal("loopback TCP without a scoped owner passed")
+	}
+	if policy.UDP(peer, M.SocksaddrFrom(netip.IPv4Unspecified(), 10808)) {
+		t.Fatal("raw UDP without a verified local destination passed")
+	}
+	socket, err := net.ListenPacket("udp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = policy.associate(context.Background(), socket); !errors.Is(err, errProxyOwnerRequired) {
+		t.Fatalf("unscoped association passed: %v", err)
+	}
+	if _, err = socket.WriteTo([]byte{1}, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 9}); err == nil {
+		t.Fatal("rejected association left a live UDP descriptor")
+	}
+}
+
+func TestMcrfOwnerSOCKSDatagramVerifiesOriginalSenderAndSameUID(t *testing.T) {
+	listen := func() net.PacketConn {
+		conn, err := net.ListenPacket("udp4", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { conn.Close() })
+		return conn
+	}
+	receiver, permitted, excluded, another := listen(), listen(), listen(), listen()
+	port := func(conn net.PacketConn) int32 { return int32(conn.LocalAddr().(*net.UDPAddr).Port) }
+	local := M.SocksaddrFrom(netip.MustParseAddr("127.0.0.1"), 10808)
+	peer := M.SocksaddrFrom(netip.MustParseAddr("127.0.0.1"), 44000)
+	policy := &mcrfOwnerPolicy{platform: testMcrfProxyPlatform{lookup: func(req *adapter.FindConnectionOwnerRequest) (*adapter.ConnectionOwner, error) {
+		if req.IpProtocol == 6 {
+			return &adapter.ConnectionOwner{UserId: 10001}, nil
+		}
+		if req.IpProtocol != 17 || req.SourceAddress != "127.0.0.1" ||
+			req.DestinationPort != port(receiver) || req.DestinationAddress != "127.0.0.1" {
+			t.Fatalf("lookup did not use the original UDP tuple: %+v", req)
+		}
+		switch req.SourcePort {
+		case port(permitted):
+			return &adapter.ConnectionOwner{UserId: 10001}, nil
+		case port(another):
+			return &adapter.ConnectionOwner{UserId: 10002}, nil
+		default:
+			return nil, errProxyOwnerRequired
+		}
+	}}}
+	ctx, allowed := policy.TCP(context.Background(), peer, local)
+	if !allowed {
+		t.Fatal("owned TCP control socket rejected")
+	}
+	for _, address := range []string{"0.0.0.0:0", "[::]:0", "[::ffff:127.0.0.1]:0"} {
+		network, bind, err := policy.associationBind(ctx, "udp", address)
+		if err != nil || network != "udp4" || bind != "127.0.0.1:0" {
+			t.Fatalf("SOCKS UDP did not bind to original TCP local address: %v %v %v", network, bind, err)
+		}
+	}
+	if _, _, err := policy.associationBind(ctx, "udp", "127.0.0.2:0"); !errors.Is(err, errProxyOwnerRequired) {
+		t.Fatalf("SOCKS UDP accepted another local endpoint: %v", err)
+	}
+	association, err := policy.associate(ctx, receiver)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = association.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	for _, conn := range []net.PacketConn{excluded, another, permitted} {
+		if _, err = conn.WriteTo([]byte{1}, receiver.LocalAddr()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, sender, err := association.ReadFrom(make([]byte, 1))
+	if err != nil || sender.String() != permitted.LocalAddr().String() {
+		t.Fatalf("unexpected admitted SOCKS datagram = %v, %v", sender, err)
+	}
+}

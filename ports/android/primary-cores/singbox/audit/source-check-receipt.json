@@ -1,0 +1,120 @@
+{
+  "schema": 1,
+  "state": "passed",
+  "sourceStable": true,
+  "checkedAtUtc": "2026-11-07T23:22:45.1485215Z",
+  "checks": 129,
+  "scope": "Isolated real module source compile and host-only policy/model/concurrency guards; no Android/JNI/IPC/native traffic/package acceptance",
+  "groups": [
+    "PASS 14 real canonical deferred/provided/proxy constructor checks; no TUN/IPC",
+    "PASS 16 complete-config envelope checks; no native/Android execution",
+    "PASS 16 actual callback-guard checks; no JNI/platform/IPC execution",
+    "PASS 9 actual metric-state checks; no native status source exercised",
+    "PASS 36 DNS completion checks including32 concurrent cancel/reply races; no nativeDNS/IPC execution",
+    "PASS 8 actual TUN HTTP proxy getter-guard checks; no JNI execution",
+    "PASS 13 real host-envelope/constructor wiring checks with declared preflight fixture; no native checkConfig or runtime success",
+    "PASS 17 pure primary-core policy checks; no Android/JNI/loader claim"
+  ],
+  "inputs": [
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\work\\steer-android-port\\android-vpn\\module-contract\\src\\main\\java\\org\\mcrf\\engine\\spi\\v1\\Engine.java",
+      "sha256": "a1041cd06efdac46445c80b086b0d1df7f8f3cb9f3cd033de364027d4f67788a"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\work\\steer-android-port\\android-vpn\\module-contract\\src\\main\\java\\org\\mcrf\\engine\\spi\\v1\\Platform.java",
+      "sha256": "570d0728cafdbd80cad32ed1f8c272f141ff0489814e47eac9e3ca4ec30698e9"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\app\\libs\\libbox.aar",
+      "sha256": "cc8089f5ac7731c0b18b4d41ee0baf9a6171f2283781e00850649d4eb16f9678"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\app\\src\\main\\java\\org\\mcrf\\client\\ClientPrimaryCorePolicy.java",
+      "sha256": "06781509421f9feb9c9492cd2e5c52dfc94dbf1a8540986d2087eb26d9f02b21"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\app\\src\\main\\kotlin\\org\\mcrf\\client\\ClientPrimaryCoreConfig.kt",
+      "sha256": "752842f427b5c8d7ff1fc0da84e8e6faf476f1d45d6368e4d7be948205128499"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\Check-Sources.ps1",
+      "sha256": "7bb688b155eedbb7d3f50dd956089c495b3a2718260cce421ab65baa76f3e84a"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\Check-Policy.ps1",
+      "sha256": "f2c9acbf48184faed4d8676a721bef89dd74e772a62fa9c4b6c2de94af474993"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\src\\main\\kotlin\\org\\mcrf\\engines\\singbox\\SingBoxCallbackGuard.kt",
+      "sha256": "84d81fce389a976735b9b42aab41a6225c11cf24fc5bc59a87da7728bb7eecd5"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\src\\main\\kotlin\\org\\mcrf\\engines\\singbox\\SingBoxDnsCompletion.kt",
+      "sha256": "e72ce2d88b52c310e2061ba995d59cf3ec1d6d256b43898ce33d340762e2d98f"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\src\\main\\kotlin\\org\\mcrf\\engines\\singbox\\SingBoxEngine.kt",
+      "sha256": "6063bf9a1bdb4f0466d83389b82790b167927faee52ef103d6b6b0d154caa371"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\src\\main\\kotlin\\org\\mcrf\\engines\\singbox\\SingBoxMetricState.kt",
+      "sha256": "ede1b5571fc7a4716fd4a8fb1bb1c816a6123e163c6f39c05ade54c0abd3a330"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\src\\main\\kotlin\\org\\mcrf\\engines\\singbox\\SingBoxOriginalCarrierPackets.kt",
+      "sha256": "38dfff9d4dd796f4bf9220965e39dd802a1b52d876208c6795531e33976b5197"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\src\\main\\kotlin\\org\\mcrf\\engines\\singbox\\SingBoxPacketRoutes.kt",
+      "sha256": "cdea8d46443761dd7e6c1ec1e9d563712302b88e1333f0f180ccbc2d6cb95bd6"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\src\\main\\kotlin\\org\\mcrf\\engines\\singbox\\SingBoxPlatformAdapter.kt",
+      "sha256": "372e67917f659bc2fec898b6a098b9eb63680b7c3f9669efd717202f69524ef7"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\src\\main\\kotlin\\org\\mcrf\\engines\\singbox\\SingBoxProtocolRoutes.kt",
+      "sha256": "1b170854b695fd65d85c870e67a998a3f8028f18c47ca84294c4e4be98954d2e"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\src\\main\\kotlin\\org\\mcrf\\engines\\singbox\\SingBoxRuntimeConfig.kt",
+      "sha256": "472ae12acdf2c85e7d8cf3a46eb02793e79745fa8654874476463a4ccbd9d777"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\src\\main\\kotlin\\org\\mcrf\\engines\\singbox\\SingBoxTunProxy.kt",
+      "sha256": "170592fdd3a1c4911a4c161523c5a6ef9938e7e9b996490d24c249611c2a90a7"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\tests\\ClientPrimaryCoreConfigChecks.kt",
+      "sha256": "25043184f8b532ceb414018b4bf502d77b7dd79f6d8a497e83d08b93d2a34f61"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\tests\\ClientPrimaryCorePolicyChecks.java",
+      "sha256": "943cd7fc5854738c6086c70979c9025199b3368dafc637c1ffddb033f7444637"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\tests\\SingBoxCallbackGuardChecks.kt",
+      "sha256": "df1002ec11022534b46ff5b005d95995b43cd5f7ea003d9444ef678d071e727d"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\tests\\SingBoxDeferredRequestChecks.java",
+      "sha256": "10e15768d4c4cafaf81e5cebcf951b77133cd4c7193051f9dd3cf2502660559e"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\tests\\SingBoxDnsCompletionChecks.kt",
+      "sha256": "8d3adb07279db914e3a3ccca812a427ee5fbe00d0359c5517dd7970bde008311"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\tests\\SingBoxMetricStateChecks.kt",
+      "sha256": "06c05443936b4b529c5a270403f59a53080477e8749a168e33b4b823fdb9599f"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\tests\\SingBoxRuntimeConfigChecks.kt",
+      "sha256": "748373b0f809df05f160ad8e57a82198bd30031d11a1cb559dbc5b8b1807a019"
+    },
+    {
+      "path": "D:\\MCRF\\Projects\\MCRF\\ports\\android\\primary-cores\\singbox\\tests\\SingBoxTunProxyChecks.kt",
+      "sha256": "90f1d4fa03c15afce9f22b8c9317bc6c6ff4e80fbf7bad0722e6648356d725cf"
+    }
+  ]
+}

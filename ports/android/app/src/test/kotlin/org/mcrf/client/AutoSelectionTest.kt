@@ -13,7 +13,9 @@ class AutoSelectionTest {
         val entries = listOf(entry("openflux"), entry("wdtt"), entry("qwdtt"), entry("csqtt"), entry("vless"),entry(S3BypassProfile.KIND))
         val measured = probes(entries)
         measured.getJSONObject(entries[0].id).put("delay", 0); measured.getJSONObject(entries[3].id).put("delay", 500)
-        assertEquals(AutoSelection.ENGINE_PRIORITY, AutoSelection.proven(entries, entries.map { it.id }.toSet(), measured, now, AutoSelection.BS_ENGINES).map { it.protocol })
+        // Importable engines excluded from automatic execution do not enter the ranked pool.
+        assertEquals(setOf("openflux"),AutoSelection.AUTOMATIC_EXCLUDED)
+        assertEquals(listOf("csqtt","qwdtt","wdtt",S3BypassProfile.KIND), AutoSelection.proven(entries, entries.map { it.id }.toSet(), measured, now, AutoSelection.BS_ENGINES).map { it.protocol })
     }
     @Test fun unmarkedNodesNeverEnterEitherPolicy() {
         val entries = listOf(entry("csqtt"), entry("qwdtt"))

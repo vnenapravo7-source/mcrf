@@ -1,0 +1,157 @@
+--- a/internal/websocket/websocket.go
++++ b/internal/websocket/websocket.go
+@@ -7,4 +7,5 @@
+ 	"crypto/sha1"
+ 	"crypto/tls"
++	"crypto/x509"
+ 	"encoding/base64"
+ 	"encoding/binary"
+@@ -16,4 +17,5 @@
+ 	"net/url"
+ 	"sync"
++	"syscall"
+ 	"time"
+ )
+@@ -72,5 +74,5 @@
+ 		rawConn, err = dialFunc("tcp", net.JoinHostPort(ip, "443"))
+ 		if err != nil {
+-			return nil, fmt.Errorf("dial: %w", err)
++			return nil, &StageError{Stage: "tcp", Err: err}
+ 		}
+ 		// Wrap with TLS
+@@ -79,9 +81,14 @@
+ 			InsecureSkipVerify: false,
+ 		}
+-		rawConn = tls.Client(rawConn, tlsConfig)
++		secure := tls.Client(rawConn, tlsConfig)
++		rawConn = secure
+ 		// Set handshake timeout
+ 		if err := rawConn.SetDeadline(time.Now().Add(timeout)); err != nil {
+ 			rawConn.Close()
+-			return nil, err
++			return nil, &StageError{Stage: "tls", Err: err}
++		}
++		if err := secure.Handshake(); err != nil {
++			rawConn.Close()
++			return nil, &StageError{Stage: "tls", Err: err}
+ 		}
+ 	} else {
+@@ -98,8 +105,11 @@
+ 	}
+ 
+-	// Clear deadline after handshake
+-	if err := rawConn.SetDeadline(time.Now().Add(timeout)); err != nil {
+-		rawConn.Close()
+-		return nil, err
++	// The custom dial path retains its TLS/HTTP deadline. The standalone
++	// path starts an upgrade deadline after tls.DialWithDialer.
++	if dialFunc == nil {
++		if err := rawConn.SetDeadline(time.Now().Add(timeout)); err != nil {
++			rawConn.Close()
++			return nil, &StageError{Stage: "http", Err: err}
++		}
+ 	}
+ 
+@@ -138,5 +148,5 @@
+ 	if err := req.Write(rawConn); err != nil {
+ 		rawConn.Close()
+-		return nil, fmt.Errorf("write request: %w", err)
++		return nil, &StageError{Stage: "http", Err: err}
+ 	}
+ 
+@@ -146,5 +156,5 @@
+ 	if err != nil {
+ 		rawConn.Close()
+-		return nil, fmt.Errorf("read response: %w", err)
++		return nil, &StageError{Stage: "http", Err: err}
+ 	}
+ 	resp.Body.Close()
+@@ -162,5 +172,5 @@
+ 	if resp.Header.Get("Sec-WebSocket-Accept") != GenerateSecWebSocketAccept(wsKey) {
+ 		rawConn.Close()
+-		return nil, ErrHandshakeFailed
++		return nil, &StageError{Stage: "http", Err: ErrHandshakeFailed}
+ 	}
+ 	if err := rawConn.SetDeadline(time.Time{}); err != nil {
+@@ -175,4 +185,55 @@
+ 		maskKey: make([]byte, 4),
+ 	}, nil
++}
++
++// StageError preserves the cause for callers and exposes a fixed stage for diagnostics.
++type StageError struct {
++    Stage string
++    Err error
++}
++
++func (e *StageError) Error() string { return e.Stage + ": " + e.Err.Error() }
++func (e *StageError) Unwrap() error { return e.Err }
++
++func FailureStage(err error) string {
++    var failure *StageError
++    if errors.As(err, &failure) {
++        if failure.Stage == "tls" {
++            return tlsFailureStage(failure.Err)
++        }
++        return failure.Stage
++    }
++    var handshake *HandshakeError
++    if errors.As(err, &handshake) {
++        return "http"
++    }
++    return "unknown"
++}
++
++// Use typed errors. In particular, Go reports some peer TLS alerts as an
++// opaque cause under a remote net.OpError.
++func tlsFailureStage(err error) string {
++    var name x509.HostnameError
++    if errors.As(err, &name) {
++        return "tls_name"
++    }
++    var verification *tls.CertificateVerificationError
++    if errors.As(err, &verification) {
++        return "tls_trust"
++    }
++    var timeout net.Error
++    if errors.As(err, &timeout) && timeout.Timeout() {
++        return "tls_timeout"
++    }
++    var operation *net.OpError
++    if (errors.As(err, &operation) && operation.Op == "remote error") ||
++        errors.Is(err, syscall.ECONNRESET) || errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
++        return "tls_remote"
++    }
++    var record tls.RecordHeaderError
++    if errors.As(err, &record) {
++        return "tls_record"
++    }
++    return "tls_other"
+ }
+ 
+--- a/internal/proxy/proxy.go
++++ b/internal/proxy/proxy.go
+@@ -529,4 +529,5 @@
+ 	}
+ 
++	s.logInfo("MCRF_TGWS_WS_CONNECTED")
+ 	s.stats.addConnectionsWS(1)
+ 
+@@ -572,4 +573,5 @@
+ 
+ 		s.stats.addWSErrors(1)
++		s.logInfo("MCRF_TGWS_WSS_FAILED_%s", websocket.FailureStage(wsErr))
+ 
+ 		if he, ok := wsErr.(*websocket.HandshakeError); ok {
+@@ -697,6 +699,9 @@
+ 	s.stats.addConnectionsTCP(1)
+ 
+-	// Send init
+-	remoteConn.Write(init)
++	// Publish fallback only after the peer accepts the connection and init.
++	if written, err := remoteConn.Write(init); err != nil || written != len(init) {
++		return
++	}
++	s.logInfo("MCRF_TGWS_TCP_CONNECTED")
+ 
+ 	s.bridgeTCP(conn, remoteConn, label)

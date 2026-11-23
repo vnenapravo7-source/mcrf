@@ -16,15 +16,28 @@ class NetworkP0WiringTest {
     }
     @Test fun startupPoolNeverUsesExpiringProvenFilterForConnectAdmission() {
         val main=source("MainActivity")
-        assertTrue(main.contains("catalogue.startupEntries(sectionPolicy)"))
+        // UI admission now uses the section policy without decrypting/refreshing the catalogue.
+        val selection=main.substringAfter("private fun prepareConnection(").substringBefore("busy = true")
+        assertTrue(selection.contains("BsAutoSelectionPolicy.startup("))
+        assertTrue(selection.contains("SectionConnectSelection.start("))
+        assertFalse(selection.contains("catalogue.autoEntries("))
         assertTrue(main.contains("catalogue.startupEntries(policy,refresh=true)"))
+        val catalogue=source("Connections").substringAfter("fun startupEntries(").substringBefore("private fun readable")
+        assertTrue(catalogue.contains("AutoSelection.startup("));assertFalse(catalogue.contains("AutoSelection.proven("))
         assertFalse(main.contains("Отметь серверы для автовыбора и выполни замер"))
     }
     @Test fun automaticNotificationsOnlyAtConfirmedSerialTransitions() {
         val service=source("McrfVpnService")
-        assertEquals(2,Regex("AutoSectionNotifications\\.post\\(this,").findAll(service).count())
+        // Startup preflight can now confirm BS before the ordinary VPN starts.
+        val posts=service.lineSequence().filter {it.contains("AutoSectionNotifications.post(this,")}.toList()
+        assertEquals(3,posts.size)
+        assertTrue(posts.all {it.contains("if(autoSectionNotice.accept(")})
         assertTrue(service.contains("autoSectionNotice.accept(true,autoBsSwitchSerial,stamp.epoch,epoch"))
         assertTrue(service.contains("autoSectionNotice.accept(false,autoVpnSwitchSerial,stamp.epoch,epoch"))
+        val startup=service.substringAfter("private fun startVpnWithBsPreflight(").substringBefore("private fun startSource(")
+        val confirmed=startup.indexOf("val chosen=chooseEngine(")
+        assertTrue(confirmed>=0)
+        assertTrue(startup.indexOf("autoSectionNotice.accept(true,autoBsSwitchSerial,requested,epoch,!cancelled())")>confirmed)
     }
     @Test fun ipv4ToggleIsFirstAndSharedRuntimePolicyKeepsStoredTunIpv6() {
         val ui=source("ClientTunUi")

@@ -16,7 +16,7 @@ function Assert-Source {
 Assert-Source
 $taskStage="D:/MCRF/Builds/Android/p3-olcrtc-host-$([guid]::NewGuid().ToString('N'))";New-Item -ItemType Directory -Path $taskStage|Out-Null
 $taskProof=@{state='RUNNING';sourceManifestSha256=$taskSource.manifestSha256;failures=0;skipped=0;cases=@();androidRuntimeAccepted=$false;retainedTestsReplayed=$false}
-$taskRequired=@('TestMcrfOlcStrictPrivateSchema','TestMcrfOlcTransportOptionsPreserveOriginalMapping','TestMcrfOlcStopCancelsTheOwnedListener','TestMcrfOlcEOFIsCancellationWithoutReady','TestMcrfOlcStartupFailureIsNotSwallowed','TestShutdownClosesLinkAndConn','TestShutdownWaitsForTrackedGoroutines')
+$taskRequired=@('TestMcrfOlcStrictPrivateSchema','TestMcrfOlcTransportOptionsPreserveOriginalMapping','TestMcrfOlcStopCancelsTheOwnedListener','TestMcrfOlcEOFIsCancellationWithoutReady','TestMcrfOlcStartupFailureIsNotSwallowed','TestMcrfOlcPhysicalNetworkAdmission','TestShutdownClosesLinkAndConn','TestShutdownWaitsForTrackedGoroutines','TestMcrfOlcSocks5OfferedMethods','TestMcrfOlcRtxBeforePrimaryVideo')
 $taskNames=@('GOOS','GOARCH','GOARM','CGO_ENABLED','GOROOT','GOENV','GOWORK','GOFLAGS','GOTOOLCHAIN','GOPROXY','GOPATH','GOMODCACHE','GOCACHE','GOTMPDIR');$taskOld=@{}
 foreach($taskName in $taskNames){$taskOld[$taskName]=[Environment]::GetEnvironmentVariable($taskName,'Process')}
 try {
@@ -31,7 +31,9 @@ try {
   # New adapter cases plus original SDK local shutdown cases, never accepted in prior MCRF tests.
   & $taskGo test -mod=readonly '-ldflags=-checklinkname=0' -count=1 -json -timeout 180s -run '^TestMcrfOlc' ./cmd/mcrf-olcrtc > "$taskStage/olcrtc-host-tests.jsonl" 2> "$taskStage/test-build.stderr.log"
   $taskExit=$LASTEXITCODE
-  & $taskGo test -mod=readonly -count=1 -json -timeout 120s -run '^(TestShutdownClosesLinkAndConn|TestShutdownWaitsForTrackedGoroutines)$' ./internal/client >> "$taskStage/olcrtc-host-tests.jsonl" 2>> "$taskStage/test-build.stderr.log"
+  & $taskGo test -mod=readonly -count=1 -json -timeout 120s -run '^(TestShutdownClosesLinkAndConn|TestShutdownWaitsForTrackedGoroutines|TestMcrfOlcSocks5OfferedMethods)$' ./internal/client >> "$taskStage/olcrtc-host-tests.jsonl" 2>> "$taskStage/test-build.stderr.log"
+  if($LASTEXITCODE -ne 0){$taskExit=$LASTEXITCODE}
+  & $taskGo test -mod=readonly -count=1 -json -timeout 120s -run '^TestMcrfOlcRtxBeforePrimaryVideo$' ./internal/engine/jitsi >> "$taskStage/olcrtc-host-tests.jsonl" 2>> "$taskStage/test-build.stderr.log"
   if($LASTEXITCODE -ne 0){$taskExit=$LASTEXITCODE}
  }finally{Pop-Location}
  $taskPassed=@()

@@ -18,5 +18,14 @@ object StandardButtons {
         // Material's inherited tint/elevation must not restyle our custom surface.
         backgroundTintList=null;stateListAnimator=null;elevation=0f;translationZ=0f
         background=Loft.buttonBackground(context,primary)
+        AppTypography.applyTree(this)
     }
+    fun compact(context:Context,button:Button,label:String=button.text.toString(),primary:Boolean=false)=style(context,button,label,primary).apply {
+        fun dp(value:Int)=(value*context.resources.displayMetrics.density).roundToInt()
+        textSize=13f
+        // Keep 48dp touch targets; the painted surface is a compact 40dp.
+        background=android.graphics.drawable.InsetDrawable(Loft.buttonBackground(context,primary),0,dp(4),0,dp(4))
+        setPadding(dp(12),dp(4),dp(12),dp(4))
+    }
+
 }

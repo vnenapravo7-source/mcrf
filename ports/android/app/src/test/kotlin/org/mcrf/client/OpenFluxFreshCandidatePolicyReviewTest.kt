@@ -7,7 +7,7 @@ class OpenFluxFreshCandidatePolicyReviewTest {
     private fun descriptor() = OpenFluxFreshCandidatePolicy.Descriptor(
         packageName = OpenFluxFreshCandidatePolicy.PACKAGE, versionCode = 13, versionName = OpenFluxFreshCandidatePolicy.VERSION_NAME,
         enabled = true, sameSigners = true, singleApk = true, kind = "openflux", repository = OpenFluxFreshCandidatePolicy.REPOSITORY,
-        version = OpenFluxProfile.FRESH_VERSION, commit = OpenFluxProfile.FRESH_COMMIT, overlay = "", interfaceVersion = 1,
+        version = "v0.13.0", commit = "4f9c786cdd1d9fcd0c133e2e0fec0c5a12522610", overlay = "", interfaceVersion = 1,
         carrier = 2, verification = 1, observation = 1, scriptUpdater = 1, diagnostic = 0)
     private fun expected() = OpenFluxFreshCandidatePolicy.Expected("a".repeat(64), "b".repeat(64), 12345, "arm64-v8a")
 

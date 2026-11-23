@@ -13,7 +13,7 @@ internal object OwnedDirectVpnPlan {
         require(tag.matches(Regex("fixture-owned-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")))
         return tag.removePrefix("fixture-owned-").replace("-","")+".fixture.test"
     }
-    fun build(address:String,port:Int,tag:String,inverted:Boolean,negative:Boolean,domain:Boolean=false):JSONObject {
+    fun build(address:String,port:Int,tag:String,inverted:Boolean,negative:Boolean,domain:Boolean=false,imported:JSONObject?=null,paths:Map<String,String> = emptyMap()):JSONObject {
         require(RouteRules.literal(address) is java.net.Inet4Address&&port in 1024..65535)
         require(tag.matches(Regex("fixture-owned-[0-9a-f-]{36}")))
         val direct="$tag-direct";val health="mcrf-loopback-owned-health"
@@ -28,17 +28,27 @@ internal object OwnedDirectVpnPlan {
                 .put(JSONObject().put("ip_cidr",JSONArray().put("$address/32")).put("network","tcp").put("port",port).put("action","route").put("outbound",health))))
         val settings=RouteRules.defaults().put("defaultTarget",if(inverted)"direct"else"proxy")
         val host=if(domain)hostname(tag)else""
-        if(domain){
+        if(domain&&imported==null){
             val dns=source.getJSONObject("dns")
             dns.getJSONArray("servers").getJSONObject(0).put("predefined",JSONObject().put(host,JSONArray().put("198.18.0.2")))
             dns.put("reverse_mapping",true).put("strategy","ipv4_only")
                 .put("rules",JSONArray().put(JSONObject().put("domain",JSONArray().put(host)).put("action","route").put("server","fixture-dns"))
                     .put(JSONObject().put("action","predefined").put("rcode","NXDOMAIN")))
         }
-        settings.getJSONArray("rules").put(JSONObject().put("id","owned-cidr").put("name","Owned TUN CIDR")
+        if(imported==null)settings.getJSONArray("rules").put(JSONObject().put("id","owned-cidr").put("name","Owned TUN CIDR")
             .put("text",if(domain)"DOMAIN,"+(if(negative)"wrong-"else"")+host else if(negative)"203.0.113.0/24"else"198.18.0.2/32").put("mode","addresses")
             .put("target",if(inverted)"proxy"else"direct").put("invert",inverted).put("enabled",true))
-        val compiled=RouteRules.apply(source,settings,true)
+        else imported.keys().forEach {key->settings.put(key,imported.get(key))}
+        val compiled=RouteRules.apply(source,settings,true,paths)
+        if(imported!=null){
+            // Only this negative fixture hostname is locally rejected; the positive
+            // answer must come from the imported profile's actual DNS-hosts server.
+            val dns=compiled.getJSONObject("dns");val original=dns.getJSONArray("rules")
+            val controlled=JSONArray().put(JSONObject().put("domain",JSONArray().put("missing-$host")).put("action","predefined").put("rcode","NXDOMAIN"))
+            repeat(original.length()){controlled.put(original.get(it))};dns.put("rules",controlled)
+            // The private service fixture already preserves its supplied DNS.
+            // Do not send the app-only profile ownership marker to libbox.
+        }
         val route=compiled.getJSONObject("route");val rules=route.getJSONArray("rules")
         val guarded=JSONArray().put(JSONObject().put("type","logical").put("mode","or").put("invert",true)
             .put("rules",JSONArray()
@@ -61,7 +71,7 @@ internal object OwnedDirectVpnPlan {
         val terminal=JSONObject().put("action","route").put("outbound",route.getString("final"))
         if(route.getString("final")==direct)terminal.put("override_address",address).put("override_port",port)
         guarded.put(terminal);route.put("rules",guarded)
-        check((0 until rules.length()).count {rules.getJSONObject(it).optString("action")=="resolve"}==if(domain)0 else 1)
+        if(imported==null)check((0 until rules.length()).count {rules.getJSONObject(it).optString("action")=="resolve"}==if(domain)0 else 1)
         check(route.getString("final")==if(inverted)direct else tag)
         return compiled
     }

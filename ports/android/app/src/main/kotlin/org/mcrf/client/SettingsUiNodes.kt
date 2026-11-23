@@ -15,7 +15,11 @@ class SettingsUiNodes(private val activity: MainActivity) {
     }
 
     /** Title and version wrap independently of the fixed, accessible action target. */
-    fun actionRow(title: String, detail: String, glyph: String, actionLabel: String, action: () -> Unit): LinearLayout = with(activity) {
+    fun actionRow(title: String, detail: CharSequence, glyph: String, actionLabel: String, action: () -> Unit): LinearLayout = with(activity) {
+        val tv = TvUi.enabled(this)
+        val capture = title == "Журнал соединений · Beta"
+        val displayTitle = if(capture) "Запись трафика · Beta" else title
+        val displayDetail = if(capture) "Только запись или запись + подключение · без payload" else detail
         card().apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -23,10 +27,26 @@ class SettingsUiNodes(private val activity: MainActivity) {
             setPadding(dp(14), dp(8), dp(6), dp(8))
             addView(LinearLayout(this@with).apply {
                 orientation = LinearLayout.VERTICAL
-                addView(text(title, 15, Loft.INK), LinearLayout.LayoutParams(-1, -2))
-                if (detail.isNotBlank()) addView(text(detail, 12, Loft.MUTED), space(5, 0))
+                addView(text(displayTitle, 15, Loft.INK), LinearLayout.LayoutParams(-1, -2))
+                if (displayDetail.isNotBlank()) addView(text("", 12, Loft.MUTED).apply { text = displayDetail }, space(5, 0))
             }, LinearLayout.LayoutParams(0, -2, 1f))
-            addView(iconButton(glyph, actionLabel).apply { setOnClickListener { action() } }, LinearLayout.LayoutParams(dp(48), dp(48)))
+            addView(iconButton(glyph, if(capture) "Открыть: $displayTitle" else actionLabel).apply {
+                if(glyph=="arrow"&&title.endsWith("· Beta")) {
+                    background=android.graphics.drawable.StateListDrawable().apply {
+                        addState(intArrayOf(android.R.attr.state_focused),flat(android.graphics.Color.TRANSPARENT,14,Loft.ACCENT))
+                    }
+                }
+                if (tv) {
+                    isClickable = false
+                    isFocusable = false
+                    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                } else setOnClickListener { action() }
+            }, LinearLayout.LayoutParams(dp(48), dp(48)))
+            if (tv) {
+                isFocusable = true
+                descendantFocusability = android.view.ViewGroup.FOCUS_BLOCK_DESCENDANTS
+                contentDescription = actionLabel
+            }
             setOnClickListener { action() }
         }
     }

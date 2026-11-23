@@ -51,6 +51,7 @@ open class ClientPrimaryWorkerService : Service() {
     @Volatile private var ownerPid = -1
     @Volatile private var generation = 0L
     @Volatile private var engine: Engine? = null
+    @Volatile private var bsBackend:BsNativeWorkerBackend?=null
     @Volatile private var packetBackend: org.mcrf.engine.protocol.v1.PacketBackend? = null
     private var packetRouteAdmission=PacketRouteEnvelope.Admission.LEGACY_IP
     private var packetManagedDnsAdmission=false
@@ -129,7 +130,7 @@ open class ClientPrimaryWorkerService : Service() {
                 closeReceived(input);fail(receiver,"BOOTSTRAP_WORKER_ROLE");stopWorker();return true
             }
             if(this@ClientPrimaryWorkerService.javaClass==ClientPrimaryValidationWorkerService::class.java&&
-                (!ClientPrimaryWorkerWire.validationCommand(command)||command=="INIT"&&input.containsKey("platform"))){
+                (!ClientPrimaryWorkerWire.validationCommand(command)||command in setOf("INIT","INIT_BS")&&input.containsKey("platform"))){
                 closeReceived(input);fail(receiver,"VALIDATION_WORKER_ROLE");stopWorker();return true
             }
             if (ClientPrimaryWorkerWire.isRouteWorker(this@ClientPrimaryWorkerService.javaClass) && command !in setOf("INIT","INIT_PACKET","OPEN_ROUTE","OPEN_PACKET_ROUTE")) {
@@ -140,6 +141,9 @@ open class ClientPrimaryWorkerService : Service() {
                     check(!stopping.get()) { "PRIMARY_WORKER_STOPPING" }
                     when (command) {
                         "INIT" -> initialize(input, receiver)
+                        "INIT_BS" -> initializeBs(input,receiver)
+                        "VALIDATE_BS" -> validateBs(input,receiver)
+                        "START_BS" -> runBs(input,receiver)
                         "INIT_PACKET" -> initializePacket(input, receiver)
                         "START_PACKET" -> runPacket(input, receiver)
                         "VALIDATE" -> validateInput(input, receiver)
@@ -149,20 +153,21 @@ open class ClientPrimaryWorkerService : Service() {
                         "OPEN_ROUTE" -> openSteerRoute(input, receiver)
                         "OPEN_PACKET_ROUTE" -> openPacketRoute(input,receiver)
                         "ATTACH_ROUTE_PIPE" -> attachRoutePipe(input,receiver)
+                        "ATTACH_ORIGINAL_CARRIER" -> attachRoutePipe(input,receiver,true)
                         else -> control(input, receiver)
                     }
                 } catch (error: Throwable) {
                     debugFailure(command.orEmpty(),error)
                     fail(receiver, if (error is org.mcrf.engine.protocol.v1.PacketBackend.InvalidTun) "PACKET_NATIVE_TUN_REJECTED"
                         else ClientPrimaryPreparationFailure.wireCode(error,if (command in setOf("INIT", "INIT_PACKET")) "PRIMARY_CORE_LOAD_FAILED" else "PRIMARY_WORKER_COMMAND_FAILED"))
-                    if (command in setOf("INIT", "START", "INIT_PACKET", "START_PACKET", "PROBE_STEER", "OPEN_ROUTE", "OPEN_PACKET_ROUTE", "ATTACH_ROUTE_PIPE")) stopWorker()
+                    if (command in setOf("INIT", "START", "INIT_BS", "START_BS", "INIT_PACKET", "START_PACKET", "PROBE_STEER", "OPEN_ROUTE", "OPEN_PACKET_ROUTE", "ATTACH_ROUTE_PIPE", "ATTACH_ORIGINAL_CARRIER")) stopWorker()
                 } finally {
                     // A rejected or malformed START must close its received duplicate too.
                     closeReceived(input)
                 }
             }
             try {
-                if (command in setOf("INIT", "VALIDATE", "PLAN", "START", "INIT_PACKET", "START_PACKET", "PROBE_STEER", "OPEN_ROUTE", "OPEN_PACKET_ROUTE", "ATTACH_ROUTE_PIPE")) lifecycle.execute(task) else controls.execute(task)
+                if (command in setOf("INIT", "VALIDATE", "PLAN", "START", "INIT_BS", "VALIDATE_BS", "START_BS", "INIT_PACKET", "START_PACKET", "PROBE_STEER", "OPEN_ROUTE", "OPEN_PACKET_ROUTE", "ATTACH_ROUTE_PIPE", "ATTACH_ORIGINAL_CARRIER")) lifecycle.execute(task) else controls.execute(task)
             } catch (_: RuntimeException) {
                 closeReceived(input)
                 fail(receiver, "PRIMARY_WORKER_BUSY")
@@ -176,7 +181,7 @@ open class ClientPrimaryWorkerService : Service() {
     }
 
     private fun initialize(input: Bundle, receiver: ResultReceiver) {
-        check(engine == null && packetBackend == null && core == null && !runClaimed.get()) { "PRIMARY_WORKER_FRESH_REQUIRED" }
+        check(engine == null && bsBackend==null && packetBackend == null && core == null && !runClaimed.get()) { "PRIMARY_WORKER_FRESH_REQUIRED" }
         usage = EngineUpdateGate.acquireUsage(this) ?: throw IllegalStateException("PRIMARY_CORE_UPDATE_BUSY")
         val selected = ClientPrimaryCorePolicy.Core.parse(input.getString("choice").orEmpty())
         check(javaClass!=ClientPrimaryBootstrapWorkerService::class.java||selected==ClientPrimaryCorePolicy.Core.SINGBOX){"BOOTSTRAP_WORKER_ROLE"}
@@ -191,11 +196,49 @@ open class ClientPrimaryWorkerService : Service() {
         engine = ClientPrimaryCoreLoader.instantiate(resolved, this) as Engine
         input.getBinder("platform")?.let { platform = ClientPrimaryPlatformBinder.proxy(it, generation) }
         check(!stopping.get()) { "PRIMARY_WORKER_STOPPING" }
-        respond(receiver, Bundle().apply { putLong("version", resolved.version) })
+        val capabilities=JSONObject(checkNotNull(engine).capabilitiesJson())
+        val ownerIsolation=if(selected==ClientPrimaryCorePolicy.Core.SINGBOX)
+            capabilities.opt("vpnOwnerIsolationContract")==2 else capabilities.optBoolean("vpnOwnerIsolation",false)
+        respond(receiver, Bundle().apply { putLong("version", resolved.version);putBoolean("vpnOwnerIsolation",ownerIsolation) })
+    }
+
+    private fun initializeBs(input:Bundle,receiver:ResultReceiver){
+        check(javaClass in setOf(ClientPrimaryWorkerService::class.java,ClientPrimaryValidationWorkerService::class.java)&&engine==null&&bsBackend==null&&packetBackend==null&&core==null&&usage==null&&!runClaimed.get()){"BS_NATIVE_WORKER_FRESH_REQUIRED"}
+        usage=EngineUpdateGate.acquireUsage(this)?:error("BS_NATIVE_UPDATE_BUSY")
+        val pin=ClientPrimaryWorkerWire.smallString(input.getString("apkSha256"),64)
+        BsNativeContract.workerPin(this,pin)
+        bsBackend=BsNativeWorkerBackend(this,generation,pin){stopping.get()||owner?.isBinderAlive!=true}
+        input.getBinder("platform")?.let {platform=ClientPrimaryPlatformBinder.proxy(it,generation)}
+        check(!stopping.get());respond(receiver,Bundle().apply {putString("status","BS_NATIVE_INITIALIZED")})
+    }
+    private fun validateBs(input:Bundle,receiver:ResultReceiver){
+        check(!runClaimed.get()&&!stopping.get()){"BS_NATIVE_ALREADY_RUN"}
+        val payload=ClientPrimaryWorkerWire.readBsInput(this,input.getString("file").orEmpty())
+        val digest=checkNotNull(bsBackend).prepare(payload)
+        respond(receiver,Bundle().apply {putString("status","BS_NATIVE_VALIDATED");putString("digest",digest)})
+    }
+    private fun runBs(input:Bundle,receiver:ResultReceiver){
+        check(javaClass==ClientPrimaryWorkerService::class.java&&runClaimed.compareAndSet(false,true)){"BS_NATIVE_RUN_ROLE"}
+        runReceiver=receiver;var acknowledged=false
+        try {val digest=ClientPrimaryWorkerWire.smallString(input.getString("digest"),64);require(digest.matches(Regex("[0-9a-f]{64}")))
+            checkNotNull(bsBackend).run(digest,checkNotNull(platform)){
+                check(!stopping.get());running=true;acknowledged=true;respond(receiver,Bundle().apply {putString("status","BS_NATIVE_RUNNING");putString("digest",digest)})
+            }
+        }catch(error:Throwable){
+            debugFailure("START_BS",error)
+            if(!stopping.get()){
+                val diagnostic=(error as? CsqttDirectTunDiagnostic.Rejected)?.diagnostic
+                if(diagnostic!=null)ClientEvents.record(this,"BS",diagnostic.detail)
+                val adoptionTimeout=diagnostic?.phase==CsqttDirectTunDiagnostic.Phase.ADOPTED&&
+                    diagnostic.cause==CsqttDirectTunDiagnostic.Cause.TIMEOUT
+                fail(receiver,if(adoptionTimeout)"PRIMARY_BS_TUN_ADOPTION_TIMEOUT"else"BS_NATIVE_RUN_FAILED")
+            }
+        }
+        finally{running=false;stopping.set(true);if(!acknowledged)fail(receiver,"BS_NATIVE_EXITED_BEFORE_RUNNING");armReaper();retireWorker()}
     }
 
     private fun initializePacket(input: Bundle, receiver: ResultReceiver) {
-        check(engine == null && packetBackend == null && core == null && usage == null && !runClaimed.get()) { "PACKET_WORKER_FRESH_REQUIRED" }
+        check(engine == null && bsBackend==null && packetBackend == null && core == null && usage == null && !runClaimed.get()) { "PACKET_WORKER_FRESH_REQUIRED" }
         usage = EngineUpdateGate.acquireUsage(this) ?: error("PACKET_BACKEND_UPDATE_BUSY")
         // Explicit candidate command only; not selected by primary chooser or any profile fallback.
         val expectedPin=input.getString("apkSha256").orEmpty()
@@ -208,7 +251,10 @@ open class ClientPrimaryWorkerService : Service() {
         packetPipeAllowed=captured.packetPipe
         input.getBinder("platform")?.let { platform = ClientPrimaryPlatformBinder.proxy(it, generation) }
         check(!stopping.get()) { "PACKET_WORKER_STOPPING" }
-        respond(receiver, Bundle().apply { putString("status", "PACKET_INITIALIZED") })
+        respond(receiver, Bundle().apply {
+            putString("status", "PACKET_INITIALIZED")
+            putBoolean("ownerIsolation",packetBackend is org.mcrf.engine.protocol.v1.PacketBackend.OwnerBackend)
+        })
     }
 
     private fun runPacket(input: Bundle, receiver: ResultReceiver) {
@@ -227,9 +273,20 @@ open class ClientPrimaryWorkerService : Service() {
             else PacketRouteEnvelope.workerPlan(originalPlan,settings,packetRouteAdmission,packetManagedDnsAdmission)
         providedTun = requireNotNull(input.getParcelable<ParcelFileDescriptor>("tun")) { "PACKET_TUN_REQUIRED" }
         val request=org.mcrf.engine.protocol.v1.PacketBackend.Request(generation,requireNotNull(providedTun).fd,plan.mtu,plan.secretConfiguration())
-        val packetHost=object : org.mcrf.engine.protocol.v1.PacketBackend.Host {
+        val ownerIsolation=input.getBoolean("ownerIsolation")
+        require(!ownerIsolation||!ownedBlockFixture&&backend is org.mcrf.engine.protocol.v1.PacketBackend.OwnerBackend) {"PACKET_OWNER_ISOLATION_UNSUPPORTED"}
+        val baseHost=object : org.mcrf.engine.protocol.v1.PacketBackend.Host {
             override fun stopping(gen: Long) = gen != generation || stopping.get() || owner?.isBinderAlive != true
             override fun prepareSocket(gen: Long, fd: Int) = !stopping(gen) && hostPlatform.protectAndBind(gen, fd) && !stopping(gen)
+        }
+        val packetHost=if(!ownerIsolation)baseHost else object : org.mcrf.engine.protocol.v1.PacketBackend.OwnerHost {
+            override fun stopping(gen:Long)=baseHost.stopping(gen)
+            override fun prepareSocket(gen:Long,fd:Int)=baseHost.prepareSocket(gen,fd)
+            override fun admitPacketOwner(gen:Long,protocol:Int,source:String,sourcePort:Int,destination:String,destinationPort:Int):Boolean =
+                !stopping(gen)&&try {
+                    val query=Platform.ConnectionQuery(protocol,source,sourcePort,destination,destinationPort)
+                    hostPlatform.connectionOwner(gen,query).uid>=0&&!stopping(gen)
+                }catch(_:Exception){false}
         }
         val captured=PacketRouteEnvelope.decode(settings,originalPlan.routes,originalPlan.addresses)
         val handle=payload.getLong("vpnNetworkHandle")
@@ -248,6 +305,7 @@ open class ClientPrimaryWorkerService : Service() {
             putString("routeSettingsSha256",ClientPrimaryWorkerWire.sha256(settings.toByteArray(Charsets.UTF_8)))
             putBoolean("ownedBlockFixture",ownedBlockFixture)
             putBoolean("managedDns",captured.managed!=null)
+            putBoolean("ownerIsolation",ownerIsolation)
             putLong("vpnNetworkHandle",handle)
         })
     }
@@ -361,6 +419,10 @@ open class ClientPrimaryWorkerService : Service() {
             val acquisition = ClientPrimaryWorkerWire.acquisition(requireNotNull(core), mode)
             providedTun = input.getParcelable("tun")
             check((acquisition == Engine.TunAcquisition.PROVIDED) == (providedTun != null)) { "PRIMARY_WORKER_TUN_MODE" }
+            if (core == ClientPrimaryCorePolicy.Core.STEER && hostPlatform.requiresVpnOwnerIsolation(generation))
+                check(JSONObject(requireNotNull(engine).capabilitiesJson()).optBoolean("vpnOwnerIsolation", false)) {
+                    "STEER_TUN_OWNER_ISOLATION_REQUIRED"
+                }
             val handle = payload.getLong("vpnNetworkHandle")
             check(acquisition == Engine.TunAcquisition.PROVIDED || handle == 0L) { "PRIMARY_WORKER_TUN_MODE" }
             check(core != ClientPrimaryCorePolicy.Core.STEER || handle > 0L) { "PRIMARY_WORKER_VPN_NETWORK_REQUIRED" }
@@ -466,15 +528,19 @@ open class ClientPrimaryWorkerService : Service() {
         })
         // No death/resource ACK here. Main retains this exact worker and lease.
     }
-    private fun attachRoutePipe(input:Bundle,receiver:ResultReceiver) {
+    private fun attachRoutePipe(input:Bundle,receiver:ResultReceiver,originalCarrier:Boolean=false) {
         check(javaClass==ClientPrimaryWorkerService::class.java&&core==ClientPrimaryCorePolicy.Core.SINGBOX&&
             !runClaimed.get()&&!running&&providedTun==null&&packetBackend==null){"PACKET_ROUTE_DISPATCHER_PRESTART"}
         val native=requireNotNull(engine);val capabilities=native.capabilitiesJson()
-        check(capabilities.toByteArray(Charsets.UTF_8).size<=65536&&JSONObject(capabilities).opt("packetRouteBridge")==PacketRoutePipeSpec.CAPABILITY){"PACKET_ROUTE_NOT_ADVERTISED"}
+        val capabilityKey=if(originalCarrier)"originalCarrierBridge" else "packetRouteBridge"
+        val capability=if(originalCarrier)OriginalCarrierPacketSpec.CAPABILITY else PacketRoutePipeSpec.CAPABILITY
+        check(capabilities.toByteArray(Charsets.UTF_8).size<=65536&&JSONObject(capabilities).opt(capabilityKey)==capability){"PACKET_ROUTE_NOT_ADVERTISED"}
         val payload=ClientPrimaryWorkerWire.readInput(this,input.getString("file").orEmpty())
         check(!input.containsKey("tun")&&payload.getLong("vpnNetworkHandle")==0L&&payload.getJSONArray("dnsBootstrap").length()==0&&payload.getString("dial").isEmpty()){ "PACKET_ROUTE_PIPE_INPUT" }
         val spec=payload.getString("profile");val settings=payload.getString("settings")
-        PacketRoutePipeSpec.parse(spec);ClientPrimaryWorkerWire.checkSingBoxEnvelope(settings,Engine.Mode.valueOf(JSONObject(settings).getString("mode").uppercase(java.util.Locale.ROOT)))
+        if(originalCarrier)OriginalCarrierPacketSpec.parse(spec) else PacketRoutePipeSpec.parse(spec)
+        ClientPrimaryWorkerWire.checkSingBoxEnvelope(settings,Engine.Mode.valueOf(JSONObject(settings).getString("mode").uppercase(java.util.Locale.ROOT)))
+        val endpointOwnerPid=if(originalCarrier)input.getInt("peerPid").also {check(it>0 && it!=ownerPid){"ORIGINAL_CARRIER_PEER"}} else ownerPid
         val pipe=requireNotNull(input.getParcelable<ParcelFileDescriptor>("pipe")){"PACKET_ROUTE_PIPE_REQUIRED"}
         val hostPlatform=requireNotNull(platform)
         val host=object:Engine.Host {
@@ -484,14 +550,35 @@ open class ClientPrimaryWorkerService : Service() {
             override fun packageName()=this@ClientPrimaryWorkerService.packageName
             override fun platform()=hostPlatform
         }
-        val method=native.javaClass.getMethod("attachPacketRoute",String::class.java,String::class.java,
+        val method=native.javaClass.getMethod(if(originalCarrier)"attachOriginalCarrier" else "attachPacketRoute",String::class.java,String::class.java,
             Int::class.javaPrimitiveType!!,Int::class.javaPrimitiveType!!,Long::class.javaPrimitiveType!!,Engine.Host::class.java)
         check(method.declaringClass===native.javaClass&&native.javaClass.name==ClientPrimaryCorePolicy.Core.SINGBOX.entryClass){"PACKET_ROUTE_ENTRY_IDENTITY"}
-        method.invoke(native,settings,spec,pipe.fd,ownerPid,generation,host)
+        method.invoke(native,settings,spec,pipe.fd,endpointOwnerPid,generation,host)
         check(!host.stopping(generation)){"PACKET_ROUTE_STOPPED"}
-        respond(receiver,Bundle().apply {putString("status","PACKET_ROUTE_ATTACHED");putString("requestSha256",SteerProbeSpec.requestSha(spec,settings,""))})
+        respond(receiver,Bundle().apply {putString("status",if(originalCarrier)"ORIGINAL_CARRIER_ATTACHED" else "PACKET_ROUTE_ATTACHED");putString("requestSha256",SteerProbeSpec.requestSha(spec,settings,""))})
     }
     private fun control(input: Bundle, receiver: ResultReceiver) {
+        bsBackend?.let {native->
+            check(running&&!stopping.get()){"BS_NATIVE_NOT_RUNNING"};val result=Bundle()
+            when(input.getString("command")){
+                "STATS"->{
+                    val counts=native.counters()
+                    result.putLong("tx",counts[0]);result.putLong("rx",counts[1])
+                    result.putInt("streams",counts[2].takeIf {it in 0L..TurnStreams.MAX.toLong()}?.toInt()?:-1)
+                }
+                "HEALTH"->{check(ClientPrimaryWorkerWire.smallString(input.getString("tag"),512)==native.selected()){"BS_NATIVE_PROBE_TARGET"};result.putLong("latency",native.health(ClientPrimaryWorkerWire.smallString(input.getString("url"),8192),input.getInt("timeout")))}
+                "BS_STARTUP_HEALTH"->{
+                    check(ClientPrimaryWorkerWire.smallString(input.getString("tag"),512)==native.selected()){"BS_NATIVE_PROBE_TARGET"}
+                    val urls=requireNotNull(input.getStringArrayList("urls"))
+                    require(urls.size in 1..2)
+                    result.putLong("latency",native.startupHealth(urls.map {ClientPrimaryWorkerWire.smallString(it,8192)},input.getInt("timeout")))
+                }
+                "SELECTED"->result.putString("tag",native.selected())
+                "RESET"->{stopWorker();error("BS_NATIVE_FRESH_NETWORK_REQUIRED")}
+                else->error("BS_NATIVE_CONTROL_UNSUPPORTED")
+            };check(!stopping.get());respond(receiver,result);return
+        }
+
         check(running && !stopping.get()) { "PRIMARY_WORKER_NOT_RUNNING" }
         val native = requireNotNull(engine)
         val result = Bundle()
@@ -554,7 +641,7 @@ open class ClientPrimaryWorkerService : Service() {
         armReaper()
         if (!stopping.compareAndSet(false, true)) return
         // Dedicated stop lane cannot be starved by slow concurrent URL tests.
-        Thread({ try { packetDns?.close() } catch (_: Throwable) {};try { packetBackend?.close() } catch (_: Throwable) {}; try { engine?.requestStop() } catch (_: Throwable) {} }, "mcrf-primary-stop").start()
+        Thread({ try {bsBackend?.requestStop()}catch(_:Throwable){};try { packetDns?.close() } catch (_: Throwable) {};try { packetBackend?.close() } catch (_: Throwable) {}; try { engine?.requestStop() } catch (_: Throwable) {} }, "mcrf-primary-stop").start()
         try { lifecycle.execute { retireWorker() } } catch (_: RuntimeException) {}
     }
 
@@ -577,6 +664,7 @@ open class ClientPrimaryWorkerService : Service() {
     private fun retireWorker() {
         if (!retired.compareAndSet(false, true)) return
         try {
+            try { bsBackend?.close() } catch (_:Throwable) {}
             try { packetDns?.close() } catch (_: Throwable) {}
             try { packetBackend?.close() } catch (_: Throwable) {}
             try { engine?.requestStop() } finally {
@@ -585,7 +673,7 @@ open class ClientPrimaryWorkerService : Service() {
         } catch (_: Throwable) {
             // Process death is still mandatory even if native/transport cleanup failed.
         } finally {
-            platform = null; engine = null; packetBackend = null; packetDns=null;packetRouteAdmission=PacketRouteEnvelope.Admission.LEGACY_IP;packetManagedDnsAdmission=false;packetPipeAllowed=false
+            platform = null; engine = null; bsBackend=null;packetBackend = null; packetDns=null;packetRouteAdmission=PacketRouteEnvelope.Admission.LEGACY_IP;packetManagedDnsAdmission=false;packetPipeAllowed=false
             try { providedTun?.close() } catch (_: Exception) {}; providedTun = null
             // Native multiplexers may still reference this private directory.
             // Only the main owner removes it AFTER observed process death.
@@ -646,6 +734,7 @@ internal object ClientPrimaryWorkerWire {
     const val DESCRIPTOR = "org.mcrf.client.primary.worker.v1"
     const val TRANSACTION = IBinder.FIRST_CALL_TRANSACTION
     const val MAX_INPUT = 4 * 1024 * 1024
+    const val MAX_BS_INPUT = 28 * 1024 * 1024
     const val MAX_PLAN = 256 * 1024
     private val inputName = Regex("mcrf-primary-input-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\.json")
     private val outputName = Regex("mcrf-primary-output-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\.json")
@@ -672,7 +761,7 @@ internal object ClientPrimaryWorkerWire {
         core == ClientPrimaryCorePolicy.Core.SINGBOX -> Engine.TunAcquisition.DEFERRED
         else -> Engine.TunAcquisition.PROVIDED
     }
-    fun validationCommand(command:String?):Boolean=command in setOf("INIT","VALIDATE","STOP")
+    fun validationCommand(command:String?):Boolean=command in setOf("INIT","VALIDATE","INIT_BS","VALIDATE_BS","STOP")
     fun bootstrapCommand(command:String?):Boolean=command in setOf("INIT","VALIDATE","START","STOP")
     fun acknowledgesStart(core: ClientPrimaryCorePolicy.Core, state: String?): Boolean =
         state == "RUNNING" || (core == ClientPrimaryCorePolicy.Core.STEER && state == "STARTING")
@@ -699,11 +788,13 @@ internal object ClientPrimaryWorkerWire {
             json.get("schema") is Int && json.getInt("schema") == 1 && json.get("metered") is Boolean &&
             json.get("config") is JSONObject && json.getString("mode") == if (mode == Engine.Mode.VPN) "vpn" else "proxy") { "PRIMARY_CORE_CONFIG_ENVELOPE" }
     }
-    fun writeInput(context: Context, payload: JSONObject): File {
+    fun writeInput(context:Context,payload:JSONObject)=writeObject(context,payload,MAX_INPUT)
+    fun writeBsInput(context:Context,payload:JSONObject)=writeObject(context,payload,MAX_BS_INPUT)
+    private fun writeObject(context: Context, payload: JSONObject,limit:Int): File {
         val text = payload.toString()
-        require(text.length <= MAX_INPUT) { "PRIMARY_WORKER_INPUT_SIZE" }
+        require(text.length <= limit) { "PRIMARY_WORKER_INPUT_SIZE" }
         val bytes = text.toByteArray(Charsets.UTF_8)
-        require(bytes.size <= MAX_INPUT) { "PRIMARY_WORKER_INPUT_SIZE" }
+        require(bytes.size <= limit) { "PRIMARY_WORKER_INPUT_SIZE" }
         val base = context.cacheDir.canonicalFile
         val file = File(base, "mcrf-primary-input-${UUID.randomUUID()}.json")
         val fd = Os.open(file.path, OsConstants.O_WRONLY or OsConstants.O_CREAT or OsConstants.O_EXCL or OsConstants.O_NOFOLLOW, 0x180)
@@ -753,7 +844,11 @@ internal object ClientPrimaryWorkerWire {
         return Charsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
             .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes)).toString()
     }
-    fun readInput(context: Context, path: String): JSONObject {
+    fun readInput(context:Context,path:String)=readObject(context,path,MAX_INPUT).also {
+        require(it.keys().asSequence().toSet()==setOf("profile","settings","dial","dnsBootstrap","vpnNetworkHandle")){"PRIMARY_WORKER_INPUT_FIELDS"}
+    }
+    fun readBsInput(context:Context,path:String)=readObject(context,path,MAX_BS_INPUT)
+    private fun readObject(context: Context, path: String,limit:Int): JSONObject {
         val base = context.cacheDir.canonicalFile
         val file = File(path)
         require(inputName.matches(file.name) && file.absoluteFile.parentFile == base &&
@@ -762,13 +857,13 @@ internal object ClientPrimaryWorkerWire {
         val bytes = try {
             val stat = Os.fstat(fd)
             require(OsConstants.S_ISREG(stat.st_mode) && stat.st_uid == Process.myUid() &&
-                stat.st_mode and 0x1ff == 0x180 && stat.st_size in 1..MAX_INPUT.toLong()) { "PRIMARY_WORKER_INPUT_FILE" }
+                stat.st_mode and 0x1ff == 0x180 && stat.st_size in 1..limit.toLong()) { "PRIMARY_WORKER_INPUT_FILE" }
             FileInputStream(fd).use { input ->
                 val output = ByteArrayOutputStream()
                 val buffer = ByteArray(8192)
                 while (true) {
                     val n = input.read(buffer); if (n < 0) break
-                    require(output.size() + n <= MAX_INPUT) { "PRIMARY_WORKER_INPUT_SIZE" }
+                    require(output.size() + n <= limit) { "PRIMARY_WORKER_INPUT_SIZE" }
                     output.write(buffer, 0, n)
                 }
                 output.toByteArray()
@@ -777,9 +872,7 @@ internal object ClientPrimaryWorkerWire {
         finally { removeInput(context, file) }
         val text = Charsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
             .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes)).toString()
-        return JSONObject(text).also {
-            require(it.keys().asSequence().toSet() == setOf("profile", "settings", "dial", "dnsBootstrap", "vpnNetworkHandle")) { "PRIMARY_WORKER_INPUT_FIELDS" }
-        }
+        return JSONObject(text)
     }
     fun removeInput(context: Context, file: File) {
         try {

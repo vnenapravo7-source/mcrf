@@ -45,6 +45,16 @@ abstract class ClientPrimaryHostPlatform : VpnService() {
     private val retirementWorker = Executors.newSingleThreadScheduledExecutor()
 
     protected open fun onUnderlyingNetworkChanged(network: Network?) = Unit
+    /** Owner lookup is metadata, not confirmation of a chosen route or successful transfer. */
+    protected open fun onConnectionObserved(generation:Long, query:Platform.ConnectionQuery,
+                                              owner:Platform.ConnectionOwner?) = Unit
+    protected open fun admitsConnectionOwner(owner:Platform.ConnectionOwner):Boolean = true
+    protected open fun vpnOwnerIsolationRequired():Boolean = false
+    protected open fun vpnOwnerIsolationFor(descriptor:ParcelFileDescriptor):Boolean = vpnOwnerIsolationRequired()
+    protected open fun onDnsObserved(generation:Long,uid:Int,domain:String,ip:String,ttlMs:Long) = Unit
+    protected open fun onRouteObserved(generation:Long,query:Platform.ConnectionQuery,owner:Platform.ConnectionOwner,domain:String?,tunneled:Boolean)=Unit
+    /** Raw bytes stay on the resolver callback stack. Subscribers retain only validated DNS metadata. */
+    protected open fun onDnsExchangeObserved(generation:Long,query:ByteArray,reply:ByteArray) = Unit
 
     override fun onCreate() {
         super.onCreate()
@@ -68,6 +78,15 @@ abstract class ClientPrimaryHostPlatform : VpnService() {
             closeFd(old)
             if (vpnMode) try { setUnderlyingNetworks(null) } catch (_: SecurityException) { }
         }
+    }
+
+    /** Borrow only an exactly matching retained capture plan. The service must
+     * separately admit its Builder policy (UID bypass, metering and network).
+     * HostRun remains the sole publisher/owner of this descriptor. */
+    protected fun matchingRetainedTun(plan:Platform.TunPlan):ParcelFileDescriptor? = synchronized(stateLock) {
+        val old=tunnel?:return@synchronized null
+        val saved=retainedTunPlan?.takeIf {it.first===old}?.second?:return@synchronized null
+        old.takeIf {it.fd>=0&&ClientPrimaryRuntimeWire.encodeTunPlan(saved)==ClientPrimaryRuntimeWire.encodeTunPlan(plan)}
     }
 
     /** A carrier cannot bootstrap through the retired ordinary TUN that captures our UID.
@@ -129,9 +148,10 @@ abstract class ClientPrimaryHostPlatform : VpnService() {
         private val createTun: (Platform.TunPlan) -> ParcelFileDescriptor,
         private val reportTraffic: (Long, Long) -> Unit,
         private val protectSockets:Boolean
-    ) : Platform, ClientPrimaryPlatformLifetime {
+    ) : Platform, ClientPrimaryPlatformLifetime, ObservedDnsMetadata, ObservedRouteMetadata {
         @Volatile private var closed = false
         private var tunClaimed = false
+        @Volatile private var establishedTun:ParcelFileDescriptor?=null
         private var defaultListener: Platform.DefaultListener? = null
         private val networks = linkedMapOf<Network, LinkProperties>()
         private var monitor: ConnectivityManager.NetworkCallback? = null
@@ -306,15 +326,21 @@ abstract class ClientPrimaryHostPlatform : VpnService() {
                 tunClaimed = true
                 // Serialize Builder/establish with retirement and the next run: a late
                 // callback may not replace a VPN belonging to a newer generation.
+                val previous=tunnel
                 val candidate = createTun(plan)
                 val network = underlying
                 if (!live() || network == null || !physical(network)) {
-                    if (tunnel === candidate) tunnel = null
-                    closeFd(candidate)
+                    // A cancelled adoption must not consume the retained host
+                    // TUN while retirement still uses it to keep capture closed.
+                    if(candidate!==previous) {
+                        if (tunnel === candidate) tunnel = null
+                        closeFd(candidate)
+                    }
                     throw IOException("PLATFORM_RETIRED")
                 }
                 val old = tunnel?.takeUnless { it === candidate }
                 tunnel = candidate
+                establishedTun = candidate
                 retainedTunPlan = candidate to immutablePlan
                 closeFd(old)
                 candidate.fd
@@ -365,13 +391,47 @@ abstract class ClientPrimaryHostPlatform : VpnService() {
             if (query.source.length > 128 || query.destination.length > 128) throw IOException("PLATFORM_OWNER_ADDRESS")
             val source = InetSocketAddress(InetAddresses.parseNumericAddress(query.source), query.sourcePort)
             val destination = InetSocketAddress(InetAddresses.parseNumericAddress(query.destination), query.destinationPort)
-            val uid = connectivity.getConnectionOwnerUid(query.protocol, source, destination)
-            if (uid < 0) throw IOException("PLATFORM_OWNER_MISSING")
+            val uid = try { connectivity.getConnectionOwnerUid(query.protocol, source, destination) }
+            catch (error: Exception) {
+                checkLive(generation)
+                runCatching { onConnectionObserved(generation,query,null) }
+                throw error
+            }
+            if (uid < 0) {
+                checkLive(generation)
+                runCatching { onConnectionObserved(generation,query,null) }
+                throw IOException("PLATFORM_OWNER_MISSING")
+            }
             val owner = Platform.ConnectionOwner(uid, packageManager.getPackagesForUid(uid)?.toList().orEmpty())
             if(connectivity.getConnectionOwnerUid(query.protocol,source,destination)!=uid||
                 packageManager.getPackagesForUid(uid)?.toSet().orEmpty()!=owner.packageNames.toSet())throw IOException("PLATFORM_OWNER_CHANGED")
             checkLive(generation)
+            if(!admitsConnectionOwner(owner)) {
+                runCatching { onConnectionObserved(generation,query,null) }
+                throw IOException("PLATFORM_OWNER_OUTSIDE_VPN_SCOPE")
+            }
+            runCatching { onConnectionObserved(generation,query,owner) }
             return owner
+        }
+
+        override fun observedDns(generation:Long,query:Platform.ConnectionQuery,uid:Int,domain:String,
+                                 ip:String,ttlMs:Long,observedElapsed:Long) {
+            checkLive(generation)
+            val age=SystemClock.elapsedRealtime()-observedElapsed
+            require(query.destinationPort==53&&uid>=0&&ttlMs in 1..5_000&&age in 0 until ttlMs)
+            // A worker's claimed UID is never accepted without a fresh Android owner lookup.
+            require(connectionOwner(generation,query).uid==uid)
+            checkLive(generation)
+            onDnsObserved(generation,uid,domain,ip,ttlMs-age)
+        }
+        override fun observedRoute(generation:Long,query:Platform.ConnectionQuery,uid:Int,domain:String?,tunneled:Boolean){
+            checkLive(generation)
+            require(query.protocol in setOf(6,17)&&query.sourcePort in 1..65535&&query.destinationPort in 1..65535)
+            val host=domain?.let {TrafficDomainAttribution.canonicalHost(it)?:throw IOException("PLATFORM_ROUTE_DOMAIN")}
+            val owner=connectionOwner(generation,query)
+            require(owner.uid==uid)
+            checkLive(generation)
+            onRouteObserved(generation,query,owner,host,tunneled)
         }
 
         override fun exchangeDns(generation: Long, query: Platform.DnsQuery): Platform.DnsReply {
@@ -433,7 +493,9 @@ abstract class ClientPrimaryHostPlatform : VpnService() {
                 terminateDns(job, OsConstants.EINTR)
                 Thread.currentThread().interrupt()
             }
-            return job.reply ?: dnsError(OsConstants.ECANCELED)
+            val reply = job.reply ?: dnsError(OsConstants.ECANCELED)
+            if (reply.errno == 0 && live()) runCatching { onDnsExchangeObserved(generation, query.packet(), reply.packet()) }
+            return reply
         }
 
         private fun finishDns(job: DnsJob, reply: Platform.DnsReply): Boolean = synchronized(dnsLock) {
@@ -468,6 +530,10 @@ abstract class ClientPrimaryHostPlatform : VpnService() {
         }
 
         override fun features(generation: Long): Platform.Features { checkLive(generation); return FEATURES }
+        override fun requiresVpnOwnerIsolation(generation:Long):Boolean {
+            checkLive(generation)
+            return establishedTun?.let(::vpnOwnerIsolationFor)?:vpnOwnerIsolationRequired()
+        }
         override fun wifiState(generation: Long): Platform.WifiState { checkLive(generation); return Platform.WifiState("", "") }
         override fun clearDnsCache(generation: Long) { checkLive(generation) }
         override fun notification(generation: Long, notice: Platform.Notice) { checkLive(generation) }

@@ -56,15 +56,25 @@ internal class NativeRoutePreparation private constructor(
     override fun toString()="NativeRoutePreparation(redacted)"
     companion object {
         fun capture(context:Context,main:ServerImport.Server,routing:JSONObject,servers:List<ServerImport.Server>):NativeRoutePreparation {
-            val state=if(routing.has(RoutingConnectionBinding.RUNTIME))JSONObject(routing.toString())else RoutingConnectionBinding.prepare(context,routing,servers,main.carrier!=null)
+            val state=if(routing.has(RoutingConnectionBinding.RUNTIME))JSONObject(routing.toString())else RoutingConnectionBinding.prepare(context,routing,servers,main.whitelists)
+            val source=ServerImport.build(listOf(main),main.id,false,60,50,"Cloudflare")
+            DnsConfig.applyGenerated(source,state.getJSONObject("globalDns"))
+            return capture(context,state,servers,source,main)
+        }
+
+        fun captureSteerRules(context:Context,state:JSONObject,servers:List<ServerImport.Server>,source:JSONObject):NativeRoutePreparation =
+            capture(context,JSONObject(state.toString()),servers,JSONObject(source.toString()),null)
+
+        private fun capture(context:Context,state:JSONObject,servers:List<ServerImport.Server>,source:JSONObject,
+                            main:ServerImport.Server?):NativeRoutePreparation {
             require(RouteServerPlan.activeIds(state).isNotEmpty()){"NATIVE_ROUTE_EXPLICIT_SERVERS_REQUIRED"}
             val core=CoreTuningStore(context).load();SteerRouteTuning.requireSupported(core)
             if(EnginePackages.missing(context,setOf("sing-box")).isNotEmpty())throw ClientOptionalCoreRequired("sing-box")
             val pin=NativeRouteWorkers.modulePin(context)
-            val source=ServerImport.build(listOf(main),main.id,false,60,50,"Cloudflare")
-            DnsConfig.applyGenerated(source,state.getJSONObject("globalDns"))
             val additional=RouteServerPlan(state,servers)
-            val plan=NativeRouteDispatchPlan.forSteer(main,additional,OptionalCoreStore(context).load(),core)
+            val optional=OptionalCoreStore(context).load()
+            val plan=if(main==null)NativeRouteDispatchPlan.steerRules(additional,optional,core)
+                else NativeRouteDispatchPlan.forSteer(main,additional,optional,core)
             plan.bindings.mapNotNull {it.assistedEntry()}.forEach {CompactProtocolSession.preflight(context,it,state)}
             // RouteServerPlan already owns defensive per-rule copies. Rebuild
             // the minimal independent catalogue so a later UI edit cannot alter

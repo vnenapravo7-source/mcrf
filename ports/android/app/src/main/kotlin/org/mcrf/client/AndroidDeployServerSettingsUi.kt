@@ -10,9 +10,10 @@ internal object AndroidDeployServerSettingsUi {
     fun view(activity:MainActivity,store:AndroidDeployStore,entry:AndroidDeployHistory.Entry,serverId:String,saved:()->Unit):View {
         val template=entry.result.getJSONObject("transport_template")
         val credentials=store.credentialsFor(entry)
-        val body=EditorLayout.body(activity).apply {tag="androidDeploy.serverSettings"}
+        val body=AndroidDeployUiStyle.card(activity).apply {tag="androidDeploy.serverSettings"}
         body.addView(activity.text("${template.getString("user")}@${template.getString("host")}:${template.getString("sshPort")}",14,Loft.MUTED),activity.space(0,16))
         fun editor(label:String,value:String,secret:Boolean=false,multiline:Boolean=false)=activity.editor(label).apply {
+            AndroidDeployUiStyle.field(this)
             setText(value)
             gravity=if(multiline)Gravity.TOP else Gravity.CENTER_VERTICAL
             if(multiline){minLines=3;maxLines=6}else setSingleLine()
@@ -28,7 +29,7 @@ internal object AndroidDeployServerSettingsUi {
         EditorLayout.field(activity,keyGroup,"Пароль SSH-ключа · если есть",phrase)
         var keyed=credentials.optString("sshAuth")=="key"
         fun updateMode(){passwordGroup.visibility=if(keyed)View.GONE else View.VISIBLE;keyGroup.visibility=if(keyed)View.VISIBLE else View.GONE}
-        EditorLayout.field(activity,body,"Вход по SSH",HomeUiControls.selector(activity,listOf("Пароль","SSH-ключ"),if(keyed)1 else 0){index->keyed=index==1;updateMode()})
+        EditorLayout.field(activity,body,"Вход по SSH",AndroidDeployUiStyle.field(HomeUiControls.selector(activity,listOf("Пароль","SSH-ключ"),if(keyed)1 else 0){index->keyed=index==1;updateMode()}))
         body.addView(passwordGroup);body.addView(keyGroup);updateMode()
         val status=activity.text("",12,Loft.ERROR).apply {tag="androidDeploy.serverSettings.status"}
         body.addView(status,activity.space(0,8))

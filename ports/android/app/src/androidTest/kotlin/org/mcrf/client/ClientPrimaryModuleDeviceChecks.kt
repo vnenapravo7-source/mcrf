@@ -20,7 +20,11 @@ object ClientPrimaryModuleDeviceChecks {
             var absent=false;try {context.classLoader.loadClass(name)}catch(_:ClassNotFoundException){absent=true}
             check(absent,"Base does not define $name")
         }
-        java.util.zip.ZipFile(context.applicationInfo.sourceDir).use {zip->check(zip.entries().asSequence().none {it.name.startsWith("lib/")},"Base APK contains no bundled native engine")}
+        java.util.zip.ZipFile(context.applicationInfo.sourceDir).use {zip->
+            val libraries=zip.entries().asSequence().filter {!it.isDirectory&&it.name.startsWith("lib/")}.map {it.name}.toList()
+            check(libraries.all {it.matches(Regex("lib/(arm64-v8a|armeabi-v7a|x86_64)/libzstd-jni-1\\.5\\.7-25\\.so"))},
+                "Base APK contains only the routing compression codec and no bundled native engine")
+        }
         ClientPrimaryPlatformBinderTest.run(passed)
         val session=ClientPrimaryWorker.connect(context,"singbox",System.nanoTime().coerceAtLeast(1),null)
         val pid=session.remotePid

@@ -82,10 +82,14 @@ object SubscriptionClient {
                         .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(decoded))
                         .toString().removePrefix("\uFEFF") } finally { decoded.fill(0) }
                     // Existing subscriptions use the context-free parser, never defaults for new user imports.
-                    val imported = ServerImport.read(text)
+                    val routing=SubscriptionRouting.extract(text,connection.getHeaderField("routing"),connection.getHeaderField("autorouting"))
+                    val parsed = ServerImport.readSubscription(routing.servers)
+                    val imported = parsed.servers
                     checkActive()
                     require(imported.isNotEmpty()) { "В подписке нет подключений. Старые данные сохранены." }
                     val info=metadata(connection,text)
+                    if(parsed.skipped>0)info.put("skippedServers",parsed.skipped)
+                    routing.request?.let {request->SubscriptionRouting.fetch(request,opener,deadline)?.let {info.put("routing",it)}}
                     checkActive()
                     return Downloaded(imported,info)
                 } finally { connection.disconnect() }

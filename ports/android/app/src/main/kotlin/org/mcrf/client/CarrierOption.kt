@@ -12,6 +12,8 @@ internal class CarrierOption(private val activity:MainActivity,private val value
     var onSelectionChanged:((Int)->Unit)?=null
     private var title=""
     private var choicesDialog:android.widget.PopupWindow?=null
+    private var routeStyle=false
+    private var editorWrapped=false
     private val label=activity.text("",13,Loft.INK)
     private val info=activity.button("i",false).apply {DropdownStyle.apply(activity,this);gravity=Gravity.CENTER}
     private val select=activity.button("",false).apply {
@@ -30,9 +32,19 @@ internal class CarrierOption(private val activity:MainActivity,private val value
         addView(select,LayoutParams(0,activity.dp(48),1.2f))
         refresh()
     }
-    fun describe(name:String,help:String){
+    fun describe(name:String,help:String,wrap:Boolean=false){
+        if(wrap)wrapEditorLabel()
         title=name;label.text=name;info.contentDescription="Справка: $name"
         info.setOnClickListener {activity.alert(name,help)};refresh()
+    }
+    /** Keep label and value in one row; grow vertically at large font scales. */
+    private fun wrapEditorLabel(){
+        if(editorWrapped)return
+        editorWrapped=true
+        label.apply {setSingleLine(false);setHorizontallyScrolling(false);maxLines=3;ellipsize=null}
+        (label.layoutParams as LayoutParams).apply {height=-2;weight=1.2f}.also {label.layoutParams=it}
+        select.apply {setSingleLine(false);maxLines=3;ellipsize=null;minHeight=activity.dp(48)}
+        (select.layoutParams as LayoutParams).apply {height=-2;weight=1f}.also {select.layoutParams=it}
     }
     private fun refresh(){select.text=values[selectedItemPosition].label;select.contentDescription="$title: ${values[selectedItemPosition].label}"}
     fun setSelection(index:Int){
@@ -41,8 +53,24 @@ internal class CarrierOption(private val activity:MainActivity,private val value
     }
     private fun choose(){
         choicesDialog?.dismiss()
+        if(routeStyle) {
+            choicesDialog=RouteChoicePopup.choices(activity,select,values.map {it.label},selectedItemPosition,::setSelection)
+            return
+        }
         choicesDialog=DropdownPopup.show(activity,select,null,values.map {DropdownPopup.Item(it.label)},selectedItemPosition){index->
             selectedItemPosition=index;refresh();onSelectionChanged?.invoke(index);changed()
+        }
+    }
+    /** Explicit opt-in; other pages retain their existing dropdown and styling. */
+    fun routeChoices(compact:Boolean=false) {
+        routeStyle=true
+        RouteChoiceUi.style(activity,select)
+        RouteChoiceUi.style(activity,info)
+        if(compact){
+            label.textSize=12f
+            select.textSize=12f
+            select.setPadding(activity.dp(2),select.paddingTop,activity.dp(2),select.paddingBottom)
+            select.compoundDrawablePadding=activity.dp(2)
         }
     }
     override fun onDetachedFromWindow(){choicesDialog?.dismiss();choicesDialog=null;super.onDetachedFromWindow()}

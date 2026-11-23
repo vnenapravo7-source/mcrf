@@ -1,0 +1,28 @@
+{
+  "source": "https://github.com/Afteroid/csqttr",
+  "revision": "84a2ce84dd4ac0716ceabd1b9a9ae455e6e86806",
+  "vendorSource": "rust-client/vendor/gooby",
+  "scope": "Original built-in TURN/TCP + TLS SNI presets only. No external proxy process, original ZIP/SQLite/Lua configuration APIs are intentionally not exported. Unsupported Custom strategy errors explicitly. No core/Main activation yet.",
+  "originalFiles": {
+    "Cargo.toml": "061b50bd5df709846650550c7ef89f137641f129374ae127a90bb0799721a023",
+    "LICENSE": "3ddf9be5c28fe27dad143a5dc76eea25222ad1dd68934a047064e56ed2fa40c5",
+    "NOTICE": "569f3cf932aa692a251b27d40a6bd3ee36d201a6733874f9ffcfb69455c11f83",
+    "README.md": "6bd8353b5136145920d3f7170c652ee835419274fe67d10cf797ebdabaecabb5",
+    "UPSTREAM.txt": "d9555791c4c9488e4b9c61a742f1057a135f3f452edddb45f1eccfdb096ecc22",
+    "src\\config.rs": "4fba87e589b8bc381390ff0bc64f151ef344673c52a37c411a98dbab93833dc8",
+    "src\\lib.rs": "45dfd4501fa560b005ff3c24776e840347ff409526bc96572012513d72237a30",
+    "src\\lua.rs": "b222d8d873d8b0fefcfd8d377e32e184801af601ed86b2a9279a9b75f89fc5bd",
+    "src\\preset.rs": "513034fe35db89f4c6261748e804b57a631a6556ac32e8ddff95b43d320b5194",
+    "src\\rules.rs": "b189e844d778369a964fad78921acd7662517876fa606c42799a74c65bf17665",
+    "src\\socks5.rs": "0efa2aa4c0a5dfe7f8105c0f823b67941c2160df2e181a63727119d6bbfd129e",
+    "src\\tls.rs": "efcc8f490f7681f0c8ec505cedb81aa70b254c7c4dea548355e8ab5b11d9cbea",
+    "src\\turn.rs": "ddaedbf6488a5930021e308f4a92556af0b8cd7be95935d4a421212aeb142ad6",
+    "src\\turn\\tests.rs": "f653e4ef4be8fb0560b0d92b7f965dcb54e5be1c998f39d098aa36ffd2917f09"
+  },
+  "adaptation": [
+    "Original preset/TURN/TLS algorithms and Runtime owned listener/JoinSet lifetime retained.",
+    "Extract unchanged TransformPlan from lua.rs; built-in-only ConfigBundle replaces archive loader.",
+    "Remove unreachable Custom Lua branch/helpers; explicit error if a Custom strategy is constructed.",
+    "Original Apache2 LICENSE/NOTICE retained."
+  ]
+}

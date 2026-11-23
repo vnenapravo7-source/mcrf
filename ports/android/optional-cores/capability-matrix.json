@@ -1,0 +1,77 @@
+{
+  "api": 1,
+  "readiness": "Listener authentication only; upstream requires real probe",
+  "base_libbox": "1.14.2-lx.11 unchanged; custom tls_fragment/tls_tricks unsupported there",
+  "modules": [
+    {
+      "kind": "xray",
+      "package": "org.mcrf.engines.xray",
+      "library": "libxray.so",
+      "upstream": "e662c22ab1096883c4df200a0e8068a89da04df1",
+      "host_traffic_passed": [
+        "VLESS raw TCP+UDP",
+        "VLESS raw MUX TCP+UDP",
+        "VLESS XHTTP packet-up/XMUX TCP+UDP",
+        "VLESS REALITY TCP+UDP",
+        "VLESS Vision REALITY TCP+UDP"
+      ],
+      "schema_only": [
+        "WS",
+        "gRPC",
+        "HTTPUpgrade",
+        "TLS"
+      ],
+      "unsupported": [
+        "full configs",
+        "multiple hops",
+        "XHTTP downloadSettings",
+        "custom TLS fragment",
+        "mixedcase SNI",
+        "allowInsecure removed in pinned Xray"
+      ],
+      "android_device": "pending coordinator",
+      "udp_contract": "RFC1929-authenticated TCP UDP ASSOCIATE pins requested loopback source port; dynamic UDP relay closes with control TCP; foreign local source port refused in host tests"
+    },
+    {
+      "kind": "tls-core",
+      "package": "org.mcrf.engines.tlscore",
+      "library": "libtls_core.so",
+      "upstream": "ebe0747b41823e02335ad3c7ae531bc577e7bc75",
+      "fragment_patch": "5db03afcd6f3f0838fd6be5dbf0ea942e1a03be082fe34d49c8d3841d2162a4c",
+      "host_traffic_passed": [
+        "HTTP CONNECT + std TLS custom fragments + wire mixedcase SNI",
+        "HTTP CONNECT + uTLS chrome custom fragments + wire mixedcase SNI",
+        "HTTP CONNECT TLS baseline",
+        "TLS HTTP CONNECT with system and Mozilla root store plus inline profile certificate"
+      ],
+      "schema_only": [
+        "TLS VLESS",
+        "TLS VMess",
+        "TLS Trojan",
+        "TLS SOCKS"
+      ],
+      "fragment": {
+        "size_bytes": "1-16384",
+        "burst_sleep_ms": "0-100",
+        "method": "tlsHello only",
+        "burst_records": "2-5",
+        "wire_timing": "Host native inter-burst fixed20ms measured; every gap>=19ms and total>=80ms. Android network timing gate pending."
+      },
+      "unsupported": [
+        "QUIC TCP knobs",
+        "TCP Fast Open with custom fragment",
+        "range method",
+        "Xray XHTTP transport",
+        "Xray and TLS extension combined",
+        "UDP bridge"
+      ],
+      "android_device": "pending coordinator"
+    }
+  ],
+  "signed_packages": "pending coordinator; candidates are not installable/released modules",
+  "global_defaults": {
+    "xray": "uTLS fingerprint; insecure TLS rejected; separate Xray MUX; Mozilla/built-in fragment explicit limitations",
+    "tls-core": "uTLS/insecure/sing-MUX + Mozilla root store + built-in fragment defaults; source/native/host checked, fresh Android gate pending",
+    "NTP_API": "base-only; no helper timers/listeners"
+  }
+}

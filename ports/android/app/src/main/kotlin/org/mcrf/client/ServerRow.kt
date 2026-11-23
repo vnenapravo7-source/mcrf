@@ -14,8 +14,10 @@ import java.util.function.Consumer
 /** One shared list row, not a card and toolbar for every connection. */
 class ServerRow @JvmOverloads constructor(
     activity: MainActivity, private val entry: ServerImport.Server, private var chosen: Boolean, marked: Boolean,
-    delay: Long?, onSelect: Runnable, onAuto: Consumer<Boolean>, onEdit: Runnable, autoEnabled: Boolean = true, autoPolicy: String = AutoSelection.LATENCY, goodLimit: Long = PingStatus.GOOD_LIMIT_MS
+    delay: Long?, onSelect: Runnable, onAuto: Consumer<Boolean>, private val onEdit: Runnable, autoEnabled: Boolean = true, autoPolicy: String = AutoSelection.LATENCY, goodLimit: Long = PingStatus.GOOD_LIMIT_MS
 ) : LinearLayout(activity) {
+    internal val server get()=entry
+    internal fun edit()=onEdit.run()
     private lateinit var ping: TextView
     private lateinit var check: CheckBox
     private lateinit var title:TextView
@@ -79,8 +81,10 @@ class ServerRow @JvmOverloads constructor(
         val labels = LinearLayout(activity).apply {
             orientation = VERTICAL
             setPadding(activity.dp(4), 0, activity.dp(8), 0)
-            title=activity.text(entry.name, 15, if(chosen)Loft.ACCENT else Loft.INK).apply {
-                setSingleLine(true); ellipsize = TextUtils.TruncateAt.END
+            val displayName=ServerDisplay.name(entry)
+            title=activity.text(displayName, 15, if(chosen)Loft.ACCENT else Loft.INK).apply {
+                setSingleLine(true)
+                ellipsize = TextUtils.TruncateAt.END
             }
             addView(title)
             val engine = if (entry.needsEngine()) " · доп. движок" else ""
@@ -92,14 +96,18 @@ class ServerRow @JvmOverloads constructor(
                 }
                 else->""
             }
-            val listLabel=entry.label()+(if(endpoint.isNotBlank())" · $endpoint"else "")
+            val protocol=ServerDisplay.protocol(entry)
+            val listLabel=listOf(protocol.takeUnless {it.equals(displayName,true)}.orEmpty(),endpoint)
+                .filter(String::isNotBlank).joinToString(" · ")
             addView(activity.text("$listLabel$engine", 11, Loft.MUTED).apply {
+                if(text.isBlank())visibility=View.GONE
                 setSingleLine(true); ellipsize = TextUtils.TruncateAt.END
                 setPadding(0, activity.dp(5), 0, 0)
             })
         }
         addView(labels, LayoutParams(0, -2, 1f))
         ping=TextView(activity).apply {
+            tag="server-ping"
             text = PingStatus.label(delay); textSize = 12f; setTextColor(Loft.pingColor(delay,goodLimit)); includeFontPadding = false
             contentDescription = PingStatus.description(delay,goodLimit)
             gravity = Gravity.CENTER; maxLines=Int.MAX_VALUE; ellipsize = null
@@ -109,11 +117,13 @@ class ServerRow @JvmOverloads constructor(
             // Colour the value itself, not the row or a coloured badge.
             background = null
         }
-        // The pencil stays visible; ping and deletion are in the swipe action tray.
+        addView(activity.iconButton("edit", "Редактировать ${entry.name}").apply {
+            tag="server-edit-${entry.id}"
+            setOnClickListener { edit() }
+        }, LayoutParams(activity.dp(48), activity.dp(48)))
+        // The persistent pencil and long press share the same editor callback.
         labels.addView(ping,LayoutParams(-1,-2))
         ping.gravity=Gravity.LEFT or Gravity.CENTER_VERTICAL;ping.minimumHeight=0;ping.textSize=11f;ping.setPadding(0,activity.dp(3),0,0)
-        addView(activity.iconButton("edit", "Редактировать ${entry.name}",18).apply {
-            tag="server-edit-${entry.id}";setOnClickListener {onEdit.run()}
-        }, LayoutParams(activity.dp(48), activity.dp(48)))
+        setOnLongClickListener {edit();true}
     }
 }

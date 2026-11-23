@@ -36,11 +36,37 @@ foreach($taskRow in $taskRows){
 }
 $taskOverlay=@()
 New-Item -ItemType Directory -Path "$taskTarget/cmd/mcrf-vaydns"|Out-Null
-foreach($taskName in @('main.go','main_test.go')){
+foreach($taskName in @('main.go','main_test.go','underlay.go','underlay_android.go','underlay_test.go')){
  $taskFrom=Join-Path $PSScriptRoot $taskName
  Copy-Item -LiteralPath $taskFrom -Destination "$taskTarget/cmd/mcrf-vaydns/$taskName"
  $taskOverlay+=@{path="cmd/mcrf-vaydns/$taskName";sha256=(Get-FileHash -LiteralPath $taskFrom).Hash.ToLowerInvariant()}
 }
+$taskDotPath='client/client.go'
+$taskDotFile=Get-Item -LiteralPath "$taskTarget/$taskDotPath"
+$taskDotFile.IsReadOnly=$false
+$taskDotText=[IO.File]::ReadAllText($taskDotFile.FullName).Replace("`r`n","`n")
+$taskOldDot=@'
+		} else {
+			dialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+				return tls.DialWithDialer(&net.Dialer{}, network, addr, nil)
+			}
+		}
+'@
+$taskNewDot=@'
+		} else if r.DialerControl != nil {
+			dialer := &tls.Dialer{NetDialer: &net.Dialer{Control: r.DialerControl}}
+			dialTLSContext = dialer.DialContext
+		} else {
+			dialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+				return tls.DialWithDialer(&net.Dialer{}, network, addr, nil)
+			}
+		}
+'@
+$taskOldDot=$taskOldDot.Replace("`r`n","`n")
+$taskNewDot=$taskNewDot.Replace("`r`n","`n")
+if(($taskDotText.Split([string[]]@($taskOldDot),[StringSplitOptions]::None).Count-1) -ne 1){throw 'Pinned VayDNS DoT source anchor changed'}
+[IO.File]::WriteAllText($taskDotFile.FullName,$taskDotText.Replace($taskOldDot,$taskNewDot),[Text.UTF8Encoding]::new($false))
+$taskOverlay+=@{path=$taskDotPath;sha256=(Get-FileHash -LiteralPath $taskDotFile.FullName).Hash.ToLowerInvariant()}
 foreach($taskName in @('mcrf_serve.go','mcrf_serve_test.go','mcrf_socks.go','mcrf_socks_test.go')){
  $taskFrom=Join-Path $PSScriptRoot "overlay/$taskName"
  Copy-Item -LiteralPath $taskFrom -Destination "$taskTarget/client/$taskName"
@@ -50,8 +76,8 @@ New-Item -ItemType Directory -Path "$taskTarget/mcrf-integration"|Out-Null
 Copy-Item -LiteralPath "$PSScriptRoot/integration/owned_peer_test.go" -Destination "$taskTarget/mcrf-integration/owned_peer_test.go"
 $taskOverlay+=@{path='mcrf-integration/owned_peer_test.go';sha256=(Get-FileHash -LiteralPath "$PSScriptRoot/integration/owned_peer_test.go").Hash.ToLowerInvariant()}
 $taskManifest=@{upstream=$taskRows;overlay=$taskOverlay}
-[IO.File]::WriteAllText("$taskStage/SOURCE_MANIFEST.json",(@($taskRows)+@($taskOverlay)|Sort-Object path|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
-$taskReceipt=@{state='SOURCE_PREPARED_NOT_COMPILED';module=$taskTarget;upstream=$taskLock;manifest=$taskManifest;compiled=$false;executed=$false;androidIntegrated=$false}
+[IO.File]::WriteAllText("$taskStage/SOURCE_MANIFEST.json",(@($taskRows|Where-Object {$_.path -cne $taskDotPath})+@($taskOverlay)|Sort-Object path|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
+$taskReceipt=@{state='SOURCE_PREPARED_NOT_COMPILED';module=$taskTarget;upstream=$taskLock;manifest=$taskManifest;vaydnsUnderlayContract=1;compiled=$false;executed=$false;androidIntegrated=$false}
 $taskReceipt.manifestSha256=(Get-FileHash -LiteralPath "$taskStage/SOURCE_MANIFEST.json").Hash.ToLowerInvariant()
 [IO.File]::WriteAllText("$taskStage/receipt.json",($taskReceipt|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
 Write-Output "P3_VAYDNS_SOURCE=$taskStage"

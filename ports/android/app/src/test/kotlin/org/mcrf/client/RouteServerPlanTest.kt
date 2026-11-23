@@ -53,11 +53,47 @@ class RouteServerPlanTest {
         assertEquals(listOf(first.id),RouteServerPlan.activeIds(settings))
     }
 
+    @Test fun onlyActiveNonCarrierRulesRequireTheProtocolDispatcher() {
+        val carrier=ServerImport.Server("owned-carrier","carrier","wdtt","",0,null,null,null,JSONObject().put("type","wdtt"))
+        val protocol=server("protocol")
+        val carrierRule=rule("carrier","carrier.test",carrier)
+        val protocolRule=rule("protocol","protocol.test",protocol)
+        val entries=listOf(carrier,protocol)
+        assertFalse(RouteServerPlan(state(carrierRule),entries).requiresProtocolDispatcher)
+        assertTrue(RouteServerPlan(state(carrierRule,protocolRule),entries).requiresProtocolDispatcher)
+        protocolRule.put("enabled",false)
+        assertFalse(RouteServerPlan(state(carrierRule,protocolRule),entries).requiresProtocolDispatcher)
+    }
+
+    @Test fun includedAppUsesExplicitServerThenFallsBackToItsVpn() {
+        val main=server("main")
+        val other=server("other")
+        val pkg="org.mcrf.owned.fixture"
+        val explicit=rule("explicit","192.0.2.42/32",other)
+        val direct=rule("direct","192.0.2.43/32").put("target","direct")
+        val settings=state(direct,explicit).put("appMode","include").put("vpnApps",JSONArray().put(pkg))
+        val config=RouteRules.apply(base(main),settings,true,routeServers=listOf(other))
+        val rules=nodes(config.getJSONObject("route"),"rules")
+        val serverTag=RouteServerPlan.tag(other.id)
+        val priority=rules.indexOfFirst {it.optString("outbound")==serverTag}
+        val fallback=rules.indexOfFirst {it.optJSONArray("package_name")?.optString(0)==pkg}
+        val directIndex=rules.indexOfFirst {it.optString("outbound")=="direct"}
+        assertTrue(priority>=0&&priority<fallback&&fallback<directIndex)
+        val match=rules[priority].getJSONArray("rules")
+        assertEquals("and",rules[priority].getString("mode"))
+        assertEquals(pkg,match.getJSONObject(0).getJSONArray("package_name").getString(0))
+        assertEquals("192.0.2.42/32",match.getJSONObject(1).getJSONArray("ip_cidr").getString(0))
+        assertEquals(ServerImport.tag(main),rules[fallback].getString("outbound"))
+        assertEquals(pkg,nodes(config,"inbounds").single {it.optString("type")=="tun"}.getJSONArray("include_package").getString(0))
+    }
+
     @Test fun twoRulesUseDifferentServersAndKeepMainFinalAndOneTun() {
         val main=server("main");val first=server("first");val second=server("second","trojan")
         val settings=state(rule("a","a.example.test",first),rule("b","b.example.test",second),rule("default","rest.example.test"))
+            .put(RoutingConnectionBinding.KEY,JSONObject().put("enabled",true))
+            .put(RoutingConnectionBinding.DEFAULT,JSONObject().put(RouteServerPlan.KEY,second.id))
         val source=base(main);val beforeSource=source.toString();val beforeSettings=settings.toString()
-        val config=RouteRules.apply(source,settings,true,routeServers=listOf(first,main,second))
+        val config=RouteRules.apply(source,RoutingConnectionBinding.forManualVpn(settings),true,routeServers=listOf(first,main,second))
         assertEquals(RouteServerPlan.tag(first.id),routed(config,"a.example.test").getString("outbound"))
         assertEquals(RouteServerPlan.tag(second.id),routed(config,"b.example.test").getString("outbound"))
         assertEquals(source.getJSONObject("route").getString("final"),routed(config,"rest.example.test").getString("outbound"))

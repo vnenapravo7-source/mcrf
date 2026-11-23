@@ -26,17 +26,32 @@ public final class ProxyProbeService extends Service {
         if(stopping||message.sendingUid!=host||host==android.os.Process.myUid())return;
         Bundle data=message.getData();String nonce=data.getString("nonce",""),session=data.getString("session","");if(!nonce.matches("[0-9a-f]{32}")||!session.matches("[0-9a-f]{32}"))return;
         if(message.what==2){if(active!=null&&active.nonce.equals(nonce)&&active.session.equals(session))active.close();return;}
-        if(message.what!=1||message.replyTo==null||active!=null&&!active.closed.get()||
-            !data.keySet().equals(new HashSet<>(Arrays.asList("nonce","session","port","kind","family"))))return;
-        String kind=data.getString("kind","");int port=data.getInt("port"),family=data.getInt("family");
-        if(port<1024||port>65535||(family!=4&&family!=6)||!Arrays.asList("HTTP_CONNECT","HTTP_ABSOLUTE","SOCKS_CONNECT","SOCKS_DNS","HTTP_BAD_AUTH","SOCKS_BAD_AUTH","SOCKS_DENIED").contains(kind))return;
-        Active next=new Active(nonce,session,message.replyTo,port,kind,family);active=next;next.reply.getBinder().linkToDeath(next,0);
+        if(message.what!=1||message.replyTo==null||active!=null&&!active.closed.get())return;
+        String kind=data.getString("kind","");
+        boolean lan=kind.equals("LAN_HTTP_DENIED");
+        Set<String> fields=new HashSet<>(Arrays.asList("nonce","session","port","kind","family"));
+        if(lan)fields.addAll(Arrays.asList("listener","password"));
+        if(!data.keySet().equals(fields))return;
+        int port=data.getInt("port"),family=data.getInt("family");
+        if(port<1024||port>65535||(family!=4&&family!=6)||(!lan&&!Arrays.asList("HTTP_CONNECT","HTTP_ABSOLUTE","SOCKS_CONNECT","SOCKS_DNS","HTTP_BAD_AUTH","SOCKS_BAD_AUTH","SOCKS_DENIED").contains(kind)))return;
+        InetAddress listener=InetAddress.getByAddress(new byte[]{127,0,0,1});
+        String password=nonce;
+        if(lan){
+            String ip=data.getString("listener","");
+            password=data.getString("password","");
+            if(family!=4||!ip.matches("(?:[0-9]{1,3}\\.){3}[0-9]{1,3}")||!password.matches("[0-9a-f]{48}"))return;
+            listener=android.net.InetAddresses.parseNumericAddress(ip);
+            if(!listener.isLoopbackAddress()&&(!(listener instanceof Inet4Address)||!listener.isSiteLocalAddress()||NetworkInterface.getByInetAddress(listener)==null))return;
+        }
+        Active next=new Active(nonce,session,message.replyTo,port,kind,family,listener,password);active=next;next.reply.getBinder().linkToDeath(next,0);
         synchronized(next){if(!next.closed.get())next.timeout=deadlines.schedule(next::close,25,TimeUnit.SECONDS);}worker.execute(next);
     }catch(Exception refused){if(active!=null)active.close();}}
     private final class Active implements Runnable,IBinder.DeathRecipient,AutoCloseable {
-        final String nonce,session,kind;final Messenger reply;final int port,family;final AtomicBoolean closed=new AtomicBoolean();
+        final String nonce,session,kind,password;final InetAddress listener;final Messenger reply;final int port,family;final AtomicBoolean closed=new AtomicBoolean();
         final CountDownLatch retired=new CountDownLatch(1);volatile Socket tcp;volatile DatagramSocket udp;volatile ScheduledFuture<?> timeout;
-        Active(String nonce,String session,Messenger reply,int port,String kind,int family){this.nonce=nonce;this.session=session;this.reply=reply;this.port=port;this.kind=kind;this.family=family;}
+        Active(String nonce,String session,Messenger reply,int port,String kind,int family,InetAddress listener,String password){
+            this.nonce=nonce;this.session=session;this.reply=reply;this.port=port;this.kind=kind;this.family=family;this.listener=listener;this.password=password;
+        }
         void live()throws IOException{if(closed.get()||stopping)throw new IOException("RETIRED");}
         byte[] exact(InputStream input,int size)throws IOException{if(size<0||size>4096)throw new IOException("BOUND");byte[] value=new byte[size];new DataInputStream(input).readFully(value);live();return value;}
         String headers(InputStream input)throws IOException{ByteArrayOutputStream value=new ByteArrayOutputStream();int suffix=0;while(value.size()<4096){live();int b=input.read();if(b<0)throw new EOFException();if(b<9||b>126)throw new IOException("HEADER");value.write(b);suffix=(suffix<<8)|b;if(suffix==0x0d0a0d0a)return value.toString("US-ASCII");}throw new IOException("BOUND");}
@@ -64,9 +79,21 @@ public final class ProxyProbeService extends Service {
             byte[] packet=Arrays.copyOfRange(value,10,reply.getLength());if(packet[0]!=query[0]||packet[1]!=query[1]||(packet[2]&128)==0||(packet[3]&15)!=0||!Arrays.equals(Arrays.copyOfRange(packet,12,query.length),Arrays.copyOfRange(query,12,query.length)))throw new IOException("SOCKS_DNS_REPLY");
         }
         public void run(){try{
-            Socket socket=new Socket();synchronized(this){live();tcp=socket;}socket.connect(new InetSocketAddress(InetAddress.getByAddress(new byte[]{127,0,0,1}),port),3000);socket.setSoTimeout(5000);
+            Socket socket=new Socket();synchronized(this){live();tcp=socket;}socket.connect(new InetSocketAddress(listener,port),3000);socket.setSoTimeout(5000);
             InputStream input=socket.getInputStream();OutputStream output=socket.getOutputStream();
-            if(kind.startsWith("HTTP")){
+            if(kind.equals("LAN_HTTP_DENIED")){
+                String credential=Base64.getEncoder().encodeToString(("p1-owned:"+password).getBytes(StandardCharsets.US_ASCII));
+                String header=request(true).replace("Connection: close\r\n","Proxy-Authorization: Basic "+credential+"\r\nConnection: close\r\n");
+                // The listener was connected; the credential is the same one
+                // used by the remote positive control. No direct origin socket.
+                try{
+                    send(output,header);
+                    String response=headers(input);
+                    if(!response.matches("(?s)HTTP/1\\.[01] (?:403|407) .*"))throw new IOException("LAN_LOCAL_UNEXPECTED_REPLY");
+                }catch(EOFException|SocketException|SocketTimeoutException denied){
+                    live();
+                }
+            }else if(kind.startsWith("HTTP")){
                 String credential=Base64.getEncoder().encodeToString(("p1-owned:"+(kind.equals("HTTP_BAD_AUTH")?"rejected-owned-nonce":nonce)).getBytes(StandardCharsets.US_ASCII));
                 if(kind.equals("HTTP_ABSOLUTE")){String request=request(true);send(output,request.replace("Connection: close\r\n","Proxy-Authorization: Basic "+credential+"\r\nConnection: close\r\n"));expectHttp(input);}
                 else {send(output,"CONNECT "+host()+":80 HTTP/1.1\r\nHost: "+host()+":80\r\nProxy-Authorization: Basic "+credential+"\r\n\r\n");String reply=headers(input);

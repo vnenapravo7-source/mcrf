@@ -35,7 +35,8 @@ class BackgroundReviewFixesTest {
         assertTrue(source("SubscriptionUpdates").contains("private const val JOB = BackgroundJobIds.SUBSCRIPTIONS"))
         assertTrue(source("SubscriptionUpdates").contains("scheduler.cancel(SubscriptionOpenRefresh.JOB)"))
         assertTrue(source("SubscriptionOpenRefresh").contains("JobInfo.Builder(JOB,ComponentName(context,SubscriptionUpdateService::class.java))"))
-        assertTrue(source("EngineUpdateSchedule").contains("JobInfo.Builder(JOB, ComponentName(context, EngineUpdateService::class.java))"))
+        assertTrue(source("EngineUpdateSchedule").contains(".cancel(JOB)"))
+        assertFalse(source("EngineUpdateSchedule").contains(".setPeriodic("))
     }
     @Test fun transientIoRecoveryStillRetriesAndKeepsTheSpecificCause(){
         val result=NetworkRecoveryFailure.classify(IOException("PROTOCOL_CONNECTION_REFUSED: peer unavailable"))
@@ -59,16 +60,28 @@ class BackgroundReviewFixesTest {
     @Test fun emptyFailureStillHasAVisibleTechnicalType(){
         assertEquals("IOException",NetworkRecoveryFailure.classify(IOException()).detail)
     }
-    @Test fun serviceTerminalRecoveryRetainsTunAndClearsRetryBeforeReporting(){
-        val body=source("McrfVpnService");val start=body.indexOf("private fun resetConnections(reason:String,forceRestart:Boolean=false)")
-        assertTrue("Exact function must exist",start>=0)
-        val end=body.indexOf("private val preferences",start);assertTrue(end>start)
-        val reset=body.substring(start,end)
-        assertTrue(reset.contains("val failure=NetworkRecoveryFailure.classify(error)"))
-        assertTrue(reset.contains("closeCore(keepTun=recovery?.vpn==true)"))
-        assertTrue(reset.contains("requested==epoch&&recovery?.requested==requested"))
-        val terminal=reset.substringAfter("if(failure.retry){").substringAfter("}else{").substringBefore("}finally{")
-        assertTrue(terminal.contains("clearNetworkRecovery()"));assertTrue(terminal.contains("putBoolean(\"wantedRunning\",false)"))
-        assertFalse(terminal.contains("retryNetworkRecovery("));assertTrue(terminal.contains("Ошибка восстановления"))
+    @Test fun serviceTerminalRecoveryKeepsOnlyOptedInBlockingTunAndClearsRetryBeforeReporting(){
+        // 2.0 explicitly makes internal Kill switch opt-in; terminal failures cannot retry.
+        for(blocked in listOf(false,true)){
+            val state=RecoveryState();state.start(1)
+            val reason=RecoveryPolicy.classify(IOException("wrapped",SecurityException("denied")))
+            assertEquals(RecoveryReason.AUTHENTICATION,reason)
+            assertTrue(state.fail(1,reason,0));assertNull(state.schedule(1,0,0.0))
+            state.finish(1,blocked)
+            assertEquals(if(blocked)RecoveryState.Phase.BLOCKED else RecoveryState.Phase.FAILED,state.snapshot().phase)
+            assertEquals(blocked,state.snapshot().trafficBlocked)
+            assertNull(state.snapshot().retryInMs);assertFalse(state.fail(1,RecoveryReason.NETWORK_LOSS,1))
+        }
+        val body=source("McrfVpnService")
+        val begin=body.substringAfter("private fun beginRecovery(").substringBefore("private fun retryNetworkRecovery(")
+        assertTrue(begin.contains("behavior.killSwitchBeta&&!SafeModeStore(this).enabled()"))
+        assertTrue(begin.contains("if(!behavior.recoveryEnabled(reason)||!RecoveryPolicy().retryable(reason))"))
+        assertTrue(begin.contains("finishRecovery(session);return"))
+        val terminal=body.substringAfter("private fun finishRecovery(").substringBefore("private fun beginRecovery(")
+        assertTrue(terminal.indexOf("networkRecoveryTask?.let(main::removeCallbacks)") in 0 until terminal.indexOf("status=if(held)"))
+        assertTrue(terminal.contains("networkRecovery=null;recoveryTarget=null"))
+        assertTrue(terminal.contains("putBoolean(\"wantedRunning\",false)"))
+        assertFalse(terminal.contains("retryNetworkRecovery("))
+        assertTrue(terminal.contains("if(held)foreground(status)else {releaseRecoveryTun();closeCore();"))
     }
 }

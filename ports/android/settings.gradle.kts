@@ -1,7 +1,7 @@
 pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
 dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
 rootProject.name = "MCRF"
-include(":app")
+include(":app", ":anubis-module")
 include(":engines")
 include(":primary-spi")
 include(":primary-adapter")

@@ -10,6 +10,15 @@ object Csqtt25Profile {
     const val GENERATION="2.5"
     const val ENGINE="csqtt25"
     const val IMPLEMENTATION="swg-panel-2.5.1"
+    internal fun srtpMode(input:JSONObject):String {
+        if(!input.has("srtp_mode"))return "auto"
+        val mode=input.get("srtp_mode")
+        require(mode is String&&mode in setOf("auto","wrap-srtp","dtls-srtp")) {"Некорректный режим SRTP CSQTT 2.5."}
+        // Full generation AUTO may fall back to a legacy protocol without SRTP
+        // options. Until that projection can preserve the mode, reject it explicitly.
+        require(mode=="auto"||!CsqttGenerations.automatic(input)) {"Для явного режима SRTP выберите CSQTT 2.5, а не автоопределение поколений."}
+        return mode
+    }
     fun isProfile(raw:JSONObject)=raw.optString("type")=="csqtt"&&raw.opt("csqtt_generation")==GENERATION
     private fun decode(value:String)=URLDecoder.decode(value.replace("+","%2B"),"UTF-8")
     private fun clean(value:String,max:Int,empty:Boolean=false):String=value.also {
@@ -50,8 +59,8 @@ object Csqtt25Profile {
         try {
             require(source.toByteArray(Charsets.UTF_8).size<=65536&&input.toString().toByteArray(Charsets.UTF_8).size<=65536&&isProfile(input))
             val allowed=setOf("type","csqtt_generation","name","server","server_port","password","hashes","vk_token","vk_hash_mode",
-                "workers","link_workers","allow_hash_redistribution","captcha_mode","vk_auth_mode","obfs","fingerprint","turn_transport",
-                "custom_turn_ips","client_ids","generation","salt","device_id","outbound_tag","probe_only","csqtt_implementation",CarrierStreamDefaults.OVERRIDE)
+                "workers","link_workers","allow_hash_redistribution","captcha_mode","vk_auth_mode","obfs","fingerprint","turn_transport","srtp_mode","gooby_enabled","gooby_strategy",
+                "custom_turn_ips","client_ids","generation","salt","device_id","outbound_tag","probe_only","csqtt_implementation",CarrierStreamDefaults.OVERRIDE,CsqttGenerations.SELECTION,CsqttGenerations.EPOCH)
             require(input.keys().asSequence().all {it in allowed})
             val host=clean(input.getString("server"),253);val port=input.get("server_port").toString().toInt();endpoint(host,port)
             val password=clean(input.getString("password"),1024)
@@ -77,7 +86,7 @@ object Csqtt25Profile {
             require(workers in 3..100&&(fixed>0||workers%10==0))
             fun flag(key:String):Boolean {val value=input.opt(key);require(value==null||value is Boolean);return value==true}
             val redistribute=flag("allow_hash_redistribution")
-            require(fixed>0||redistribute||hashMode=="auto_js"||workers<=calls.size*10)
+            require(CsqttSwgVersions.needsNewRuntime(input)||fixed>0||redistribute||hashMode=="auto_js"||workers<=calls.size*10)
             fun option(key:String,fallback:String,values:Set<String>)=input.optString(key,fallback).also {require(it in values)}
             val mode=option("captcha_mode","auto",setOf("auto","wv","rjs"))
             val auth=option("vk_auth_mode",if(hashMode=="auto_js")"auto_js"else"vkcalls",setOf("vkcalls","legacy","auto_js"))
@@ -90,10 +99,17 @@ object Csqtt25Profile {
                 .put("allow_hash_redistribution",redistribute).put("captcha_mode",mode).put("vk_auth_mode",auth)
                 .put("obfs",option("obfs","unified",setOf("unified","audio","video"))).put("fingerprint",clean(input.optString("fingerprint","chrome"),64,true))
                 .put("turn_transport",option("turn_transport","udp",setOf("udp","tcp"))).put("custom_turn_ips",JSONArray(ips))
+            // Omission retains native AUTO and the old profile/private-config shape.
+            // Explicit values are strict: null, coercions, aliases and empty strings must not silently select AUTO.
+            if(input.has("srtp_mode")) {
+                node.put("srtp_mode",srtpMode(input))
+            }
+            CsqttGooby.copy(input,node)
             if(token.isNotEmpty())node.put("vk_token",token)
             for(key in listOf("client_ids","salt","device_id"))input.optString(key).takeIf(String::isNotEmpty)?.let {node.put(key,clean(it,if(key=="client_ids")4096 else if(key=="salt")1024 else 256))}
             if(input.has("generation")){val generation=input.get("generation").toString().toInt();require(generation>=0);node.put("generation",generation)}
             if(input.has(CarrierStreamDefaults.OVERRIDE)){node.put(CarrierStreamDefaults.OVERRIDE,input.get(CarrierStreamDefaults.OVERRIDE));CarrierStreamDefaults.validateOverride(node)}
+            CsqttGenerations.copySelection(input,node)
             return ServerImport.Server(source,name,"csqtt",host,port,null,null,null,node)
         }catch(_:Exception){throw IllegalArgumentException("Некорректный профиль CSQTT 2.5. Проверь версию, потоки и источник звонков; старый движок не будет использован.")}
     }
@@ -102,7 +118,13 @@ object Csqtt25Profile {
         require(udpPort in 1..65535&&socksPort in 1..65535)
         clean(user,255);clean(password,255);clean(installation,256)
         return JSONObject(p.toString()).apply {
-            listOf("type","name","server","server_port","link_workers","csqtt_implementation",CarrierStreamDefaults.OVERRIDE).forEach(::remove)
+            // AUTO is the native default, including old wrappers which reject or
+            // ignore unknown fields. Do not require a new module for this default.
+            if(srtpMode(p)=="auto")remove("srtp_mode")
+            CsqttGooby.runtime(this)
+            listOf("type","name","server","server_port","link_workers","csqtt_implementation",CarrierStreamDefaults.OVERRIDE,CsqttGenerations.SELECTION,CsqttGenerations.EPOCH).forEach(::remove)
+            // Old wrappers reject this field; the capability gate runs before launch.
+            if(CsqttSwgVersions.needsNewRuntime(p))put("csqtt_implementation",CsqttSwgVersions.nativeImplementation(p))
             put("peer",endpoint(p.getString("server"),p.getInt("server_port"))).put("listen","127.0.0.1:$udpPort")
             put("socks","127.0.0.1:$socksPort").put("socks_user",user).put("socks_pass",password)
             put("device_id",p.optString("device_id").ifEmpty {installation}).put("exact_workers",p.getInt("link_workers")>0)

@@ -1,0 +1,125 @@
+package PACKAGE
+
+import (
+	"context"
+	"io"
+	"net"
+	"strconv"
+	"testing"
+	"time"
+)
+
+type mcrfUDPFixtureDialer struct{}
+
+func (mcrfUDPFixtureDialer) DialTCP(address string) (net.Conn, error) {
+	return net.DialTimeout("tcp4", address, time.Second)
+}
+
+func (mcrfUDPFixtureDialer) DialUDP(address string) (net.Conn, error) {
+	return net.DialTimeout("udp4", address, time.Second)
+}
+
+func (mcrfUDPFixtureDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	return (&net.Dialer{}).DialContext(ctx, network, address)
+}
+
+func (mcrfUDPFixtureDialer) LookupContextHost(_ context.Context, host string) ([]string, error) {
+	return []string{host}, nil
+}
+
+func mcrfUDPFixtureSocket(t *testing.T) *net.UDPConn {
+	t.Helper()
+	conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { conn.Close() })
+	return conn
+}
+
+func mcrfUDPFixtureControl(t *testing.T) (client, server *net.TCPConn) {
+	t.Helper()
+	listener, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	client, err = net.DialTCP("tcp4", nil, listener.Addr().(*net.TCPAddr))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { client.Close() })
+	server, err = listener.AcceptTCP()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { server.Close() })
+	client.SetDeadline(time.Now().Add(4 * time.Second))
+	return
+}
+
+func TestMcrfSocksUdpSourcePinAndControlEOF(t *testing.T) {
+	run := func(control net.Conn, sourcePort int) {
+		address := net.JoinHostPort("127.0.0.1", strconv.Itoa(sourcePort))
+		defer control.Close()
+		SERVE_ASSOCIATION
+	}
+	client, control := mcrfUDPFixtureControl(t)
+	go run(control, 0)
+	var reply [10]byte
+	if _, err := io.ReadFull(client, reply[:]); err != nil || reply[1] != 2 {
+		t.Fatal("source port zero was not refused", err)
+	}
+	client.Close()
+	client, control = mcrfUDPFixtureControl(t)
+	local, wrong, destination := mcrfUDPFixtureSocket(t), mcrfUDPFixtureSocket(t), mcrfUDPFixtureSocket(t)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		run(control, local.LocalAddr().(*net.UDPAddr).Port)
+	}()
+	if _, err := io.ReadFull(client, reply[:]); err != nil || reply[1] != 0 || reply[3] != 1 {
+		t.Fatal("bound association was not admitted", err)
+	}
+	relay := &net.UDPAddr{IP: net.IP(reply[4:8]), Port: int(reply[8])<<8 | int(reply[9])}
+	if !relay.IP.Equal(net.IPv4(127, 0, 0, 1)) || relay.Port == 0 {
+		t.Fatal("UDP relay lacks a loopback tuple")
+	}
+	port := destination.LocalAddr().(*net.UDPAddr).Port
+	want := []byte("owner-fixture")
+	packet := append([]byte{0, 0, 0, 1, 127, 0, 0, 1, byte(port >> 8), byte(port)}, want...)
+	var payload [128]byte
+	roundTrip := func() {
+		t.Helper()
+		local.WriteToUDP(packet, relay)
+		destination.SetReadDeadline(time.Now().Add(2 * time.Second))
+		n, peer, err := destination.ReadFromUDP(payload[:])
+		if err != nil || string(payload[:n]) != string(want) {
+			t.Fatal("paired UDP source did not reach the destination", err)
+		}
+		destination.WriteToUDP(payload[:n], peer)
+		local.SetReadDeadline(time.Now().Add(2 * time.Second))
+		n, _, err = local.ReadFromUDP(payload[:])
+		if err != nil || n < 10 || string(payload[10:n]) != string(want) {
+			t.Fatal("paired UDP source did not receive a response", err)
+		}
+	}
+	roundTrip()
+	wrong.WriteToUDP(packet, relay)
+	destination.SetReadDeadline(time.Now().Add(150 * time.Millisecond))
+	if _, _, err := destination.ReadFromUDP(payload[:]); err == nil {
+		t.Fatal("UDP source outside the control association was forwarded")
+	}
+	roundTrip()
+	client.Close()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("UDP relay survived control EOF")
+	}
+	local.WriteToUDP(packet, relay)
+	destination.SetReadDeadline(time.Now().Add(150 * time.Millisecond))
+	if _, _, err := destination.ReadFromUDP(payload[:]); err == nil {
+		t.Fatal("retired association emitted UDP traffic")
+	}
+}

@@ -13,6 +13,7 @@ $taskNotices=Get-Content "$taskRoot/notice-manifest.json" -Raw|ConvertFrom-Json
 if(@($taskNotices.missingModules).Count -or $taskNotices.linkedModules -lt 1){throw 'All actual dependency legal notices required'}
 $taskRequired=@('TestMcrfSlipstreamStrictConfigAndMandatoryLeaf','TestMcrfSlipstreamRejectDuplicateAndTrailingConfig','TestMcrfSlipstreamEndpointAndKeepAliveBounds','TestMcrfSlipstreamUnauthenticatedClientCannotOpenRemoteStream','TestMcrfSlipstreamPrivateRelayPreservesHalfClose','TestMcrfSlipstreamCancellationClosesPendingRemoteAuth','TestMcrfSlipstreamOwnedWireData','TestMcrfSlipstreamWrongLeafStopsBeforeRemoteSOCKS','TestMcrfSlipstreamParentDeathStopsCore','TestMcrfSlipstreamStdinEOFStopsCore')
 $taskRequired+='TestMcrfSlipstreamOriginalCServerInterop'
+if($taskReceipt.androidPhysicalSocketBinding){$taskRequired+='TestMcrfSlipstreamOwnedWirePhysicalNetwork'}
 $taskPassed=@();$taskAttempts=@()
 if(Test-Path "$taskRoot/fixture-evidence.json"){
  $taskPrior=Get-Content "$taskRoot/fixture-evidence.json" -Raw|ConvertFrom-Json -AsHashtable
@@ -39,7 +40,7 @@ $taskPairs+=@{file='fixtures/libslipstream_cserver.so';name='libslipstream_cserv
 try{
  $taskInstall=@(& $Adb -s $Serial install -r $FixtureApk)
  if($LASTEXITCODE -or ($taskInstall -join "`n") -notmatch '(?m)^Success\s*$'){throw 'Owned Slipstream fixture APK install failed'}
- # Eleven NEW loopback/UDS/QUIC-DNS/pin/process-owner/original-C cases. No account,
+ # Owned loopback/UDS/QUIC-DNS/pin/process-owner/original-C cases. No account,
  # external resolver, VPN switch, application install or UI action is involved.
  $taskInstrument=@(& $Adb -s $Serial shell am instrument -w -e cases ($taskRemaining -join ',') -e runId $taskRun org.mcrf.slipstreamfixtures/.Runner)
  [IO.File]::WriteAllText("$taskLogRoot/instrument.txt",($taskInstrument -join "`n"),[Text.UTF8Encoding]::new($false))
@@ -59,7 +60,7 @@ try{
   if($taskEvent.Action -ceq 'pass' -and $taskEvent.Test){$taskEvidence.cases+=@($taskEvent.Test)}
  }
  $taskEvidence.attempts+=@{log="attempt-$taskRun/raw.log";sha256=Hash "$taskLogRoot/raw.log";instrumentSha256=Hash "$taskLogRoot/instrument.txt";apkSha256=Hash $FixtureApk;stderrSha256=Hash "$taskLogRoot/stderr.log";requested=$taskRemaining;exit=$taskExit}
- if($taskExit -ne 0 -or $taskEvidence.failures -ne 0 -or $taskEvidence.skipped -ne 0 -or @($taskRequired|Where-Object {$_ -cnotin $taskEvidence.cases}).Count){throw 'All eleven owned Slipstream cases must pass, none skipped'}
+ if($taskExit -ne 0 -or $taskEvidence.failures -ne 0 -or $taskEvidence.skipped -ne 0 -or @($taskRequired|Where-Object {$_ -cnotin $taskEvidence.cases}).Count){throw 'All required owned Slipstream cases must pass, none skipped'}
  $taskEvidence.originalCServerInterop=$true;$taskEvidence.originalCCommit=$taskReceipt.originalCFixture.commit;$taskEvidence.originalPicoquicCommit=$taskReceipt.originalCFixture.picoquic
  $taskEvidence.logSha256=Hash "$taskLogRoot/tests.jsonl";$taskEvidence.state='PASS_P3_SLIPSTREAM_OWNED_FIXTURE'
  Save $taskEvidence "$taskRoot/fixture-evidence.json"

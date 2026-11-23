@@ -1,0 +1,36 @@
+{
+  "scope": "Human change-set items14/18; optional settings and bridge only",
+  "primary_cores": {
+    "sing-box": "Separate signed primary APK per new human instruction. Existing base-library phone evidence is historical; no assumption that the new separate runtime/package/API is accepted.",
+    "steer": "Read-only owner descriptor0.3.3-dev/API2 lists SOCKS5 protocol but not this authenticated optional-worker bridge's granular TCP/UDP contract. Arm64/x86_64 stages and owner-reported gates do not prove new MCRF signed primary integration. Bridge capabilities remain unknown until primary/engine owner verifies them; no inferred compatibility from a core name."
+  },
+  "required_bridge_capabilities": {
+    "all_optional_workers": ["outbound:socks5", "socks5:authentication", "socks5:tcp"],
+    "xray_additional": ["socks5:udp"],
+    "trust": "Main maps only actual signed installed primary descriptor/native evidence into Primary(verified=true,capabilities). Pure helper performs no package discovery or install. Existing SingBoxEngine fullNativeConfig=true and Steer protocols:socks5 do not directly declare this granular vocabulary; an owner-verified mapping/native bridge gate is needed, not optimistic synthesis.",
+    "final_gate": "Native primary full-profile check, optional module preflight, explicit confirmed switch, then runtime checks remain mandatory. eligibleForNativeCheck is not switch approval."
+  },
+  "duplicates": [
+    {"setting": "sing-box MUX versus Xray MUX", "decision": "Keep separate protocol controls. Neither protocol default can be transferred to the other without compatible server evidence."},
+    {"setting": "built-in fragment versus custom record fragment", "decision": "Different runtime mechanisms; retain explicit labels and profile priority. Primary owner owns built-in settings; optional TLS page owns record size and group delay."},
+    {"setting": "CA store/uTLS/certificate checking", "decision": "Do not duplicate on optional pages. Keep with primary transport settings and captured tuning. TLS worker supports system/Mozilla; Xray Mozilla and builtin fragment limitations stay explicit."}
+  ],
+  "unsupported": [
+    "Xray plus custom TLS fragment/mixedcase combination remains rejected, not implemented",
+    "TLS optional bridge is TCP-only",
+    "Pinned Xray removed allowInsecure: reject rather than disable certificate verification",
+    "Steer full profile/DNS/routes/TUN/native API compatibility is primary owner's validation responsibility"
+  ],
+  "optional_worker_preflight": {
+    "requiredWorkerCapabilities": "Pure requirements union for every worker tag, grouped by xray/tls-core. Xray checks VLESS/UDP and applicable XHTTP/REALITY/MUX; TLS checks record fragment/mixedcase/uTLS/certificate-store only when used.",
+    "workerBlockers": "Compare requirements against same-signer descriptors already validated by OptionalCoreProcess.capabilities. Absent module/feature is a blocker; no installation or settings changes occur here.",
+    "final_gate": "Empty workerBlockers and eligibleForNativeCheck still require full primary native config validation, each OptionalCoreProcess.check and explicit confirmed switch. Capability declarations never replace real config/runtime checks."
+  },
+  "removal_proposals_only": [
+    {"setting": "Xray MUX concurrency", "proposal": "Consider placing under advanced section", "reason": "Server-specific; ordinary users rarely tune it and Vision is incompatible", "removed": false, "human_decision_required": true},
+    {"setting": "custom fragment size and group delay", "proposal": "Consider advanced section inside TLS subpage", "reason": "Network-specific tuning with latency tradeoffs; preserve working defaults and manual overrides", "removed": false, "human_decision_required": true}
+  ],
+  "unsafe_certificate_disable": "Default remains off in CoreTuningSettings; optional pages add no disable toggle. Explicit global insecure applies only to capable TLS worker; pinned Xray refuses it. Main/primary owner owns confirmation/guard for any unsafe primary setting.",
+  "navigation": "Main uses OptionalCoreUi.xrayPage()/tlsPage()/page(id) within Settings subpages. Builders open no popup. Legacy view() remains temporary compatibility hook; do not render it together with both pages.",
+  "final_accepted": false
+}

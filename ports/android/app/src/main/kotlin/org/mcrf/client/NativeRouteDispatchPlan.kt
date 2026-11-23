@@ -114,18 +114,24 @@ internal class NativeRouteDispatchPlan private constructor(private val captured:
         private val routeActionFields=setOf("action","outbound","override_address","override_port","network_strategy","fallback_delay",
             "udp_disable_domain_unmapping","udp_connect","udp_timeout","tls_fragment","tls_fragment_fallback_delay","tls_record_fragment","tls_spoof","tls_spoof_method")
         fun forSteer(main:ServerImport.Server,additional:RouteServerPlan,optional:OptionalCoreSettings=OptionalCoreSettings(),
-                     core:CoreTuningSettings?=null):NativeRouteDispatchPlan {
-            require(SteerAutomaticPool.compatible(main)){"Основной сервер нельзя точно запустить через Steer."}
+                     core:CoreTuningSettings?=null):NativeRouteDispatchPlan = capture(main,additional,optional,core)
+        fun steerRules(additional:RouteServerPlan,optional:OptionalCoreSettings=OptionalCoreSettings(),
+                       core:CoreTuningSettings?=null):NativeRouteDispatchPlan = capture(null,additional,optional,core)
+        private fun capture(main:ServerImport.Server?,additional:RouteServerPlan,optional:OptionalCoreSettings,
+                            core:CoreTuningSettings?):NativeRouteDispatchPlan {
             fun module(entry:ServerImport.Server):OptionalCoreConfig.Request?=entry.outbound?.let {node->
                 if(core==null)OptionalCoreConfig.prepare(node,optional)else OptionalCoreTuning.prepare(node,optional,core).request
             }
-            require(module(main)==null){"Параметры основного сервера требуют Xray/TLS Core, а выбран Steer. Другой протокольный движок автоматически не подставляется."}
+            if(main!=null){
+                require(SteerAutomaticPool.compatible(main)){"Основной сервер нельзя точно запустить через Steer."}
+                require(module(main)==null){"Параметры основного сервера требуют Xray/TLS Core, а выбран Steer. Другой протокольный движок автоматически не подставляется."}
+            }
             val all=linkedMapOf<String,Pair<ServerImport.Server,MutableList<String>>>()
             fun capture(entry:ServerImport.Server,tag:String){
                 // An explicitly selected extra server may require its OWN
                 // protocol module. Leave that exact node to OptionalCorePlan;
                 // never roundtrip its TLS/Xray extensions through a Steer URI.
-                if(entry.id!=main.id&&module(entry)!=null)return
+                if(entry.id!=main?.id&&module(entry)!=null)return
                 if(!SteerProbePlan.supports(entry)&&!CompactProtocolPolicy.eligible(entry)){
                     require(entry.carrier!=null||WgAddonPolicy.isWireGuard(entry.protocol)||
                         entry.protocol in dispatcherProtocols&&entry.outbound?.optString("type")==entry.protocol){
@@ -139,7 +145,7 @@ internal class NativeRouteDispatchPlan private constructor(private val captured:
                     require(tag !in previous.second){"NATIVE_ROUTE_DUPLICATE_TAG"};previous.second.add(tag)
                 }else all[entry.id]=entry to mutableListOf(tag)
             }
-            capture(main,ServerImport.tag(main))
+            if(main!=null)capture(main,ServerImport.tag(main))
             additional.entries.forEach {capture(it,RouteServerPlan.tag(it.id))}
             require(all.size in 1..8){"До 8 серверов Steer одновременно в правилах, включая основной."}
             val bindings=all.values.map {(entry,tags)->

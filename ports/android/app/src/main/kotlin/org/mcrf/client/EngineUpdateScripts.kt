@@ -91,7 +91,10 @@ object EngineUpdateScripts {
             if(action=="capabilities")require(result.getInt("interface")==1&&result.getInt("scriptUpdater")==1&&result.getString("format")==".flux")
             else if(action=="inspect")require(result.getString("status")=="verified"&&result.getString("file")==file)
             else require(result.getString("status") in setOf("up_to_date","available","blocked","installed","error"))
-            safeToClear=result.optString("code")!="update_busy"
+            // An error receipt may follow a failed rename/rollback. Keep the durable
+            // fence until recovery verifies the signed files, even after child exit.
+            safeToClear=result.optString("status") in setOf("up_to_date","installed") &&
+                result.optString("code")!="update_busy"
             return result
         } finally {
             EngineScriptCleanup.finish(

@@ -1,0 +1,24 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data android:name="org.mcrf.engines.bs" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.socks_udp_source.csqtt" android:value="${bsSocksUdpSource_csqtt}" />
+        <meta-data android:name="org.mcrf.engines.socks_udp_source.csqtt20" android:value="${bsSocksUdpSource_csqtt20}" />
+        <meta-data android:name="org.mcrf.engines.socks_udp_source.csqtt215" android:value="${bsSocksUdpSource_csqtt215}" />
+        <meta-data android:name="org.mcrf.engines.socks_udp_source.csqtt25" android:value="${bsSocksUdpSource_csqtt25}" />
+        <meta-data android:name="org.mcrf.engines.socks_udp_source.qwdtt" android:value="${bsSocksUdpSource_qwdtt}" />
+        <meta-data android:name="org.mcrf.engines.csqtt_gooby_builtin" android:value="${csqttGoobyBuiltinContract}" />
+        <meta-data android:name="org.mcrf.engines.original_packet" android:value="${originalPacketContract}" />
+        <meta-data android:name="org.mcrf.engines.bs.rust_multicall" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.csqtt_direct_tun_fd" android:value="${csqttDirectTunFdContract}" />
+        <meta-data android:name="org.mcrf.engines.bs_routing_session" android:value="${bsRoutingSessionContract}" />
+        <meta-data android:name="org.mcrf.engines.bs_router" android:value="${bsRouterContract}" />
+        <meta-data android:name="org.mcrf.engines.qwdtt_underlay" android:value="${qwdttUnderlayContract}" />
+        <meta-data android:name="org.mcrf.engines.csqtt_legacy_underlay" android:value="${csqttLegacyUnderlayContract}" />
+        <meta-data android:name="org.mcrf.engines.csqtt_modern_underlay" android:value="${csqttModernUnderlayContract}" />
+        <meta-data android:name="org.mcrf.engines.bs_routing_generations" android:value="${bsRoutingGenerations}" />
+        <meta-data android:name="org.mcrf.engines.bs.logical" android:value="csqtt,csqtt20,csqtt215,csqtt25,qwdtt" />
+        <meta-data android:name="org.mcrf.engines.captcha_waiters" android:value="exact-id-v1" />
+        <meta-data android:name="org.mcrf.engines.csqtt_historical_options" android:value="1" />
+        <meta-data android:name="org.mcrf.engines.csqtt_captcha_ids" android:value="1" />
+    </application>
+</manifest>

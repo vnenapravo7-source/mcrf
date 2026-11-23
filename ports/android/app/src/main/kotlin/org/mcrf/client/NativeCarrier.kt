@@ -23,6 +23,31 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
     private var process: Process? = null
     private var ipc: CarrierIpcWriter? = null
     private var processGroup:CarrierProcessGroup?=null
+    private var originalControl:CarrierOriginalPacketControl?=null
+    private var originalEndpoint:CarrierOriginalPacketControl.Endpoint?=null
+    private var originalReceive:java.util.concurrent.FutureTask<CarrierOriginalPacketControl.Endpoint>?=null
+    private var originalReceiveThread:Thread?=null
+    private val originalAdopted=java.util.concurrent.atomic.AtomicBoolean()
+    internal val originalPackets:Boolean get()=originalControl!=null
+    /** Complete the staged handoff only once the final immutable config and
+     * exact primary worker generation are known. Must precede core START. */
+    internal fun attachOriginalPackets(worker:ClientPrimaryWorker,settings:String,tag:String,cancelled:BooleanSupplier) {
+        val endpoint=originalEndpoint?:return
+        endpoint.transferOwned {fd,metadata->
+            check(!closed.get()&&!cancelled.asBoolean){"ORIGINAL_CARRIER_STOPPED"}
+            worker.attachOriginalCarrier(settings,OriginalCarrierPacketSpec(tag,metadata.nonce,metadata.local,metadata.mtu),fd,
+                metadata.peerPid,metadata.generation)
+            originalAdopted.set(true)
+        }
+        originalEndpoint=null
+        val deadline=android.os.SystemClock.elapsedRealtime()+25_000L
+        while(!connected.get()) {
+            checkFailure()
+            check(!closed.get()&&!cancelled.asBoolean&&process?.isAlive==true){"ORIGINAL_CARRIER_STOPPED"}
+            check(android.os.SystemClock.elapsedRealtime()<deadline){"ORIGINAL_CARRIER_READY_TIMEOUT"}
+            Thread.sleep(40)
+        }
+    }
     private val ownershipFailure=java.util.concurrent.atomic.AtomicBoolean(false)
     private val openFluxProtocolRejected=java.util.concurrent.atomic.AtomicBoolean(false)
     private val openFluxVerificationSeen=java.util.concurrent.atomic.AtomicBoolean(false)
@@ -31,12 +56,19 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
     private var openFluxUiId:String?=null
     private var openFluxTicketObserved:String?=null // Survives ACK/cancel until this exact child retires.
     private var directory: File? = null
+    private var runtimeParent: File? = null
     private val connected = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val streamState=TurnStreamState()
+    internal fun actualStreams():Int=streamState.current()
+    private var startedStreamProfile:JSONObject?=null
+    /** Exact resolved input/count for this child, before any later preference/cache change. */
+    internal fun streamProfile():JSONObject?=startedStreamProfile?.let {JSONObject(it.toString())}
     private var kind = ""
     private val challenges=java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
     private val challengeFlights=CarrierChallengeFlights()
     private val captchaSeen=java.util.concurrent.atomic.AtomicBoolean(false)
     private val startupFailure=java.util.concurrent.atomic.AtomicReference<CsqttNativeFailure.Kind?>()
+    private val vkCredentialLimit=java.util.concurrent.atomic.AtomicReference<VkCredentialLimit?>()
     private val inputLock=Any()
     private val closed=java.util.concurrent.atomic.AtomicBoolean(false)
     private var closeComplete=false
@@ -54,9 +86,10 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
     private fun failureMessage(stage:String):String = failureDetail?.describe(stage,
         process?.let {runCatching {it.exitValue()}.getOrNull()}) ?: "$kind · $stage · код и причина недоступны"
     fun checkFailure() {
+        vkCredentialLimit.get()?.let {throw VkCredentialLimit.Blocked(it)}
         require(!openFluxProtocolRejected.get()) {"Запрос проверки OpenFlux отклонён: неверный формат или неподдерживаемая страница. Подключение остановлено."}
         require(!ownershipFailure.get()) {"Не удалось подтвердить владельца дерева процессов. ${failureMessage("подтверждение владельца")}"}
-        startupFailure.get()?.let {throw IllegalArgumentException("${it.explanation} ${failureMessage("отказ клиента")}")}
+        startupFailure.get()?.let {throw CsqttNativeFailure.Rejected(it,failureMessage("отказ клиента"))}
     }
     /** Nonblocking; the Service calls this only for its exact, already-started owner. */
     fun runtimeFailure():String? {
@@ -77,6 +110,8 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
         val observationContext=openFluxContext
         synchronized(inputLock){
             closed.set(true)
+            originalControl?.close()
+            streamState.stop()
             if(kind=="openflux")ipc?.requestStopDiscardingPending() else ipc?.requestStop()
         }
         val verificationIds=(OpenFluxVerificationRequests.registry.closeChild(openFluxChild)+listOfNotNull(openFluxUiId)).distinct()
@@ -93,6 +128,8 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
         val retiring=child?.let {retirement?:ClientCarrierRetirement(it,graceSeconds,ipc=requireNotNull(ipc)).also {retirement=it}}
         retiring?.close()
         processGroup?.awaitDeath()
+        originalReceiveThread?.join(1000)
+        check(originalReceiveThread?.isAlive!=true){"ORIGINAL_CARRIER_RECEIVER_RETIREMENT"}
         if(retiring?.complete==true)lifecycle(CarrierStopDiagnostics.completed(
             android.os.SystemClock.elapsedRealtime()-stopStarted,retiring.forced,try{child?.exitValue()}catch(_:Exception){null}))
         if(openFluxObservation!=null) {
@@ -112,8 +149,9 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
             try {providerCallback?.invoke(stage?.events)}catch(_:Exception){}
         }
         val folder = directory
-        if (folder != null) try { delete(folder, folder) } catch (_: IOException) { }
+        if (folder != null) try { deleteRuntimeDirectory(requireNotNull(runtimeParent), folder) } catch (_: IOException) { }
         directory=null
+        runtimeParent=null
         process=null
         ipc=null
         processGroup=null
@@ -124,6 +162,10 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
         @JvmStatic @Throws(Exception::class) fun executable(context: Context, kind: String): File {
             require(kind in setOf("olcrtc", "dnstt", VayDnsProfile.KIND, SlipstreamProfile.KIND, SstpProfile.KIND, MasterDnsProfile.KIND, "openflux", "warpscout","csqtt25",S3BypassProfile.KIND) + SwgProfile.TYPES + CsqttGenerations.legacyEngines) { "Этот движок ещё переносится." }
             val plugin=installation(context,kind)
+            if(plugin.packageName==BsEngineContract.PACKAGE){
+                require(kind in BsEngineContract.engines){"WDTT устанавливается отдельным движком."}
+                return BsEnginePackage.executable(context,kind)
+            }
             val base = File(plugin.nativeLibraryDir).canonicalFile
             if(kind in CsqttGenerations.legacyEngines) require(File(base,"libcsqtt_transport.so").canExecute()) { "В пакете нет клиента CSQTT нужного поколения для этой архитектуры." }
             if(kind=="csqtt25")require(File(base,"libcsqtt25_transport.so").canExecute()) {"В отдельном пакете нет транспорта CSQTT 2.5 для этой архитектуры."}
@@ -133,6 +175,7 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
             }
         }
         fun installation(context:Context,kind:String):android.content.pm.ApplicationInfo {
+            BsEnginePackage.preferred(context,kind)?.let{return it}
             val dedicated=EngineModules.packageName(kind)
             val pm = context.packageManager
             val plugin = try { pm.getApplicationInfo(dedicated, PackageManager.GET_META_DATA) }
@@ -149,7 +192,11 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
                 pm.checkSignatures(context.packageName, plugin.packageName) == PackageManager.SIGNATURE_MATCH) {
                 "Подпись или версия пакета движков не совпадает с MCRF."
             }
-            if (kind == "openflux") require((plugin.metaData?.getInt("org.mcrf.engines.openflux") ?: 0) >= 2) { "Обнови пакет дополнительных движков для OpenFlux." }
+            if (kind == "openflux") require((plugin.metaData?.getInt("org.mcrf.engines.openflux") ?: 0) >= 2 &&
+                plugin.packageName==dedicated && plugin.metaData?.getString("org.mcrf.engines.source.repository")==EngineUpdatePolicy.UPSTREAM &&
+                OpenFluxProfile.supportsFreshProfile(plugin.metaData?.getString("org.mcrf.engines.source.version"),plugin.metaData?.getString("org.mcrf.engines.source.commit")) &&
+                plugin.metaData?.getInt("org.mcrf.engines.openflux.scriptEngine")==1 && plugin.metaData?.getInt("org.mcrf.engines.openflux.scriptHostApi")==1 &&
+                plugin.metaData?.getString("org.mcrf.engines.openflux.scriptSignature")=="ed25519-official") { "Обновите отдельный модуль до официального OpenFlux ${OpenFluxProfile.FRESH_VERSION} с поддержкой подписанных JS-транспортов." }
             if (kind in SwgProfile.TYPES+CsqttGenerations.legacyEngines) require((plugin.metaData?.getInt("org.mcrf.engines.swg") ?: 0) >= 1) { "Обнови пакет дополнительных движков для SWG." }
             if(kind in setOf("csqtt20","csqtt215")){
                 val family=CsqttGenerations.legacy.single {it.engine==kind}
@@ -168,6 +215,62 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
         @JvmStatic @JvmOverloads @Throws(Exception::class) fun start(context: Context, profile: JSONObject, cancelled: BooleanSupplier, timeoutMillis: Long = 60000,
             providerDiagnostic:Boolean=false,providerVersion:Int=1,onProviderStage:((Map<String,Boolean>?)->Unit)?=null): NativeCarrier =
             startInternal(context,profile,cancelled,timeoutMillis,providerDiagnostic,providerVersion,onProviderStage,false)
+        internal fun startForServerProbe(context:Context,profile:JSONObject,cancelled:BooleanSupplier):NativeCarrier =
+            startInternal(context,profile,cancelled,60000,false,1,null,false,serverProbe=true)
+        internal fun confirmConnectionPing(context:Context,profile:JSONObject,cancelled:BooleanSupplier,onProbe:()->Unit={}) {
+            val backoff=VkCredentialBackoffStore(context)
+            try {
+                backoff.requireConnectionAllowed(profile)
+                return
+            }catch(waiting:VkCredentialLimit.AwaitingServerPing) {
+                val ticket=backoff.serverPingTicket()
+                onProbe()
+                val request=JSONObject(profile.toString()).put("probe_only",true)
+                val bound=BsNativeContract.routerTransport(context,profile,true)
+                val physical=if(bound)DirectAccessCheck.physical(context)?:throw waiting else null
+                if(!bound&&McrfVpnService.ownsSystemTunnel()&&!McrfVpnService.nativeVpnExclusion)throw waiting
+                val passed=try {
+                    check(!cancelled.asBoolean)
+                    val owner=startInternal(context,request,cancelled,15000,false,1,null,false,
+                        serverProbe=true,routerNetwork=physical?.networkHandle)
+                    try {
+                        CarrierSocksSwitch.probe(owner,"https://www.gstatic.com/generate_204",5000)>=0 &&
+                            !cancelled.asBoolean && (physical==null||DirectAccessCheck.physical(context)==physical)
+                    }finally {OptionalCoreRetirement.drain(owner)}
+                }catch(error:VkCredentialLimit.Blocked){throw error}
+                catch(_:Exception){false}
+                if(!passed||!backoff.confirmServerPing(ticket,profile))throw waiting
+                backoff.requireConnectionAllowed(profile)
+            }
+        }
+        internal fun startForBsRouter(context:Context,profile:JSONObject,physical:android.net.Network,cancelled:BooleanSupplier,
+            timeoutMillis:Long=60000,onRetiredFailure:(()->Unit)?=null):NativeCarrier {
+            require(BsNativeContract.routerTransport(context,profile,true)&&DirectAccessCheck.physical(context)==physical){
+                "БС: модуль или физическая сеть изменились перед запуском транспорта."
+            }
+            val networkLost=java.util.concurrent.atomic.AtomicBoolean()
+            val boundCancellation=BooleanSupplier {
+                if(cancelled.asBoolean||networkLost.get())true
+                else {
+                    val current=try {DirectAccessCheck.physical(context)}catch(_:SecurityException){null}
+                    if(current!=physical)networkLost.set(true)
+                    networkLost.get()
+                }
+            }
+            val owner=startInternal(context,profile,boundCancellation,timeoutMillis,false,1,null,false,onRetiredFailure,
+                routerNetwork=physical.networkHandle)
+            try {
+                if(boundCancellation.asBoolean)throw IOException("Подключение отменено или физическая сеть изменилась.")
+                return owner
+            }catch(error:Exception){
+                OptionalCoreRetirement.drain(owner)
+                throw error
+            }
+        }
+        internal fun startRouted(context:Context,profile:JSONObject,cancelled:BooleanSupplier,generation:Long,timeoutMillis:Long=60000):NativeCarrier {
+            val original=generation.takeIf {it>0&&OriginalCarrierMode.available(context,profile)}?:0L
+            return startInternal(context,profile,cancelled,timeoutMillis,false,1,null,false,originalGeneration=original)
+        }
         /** Only an explicit isolated receipt can select the fresh nonproduction package. */
         internal fun startFreshOpenFluxCandidate(context:Context,profile:JSONObject,
             expected:OpenFluxFreshCandidatePolicy.Expected,cancelled:BooleanSupplier,timeoutMillis:Long=60000):NativeCarrier {
@@ -180,30 +283,46 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
         /** A failed pool member is skippable ONLY after start's own exact child
          * and IPC owner have completed retirement. Cleanup failures/cancellation
          * are not an unavailable-server result and must abort the parent start. */
-        internal fun startPoolMember(context:Context,profile:JSONObject,cancelled:BooleanSupplier):NativeCarrier? {
+        internal fun startPoolMember(context:Context,profile:JSONObject,cancelled:BooleanSupplier,
+                                     physical:android.net.Network?=null):NativeCarrier? {
             var retired=false
             val timeout=if(profile.optString("type")=="openflux")OpenFluxProfile.poolStartupMillis(profile)else 15_000L
-            return try {startInternal(context,profile,cancelled,timeout,false,1,null,false,{retired=true})}
+            return try {
+                if(physical==null)startInternal(context,profile,cancelled,timeout,false,1,null,false,{retired=true})
+                else startForBsRouter(context,profile,physical,cancelled,timeout){retired=true}
+            }
             catch(error:Exception) {
-                if(!retired||cancelled.asBoolean||Thread.currentThread().isInterrupted)throw error
+                if(!retired||cancelled.asBoolean||Thread.currentThread().isInterrupted||physical!=null&&DirectAccessCheck.physical(context)!=physical)throw error
                 null
             }
         }
         internal fun requireOptions(context:Context,profile:JSONObject) {
+            if(Csqtt25Profile.isProfile(profile)){Csqtt25Profile.srtpMode(profile);CsqttGooby.validate(profile)}
+            if(CsqttGenerations.automatic(profile))return // The chosen concrete attempt validates its own capabilities.
             val capabilities=CarrierOptionContract.requiredAll(profile)
             if(capabilities.isEmpty())return
             val kind=EngineModules.carrierKind(profile)
             val info=try{installation(context,kind)}catch(_:android.content.pm.PackageManager.NameNotFoundException){throw ClientOptionalCoreRequired(kind)}
-            if(capabilities.any {(info.metaData?.getInt(it)?:0)<1})throw ClientOptionalCoreRequired(kind)
+            if(CarrierOptionContract.missing(profile){info.metaData?.getInt(it)?:0})throw ClientOptionalCoreRequired(kind)
         }
         private fun startInternal(context:Context,rawProfile:JSONObject,cancelled:BooleanSupplier,timeoutMillis:Long,
             providerDiagnostic:Boolean,providerVersion:Int,onProviderStage:((Map<String,Boolean>?)->Unit)?,backgroundCandidate:Boolean,
-            onRetiredFailure:(()->Unit)?=null,freshCandidate:ClientOpenFluxFreshGate.Verified?=null):NativeCarrier {
+            onRetiredFailure:(()->Unit)?=null,freshCandidate:ClientOpenFluxFreshGate.Verified?=null,originalGeneration:Long=0,
+            serverProbe:Boolean=false,routerNetwork:Long?=null):NativeCarrier {
+            if(CsqttAutoDetection.negotiates(rawProfile)) {
+                var retired=false
+                try {return CsqttAutoRuntime.connect(context,rawProfile,cancelled) {candidate->
+                    retired=false
+                    startInternal(context,candidate,cancelled,timeoutMillis,providerDiagnostic,providerVersion,onProviderStage,backgroundCandidate,{retired=true},freshCandidate,originalGeneration,serverProbe,routerNetwork)
+                }}catch(error:Exception){if(retired)onRetiredFailure?.invoke();throw error}
+            }
             require(timeoutMillis in 1000..180000)
             require(providerDiagnostic||providerVersion==1)
             val profile=if(rawProfile.optString("type") in SwgProfile.TYPES)
                 CarrierStreamDefaults.apply(VkRelayRuntime.withManualSupplements(rawProfile,VkRelayAccount(AndroidDeployStore(context))),CarrierStreamDefaults.load(context))else JSONObject(rawProfile.toString())
             val kind = profile.getString("type")
+            val vkBackoff=if(kind in SwgProfile.TYPES)VkCredentialBackoffStore(context)else null
+            vkBackoff?.let {if(serverProbe)it.requireAllowed()else it.requireConnectionAllowed(profile)}
             if (kind == "openflux") profile.remove("mcrf_verification_ui") // Never trust a host capability from imported data.
             val moduleKind=EngineModules.carrierKind(profile)
             if(freshCandidate!=null) {
@@ -212,14 +331,9 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
             }
             if(freshCandidate==null)requireOptions(context,profile)
             else if(CarrierOptionContract.requiredAll(profile).any {(freshCandidate.application.metaData?.getInt(it)?:0)<1})throw ClientOptionalCoreRequired(moduleKind)
-            if (kind == "openflux" && OpenFluxProfile.requiresFreshCore(profile)) {
+            if (kind == "openflux" && freshCandidate == null) {
                 val metadata = freshCandidate?.application?.metaData ?: installation(context, kind).metaData
-                if(OpenFluxProfile.requiresTeamCore(profile))require(!providerDiagnostic&&
-                    metadata?.getString("org.mcrf.engines.source.repository")==EngineUpdatePolicy.UPSTREAM&&
-                    OpenFluxProfile.supportsTeamProfile(metadata?.getString("org.mcrf.engines.source.version"),metadata?.getString("org.mcrf.engines.source.commit"))) {
-                    "Для FluxFast нужен модуль OpenFlux 0.16.0. Старый транспорт не будет использован вместо UDP."
-                }
-                require(!providerDiagnostic && OpenFluxProfile.supportsFreshProfile(
+                require(!providerDiagnostic && metadata?.getString("org.mcrf.engines.source.repository")==EngineUpdatePolicy.UPSTREAM && OpenFluxProfile.supportsFreshProfile(
                     metadata?.getString("org.mcrf.engines.source.version"),
                     metadata?.getString("org.mcrf.engines.source.commit"))) {
                     "Для этого профиля нужен модуль OpenFlux ${OpenFluxProfile.FRESH_VERSION}. Обнови модуль; старый движок не будет использован вместо него."
@@ -236,11 +350,57 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
                 verificationUi,openFluxMetadata?.getInt("org.mcrf.engines.openflux.ownHttp")?:0)
             if(moduleKind=="csqtt25"&&restricted&&profile.optString("vk_hash_mode")=="auto_js")throw IllegalArgumentException("CSQTT 2.5 Auto JS проверяется при ручном подключении; фоновый замер не создаёт VK-звонки.")
             val binary=freshCandidate?.executable ?: if(providerDiagnostic){require(kind=="openflux");ClientOpenFluxProviderGate.verify(context,providerVersion).executable}else executable(context,moduleKind)
+            val multicall=binary.name=="libbs.so"&&BsEnginePackage.usesMulticall(context)
+            val strictCarrier=ProfilePolicyRuntime.preferences(context).getBoolean(VpnOwnerIsolation.KEY,VpnOwnerIsolation.DEFAULT_ENABLED)
+            val privateUdpKinds=setOf("qwdtt","wdtt","openflux",MasterDnsProfile.KIND,S3BypassProfile.KIND)
+            if(moduleKind in CsqttGenerations.engines||strictCarrier&&moduleKind in privateUdpKinds){
+                val capabilities=(freshCandidate?.application?:installation(context,moduleKind)).metaData
+                val marker="MCRF_SOCKS_UDP_SOURCE_V1_$moduleKind"
+                require(capabilities?.get("org.mcrf.engines.socks_udp_source.$moduleKind")==1&&
+                    binary.inputStream().use {BsNativeContract.hasMarkers(it,listOf(marker))}){
+                    "Обновите модуль $moduleKind для защищённого локального UDP."
+                }
+            }
+            if(moduleKind in CsqttGenerations.engines){
+                val transport=File(binary.parentFile,"libcsqtt_transport.so")
+                val contract=listOf("MCRF_CSQTT_PRIVATE_UDP_KEY_V1")
+                require(multicall&&transport.isFile&&transport.canExecute()&&
+                    binary.inputStream().use {BsNativeContract.hasMarkers(it,contract)}&&
+                    transport.inputStream().use {BsNativeContract.hasMarkers(it,contract)}){
+                    "Обновите BS Engine для защищённого локального транспорта CSQTT."
+                }
+            }
+            val underlayEnv=routerNetwork?.let {network->
+                require(network>0&&(multicall||kind in setOf("wdtt","openflux","olcrtc","dnstt",VayDnsProfile.KIND,SlipstreamProfile.KIND,SstpProfile.KIND,MasterDnsProfile.KIND,S3BypassProfile.KIND))&&BsNativeContract.carrierRouter(context,profile,true))
+                val key=when(kind){
+                    "qwdtt"->BsNativeContract.QWDTT_UNDERLAY_ENV
+                    "wdtt"->BsNativeContract.WDTT_UNDERLAY_ENV
+                    "openflux"->BsNativeContract.OPENFLUX_UNDERLAY_ENV
+                    "olcrtc"->BsNativeContract.OLCRTC_UNDERLAY_ENV
+                    VayDnsProfile.KIND->BsNativeContract.VAYDNS_UNDERLAY_ENV
+                    S3BypassProfile.KIND->BsNativeContract.S3BYPASS_UNDERLAY_ENV
+                    "dnstt"->BsNativeContract.DNSTT_UNDERLAY_ENV
+                    SlipstreamProfile.KIND->BsNativeContract.SLIPSTREAM_UNDERLAY_ENV
+                    SstpProfile.KIND->BsNativeContract.SSTP_UNDERLAY_ENV
+                    MasterDnsProfile.KIND->BsNativeContract.MASTERDNS_UNDERLAY_ENV
+                    else->if(moduleKind=="csqtt25")BsNativeContract.MODERN_UNDERLAY_ENV else BsNativeContract.LEGACY_UNDERLAY_ENV
+                }
+                val transport=if(kind=="csqtt")BsEnginePackage.executable(context,"csqtt")else binary
+                require(binary.inputStream().use {BsNativeContract.hasMarkers(it,listOf(key))}&&
+                    (transport==binary||transport.inputStream().use {BsNativeContract.hasMarkers(it,listOf(key))})){
+                    "БС: установленный транспорт не подтверждает привязку сокетов."
+                }
+                key
+            }
+            if(CsqttSwgVersions.needsNewRuntime(profile)&&!multicall)require(File(binary.parentFile,CsqttSwgVersions.LIBRARY).canExecute()) {
+                "Обновите модуль CSQTT 2.5: отсутствует транспорт SWG 2.5.2 / 2.5.3 для этой архитектуры."
+            }
             val port = ServerSocket(0, 1, InetAddress.getByName("127.0.0.1")).use { it.localPort }
             val owner = NativeCarrier(port)
             owner.failureDetail=CarrierFailureDetail(moduleKind,profile,listOf(owner.username,owner.password))
             owner.backgroundAdmission.set(restricted);owner.promotable=backgroundCandidate&&!profile.optBoolean("probe_only")
             owner.kind = kind
+            if(kind in SwgProfile.TYPES)owner.startedStreamProfile=CarrierStreamRestartPolicy.startedProfile(profile,rawProfile)
             if(kind=="openflux"){owner.openFluxContext=context.applicationContext;owner.openFluxObservation=OpenFluxObservation()}
             val startedAt=android.os.SystemClock.elapsedRealtime()
             val lifecycleLogs=kind in SwgProfile.TYPES || kind in setOf(VayDnsProfile.KIND,SlipstreamProfile.KIND,SstpProfile.KIND,MasterDnsProfile.KIND)
@@ -253,8 +413,15 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
                 // Slipstream owner directory short, still random and app-private.
                 val directory = File(context.cacheDir, if(kind==SlipstreamProfile.KIND)"mcrf-s-${UUID.randomUUID().toString().replace("-","").take(16)}"else "mcrf-carrier-${UUID.randomUUID()}")
                 if (!directory.mkdir()) throw IOException("Cannot create carrier directory")
+                owner.runtimeParent = context.cacheDir
                 owner.directory = directory; Os.chmod(directory.absolutePath, 0x1c0)
                 if(moduleKind in CsqttGenerations.engines)owner.processGroup=CarrierProcessGroup(binary,directory)
+                if(originalGeneration>0) {
+                    require(!backgroundCandidate&&!profile.optBoolean("probe_only")&&moduleKind in CsqttGenerations.engines){"ORIGINAL_CARRIER_ROLE"}
+                    owner.originalControl=CarrierOriginalPacketControl(requireNotNull(owner.processGroup),originalGeneration){
+                        owner.closed.get()||cancelled.asBoolean||owner.process?.isAlive==false||owner.ownershipFailure.get()||owner.startupFailure.get()!=null
+                    }
+                }
                 val config = if(kind==MasterDnsProfile.KIND)MasterDnsProfile.privateConfig(profile,port,owner.username,owner.password) else if(kind==SstpProfile.KIND)SstpProfile.privateConfig(profile,port,owner.username,owner.password) else if(kind==SlipstreamProfile.KIND)SlipstreamProfile.privateConfig(profile,port,owner.username,owner.password) else if(kind==VayDnsProfile.KIND)VayDnsProfile.privateConfig(profile,port,owner.username,owner.password) else if(kind==S3BypassProfile.KIND)S3BypassProfile.privateConfig(profile,port,owner.username,owner.password) else if(kind in SwgProfile.TYPES) {
                     val udpPort=DatagramSocket(0, InetAddress.getByName("127.0.0.1")).use { it.localPort }
                     val effective=if(moduleKind=="csqtt25")JSONObject(profile.toString())else {
@@ -290,7 +457,26 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
                 val builder = ProcessBuilder(command)
                     .directory(directory).redirectErrorStream(true)
                 builder.environment()["XDG_CACHE_HOME"] = directory.absolutePath
+                // Trusted host choice only; never copied from an imported server profile.
+                BsEngineContract.configureHostMode(builder.environment(),binary.name,moduleKind,
+                    multicall,
+                    if(moduleKind=="csqtt25")CsqttSwgVersions.nativeImplementation(profile)else "")
+                builder.environment().remove(BsNativeContract.QWDTT_UNDERLAY_ENV)
+                builder.environment().remove(BsNativeContract.LEGACY_UNDERLAY_ENV)
+                builder.environment().remove(BsNativeContract.MODERN_UNDERLAY_ENV)
+                builder.environment().remove(BsNativeContract.WDTT_UNDERLAY_ENV)
+                builder.environment().remove(BsNativeContract.OPENFLUX_UNDERLAY_ENV)
+                builder.environment().remove(BsNativeContract.OLCRTC_UNDERLAY_ENV)
+                builder.environment().remove(BsNativeContract.VAYDNS_UNDERLAY_ENV)
+                builder.environment().remove(BsNativeContract.S3BYPASS_UNDERLAY_ENV)
+                builder.environment().remove(BsNativeContract.DNSTT_UNDERLAY_ENV)
+                builder.environment().remove(BsNativeContract.SLIPSTREAM_UNDERLAY_ENV)
+                builder.environment().remove(BsNativeContract.SSTP_UNDERLAY_ENV)
+                builder.environment().remove(BsNativeContract.MASTERDNS_UNDERLAY_ENV)
+                underlayEnv?.let {builder.environment()[it]=checkNotNull(routerNetwork).toString()}
                 owner.processGroup?.let {builder.environment()["MCRF_PROCESS_OWNER"]=it.nonce}
+                builder.environment().remove(OriginalCarrierMode.ENVIRONMENT)
+                owner.originalControl?.let {builder.environment()[OriginalCarrierMode.ENVIRONMENT]=it.privateConfiguration().toString()}
                 val child = builder.start(); owner.process = child
                 owner.ipc=CarrierIpcWriter(child.outputStream,maxCommandBytes=if(ownHttpVerificationUi)131072 else 16384)
                 diagnostic("Процесс транспорта запущен; ожидаем сигнал готовности и проверку локального SOCKS")
@@ -305,6 +491,10 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
                         }
                     }
                     fun received(bytes:ByteArray){
+                        if(TurnStreams.reserved(bytes)){
+                            if(kind in SwgProfile.TYPES)owner.streamState.offer(bytes)
+                            return // Consume invalid reserved records too; never log raw IPC.
+                        }
                         if(kind=="openflux"&&OpenFluxHttpWire.recognized(bytes)){
                             synchronized(owner.inputLock){
                                 val result=OpenFluxHttpDispatch.receive(bytes,owner.openFluxChild,ownHttpVerificationUi,owner.closed.get(),
@@ -359,6 +549,13 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
                         }
                         owner.failureDetail?.offer(text)
                         if(owner.closed.get())return
+                        if(vkBackoff!=null)VkCredentialLimit.read(text)?.let {limit->
+                            // Publish the typed cause even if recording a local
+                            // backoff fails. No further auth/protocol fallback.
+                            if(owner.vkCredentialLimit.compareAndSet(null,limit))diagnostic("VK ограничил получение TURN-данных: тип=${limit.kind}; пауза клиента=${limit.seconds} с; локальная пауза=${VkCredentialBackoffStore.backoff(limit).seconds} с")
+                            CsqttProviderCooldown.observe(VkCredentialBackoffStore.backoff(limit))
+                            runCatching {vkBackoff.observe(limit)}
+                        }
                         DnsCarrierFailure.stage(moduleKind,text)?.let {diagnostic(it)}
                         if(text.startsWith(CarrierProcessGroupProof.PREFIX)&&owner.processGroup!=null) {
                             synchronized(owner.inputLock) {
@@ -375,7 +572,13 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
                         if(kind=="csqtt")CsqttNativeFailure.read(text)?.let {failure->
                             if(owner.startupFailure.compareAndSet(null,failure))diagnostic(failure.explanation)
                         }
-                        if(text=="MCRF_READY") {
+                        if(text==OriginalCarrierMode.READY&&owner.originalPackets) {
+                            if(owner.processGroup?.admitted()!=true||!owner.originalAdopted.get()) {owner.ownershipFailure.set(true);return}
+                            owner.connected.set(true)
+                            diagnostic("Исходный IP-канал принят основным движком; доступ к сайтам ещё не проверен")
+                            return
+                        }
+                        if(text=="MCRF_READY"&&!owner.originalPackets) {
                             if(owner.processGroup?.admitted()==false){owner.ownershipFailure.set(true);return}
                             if(owner.connected.compareAndSet(false,true))diagnostic("Транспорт сообщил READY; это ещё не подтверждение доступа к сайтам")
                         }
@@ -456,8 +659,16 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
                 } finally {owner.outputDrained.set(eof)} },
                     "mcrf-carrier-output").apply { isDaemon = true; start() }
                 var deadline = System.nanoTime() + timeoutMillis*1_000_000L;var extended=false
+                var nextVkBackoffCheck=0L
                 val manualBudget=if(kind in SwgProfile.TYPES)CarrierStartupBudget(timeoutMillis,android.os.SystemClock.elapsedRealtime())else null
                 while (if(manualBudget!=null)manualBudget.canContinue(android.os.SystemClock.elapsedRealtime(),owner.challenges.any(CarrierChallenge::isManualPending))else System.nanoTime() < deadline) {
+                    // An independent probe/route may have observed the same
+                    // provider limit. Retire only THIS still-starting child.
+                    val backoffNow=android.os.SystemClock.elapsedRealtime()
+                    if(backoffNow>=nextVkBackoffCheck){
+                        nextVkBackoffCheck=backoffNow+500L
+                        vkBackoff?.current()?.let {throw VkCredentialLimit.Blocked(it)}
+                    }
                     owner.checkFailure()
                     if (owner.captchaSeen.get() && owner.backgroundAdmission.get()) throw IllegalArgumentException(CarrierStartupFailure.verificationRequired)
                     if(manualBudget==null&&!extended&&owner.captchaSeen.get()&&!owner.backgroundAdmission.get()){deadline+=120_000_000_000L;extended=true}
@@ -474,7 +685,26 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
                         owner.failureDetail?.describe("выход до готовности",runCatching {child.exitValue()}.getOrNull())
                             ?:"Движок завершился до готовности; код и причина недоступны."
                     }
-                    if ((kind !in SwgProfile.TYPES && kind !in setOf("openflux",VayDnsProfile.KIND,SlipstreamProfile.KIND,SstpProfile.KIND,MasterDnsProfile.KIND) || owner.connected.get()) && socksReady(port, owner.username, owner.password)) {
+                    if(owner.originalPackets&&owner.processGroup?.admitted()==true) {
+                        if(owner.originalReceive==null) {
+                            val receive=java.util.concurrent.FutureTask {
+                                // The outer startup/CAPTCHA budget owns cancellation.
+                                // Several carriers can wait for one slow member;
+                                // this one-shot receiver must not shorten that budget.
+                                requireNotNull(owner.originalControl).await(android.os.SystemClock.elapsedRealtime()+360_000L)
+                            }
+                            owner.originalReceive=receive
+                            owner.originalReceiveThread=Thread(receive,"mcrf-original-packet-admission").apply {isDaemon=true;start()}
+                        }
+                        if(owner.originalReceive?.isDone==true) {
+                            owner.originalEndpoint=try {requireNotNull(owner.originalReceive).get()}
+                                catch(error:Exception){owner.checkFailure();throw IOException("ORIGINAL_CARRIER_ADMISSION_FAILED",error)}
+                            owner.checkFailure()
+                            diagnostic("Получен исходный IP-канал; ожидаем передачи владения основному движку")
+                            return owner
+                        }
+                    }
+                    if (!owner.originalPackets&&(kind !in SwgProfile.TYPES && kind !in setOf("openflux",VayDnsProfile.KIND,SlipstreamProfile.KIND,SstpProfile.KIND,MasterDnsProfile.KIND) || owner.connected.get()) && socksReady(port, owner.username, owner.password)) {
                         diagnostic("Локальный SOCKS прошёл проверку аутентификации; передаём транспорт основному движку")
                         owner.checkFailure()
                         return owner
@@ -507,10 +737,17 @@ class NativeCarrier private constructor(@JvmField val port: Int) : AutoCloseable
             try { connect(InetSocketAddress("127.0.0.1", port), 250); soTimeout = 500 }
             catch (error: IOException) { close(); throw error }
         }
+        internal fun deleteRuntimeDirectory(parent: File, root: File) {
+            if (!root.name.matches(Regex("mcrf-(?:carrier-[0-9a-f-]{36}|s-[0-9a-f]{16})")) ||
+                root.canonicalFile.parentFile != parent.canonicalFile || Files.isSymbolicLink(root.toPath())) {
+                throw IOException("Unsafe runtime path")
+            }
+            delete(root, root)
+        }
         private fun delete(root: File, item: File) {
             val path = item.canonicalPath; val base = root.canonicalPath
-            if (!root.name.matches(Regex("mcrf-carrier-[0-9a-f-]{36}")) ||
-                !(path == base || path.startsWith(base + File.separator)) || Files.isSymbolicLink(item.toPath())) throw IOException("Unsafe runtime path")
+            if (!(path == base || path.startsWith(base + File.separator)) ||
+                Files.isSymbolicLink(item.toPath())) throw IOException("Unsafe runtime path")
             item.listFiles()?.forEach { delete(root, it) }
             if (!item.delete() && item.exists()) throw IOException("Carrier runtime cleanup failed")
         }

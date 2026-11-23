@@ -33,7 +33,20 @@ internal object WdttMasqueRegistration {
             val config=File(folder,"enroll.json")
             check(config.createNewFile());Os.chmod(config.absolutePath,0x180)
             config.outputStream().use {it.write(JSONObject().put("turn_sni",requested.first().getString("turn_sni")).put("accept_tos",true).toString().toByteArray(Charsets.UTF_8))}
-            val process=ProcessBuilder(binary.absolutePath,"--mcrf-enroll-masque",config.absolutePath).directory(folder).redirectErrorStream(true).start()
+            val builder=ProcessBuilder(binary.absolutePath,"--mcrf-enroll-masque",config.absolutePath)
+                .directory(folder).redirectErrorStream(true)
+            val key=BsNativeContract.WDTT_UNDERLAY_ENV
+            builder.environment().remove(key)
+            if(BsNativeContract.carrierRouter(context,requested.first(),true)) {
+                val physical=checkNotNull(DirectAccessCheck.physical(context)) {
+                    "Для подготовки MASQUE нужна физическая сеть."
+                }
+                check(physical.networkHandle>0&&binary.inputStream().use {BsNativeContract.hasMarkers(it,listOf(key))}) {
+                    "Модуль WDTT не подтверждает привязку к физической сети."
+                }
+                builder.environment()[key]=physical.networkHandle.toString()
+            }
+            val process=builder.start()
             child=process;retiring=ClientCarrierRetirement(process,3)
             reader=Thread({try{process.inputStream.use {input->val buffer=ByteArray(4096);try{while(input.read(buffer)>=0){}}finally{buffer.fill(0)}}}catch(_:Exception){}},"mcrf-masque-enrollment-output").apply {start()}
             val deadline=android.os.SystemClock.elapsedRealtime()+45_000

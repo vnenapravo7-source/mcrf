@@ -4,11 +4,13 @@ import java.util.Locale
 
 /** Immutable session snapshots; speeds are derived from the core's monotonic byte counters. */
 object TrafficState {
-    class Snapshot @JvmOverloads constructor(
+    data class Snapshot @JvmOverloads constructor(
         @JvmField val sent: Long, @JvmField val received: Long,
         @JvmField val upload: Long, @JvmField val download: Long,
         @JvmField val server: String, @JvmField val available: Boolean,
-        @JvmField val countersSupported:Boolean = true
+        @JvmField val countersSupported:Boolean = true,
+        @JvmField val turn:Boolean = false, @JvmField val serverIp:String = "",
+        @JvmField val streams:Int = -1
     )
 
     @JvmField @Volatile var current = Snapshot(0, 0, 0, 0, "", false)
@@ -25,15 +27,20 @@ object TrafficState {
     }
     @JvmStatic @Synchronized fun handover(name:String){
         sentOffset=current.sent;receivedOffset=current.received;lastSent=0;lastReceived=0;lastAt=0
-        current=Snapshot(sentOffset,receivedOffset,0,0,name,current.available)
+        current=Snapshot(sentOffset,receivedOffset,0,0,name,current.available,current.countersSupported)
     }
     @JvmStatic @Synchronized fun server(name: String) {
         val previous = current
-        current = Snapshot(previous.sent, previous.received, previous.upload, previous.download, name, previous.available,previous.countersSupported)
+        current = if(previous.server==name)previous else previous.copy(server=name,turn=false,serverIp="",streams=-1)
+    }
+    /** Identity and measured streams are published together, never as independent UI fields. */
+    @JvmStatic @Synchronized fun connection(name:String,turn:Boolean,ip:String,streams:Int){
+        require(streams in -1..TurnStreams.MAX)
+        current=current.copy(server=name,turn=turn,serverIp=if(turn)ip else "",streams=if(turn)streams else -1)
     }
     @JvmStatic @Synchronized fun stop() {
         val previous = current
-        current = Snapshot(previous.sent, previous.received, 0, 0, previous.server, previous.available,previous.countersSupported)
+        current = previous.copy(upload=0,download=0,turn=false,serverIp="",streams=-1)
         lastAt = 0
     }
     @JvmStatic @Synchronized fun update(sent: Long, received: Long, elapsed: Long) {
@@ -47,8 +54,9 @@ object TrafficState {
         val down = rate(incoming, lastReceived)
         lastSent = outgoing; lastReceived = incoming; lastAt = elapsed
         fun sum(one:Long,two:Long)=if(Long.MAX_VALUE-one<two)Long.MAX_VALUE else one+two
-        current = Snapshot(sum(sentOffset,outgoing),sum(receivedOffset,incoming), up, down, current.server, true)
+        current = current.copy(sent=sum(sentOffset,outgoing),received=sum(receivedOffset,incoming),upload=up,download=down,available=true)
     }
+    @JvmStatic fun streamLabel(state:Snapshot)="Потоки: ${state.streams.takeIf {it>=0}?.toString()?:"—"}"
     @JvmStatic fun bytes(value: Long): String = when {
         value < 1024 -> "$value Б"
         value < 1_048_576 -> String.format(Locale.ROOT, "%.1f КБ", value / 1024.0)

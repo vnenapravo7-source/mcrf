@@ -62,9 +62,14 @@ class PacketRoutingSnapshotTest {
     }
     @Test fun domainBlockAndMixedRulesFailClosed(){
         for(rules in listOf(JSONArray().put(rule("domain","example.org")),JSONArray().put(rule("block","192.0.2.0/24","block")),
-            JSONArray().put(rule("app","app:org.example.client")).put(rule("ip","192.0.2.0/24")))) {
+            JSONArray().put(rule("app","app:org.example.client","proxy")).put(rule("ip","192.0.2.0/24")))) {
             assertThrows(IllegalArgumentException::class.java){PacketRoutingSnapshot.capture(RouteRules.defaults().put("rules",rules),plan())}
         }
+    }
+    @Test fun androidDirectAppsCanCoexistWithPacketIpRules(){
+        val state=RouteRules.defaults().put("rules",JSONArray()
+            .put(rule("app","app:org.example.client")).put(rule("ip","192.0.2.0/24")))
+        assertEquals(listOf("org.example.client"),PacketRoutingSnapshot.capture(state,plan()).directApps)
     }
     @Test fun disabledRulesRemainSavedButInert(){
         val state=RouteRules.defaults().put("rules",JSONArray().put(rule("disabled","example.org","block",false)))
@@ -76,6 +81,34 @@ class PacketRoutingSnapshotTest {
         val forced=RouteRules.defaults().put("vpnApps",JSONArray().put("org.example.client"))
         assertThrows(IllegalArgumentException::class.java){PacketRoutingSnapshot.capture(forced,plan())}
     }
+    @Test fun selectedPolicyContainsOnlyConfiguredAppsAndHost() {
+        val host="org.example.mcrf"
+        val app="org.example.client"
+        val state=RouteRules.defaults().put("appMode","include").put("vpnApps",JSONArray(listOf(app,app)))
+            .put("excludedApps",JSONArray(listOf("org.example.direct")))
+        val unchanged=state.toString()
+        val result=PacketRoutingSnapshot.capture(state,plan())
+        assertEquals(listOf(app,host),result.apps.allowedApps(host))
+        assertEquals(listOf("org.example.direct"),result.directApps)
+        assertEquals(unchanged,state.toString())
+        state.put("vpnApps",JSONArray(listOf(host)))
+        assertEquals(listOf(host),PacketRoutingSnapshot.capture(state,plan()).apps.allowedApps(host))
+    }
+
+    @Test fun selectedPolicyRejectsEmptyInvalidAndDirectConflicts() {
+        val app="org.example.client"
+        fun config(vararg apps:String)=RouteRules.defaults().put("appMode","include").put("vpnApps",JSONArray(apps.toList()))
+        val directRule=rule("direct-app","app:$app")
+        for(state in listOf(config(),config("not a package"),
+            config(app).put("excludedApps",JSONArray(listOf(app))),
+            config(app).put("rules",JSONArray().put(directRule)))) {
+            assertThrows(IllegalArgumentException::class.java){PacketRoutingSnapshot.capture(state,plan())}
+        }
+        val host="org.example.mcrf"
+        val result=PacketRoutingSnapshot.capture(config(app).put("excludedApps",JSONArray(listOf(host))),plan())
+        assertThrows(IllegalArgumentException::class.java){result.apps.allowedApps(host)}
+    }
+
     /** Queued P1 preparation checks only; no native/capability acceptance inferred. */
     @Test fun preparedDualStackBlockStaysCapturedButRuntimeAdmissionRemainsClosed(){
         val state=RouteRules.defaults().put("rules",JSONArray().put(rule("block","192.0.2.0/24\n2001:db8::/32","block")))

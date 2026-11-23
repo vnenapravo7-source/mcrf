@@ -39,7 +39,7 @@ class OpenFluxVerificationWireReviewTest {
     }
 
     @Test fun hostCapabilityNeedsExactFreshSignedSourceAndManualNonDiagnosticMode() {
-        fun allowed(version: String? = OpenFluxProfile.FRESH_VERSION, commit: String? = OpenFluxProfile.FRESH_COMMIT,
+        fun allowed(version: String? = "v0.13.0", commit: String? = "4f9c786cdd1d9fcd0c133e2e0fec0c5a12522610",
                     contract: Int = 1, background: Boolean = false, diagnostic: Boolean = false) =
             OpenFluxProfile.supportsVerification(version, commit, contract, background, diagnostic)
         assertTrue(allowed())

@@ -1,0 +1,5 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <application android:label="Anubis pairing fixture" tools:replace="android:label">
+        <activity android:name=".AnubisPairingFixtureActivity" android:exported="false" />
+    </application>
+</manifest>

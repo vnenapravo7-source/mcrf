@@ -59,9 +59,9 @@ object SubscriptionUpdates {
     }
     @JvmStatic fun fetch(context: Context, url: String): SubscriptionClient.Downloaded {
         val options = SubscriptionOptionsStore.load(context)
-        return SubscriptionClient.fetch(url, hwid = if(options.sendDeviceHeaders) identity(context) else null,
+        return AdaptivePolicyRuntime.measured(context, BatteryCostReport.Action.SUBSCRIPTION_UPDATE) { SubscriptionClient.fetch(url, hwid = if(options.sendDeviceHeaders) identity(context) else null,
             options = options, model = if(options.sendDeviceHeaders) Build.MODEL else null,
-            osVersion = if(options.sendDeviceHeaders) Build.VERSION.RELEASE else null)
+            osVersion = if(options.sendDeviceHeaders) Build.VERSION.RELEASE else null) }
     }
     @JvmStatic fun refresh(context: Context, catalogue: Connections): SubscriptionChanges {
         val fetched = linkedMapOf<String, SubscriptionClient.Downloaded>()
@@ -120,6 +120,7 @@ class SubscriptionUpdateService : JobService() {
             var phase=SubscriptionFailure.Phase.FETCH
             try {
                 if(fromOpen&&!SubscriptionOpenRefresh.dueNow(this))return@submit
+                if(!AdaptivePolicyRuntime.backgroundUpdatesAllowed(this)){retry=!fromOpen;return@submit}
                 val catalogue = Connections(this); catalogue.load()
                 runCatching {InviteCodeSync.refreshIfLinked(this)}.onFailure {
                     ClientEvents.record(this,"Инвайт-код","Автосинхронизация не выполнена; сохранённые подключения оставлены без изменений. ${SubscriptionFailure.describe(it,SubscriptionFailure.Phase.FETCH)}")

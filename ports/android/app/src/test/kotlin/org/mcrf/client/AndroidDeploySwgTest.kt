@@ -67,7 +67,10 @@ class AndroidDeploySwgTest {
         assertFalse(input.has("swg_profiles"))
     }
     @Test fun allProtocolsHaveIndependentListenersAndNoImplicitSharedCalls() {
-        val o=all();assertEquals(listOf(56000,51820,56001,51821,56002,56003),AndroidDeploySwg.ports(o))
+        val o=all();val ports=AndroidDeploySwg.ports(o)
+        // QWDTT owns its separate RAW listener at 56003; modern CSQTT must avoid it.
+        assertEquals(listOf(56000,51820,56003,56001,51821,56002,56013),ports)
+        assertEquals(ports.size,ports.toSet().size)
         AndroidDeploySwg.profiles(o).forEach {assertEquals(0,it.getJSONArray("vk_calls").length())}
     }
     @Test fun duplicatePortsRejectedAcrossProtocols() {val o=all();o.getJSONArray("swg_profiles").getJSONObject(1).put("wg_port",56000);assertThrows(IllegalArgumentException::class.java){AndroidDeploySwg.profiles(o)}}

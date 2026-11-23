@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory=$true)][string]$Snapshot,
     [string[]]$Modes=@('core-live-api','core-live-ntp'),
-    [string]$Device='192.168.7.234:43583',
+    [string]$Device='192.168.100.234:43583',
     [string]$PrivateFixture='',
     [switch]$Install,
     [switch]$AllowIdleWebView,

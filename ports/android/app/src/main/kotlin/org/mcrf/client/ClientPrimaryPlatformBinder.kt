@@ -44,6 +44,9 @@ object ClientPrimaryPlatformBinder {
     private const val HOSTNAME = ATTACH + 17
     private const val TRAFFIC = ATTACH + 18
     private const val RELEASE = ATTACH + 19
+    private const val OBSERVED_DNS = ATTACH + 20
+    private const val VPN_OWNER_ISOLATION = ATTACH + 21
+    private const val OBSERVED_ROUTE = ATTACH + 22
     private const val DEFAULT_UPDATE = IBinder.FIRST_CALL_TRANSACTION
     private const val NEIGHBOR_UPDATE = DEFAULT_UPDATE + 1
     private const val RETIRED = DEFAULT_UPDATE + 2
@@ -67,6 +70,7 @@ object ClientPrimaryPlatformBinder {
         NOTICE -> 25 * 1024
         CANCEL_NOTICE, REGISTER -> 9 * 1024
         OWNER -> 1024
+        OBSERVED_DNS, OBSERVED_ROUTE -> 2048
         else -> 512
     }
 
@@ -101,7 +105,7 @@ object ClientPrimaryPlatformBinder {
                 reply?.writeString(DESCRIPTOR)
                 return true
             }
-            if (code !in ATTACH..RELEASE) return false
+            if (code !in ATTACH..OBSERVED_ROUTE) return false
             require(flags and IBinder.FLAG_ONEWAY == 0 && reply != null) { "PLATFORM_SYNC_REQUIRED" }
             try {
                 data.enforceInterface(DESCRIPTOR)
@@ -208,6 +212,7 @@ object ClientPrimaryPlatformBinder {
                         }
                     }
                     FEATURES -> { end(data); writeFeatures(reply, platform.features(generation)) }
+                    VPN_OWNER_ISOLATION -> {end(data);reply.writeInt(if(platform.requiresVpnOwnerIsolation(generation))1 else 0)}
                     WIFI -> { end(data); val value = platform.wifiState(generation); writeText(reply, value.ssid); writeText(reply, value.bssid) }
                     CLEAR_CACHE -> { end(data); platform.clearDnsCache(generation) }
                     NOTICE -> {
@@ -257,9 +262,22 @@ object ClientPrimaryPlatformBinder {
                         platform.traffic(generation, tx, rx)
                     }
                     RELEASE -> { end(data); retire(true) }
+                    OBSERVED_DNS -> {
+                        val query=Platform.ConnectionQuery(int(data),text(data,128),int(data),text(data,128),int(data))
+                        val uid=int(data);val domain=text(data,253);val ip=text(data,45)
+                        val ttl=long(data);val observed=long(data);end(data)
+                        (platform as? ObservedDnsMetadata)?.observedDns(generation,query,uid,domain,ip,ttl,observed)
+                    }
+                    OBSERVED_ROUTE -> {
+                        val query=Platform.ConnectionQuery(int(data),text(data,128),int(data),text(data,128),int(data))
+                        val uid=int(data);val domain=text(data,253).takeIf {it.isNotEmpty()};val tunneled=int(data).also {require(it in 0..1)}==1;end(data)
+                        require(platform is ObservedRouteMetadata)
+                        platform.observedRoute(generation,query,uid,domain,tunneled)
+                    }
                 }
                 require(reply.dataSize() <= MAX_PARCEL) { "PLATFORM_PARCEL_SIZE" }
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                if(BuildConfig.DEBUG)android.util.Log.w("MCRF.PlatformCall","rejected code=$code reason="+when(error.message){"PLATFORM_RETIRED","PLATFORM_UNATTACHED","PLATFORM_GENERATION","SERVER_DNS_PLATFORM_ONLY","NATIVE_ROUTE_PROTOCOL_ONLY"->error.message;else->error.javaClass.simpleName})
                 reply.setDataSize(0); reply.setDataPosition(0)
                 reply.writeInt(1); writeText(reply, "PLATFORM_CALL_REJECTED")
             }
@@ -335,7 +353,7 @@ object ClientPrimaryPlatformBinder {
         }
     }
 
-    private class WorkerProxy(private val remote: IBinder, private val generation: Long) : Platform, AutoCloseable {
+    private class WorkerProxy(private val remote: IBinder, private val generation: Long) : Platform, AutoCloseable, ObservedDnsMetadata, ObservedRouteMetadata {
         private val lock = Any()
         private val closed = AtomicBoolean()
         private var tun: ParcelFileDescriptor? = null
@@ -444,6 +462,12 @@ object ClientPrimaryPlatformBinder {
                 writeText(it, query.destination, 128); it.writeInt(query.destinationPort)
             }) { Platform.ConnectionOwner(int(it), strings(it)) }
 
+        override fun observedDns(generation:Long,query:Platform.ConnectionQuery,uid:Int,domain:String,
+                                 ip:String,ttlMs:Long,observedElapsed:Long) = unit(OBSERVED_DNS,generation) {
+            it.writeInt(query.protocol);writeText(it,query.source,128);it.writeInt(query.sourcePort)
+            writeText(it,query.destination,128);it.writeInt(query.destinationPort);it.writeInt(uid)
+            writeText(it,domain,253);writeText(it,ip,45);it.writeLong(ttlMs);it.writeLong(observedElapsed)
+        }
         override fun exchangeDns(generation: Long, query: Platform.DnsQuery): Platform.DnsReply {
             val reply = call(DNS, generation, {
                 it.writeLong(query.requestId); it.writeInt(query.timeoutMillis); writeBytes(it, query.packet(), 65535)
@@ -497,7 +521,12 @@ object ClientPrimaryPlatformBinder {
             try { unit(CLOSE_NEIGHBORS, generation) { it.writeLong(id) } } catch (_: IOException) { }
         }
         override fun features(generation: Long): Platform.Features = call(FEATURES, generation, read = ::readFeatures)
+        override fun requiresVpnOwnerIsolation(generation:Long):Boolean = call(VPN_OWNER_ISOLATION,generation){it.readInt()==1}
         override fun wifiState(generation: Long): Platform.WifiState = call(WIFI, generation) { Platform.WifiState(text(it), text(it)) }
+        override fun observedRoute(generation:Long,query:Platform.ConnectionQuery,uid:Int,domain:String?,tunneled:Boolean)=unit(OBSERVED_ROUTE,generation){
+            it.writeInt(query.protocol);writeText(it,query.source);it.writeInt(query.sourcePort);writeText(it,query.destination);it.writeInt(query.destinationPort)
+            it.writeInt(uid);writeText(it,domain.orEmpty());it.writeInt(if(tunneled)1 else 0)
+        }
         override fun clearDnsCache(generation: Long) = unit(CLEAR_CACHE, generation)
         override fun notification(generation: Long, notice: Platform.Notice) = unit(NOTICE, generation) {
             writeText(it, notice.id); it.writeInt(notice.type); writeText(it, notice.title); writeText(it, notice.body)

@@ -7,7 +7,7 @@ import java.util.Locale
 
 /** Ordered Windows list semantics; Android package selection replaces process paths. */
 object RouteRules {
-    private val textCache=RouteTextCache()
+    private val textCache=RouteTextCache.singleFlight(compile=::parseUncached)
     private val whitespace=Regex("[ \\t]+")
     private val domainPrefix=Regex("^[*.]+")
     private val domainTail=Regex("\\^+$")
@@ -17,14 +17,20 @@ object RouteRules {
     private val addressKeys = arrayOf("domain", "domain_suffix", "ip_cidr")
     private val appKeys = arrayOf("package_name", "process_name", "process_path")
     @JvmStatic fun parse(text: String): Map<String, List<String>> {
-        return textCache.parse(text,::parseUncached)
+        return textCache.parse(text)
     }
     private fun parseUncached(text:String):Map<String,List<String>> {
         require(text.toByteArray(Charsets.UTF_8).size <= ServerImport.MAX_BYTES) { "Список больше 4 МБ." }
-        val groups = (addressKeys + appKeys).associateWithTo(linkedMapOf()) { linkedSetOf<String>() }
+        val groups = (addressKeys + appKeys + arrayOf("geoip", "geosite")).associateWithTo(linkedMapOf()) { linkedSetOf<String>() }
         for (raw in text.lines()) {
             var line = raw.substringBefore('#').trim().removePrefix("\uFEFF")
             if (line.isEmpty() || line.startsWith('!') || line.startsWith('[')) continue
+            if (line.startsWith("geoip:", true) || line.startsWith("geosite:", true)) {
+                val kind = line.substringBefore(':').lowercase(Locale.ROOT)
+                val code = line.substringAfter(':').trim().lowercase(Locale.ROOT)
+                require(code.matches(Regex("[a-z0-9_-]{1,64}"))) { "Укажи геокатегорию, например geoip:ru или geosite:ru." }
+                groups.getValue(kind).add(code); continue
+            }
             var domainKind = "domain_suffix"
             if (line.contains(',')) {
                 val columns = line.split(','); val kind = columns[0].trim().uppercase(Locale.ROOT)
@@ -37,18 +43,18 @@ object RouteRules {
             }
             require(!line.startsWith("path:", true)) { "На Android вместо путей процессов выбери приложение." }
             val parts = line.split(whitespace)
-            val candidates = if (parts.size > 1 && literal(parts[0]) != null) parts.drop(1) else listOf(line)
+            val candidates = if (parts.size > 1 && listLiteral(parts[0]) != null) parts.drop(1) else listOf(line)
             for (candidate in candidates) {
                 var value = candidate.trim()
                 if (value in setOf("localhost", "localhost.localdomain", "broadcasthost") || value.startsWith("ip6-") || value.endsWith(".local")) continue
-                val address = literal(value)
+                val address = listLiteral(value)
                 if (address != null) {
                     if (!address.isLoopbackAddress && !address.isAnyLocalAddress) groups.getValue("ip_cidr").add(value.lowercase(Locale.ROOT) + if (value.contains(':')) "/128" else "/32")
                     continue
                 }
                 if (value.contains('/')) {
                     val cidr = value.split('/'); val bits = if (cidr.size == 2) cidr[1].toIntOrNull() ?: -1 else -1
-                    require(cidr.size == 2 && literal(cidr[0]) != null && bits in 0..if (cidr[0].contains(':')) 128 else 32) { "Некорректная IP-подсеть." }
+                    require(cidr.size == 2 && listLiteral(cidr[0]) != null && bits in 0..if (cidr[0].contains(':')) 128 else 32) { "Некорректная IP-подсеть." }
                     groups.getValue("ip_cidr").add(value.lowercase(Locale.ROOT)); continue
                 }
                 value = value.replaceFirst(domainPrefix, "")
@@ -59,6 +65,8 @@ object RouteRules {
         }
         return groups.mapValues { it.value.toList() }
     }
+    /** Only list parsing uses the canonical fast path; all other callers retain literal(). */
+    private fun listLiteral(value:String):InetAddress?=CanonicalIpv4.parse(value)?:literal(value)
     @JvmStatic fun literal(value: String): InetAddress? {
         if (value.contains('%') || !value.matches(if (value.contains(':')) ipv6Literal else ipv4Literal)) return null
         if (!value.contains(':') && value.split('.').any { it.toInt() > 255 }) return null
@@ -84,14 +92,24 @@ object RouteRules {
         return match
     }
     @JvmStatic fun matches(rule: JSONObject): JSONArray {
+        if (!rule.has("nativeMatch") && TextGeoRules.hasGeo(rule)) return matches(TextGeoRules.single(rule))
+        return matchesWithGeo(rule, null)
+    }
+    internal fun matchesWithGeo(rule: JSONObject, geoMatch: JSONObject?): JSONArray {
         rule.optJSONObject("nativeMatch")?.let { match ->
             require(rule.optString("text").isBlank()&&!rule.has("presetIds")&&!rule.optBoolean("invert")&&!rule.has("dns")){"Импортированное точное условие нельзя смешивать с обычным редактором списка."}
             RemoteRoutingImports.validateMatch(match)
             return JSONArray().put(JSONObject(match.toString()))
         }
         val presets = PresetRules.ids(rule)
-        val groups = parse(rule.getString("text")); val addresses = any(groups, addressKeys) || presets.isNotEmpty(); val apps = any(groups, appKeys)
+        val groups = parse(rule.getString("text")); val addresses = any(groups, addressKeys) || presets.isNotEmpty() || geoMatch != null; val apps = any(groups, appKeys)
         fun addressMatch(): JSONObject {
+            if (geoMatch != null) {
+                val parts = JSONArray().put(JSONObject(geoMatch.toString()))
+                if (any(groups, addressKeys)) parts.put(matchAny(groups, addressKeys))
+                if (presets.isNotEmpty()) parts.put(PresetRules.match(presets))
+                return if (parts.length() == 1) parts.getJSONObject(0) else JSONObject().put("type", "logical").put("mode", "or").put("rules", parts)
+            }
             if (presets.isEmpty()) return matchAny(groups, addressKeys)
             if (!any(groups,addressKeys)) return PresetRules.match(presets)
             return JSONObject().put("type","logical").put("mode","or").put("rules",JSONArray().put(matchAny(groups,addressKeys)).put(PresetRules.match(presets)))
@@ -120,15 +138,34 @@ object RouteRules {
         .put("excludedApps", JSONArray()).put("vpnApps", JSONArray()).put("rules", JSONArray())
     @JvmStatic fun outsideRussia(text: String): JSONObject = JSONObject().put("id", "outside-ru").put("name", "Всё кроме РФ")
         .put("text", text).put("mode", "addresses").put("target", "proxy").put("invert", true).put("enabled", true).put("builtinPreset", "outside-ru")
+    const val COUNTRY_DIRECT = "ru-direct"
+    const val COUNTRY_NAME = "РФ напрямую"
+    fun russiaDirect(text: String): JSONObject = JSONObject().put("id", COUNTRY_DIRECT).put("name", COUNTRY_NAME)
+        .put("text", text).put("mode", "addresses").put("target", "direct").put("invert", false)
+        .put("enabled", true).put("builtinPreset", COUNTRY_DIRECT)
+
+    internal fun countryPreset(rule: JSONObject): Boolean =
+        rule.optString("builtinPreset") in setOf("outside-ru", COUNTRY_DIRECT)
+
+    /** Apply to an editor draft only. */
+    fun russiaDirectDraft(original: JSONObject, countryText: String): JSONObject {
+        require(countryText.isNotBlank()) { "Встроенный список РФ пуст." }
+        val result=JSONObject(original.toString())
+        for(key in listOf("nativeMatch","geoPreset","presetIds","dns"))result.remove(key)
+        val preset=russiaDirect(countryText)
+        for(key in listOf("name","text","mode","target","invert","enabled","builtinPreset"))result.put(key,preset.get(key))
+        matches(result)
+        return result
+    }
     /** The default catch-all remains after newly added specific lists. */
     fun insert(settings: JSONObject, rule: JSONObject) {
         val previous=settings.getJSONArray("rules");val values=JSONArray();var inserted=false
         repeat(previous.length()) { index -> val old=previous.getJSONObject(index)
-            if(!inserted&&old.optString("builtinPreset")=="outside-ru"){values.put(rule);inserted=true};values.put(old)
+            if(!inserted&&countryPreset(old)){values.put(rule);inserted=true};values.put(old)
         }
         if(!inserted)values.put(rule);settings.put("rules",values)
     }
-    @JvmStatic @JvmOverloads fun apply(source: JSONObject, settings: JSONObject, tun: Boolean, presetPaths: Map<String, String> = emptyMap(),ipPresetTags:Set<String> = emptySet(),directIpv4Only:Boolean=false,routeServers:List<ServerImport.Server> = emptyList()): JSONObject {
+    @JvmStatic @JvmOverloads fun apply(source: JSONObject, settings: JSONObject, tun: Boolean, presetPaths: Map<String, String> = emptyMap(),ipPresetTags:Set<String> = emptySet(),directIpv4Only:Boolean=false,routeServers:List<ServerImport.Server> = emptyList(),nativeBs:Boolean=false): JSONObject {
         val config = RouteServerPlan(settings,routeServers).append(source); val route = config.getJSONObject("route"); val proxy = settings.optJSONObject(RoutingConnectionBinding.DEFAULT)?.let{RouteServerPlan.outbound(it,route.getString("final"))}?:route.getString("final")
         val appDns=DnsConfig.appOwned(config)
         PresetRules.attach(config,settings,presetPaths)
@@ -146,21 +183,34 @@ object RouteRules {
             if (essential(item)) { ordered.put(JSONObject(item.toString())); sniff = sniff || item.optString("action") == "sniff"; dnsHijack = dnsHijack || item.optString("action") == "hijack-dns" }
         }
         if (!sniff) ordered.put(JSONObject().put("action", "sniff"))
-        if (!dnsHijack) ordered.put(JSONObject().put("protocol", "dns").put("action", "hijack-dns"))
-        settings.optJSONArray("vpnApps")?.takeIf { it.length() > 0 }?.let { forced ->
-            require(tun) { "Приложения «только VPN» требуют системного VPN." }; repeat(forced.length()) { validatePackage(forced.getString(it)) }
-            ordered.put(JSONObject().put("package_name", JSONArray(forced.toString())).put("action", "route").put("outbound", proxy))
+        if (!dnsHijack) ordered.put(defaultDnsHijack(nativeBs))
+        val appScope=RoutingAppPolicies.systemScope(settings)
+        val forcedServerRules=mutableListOf<JSONObject>()
+        val forcedRuleIndex=ordered.length()
+        appScope.forced.takeIf {it.isNotEmpty()}?.let { effective ->
+                require(tun) { "Приложения «только VPN» требуют системного VPN." }
+                effective.forEach(::validatePackage)
+                ordered.put(JSONObject().put("package_name",JSONArray(effective)).put("action","route").put("outbound",proxy))
         }
         var dns = config.optJSONObject("dns"); val dnsRules = JSONArray(); val rules = GeoDataConfig.orderedRules(settings)
         repeat(rules.length()) { i ->
-            val rule = rules.getJSONObject(i); if (!rule.optBoolean("enabled", true)) return@repeat
+            val rule = rules.getJSONObject(i)
+            if (!rule.optBoolean("enabled", true)||RoutingDefaultsRussianAppsPolicy.systemRule(rule)||
+                tun&&rule.getString("id") in appScope.projected) return@repeat
             val groups = parse(rule.getString("text"))
             require(tun || (groups.getValue("package_name").isEmpty()&&rule.optJSONObject("nativeMatch")?.let {RemoteRoutingImports.hasAppConditions(it)}!=true)) { "Маршруты по приложениям работают только с системным VPN." }
             val target = rule.optString("target", "proxy"); val compiled = matches(rule)
             val ruleProxy=RouteServerPlan.outbound(rule,proxy)
             repeat(compiled.length()) { j -> val match = compiled.getJSONObject(j); match.put("action", if (target == "block") "reject" else "route")
                 if(target=="block")for(key in listOf("reject_method","no_drop"))if(rule.has(key))match.put(key,rule.get(key))
-                if (target != "block") match.put("outbound", target(target, ruleProxy, directTag)); ordered.put(match) }
+                if (target != "block") match.put("outbound", target(target, ruleProxy, directTag)); ordered.put(match)
+                if(target=="proxy"&&appScope.forced.isNotEmpty()&&(rule.has(RouteServerPlan.KEY)||rule.has(RouteServerPlan.POOL))){
+                    val serverMatch=JSONObject(match.toString()).apply {remove("action");remove("outbound")}
+                    val packages=JSONObject().put("package_name",JSONArray(appScope.forced))
+                    forcedServerRules+=JSONObject().put("type","logical").put("mode","and")
+                        .put("rules",JSONArray().put(packages).put(serverMatch)).put("action","route").put("outbound",ruleProxy)
+                }
+            }
             rule.optJSONObject("dns")?.takeIf { target != "block" }?.let { dnsSettings ->
                 val dnsMatch=listDnsMatch(rule,groups,ipPresetTags)?:return@let
                 val currentDns = dns ?: JSONObject().put("servers", JSONArray().put(JSONObject().put("type", "local").put("tag", "bootstrap"))).put("final", "bootstrap").also { config.put("dns", it); dns = it }
@@ -177,22 +227,45 @@ object RouteRules {
         val defaultTarget = settings.optString("defaultTarget", "proxy")
         val boundProxy=settings.optJSONObject(RoutingConnectionBinding.DEFAULT)?.let{RouteServerPlan.outbound(it,proxy)}?:proxy
         if (defaultTarget == "block") { ordered.put(JSONObject().put("action", "reject")); route.put("final", directTag) } else route.put("final", target(defaultTarget, boundProxy, directTag))
-        route.put("rules", ordered)
+        route.put("rules",if(forcedServerRules.isEmpty())ordered else JSONArray().also {prioritized->
+            repeat(ordered.length()){index->
+                if(index==forcedRuleIndex)forcedServerRules.forEach {prioritized.put(it)}
+                prioritized.put(ordered.getJSONObject(index))
+            }
+        })
         if (dnsRules.length() > 0) { dns?.optJSONArray("rules")?.let { old -> repeat(old.length()) { dnsRules.put(JSONObject(old.getJSONObject(it).toString())) } }; dns!!.put("rules", dnsRules) }
-        val excluded = settings.getJSONArray("excludedApps")
-        if (excluded.length() > 0) {
-            require(tun) { "Исключения приложений работают только с системным VPN." }; repeat(excluded.length()) { validatePackage(excluded.getString(it)) }
-            val inbounds = config.getJSONArray("inbounds"); repeat(inbounds.length()) { val inbound = inbounds.getJSONObject(it); if (inbound.getString("type") == "tun") inbound.put("exclude_package", JSONArray(excluded.toString())) }
+        val explicit=settings.getJSONArray("excludedApps")
+        require(tun||explicit.length()==0) { "Исключения приложений работают только с системным VPN." }
+        val excluded=if(tun)appScope.direct else emptySet()
+        if(excluded.isNotEmpty()){
+            excluded.forEach(::validatePackage)
+            val inbounds=config.getJSONArray("inbounds")
+            repeat(inbounds.length()){
+                val inbound=inbounds.getJSONObject(it)
+                if(inbound.getString("type")!="tun")return@repeat
+                val included=inbound.optJSONArray("include_package")
+                if(included!=null&&included.length()>0&&settings.optString("appMode","all")!="include"){
+                    val effective=(0 until included.length()).map(included::getString).filterNot(excluded::contains)
+                    require(effective.isNotEmpty()) {"После исключений в списке VPN должно остаться хотя бы одно приложение."}
+                    inbound.put("include_package",JSONArray(effective))
+                }else{
+                    val inherited=inbound.optJSONArray("exclude_package")
+                    val previous=if(inherited==null)emptyList() else (0 until inherited.length()).map(inherited::getString)
+                    inbound.put("exclude_package",JSONArray((previous+excluded).distinct()))
+                }
+            }
         }
-        AdvancedDnsConfig.apply(config, settings, proxy, directTag, tun, ipPresetTags,directIpv4Only,ServerBootstrapDns.implicitTags(routeServers))
+        val engineSettings=if(appScope.ru.isEmpty()&&appScope.projected.isEmpty())settings
+            else RoutingAppPolicies.runtimeState(settings,tun,appScope)
+        AdvancedDnsConfig.apply(config, engineSettings, proxy, directTag, tun, ipPresetTags,directIpv4Only,ServerBootstrapDns.implicitTags(routeServers))
         GeoDataConfig.attach(config, settings, presetPaths, proxy, directTag)
         RemoteRoutingConfig.apply(config, settings, proxy, directTag)
-        RoutingDefaults.applyAppMode(config, settings, tun)
+        RoutingDefaults.applyAppMode(config, settings, tun,appScope.ru)
         // Resolve once at the actual first destination-IP condition, after Geo
         // lists have been inserted. A rule_set can contain IPs without a literal
         // ip_cidr key; domain-only lists must keep their earlier DNS-free priority.
         val geoSelectors=GeoDataConfig.value(settings).getJSONArray("selectors")
-        val ipSets=ipPresetTags+(0 until geoSelectors.length()).filter {geoSelectors.getJSONObject(it).optString("kind")=="geoip"}.map {"mcrf-geo-$it"}
+        val ipSets=ipPresetTags+ImportedRuleProviders.ipTags(GeoDataConfig.value(settings))+(0 until geoSelectors.length()).filter {geoSelectors.getJSONObject(it).optString("kind")=="geoip"}.map {"mcrf-geo-$it"}
         val finalRules=route.getJSONArray("rules");val resolvedRules=JSONArray();var resolved=false
         repeat(finalRules.length()){i->val rule=finalRules.getJSONObject(i)
             // Advanced DNS may already have inserted an unconditional resolve
@@ -205,7 +278,10 @@ object RouteRules {
             resolvedRules.put(rule)
         }
         route.put("rules",resolvedRules)
-        if(directIpv4Only&&appDns)DirectDnsFamily.earlyReject(config,settings)?.let {guard->
+        if(directIpv4Only&&appDns)DirectDnsFamily.earlyReject(config,engineSettings)?.let {guard->
+            // The native BS block verdict denies these flows before TUN TCP acceptance.
+            // A synthetic reply is specific to the primary backend.
+            if(nativeBs)guard.remove("method")
             val guarded=JSONArray();var added=false
             repeat(resolvedRules.length()){i->val rule=resolvedRules.getJSONObject(i)
                 if(!added&&rule.optString("action")=="sniff"){guarded.put(guard);added=true};guarded.put(rule)
@@ -213,6 +289,9 @@ object RouteRules {
             if(added)route.put("rules",guarded)
         }
         return config
+    }
+    internal fun defaultDnsHijack(nativeBs:Boolean)=JSONObject().put("action","hijack-dns").apply {
+        if(nativeBs)put("port",53)else put("protocol","dns")
     }
     private fun essential(item: JSONObject) = item.optString("action", "") in setOf("sniff", "hijack-dns") || item.optString("outbound", "").startsWith("mcrf-loopback")
     private fun destinationIpMatch(match:JSONObject,ipSets:Set<String>):Boolean {

@@ -28,6 +28,8 @@ internal object VkManualCallsUi {
             gravity=Gravity.CENTER_VERTICAL
             row.addView(activity.button("Создать звонки VK",false).apply {
                 tag="vk-generate-manual"
+                background=Loft.gradientButtonBackground(activity)
+                setSingleLine(false);setHorizontallyScrolling(false);maxLines=Int.MAX_VALUE;ellipsize=null
                 setOnClickListener {
                     if(activity.working()){activity.toast("Дождитесь завершения текущей операции");return@setOnClickListener}
                     var created:VkRelayAccount.ManualGeneration?=null

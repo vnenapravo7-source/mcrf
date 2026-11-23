@@ -30,4 +30,9 @@ class CsqttNativeFailureTest {
         val failure=CsqttNativeFailure.read(event("FATAL_AUTH: password=fixture-secret token=fixture-token"))!!
         assertFalse(failure.explanation.contains("fixture-secret"));assertFalse(failure.explanation.contains("fixture-token"))
     }
+    @Test fun embeddedProtocolWordsCannotTurnAuthOrTimeoutIntoFallback() {
+        assertEquals(CsqttNativeFailure.Kind.ACCESS,CsqttNativeFailure.read(event("FATAL_AUTH: diagnostic mentions FATAL_PROTOCOL: mismatch")))
+        for(message in listOf("timeout while reading FATAL_PROTOCOL: diagnostic", "FATAL_PROTOCOL: mismatch; FATAL_AUTH: rejected", "FATAL_PROTOCOL: AUTH_RETRY"))
+            assertNull(CsqttNativeFailure.read(event(message)))
+    }
 }

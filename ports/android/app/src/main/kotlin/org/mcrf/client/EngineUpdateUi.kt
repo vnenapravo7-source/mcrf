@@ -9,7 +9,6 @@ import android.provider.Settings
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import android.widget.Switch
 import java.util.concurrent.Executors
 
 object EngineUpdatePresentation {
@@ -25,23 +24,36 @@ object EngineUpdatePresentation {
 
 /** Compact OpenFlux section for the host Updates page; does not handle application updates. */
 object EngineUpdateUi {
+    private val processLaunch=EngineUpdateProcessLaunch()
+    /** Called by the existing application-update launch hook, never by resume. */
+    fun onProcessLaunch(activity:MainActivity) {
+        val app=activity.applicationContext
+        val handler=Handler(Looper.getMainLooper())
+        val check=object:Runnable {override fun run() {
+            if(!runCatching {processLaunch.start {
+                if(EngineUpdates.isBusy()||EngineUpdates.installationPending(app))false
+                else EngineUpdates.check(app)
+            }}.getOrDefault(false))handler.postDelayed(this,2000)
+        }}
+        handler.post(check)
+    }
     fun view(activity:MainActivity):LinearLayout=with(activity){
         val handler=Handler(Looper.getMainLooper());var preparing=false
-        val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(16),dp(12),dp(16),dp(12));tag="openflux-updates"}
-        body.addView(text("OpenFlux",16,Loft.INK))
-        val auto=Switch(this).apply{text="Проверять автоматически";isChecked=EngineUpdates.automatic(this@with)}
-        body.addView(auto,space(8,8))
-        body.addView(text("Проверка каждые 6 часов для установленного OpenFlux. Установка отдельного подписанного модуля требует подтверждения Android.",12,Loft.MUTED),space(4,8))
-        var restoringAutomatic=false
-        auto.setOnCheckedChangeListener{_,enabled->
-            if(!restoringAutomatic)try{EngineUpdates.setAutomatic(this@with,enabled)}catch(_:Exception){
-                restoringAutomatic=true
-                try{auto.isChecked=EngineUpdates.automatic(this@with)}catch(_:Exception){auto.isEnabled=false}finally{restoringAutomatic=false}
-                alert("OpenFlux","Не удалось применить расписание проверки. Проверь текущее значение перед повтором.")
-            }
-        }
+        val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;tag="openflux-updates"}
+        body.addView(LinearLayout(this).apply {
+            gravity=android.view.Gravity.CENTER_VERTICAL;isBaselineAligned=false
+            addView(text("OpenFlux",18,Loft.INK),LinearLayout.LayoutParams(0,-2,1f))
+            addView(iconButton("info","О движке OpenFlux").apply {
+                setOnClickListener {alert("OpenFlux",EngineUpdateScreenPolicy.additionalHelp("openflux"))}
+            },LinearLayout.LayoutParams(dp(44),dp(48)))
+        },space(0,8))
         val status=text("",13,Loft.INK);body.addView(status,space(8,8))
-        val action=button("Проверить обновление",false);body.addView(action)
+        status.accessibilityLiveRegion=View.ACCESSIBILITY_LIVE_REGION_POLITE
+        val progress=android.widget.ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply {isIndeterminate=true;visibility=View.GONE}
+        body.addView(progress,space(0,8))
+        val action=button("Проверить обновление",true).apply {tag="openflux-update-check";gravity=android.view.Gravity.CENTER}
+        body.addView(action, space(0, 12))
+        body.addView(text("Проверяем при каждом запуске приложения. Установку подтверждает Android.",12,Loft.MUTED),space(0,8))
         fun install(){
             if(preparing)return
             if(!packageManager.canRequestPackageInstalls()){
@@ -84,9 +96,16 @@ object EngineUpdateUi {
         val refresh=object:Runnable{override fun run(){
             if(!body.isAttachedToWindow||isFinishing||isDestroyed)return
             val s=EngineUpdates.snapshot(this@with);val a=EngineUpdatePresentation.action(s.phase)
+            status.setTextColor(if(s.phase==EngineUpdatePolicy.Phase.ERROR)Loft.ERROR else Loft.INK)
+            val downloading = s.phase == EngineUpdatePolicy.Phase.DOWNLOADING
+            progress.visibility=if(preparing||s.phase in setOf(EngineUpdatePolicy.Phase.CHECKING,EngineUpdatePolicy.Phase.INSTALLING)||downloading)View.VISIBLE else View.GONE
+            progress.isIndeterminate = !downloading || s.total <= 0L
+            if (!progress.isIndeterminate) progress.progress = AppUpdatePresentation.progressPercent(s.received, s.total)
             status.text="Версия: ${EngineUpdates.installedSource(this@with)}\n${s.message}"+
                 if(s.phase==EngineUpdatePolicy.Phase.DOWNLOADING)"\n${TrafficState.bytes(s.received)} / ${TrafficState.bytes(s.total)}"else""
-            action.text=a.label;action.isEnabled=!preparing&&a!=EngineUpdatePresentation.Action.WAIT
+            val enabled = !preparing && a != EngineUpdatePresentation.Action.WAIT && !EngineUpdateOpenFluxScripts.isBusy()
+            action.text = a.label
+            action.isEnabled = enabled
             handler.postDelayed(this,1000)
         }}
         body.addOnAttachStateChangeListener(object:View.OnAttachStateChangeListener{
@@ -100,5 +119,5 @@ object EngineUpdateUi {
         body
     }
     /** Legacy host caller; new navigation should add view(activity) to Updates directly. */
-    fun show(activity:MainActivity){ThemedDialogBuilder(activity).setTitle("OpenFlux").setView(ScrollView(activity).apply{addView(view(activity))}).setPositiveButton("Готово",null).show()}
+    fun show(activity:MainActivity){ThemedDialogBuilder(activity).setTitle("OpenFlux").setView(ScrollView(activity).apply{setPadding(activity.dp(20),activity.dp(4),activity.dp(20),activity.dp(12));addView(view(activity))}).setPositiveButton("Готово",null).show()}
 }

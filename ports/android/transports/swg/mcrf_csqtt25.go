@@ -31,7 +31,9 @@ func runCSQTT25Bridge(path string) error {
 		if err != nil {
 			return nil, "", errors.New("CSQTT 2.5 adapter location unavailable")
 		}
-		runtime, err := csqtt25.LoadRuntime(filepath.Join(filepath.Dir(exe), "libcsqtt25_transport.so"))
+		name, err := csqtt25.NativeFilename(profile)
+		if err != nil { return nil, "", err }
+		runtime, err := csqtt25.LoadRuntime(filepath.Join(filepath.Dir(exe), name))
 		if err != nil {
 			return nil, "", err
 		}

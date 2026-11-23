@@ -29,7 +29,8 @@ class PacketDnsTransport(
     private val now:()->Long,
     private val check:()->Unit,
     private val register:(Closeable)->Unit,
-    private val unregister:(Closeable)->Unit
+    private val unregister:(Closeable)->Unit,
+    private val prepareLease:((Int,Int,InetSocketAddress,Boolean,Long)->Closeable)?=null
 ) {
     inner class Scope(val deadline:Long):Closeable {
         private val lock=Any();private val resources=hashSetOf<Closeable>();@Volatile private var closed=false
@@ -72,18 +73,28 @@ class PacketDnsTransport(
     }
     private fun udp(endpoint:PacketManagedDnsPlan.Endpoint,address:InetAddress,query:ByteArray,direct:Boolean,scope:Scope):ByteArray =
         scope.owned(DatagramSocket(null)){socket->
-            prepareUdp(socket,direct);scope.remaining();socket.bind(InetSocketAddress(0));socket.connect(address,endpoint.port)
+            prepareUdp(socket,direct);scope.remaining();socket.bind(InetSocketAddress(0))
+            leased(17,socket.localPort,address,endpoint.port,direct,scope){
+            socket.connect(address,endpoint.port)
             socket.soTimeout=scope.remaining().coerceAtMost(2500)
             socket.send(DatagramPacket(query,query.size));scope.remaining()
             val reply=DatagramPacket(ByteArray(65535),65535);socket.receive(reply);scope.remaining()
             require(reply.address==address&&reply.port==endpoint.port){"PACKET_DNS_REPLY_ENDPOINT"}
             reply.data.copyOfRange(reply.offset,reply.offset+reply.length)
+            }
         }
+    private fun <T> leased(protocol:Int,port:Int,address:InetAddress,destinationPort:Int,direct:Boolean,scope:Scope,body:()->T):T {
+        scope.remaining()
+        val lease=prepareLease?.invoke(protocol,port,InetSocketAddress(address,destinationPort),direct,scope.deadline)
+        try{scope.remaining();return body()}finally{lease?.close()}
+    }
     private fun stream(endpoint:PacketManagedDnsPlan.Endpoint,address:InetAddress,query:ByteArray,direct:Boolean,scope:Scope,tls:Boolean):ByteArray =
         scope.owned(Socket()){raw->
             // Materialize the kernel FD before ParcelFileDescriptor.fromSocket
             // and protectAndBind. Binding locally does not connect or send data.
-            raw.bind(InetSocketAddress(0));prepareTcp(raw,direct);scope.remaining();raw.connect(InetSocketAddress(address,endpoint.port),scope.remaining().coerceAtMost(3000));raw.soTimeout=scope.remaining()
+            raw.bind(InetSocketAddress(0));prepareTcp(raw,direct);scope.remaining()
+            leased(6,raw.localPort,address,endpoint.port,direct,scope){
+            raw.connect(InetSocketAddress(address,endpoint.port),scope.remaining().coerceAtMost(3000));raw.soTimeout=scope.remaining()
             if(!tls)framed(raw,query,scope)
             else {
                 val secure=(SSLSocketFactory.getDefault() as SSLSocketFactory).createSocket(raw,endpoint.tlsName,endpoint.port,true) as SSLSocket
@@ -96,6 +107,7 @@ class PacketDnsTransport(
                     socket.enabledProtocols=protocols.toTypedArray();socket.soTimeout=scope.remaining();socket.startHandshake();scope.remaining()
                     if(endpoint.type=="https")http(socket,endpoint,query,scope) else framed(socket,query,scope)
                 }
+            }
             }
         }
     private fun framed(socket:Socket,query:ByteArray,scope:Scope):ByteArray {

@@ -12,7 +12,8 @@ import android.widget.*
 import org.json.JSONObject
 
 class ConnectionEditor(private val activity: MainActivity, private val entry: ServerImport.Server) {
-    private val form = EditorLayout.body(activity).apply {tag="connection-editor-form"}
+    private val form = EditorLayout.body(activity).apply {tag="connection-editor-form";setPadding(activity.dp(16),activity.dp(8),activity.dp(16),activity.dp(16))}
+    private var fields = ServerEditorLayout.section(activity,form,"Сервер")
     private val options = ConnectionEdits.snapshot(entry)
     private val name = input(entry.name)
     private val readers = mutableListOf<() -> Unit>()
@@ -23,18 +24,27 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
     private val status = activity.text("Изменения сохраняются автоматически после проверки. Применятся при следующем подключении.", 12, Loft.MUTED)
     private var watching = false
     private var dirty = false
+    private var closeAfterSave=false
+    private var editorDialog:AlertDialog?=null
+    private var routingPopup:PopupWindow?=null
     private var onCommitted: Runnable? = null
     private var captchaControl: View? = null
+    private var csqttGeneration:CarrierOption?=null
+    private var csqttReset=false
+    private var csqttEpoch=entry.carrier?.optString(CsqttGenerations.EPOCH).orEmpty()
+    private var csqttRedetectPending=false
     @Volatile private var lastSaved = options.toString()
+    @Volatile private var lastCommitted = ConnectionEdits.snapshot(entry).toString()
     private val saveLater = Runnable { save() }
     private fun input(value: String, secret: Boolean = false) = activity.editor("").apply {
         setSingleLine(true); setText(value)
+        isSaveEnabled=false
         if (secret) { inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD; transformationMethod = PasswordTransformationMethod.getInstance() }
         typeface=android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.NORMAL)
     }
-    private fun field(label: String, control: View, explanation: String, parent: LinearLayout = form) {
-        if(control is CarrierOption){control.describe(label,explanation);parent.addView(control,activity.space(0,4));return}
-        EditorLayout.field(activity,parent,label,control,explanation)
+    private fun field(label: String, control: View, explanation: String, parent: LinearLayout = fields, wrapLabel: Boolean = false) {
+        if(control is CarrierOption){control.describe(label,explanation,wrap=true);parent.addView(control,activity.space(0,8));return}
+        ServerEditorLayout.field(activity,parent,label,control,explanation)
     }
     private fun picker(labels:Array<String>,selected:Int,help:String)=CarrierOption(activity,labels.map {CarrierOption.Value(it,optionHelp(it,help))},selected,::changed)
     private fun optionHelp(label:String,fallback:String):String=when {
@@ -48,9 +58,8 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         else->"$label. $fallback"
     }
     private fun carrierAddress(node:JSONObject) {
-        val panel=LinearLayout(activity).apply {orientation=LinearLayout.VERTICAL;visibility=View.GONE;tag="carrier-address-fields"}
-        val toggle=activity.button("Адрес  ▾",false).apply {tag="carrier-address";setOnClickListener {panel.visibility=if(panel.visibility==View.VISIBLE)View.GONE else View.VISIBLE;text=if(panel.visibility==View.VISIBLE)"Адрес  ▴"else"Адрес  ▾"}}
-        form.addView(toggle,activity.space(0,8));form.addView(panel,activity.space(0,12))
+        val panel=ServerEditorLayout.section(activity,form,"Адрес и доступ",true).apply {tag="carrier-address-fields"}
+        (panel.parent as? LinearLayout)?.getChildAt(0)?.tag="carrier-address"
         scalar(node,"server","Адрес сервера","Домен или IP без схемы и порта.",parent=panel)
         scalar(node,"server_port","Порт","Порт подключения на сервере.",parent=panel)
         val password=input(node.optString("password"),true)
@@ -62,19 +71,41 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         return VkCallSlots(activity,(0 until old.length()).map {old.getString(it)},Int.MAX_VALUE,::changed).also {control->
             field("VK-звонки",control,"По одной ссылке или хешу в поле. Несколько звонков можно вставить сразу в первое поле.")
             readers.add {node.put("hashes",org.json.JSONArray(control.values))}
-            form.addView(VkManualCallsUi.generator(activity,VkRelayAccount(AndroidDeployStore(activity)),{form.isAttachedToWindow}){control.append(it)},activity.space(0,12))
-            EditorLayout.heading(activity,form,"Параметры подключения","settings")
+            fields.addView(VkManualCallsUi.generator(activity,VkRelayAccount(AndroidDeployStore(activity)),{form.isAttachedToWindow}){control.append(it)},activity.space(0,8))
+            fields=ServerEditorLayout.section(activity,form,"Параметры подключения",true)
         }
     }
     private fun switch(parent: LinearLayout, title: String, explanation: String, checked: Boolean) = Switch(activity).apply {
-        text = title; activity.tune(this); isChecked = checked
-        parent.addView(this); parent.addView(activity.text(explanation, 11, Loft.MUTED), activity.space(0, 12))
+        text = title; activity.tune(this); isChecked = checked;minimumHeight=activity.dp(48)
+        parent.addView(this,LinearLayout.LayoutParams(-1,-2)); parent.addView(activity.text(explanation, 11, Loft.MUTED), activity.space(0, 8))
     }
     init {
         field("Название", name, "Название только в MCRF. Локальные правки не меняют исходную подписку.")
+        if(entry.protocol=="csqtt"){
+            val modes=ServerRoutingMode.choices
+            val keys=modes.keys.toList()
+            var choice=ServerRoutingMode.initial(activity,entry)
+            val control=activity.button(modes.getValue(choice),false).apply {
+                tag="server-routing-rules";isAllCaps=false;textSize=13f
+                gravity=android.view.Gravity.START or android.view.Gravity.CENTER_VERTICAL
+                setSingleLine(false);maxLines=3;ellipsize=null;minimumHeight=activity.dp(48)
+                setCompoundDrawablesRelative(null,null,activity.icon("down",Loft.MUTED).apply {setBounds(0,0,activity.dp(14),activity.dp(14))},null)
+                compoundDrawablePadding=activity.dp(8)
+            }
+            control.setOnClickListener {
+                routingPopup?.dismiss()
+                routingPopup=DropdownPopup.show(activity,control,null,modes.values.map {DropdownPopup.Item(it)},keys.indexOf(choice)){index->
+                    choice=keys[index];control.text=modes.getValue(choice);control.contentDescription="Правила маршрутизации: ${control.text}"
+                    changed()
+                }
+            }
+            control.contentDescription="Правила маршрутизации: ${control.text}"
+            field("Правила маршрутизации",control,"Применится при следующем подключении.")
+            readers.add {options.put(ServerRoutingMode.KEY,choice)}
+        }
         if (entry.outbound != null && ClientPrimarySelection.selected(activity) == "singbox") {
             val familyKey = ConnectionAddressFamily.key(entry.id)
-            switch(form, "Совместимость IPv4 для этого сервера",
+            switch(ServerEditorLayout.section(activity,form,"Совместимость",true), "Совместимость IPv4 для этого сервера",
                 "Если IPv6 этого подключения не работает: разрешать имена только в IPv4. IPv6-защита TUN остаётся; остальные серверы, ссылка и подписка не меняются. Применится при следующем подключении.",
                 activity.prefs.getBoolean(familyKey, false)).apply {
                 setOnCheckedChangeListener { _, enabled -> activity.prefs.edit().putBoolean(familyKey, enabled).apply() }
@@ -90,6 +121,7 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         form.addView(status, activity.space(0, 12))
     }
     private fun ordinary(node: JSONObject) {
+        fields=ServerEditorLayout.section(activity,form,"Подключение")
         val host = input(entry.host); val port = activity.number(entry.port)
         field("Адрес сервера", host, "Домен или IP без https://, пути и номера порта.")
         field("Порт", port, "Порт подключения, указанный провайдером. От 1 до 65535.")
@@ -100,6 +132,7 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
             "socks", "http", "ssh", "naive" -> listOf((if (type == "ssh") "user" else "username") to "Логин", "password" to "Пароль")
             else -> if (node.has("password")) listOf("password" to "Пароль подключения") else emptyList()
         }
+        if(credentials.isNotEmpty())fields=ServerEditorLayout.section(activity,form,"Доступ")
         credentials.forEach { (key, label) ->
             val control = input(node.optString(key), key == "password")
             field(label, control, if (key == "uuid") "Идентификатор доступа из конфигурации сервера. Не меняй на случайный UUID." else "Данные доступа сервера. Сохраняются в зашифрованном каталоге.")
@@ -108,6 +141,7 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         if (node.has("method")) scalar(node, "method", "Шифр Shadowsocks", "Точный шифр из конфигурации сервера. Произвольная замена нарушит соединение.")
         if (node.has("flow")) scalar(node, "flow", "Режим VLESS", "Например xtls-rprx-vision. Vision нельзя сочетать с MUX; пусто — без специального режима.")
         node.optJSONObject("tls")?.let { tls ->
+            fields=ServerEditorLayout.section(activity,form,"Защита TLS",true)
             val sni = input(tls.optString("server_name", entry.host))
             field("Домен TLS / SNI", sni, "Имя для TLS-соединения и проверки сертификата. Должно подходить серверу.")
             readers.add { tls.put("server_name", sni.text.toString().trim()) }
@@ -120,6 +154,7 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
             }
         }
         node.optJSONObject("transport")?.let { transport ->
+            fields=ServerEditorLayout.section(activity,form,"Транспорт",true)
             val key = if (transport.optString("type") == "grpc") "service_name" else "path"
             val value = input(transport.optString(key))
             field(if (key == "service_name") "Имя gRPC" else "Путь транспорта", value, "Значение должно совпадать с сервером. Меняет транспорт, а не список маршрутов.")
@@ -128,19 +163,7 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         advanced(node)
     }
     private fun advanced(node: JSONObject) {
-        val panel = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
-        form.addView(activity.button("Расширенные настройки", false).apply { setOnClickListener {
-            panel.visibility = if (panel.visibility == View.VISIBLE) View.GONE else View.VISIBLE
-            if(panel.visibility==View.VISIBLE)panel.post {
-                var ancestor=panel.parent
-                while(ancestor!=null&&ancestor !is ScrollView)ancestor=ancestor.parent
-                (ancestor as? ScrollView)?.let {scroll->
-                    val rect=android.graphics.Rect();panel.getDrawingRect(rect);scroll.offsetDescendantRectToMyCoords(panel,rect)
-                    scroll.smoothScrollTo(0,(rect.top-activity.dp(12)).coerceAtLeast(0))
-                }
-            }
-        } }, activity.space(0, 12))
-        form.addView(panel)
+        val panel=ServerEditorLayout.section(activity,form,"Расширенные настройки",true)
         val supported = node.optString("type") in setOf("vless", "vmess", "trojan", "shadowsocks") && node.optString("flow").isEmpty()
         if (supported) {
             val old = node.optJSONObject("multiplex") ?: JSONObject()
@@ -186,6 +209,7 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         readers.add { val value = timeout.text.toString().trim(); require(value.isEmpty() || value.matches(Regex("(?:[1-9]|[1-9][0-9]|[12][0-9]{2}|300)s|[1-5]m"))) { "Таймаут: 1–300s или 1–5m." }; if (value.isEmpty()) node.remove("connect_timeout") else node.put("connect_timeout", value); node.put("tcp_fast_open", fastOpen.isChecked) }
     }
     private fun endpoint(node: JSONObject) {
+        fields=ServerEditorLayout.section(activity,form,"WireGuard · доступ")
         val privateKey = input(node.optString("private_key"), true); val address = input((node.optJSONArray("address") ?: org.json.JSONArray()).let { (0 until it.length()).joinToString(", ") { i -> it.getString(i) } })
         field("Приватный ключ WireGuard", privateKey, "Ключ клиента. Не публикуй его отдельно от подключения.")
         field("Адреса внутри туннеля", address, "IP/префикс клиента через запятую, как в конфигурации провайдера.")
@@ -195,19 +219,21 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         readers.add { options.put("profileDns", org.json.JSONArray(dns.text.toString().split(',').map(String::trim).filter(String::isNotEmpty))) }
         val peers = node.getJSONArray("peers")
         repeat(peers.length()) { i -> val peer = peers.getJSONObject(i); val host = input(peer.optString("address")); val port = activity.number(peer.getInt("port")); val key = input(peer.getString("public_key"))
+            fields=ServerEditorLayout.section(activity,form,"Пир ${i+1}")
             field("Адрес пира ${i+1}", host, "Домен или IP сервера WireGuard."); field("Порт пира ${i+1}", port, "UDP-порт сервера."); field("Публичный ключ пира ${i+1}", key, "Публичный ключ сервера, не приватный ключ клиента.")
             readers.add { peer.put("address", host.text.toString().trim()).put("port", port.text.toString().toInt()).put("public_key", key.text.toString().trim()) }
             scalar(peer, "pre_shared_key", "Общий ключ пира", "Необязательный дополнительный ключ, 32 байта в Base64. Пусто — без общего ключа.", true)
             val allowed = input(peer.getJSONArray("allowed_ips").let { array -> (0 until array.length()).joinToString(", ") { array.getString(it) } })
             field("Маршруты пира", allowed, "IP/префиксы через запятую: например 0.0.0.0/0 и ::/0. Должны соответствовать серверу.")
             readers.add { peer.put("allowed_ips", org.json.JSONArray(allowed.text.toString().split(',').map(String::trim))) }
-            scalar(peer, "persistent_keepalive_interval", "Keepalive, с", "0 выключает пакеты поддержания соединения; допустимо 0–65535.")
+            scalar(peer, "persistent_keepalive_interval", "Keepalive, с", "0 выключает пакеты поддержания соединения; допустимо 0–65535.",parent=ServerEditorLayout.section(activity,form,"Пир ${i+1} · дополнительно",true))
         }
+        fields=ServerEditorLayout.section(activity,form,"Параметры туннеля",true)
         scalar(node, "mtu", "MTU профиля", "Размер пакета 576–9000. Пусто — значение ядра.")
         val awg = listOf("jc", "jmin", "jmax", "s1", "s2", "s3", "s4", "h1", "h2", "h3", "h4", "i1", "i2", "i3", "i4", "i5", "header_protection_key", "content_padding_addition", "rekey_after_time", "rekey_timeout", "reject_after_time", "keepalive_timeout", "max_handshake_attempts", "random_trailers", "disable_cookies")
         awg.filter(node::has).forEach { key -> scalar(node, key, "AWG · $key", "Параметр обфускации из конфигурации сервера. Версия должна поддерживаться установленным ядром; произвольная замена нарушит соединение.", key == "header_protection_key") }
     }
-    private fun scalar(node: JSONObject, key: String, label: String, explanation: String, secret: Boolean = false, parent: LinearLayout = form) {
+    private fun scalar(node: JSONObject, key: String, label: String, explanation: String, secret: Boolean = false, parent: LinearLayout = fields, wrapLabel: Boolean = false) {
         val old = node.opt(key)
         if(key=="fingerprint"&&old !is Boolean){
             val values=(listOf("chrome","firefox","safari","ios","android","random","randomized")+node.optString(key)).distinct()
@@ -217,9 +243,9 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         }
         if (old is Boolean) {
             if(entry.carrier!=null){
-                val labels=if(key=="turn_tcp")arrayOf("TURN · UDP","TURN · TCP")else arrayOf("Выключено","Включено")
+                val labels=if(key=="turn_tcp")arrayOf("TURN · UDP","TURN · TCP")else arrayOf("Выкл","Вкл")
                 val control=picker(labels,if(old)1 else 0,explanation)
-                field(label,control,explanation,parent);readers.add {node.put(key,control.selectedItemPosition==1)};return
+                field(label,control,explanation,parent,wrapLabel=wrapLabel);readers.add {node.put(key,control.selectedItemPosition==1)};return
             }
             val control = switch(parent, label, explanation, old)
             readers.add { node.put(key, control.isChecked) }
@@ -230,13 +256,13 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         }
     }
     private fun carrier(node: JSONObject) {
-        if(Csqtt25Profile.isProfile(node)){csqtt25(node);return}
-        if(node.optString("type")=="csqtt"){
-            val families=CsqttGenerations.legacy
-            val generation=picker(families.map {it.label}.toTypedArray(),families.indexOf(CsqttGenerations.family(node)),"Выберите поколение сервера. Для каждого несовместимого протокола скачивается отдельный модуль; автоматической подмены нет.")
-            field("Поколение CSQTT",generation,"Старые сохранённые подключения остаются на прежнем движке, пока вы сами не измените этот выбор.")
-            readers.add {node.put("csqtt_generation",families[generation.selectedItemPosition].id)}
+        fields=ServerEditorLayout.section(activity,form,"${entry.label()} · подключение")
+        if(node.optString("type")=="openflux"){
+            val editor=OpenFluxProfileEditor(activity,fields,node,::changed,::watch)
+            readers.add {options.put("carrier",editor.read())};return
         }
+        if(node.optString("type")=="csqtt")generation(node)
+        if(Csqtt25Profile.isProfile(node)){csqtt25(node);return}
         if(node.optString("type") in setOf("csqtt","qwdtt")&&!node.has("fingerprint"))node.put("fingerprint","chrome")
         val swg=node.optString("type") in SwgProfile.TYPES
         if(swg)carrierAddress(node)
@@ -244,9 +270,7 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
             if (!node.has("token")) scalar(node, "token", "Токен сервиса", "Необязательный токен WBStream; для datachannel обязателен.", true)
             if (!node.has("channel")) scalar(node, "channel", "Канал комнаты", "Необязательный ID канала сервиса. Пусто — значение движка.")
             val extra = node.optJSONObject("options") ?: JSONObject().also { node.put("options", it) }
-            val panel = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
-            form.addView(activity.button("Параметры транспорта OLC", false).apply { setOnClickListener { panel.visibility = if (panel.visibility == View.GONE) View.VISIBLE else View.GONE } }, activity.space(0, 12))
-            form.addView(panel)
+            val panel=ServerEditorLayout.section(activity,form,"Параметры транспорта OLC",true)
             listOf("vp8-fps", "vp8-batch", "fps", "batch", "frag", "ack-ms", "video-w", "video-h", "video-fps", "video-qr-size", "video-tile-module", "video-tile-rs", "video-codec", "video-qr-recovery").forEach { key ->
                 val spec = CompatibilityImportFields.describe(key)
                 scalar(extra, key, spec.first, spec.second + " Пусто — значение движка.", parent = panel)
@@ -315,11 +339,12 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
             scalar(node, "username", "Логин прокси", "Необязательный логин SOCKS за туннелем; задаётся вместе с паролем.")
             scalar(node, "password", "Пароль прокси", "Необязательный пароль SOCKS за туннелем; сохраняется зашифрованно.", true)
         }
+        val extraFields=ServerEditorLayout.section(activity,form,"Другие параметры",true)
         fun visit(obj: JSONObject, prefix: String = "") {
             obj.keys().asSequence().toList().forEach { key ->
                 val value = obj.get(key); val path = if (prefix.isEmpty()) key else "$prefix.$key"
                 when {
-                    key in setOf("type", "name", "outbound_tag", "hash_source", "vk_call_count", "vk_hash_mode", "vk_runtime_token", "extra_streams", "csqtt_generation",CarrierStreamDefaults.OVERRIDE) -> Unit
+                    key in setOf("type", "name", "outbound_tag", "hash_source", "vk_call_count", "vk_hash_mode", "vk_runtime_token", "extra_streams", "csqtt_generation",CsqttGenerations.SELECTION,CsqttGenerations.EPOCH,CarrierStreamDefaults.OVERRIDE) -> Unit
                     prefix.isEmpty()&&swg&&key in setOf("server","server_port","password","workers")->Unit
                     prefix.isEmpty()&&key=="turn_tcp"&&node.optString("type")=="csqtt"&&CsqttGenerations.family(node).engine=="csqtt20"->{
                         field("Транспорт TURN",activity.text("UDP",14,Loft.INK),"В CSQTT 2.0 доступен только UDP до TURN. TCP требует другого поколения сервера.")
@@ -327,7 +352,7 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
                     prefix.isEmpty()&&node.optString("type") in SwgProfile.TYPES&&key in setOf("obfs","vk_anon_path","mode","go_dns","fingerprint")->{
                         val choices=when(key){
                             "obfs"->listOf("audio" to "Аудио","video" to "Видео")
-                            "vk_anon_path"->listOf("vkcalls" to "Авто · гостевые VK Calls","legacy" to "Капча · совместимый режим") + if(node.optString("type")=="csqtt"&&CsqttGenerations.family(node).engine=="csqtt")listOf("auto_js" to "Авто VK · привязанный аккаунт")else emptyList()
+                            "vk_anon_path"->listOf("vkcalls" to "Авто · гостевые VK Calls","legacy" to "Капча · legacy") + if(node.optString("type")=="csqtt"&&CsqttGenerations.family(node).engine=="csqtt")listOf("auto_js" to "Авто VK")else emptyList()
                             "mode"->listOf("wg" to "WireGuard","raw" to "RAW")
                             "go_dns"->listOf("yandex" to "Яндекс · обычный DNS","google" to "Google · обычный DNS","cloudflare" to "Cloudflare · обычный DNS","doh-yandex" to "Яндекс · DoH","doh-google" to "Google · DoH","doh-cloudflare" to "Cloudflare · DoH")
                             else->if(node.optString("type") in setOf("csqtt","qwdtt"))listOf("firefox" to "Firefox","chrome" to "Chrome","safari" to "Safari")else listOf("android" to "Android","chrome" to "Chrome","firefox" to "Firefox","safari" to "Safari","ios" to "iOS")
@@ -359,7 +384,7 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
                     }
                     value !is org.json.JSONArray -> {
                         val spec = if (key == "mode" && node.optString("type") == "openflux") "Режим OpenFlux" to "Пусто — согласование профиля; stream — один потоковый транспорт без секрета и согласования. Должен соответствовать серверу." else CompatibilityImportFields.describe(key)
-                        scalar(obj, key, if (prefix.isEmpty()) spec.first else "$prefix · ${spec.first}", spec.second, key in setOf("password", "secret", "key", "token", "custom_vk_client_secret"))
+                        scalar(obj, key, if (prefix.isEmpty()) spec.first else "$prefix · ${spec.first}", spec.second, key in setOf("password", "secret", "key", "token", "custom_vk_client_secret"),parent=extraFields)
                     }
                 }
             }
@@ -369,11 +394,23 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         if(node.optString("type")=="csqtt")readers.add {node.put("vk_hash_mode",if(node.optString("vk_anon_path")=="auto_js")"auto_js"else"manual")}
         readers.add { options.put("carrier", if(swg)CarrierStreamDefaults.apply(node,JSONObject()).apply {if(node.has(CarrierStreamDefaults.OVERRIDE))put(CarrierStreamDefaults.OVERRIDE,node.getInt(CarrierStreamDefaults.OVERRIDE))}else node) }
     }
+    private fun generation(node:JSONObject) {
+        val keys=listOf(CsqttGenerations.AUTO,"2.5","legacy","2.1.5","2.0")
+        val control=picker(arrayOf("Auto","2.5","2.1.9","2.1.5","2.0"),keys.indexOf(CsqttGenerations.choice(node)),CsqttGenerations.CHOICE_HELP)
+        csqttGeneration=control
+        field("Поколение CSQTT",control,"${CsqttGenerations.AUTO_HELP}\nAuto запоминает успешное поколение. Ручной выбор скачивает только нужный движок и имеет приоритет. ${CsqttGenerations.CHOICE_HELP}")
+        fields.addView(activity.button("Определить заново",false).apply {
+            minimumHeight=activity.dp(48);tag="csqtt-detect-again"
+            background=Loft.gradientButtonBackground(activity)
+            setSingleLine(false);setHorizontallyScrolling(false);maxLines=Int.MAX_VALUE;ellipsize=null
+            setOnClickListener {csqttReset=true;csqttRedetectPending=true;control.setSelection(0);changed();status.text="Auto: определяем в фоне после сохранения; если проверка недоступна — при подключении."}
+        },activity.space(0,8))
+    }
     private fun csqtt25(node:JSONObject) {
         val implementations=CsqttGenerations.modernImplementations
         val keys=implementations.keys.toList()
-        val implementation=picker(implementations.values.toTypedArray(),keys.indexOf(CsqttGenerations.implementation(node)),"Оригинальный CSQTT 2.5 и Rebirth используют один протокол. SWG Panel 2.5.1 совместим с ним; отдельные копии одной совместимой библиотеки не скачиваются.")
-        field("Сервер CSQTT 2.5",implementation,"Выбор сохраняет происхождение профиля; не переключает на старое несовместимое поколение.")
+        val implementation=picker(implementations.map {(key,label)->if(key=="compatible-2.5")"Авто"else label.removePrefix("CSQTT ").replace(" · "," ")}.toTypedArray(),keys.indexOf(CsqttGenerations.implementation(node)),"Авто проверяет версии 2.5.3, 2.5.2 и 2.5.1 по порядку.")
+        field("Сервер CSQTT",implementation,"Авто пробует следующую версию при явной несовместимости. При таймауте или отказе авторизации проверка останавливается.")
         readers.add {node.put("csqtt_implementation",keys[implementation.selectedItemPosition])}
         form.addView(activity.text("CSQTT 2.5 · отдельный движок. Старые подключения CSQTT остаются без изменений.",12,Loft.MUTED),activity.space(0,14))
         carrierAddress(node)
@@ -384,7 +421,7 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         readers.add {node.put("captcha_mode",CarrierCaptchaMode.select(wire,captcha.selectedItemPosition==0))}
         val modes=arrayOf("manual","auto_js")
         val source=picker(arrayOf("Ручные звонки","Auto JS · токен из профиля"),modes.indexOf(node.getString("vk_hash_mode")).coerceAtLeast(0),"Ручные звонки не требуют аккаунта. Auto JS использует токен авторизованного VK из профиля CSQTT 2.5.")
-        field("Источник звонков CSQTT 2.5",source,"Отдельная схема оригинального CSQTT 2.5. Для Auto JS очисти ручные звонки и укажи токен; для ручных звонков очисти токен. Аккаунт QWDTT не используется.")
+        field("Источник звонков CSQTT 2.5",source,"Отдельная схема оригинального CSQTT 2.5. Для Auto JS очисти ручные звонки и укажи токен; для ручных звонков очисти токен. Аккаунт QWDTT не используется.",wrapLabel=true)
         calls(node)
         val token=input(node.optString("vk_token"),true)
         field("Токен Auto JS",token,"Секрет из профиля CSQTT 2.5. Хранится локально зашифрованно; не нужен для ручных звонков. Фоновые замеры не создают Auto JS-звонки.")
@@ -392,9 +429,9 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
             node.put("vk_hash_mode",modes[source.selectedItemPosition])
             if(token.text.isEmpty())node.remove("vk_token")else node.put("vk_token",token.text.toString())
         }
-        scalar(node,"allow_hash_redistribution","Разрешить повторное использование хешей","Разрешает выбрать больше 10 потоков на один ручной хеш; распределением управляет сам движок swg-panel. Не отменяет ограничения VK.")
+        scalar(node,"allow_hash_redistribution","Повторное использование хешей","Разрешает выбрать больше 10 потоков на один ручной хеш; распределением управляет сам движок swg-panel. Не отменяет ограничения VK.",wrapLabel=true)
         val masks=listOf("unified","audio","video")
-        val masking=picker(arrayOf("Unified · по умолчанию","Аудио","Видео"),masks.indexOf(node.getString("obfs")).coerceAtLeast(0),"Маскировка оригинального CSQTT 2.5. Должна поддерживаться сервером.")
+        val masking=picker(arrayOf("Unified","Аудио","Видео"),masks.indexOf(node.getString("obfs")).coerceAtLeast(0),"Маскировка оригинального CSQTT 2.5. Unified — по умолчанию. Должна поддерживаться сервером.")
         field("Маскировка",masking,"Unified — штатный режим swg-panel. Audio и video — соответствующие виды медиапотока.")
         readers.add {node.put("obfs",masks[masking.selectedItemPosition])}
         val fingerprints=(listOf("","chrome","firefox","safari")+node.getString("fingerprint")).distinct()
@@ -409,6 +446,17 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         val turn=picker(arrayOf("TURN · UDP","TURN · TCP"),transports.indexOf(node.getString("turn_transport")).coerceAtLeast(0),"Меняет транспорт от устройства до TURN. От TURN до сервера используется UDP.")
         field("Транспорт TURN",turn,"Отдельная настройка CSQTT 2.5; TCP не включается автоматически.")
         readers.add {node.put("turn_transport",transports[turn.selectedItemPosition])}
+        val goobyModes=listOf("off")+CsqttGooby.strategies
+        val gooby=picker(arrayOf("Выкл","Текущая","Мягкая","Расшир."),if(CsqttGooby.enabled(node))CsqttGooby.strategies.indexOf(CsqttGooby.strategy(node))+1 else 0,
+            "Обрабатывает начало TURN TCP/TLS-соединения. После установки соединения данные передаются без добавленных задержек.").apply {tag="csqtt-gooby-option"}
+        field("Gooby · beta",gooby,"Встроенные режимы обработки первых запросов TURN и TLS ClientHello. Только TURN TCP; требуется движок БС с поддержкой Gooby.")
+        fun updateGooby(){gooby.visibility=if(turn.selectedItemPosition==1&&!CsqttGenerations.automatic(node))View.VISIBLE else View.GONE}
+        turn.onSelectionChanged={updateGooby()};updateGooby()
+        readers.add {
+            if(gooby.selectedItemPosition==0){node.remove("gooby_enabled");node.remove("gooby_strategy")}
+            else node.put("gooby_enabled",true).put("gooby_strategy",goobyModes[gooby.selectedItemPosition])
+        }
+
         val ips=activity.editor("").apply {minLines=2;setText(node.getJSONArray("custom_turn_ips").let {a->(0 until a.length()).joinToString("\n"){a.getString(it)}})}
         field("Собственные IP TURN",ips,"Необязательно: до 256 IP-адресов через пробел, запятую или новую строку. Не домены и не правила «Напрямую». Пусто — выбор движка.")
         readers.add {node.put("custom_turn_ips",org.json.JSONArray(ips.text.toString().split(Regex("[,;\\s]+")).filter(String::isNotEmpty)))}
@@ -421,7 +469,8 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         readers.add {options.put("carrier",CarrierStreamDefaults.apply(node,JSONObject()).apply {if(node.has(CarrierStreamDefaults.OVERRIDE))put(CarrierStreamDefaults.OVERRIDE,node.getInt(CarrierStreamDefaults.OVERRIDE))})}
     }
     private fun json(label: String, value: JSONObject, key: String) {
-        val editor = activity.editor(label).apply { minLines = 8; maxLines = 14; setText(value.toString(2)); typeface = android.graphics.Typeface.MONOSPACE; textSize = 12f }
+        fields=ServerEditorLayout.section(activity,form,label,true)
+        val editor = activity.editor(label).apply { isSaveEnabled=false;minLines = 8; maxLines = 14; setText(value.toString(2)); typeface = android.graphics.Typeface.MONOSPACE; textSize = 12f }
         field(label, editor, "Полная конфигурация этого подключения. Перед сохранением проверяется формат; слушающие порты основного ядра задаёт MCRF.")
         readers.add { options.put(key, JSONObject(editor.text.toString())) }
     }
@@ -445,10 +494,21 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
     private fun save() {
         if (worker.isShutdown || !dirty) return
         val candidate: ServerImport.Server; val captured: JSONObject
-        try { options.put("name", name.text.toString()); readers.forEach { it() }; captured = JSONObject(options.toString()); candidate = ConnectionEdits.apply(entry, captured) }
-        catch (error: Exception) { status.text = if (error is IllegalArgumentException && !error.message.isNullOrBlank()) error.message else "Проверь поля. Последние корректные настройки сохранены."; status.setTextColor(Loft.ERROR); return }
+        try {
+            options.put("name", name.text.toString()); readers.forEach { it() }; captured = JSONObject(options.toString())
+            csqttGeneration?.let {control->
+                val keys=listOf(CsqttGenerations.AUTO,"2.5","legacy","2.1.5","2.0")
+                var profile=CsqttGenerations.select(captured.getJSONObject("carrier"),keys[control.selectedItemPosition])
+                if(csqttReset){profile=CsqttAutoDetection.reset(profile);csqttEpoch=profile.getString(CsqttGenerations.EPOCH);csqttReset=false}
+                if(csqttEpoch.isNotEmpty())profile.put(CsqttGenerations.EPOCH,csqttEpoch)
+                captured.put("carrier",profile)
+            }
+            candidate = ConnectionEdits.apply(entry, captured)
+        }
+        catch (error: Exception) { closeAfterSave=false;status.text = if (error is IllegalArgumentException && !error.message.isNullOrBlank()) error.message else "Проверь поля. Последние корректные настройки сохранены."; status.setTextColor(Loft.ERROR); return }
         val current = revision.get(); val serialized = captured.toString()
-        if (serialized == lastSaved && pendingWrites.get() == 0) { dirty = false; return }
+        val redetect=csqttRedetectPending
+        if (serialized == lastSaved && pendingWrites.get() == 0) { dirty = false;if(closeAfterSave)editorDialog?.dismiss();return }
         status.text = "Проверка настроек…"; status.setTextColor(Loft.MUTED)
         pendingWrites.incrementAndGet()
         worker.execute {
@@ -461,14 +521,25 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
                     }
                 }) { if (current == revision.get()) {
                     phase=EditorSaveFailure.Phase.SAVE
-                    activity.catalogue.edit(entry.id, captured)
+                    ServerEditorCommit.save(activity,entry.id,JSONObject(lastCommitted),captured)
+                    lastCommitted=ConnectionEdits.snapshot(candidate).toString()
                     lastSaved = serialized
-                    handler.post { if (current == revision.get()) { dirty = false; status.text = "Сохранено. Применится при следующем подключении."; status.setTextColor(Loft.MUTED) }; if (!activity.isDestroyed && !activity.isFinishing) onCommitted?.run() }
+                    if(redetect) {
+                        CsqttAutoRuntime.schedule(activity.applicationContext,listOfNotNull(candidate.carrier),!activity.active()&&ProbeCoordinator.measurements==null) {activity.active()||ProbeCoordinator.measurements!=null}
+                        csqttRedetectPending=false
+                    }
+                    handler.post {
+                        if(current==revision.get()) {
+                            dirty=false;status.text="Сохранено. Применится при следующем подключении.";status.setTextColor(Loft.SUCCESS)
+                            if(closeAfterSave)editorDialog?.dismiss()
+                        }
+                        if(!activity.isDestroyed&&!activity.isFinishing)onCommitted?.run()
+                    }
                 } }
             } catch (error: Exception) {
                 val failure=EditorSaveFailure.describe(error,phase)
                 ClientEvents.record(activity.applicationContext,"Редактор сервера",failure)
-                handler.post { if (current == revision.get()) { status.text = failure; status.setTextColor(Loft.ERROR) } }
+                handler.post { if (current == revision.get()) { closeAfterSave=false;status.text = failure; status.setTextColor(Loft.ERROR) } }
             }
             finally { pendingWrites.decrementAndGet() }
         }
@@ -477,19 +548,26 @@ class ConnectionEditor(private val activity: MainActivity, private val entry: Se
         this.onCommitted = onCommitted
         val scroll = ScrollView(activity).apply { addView(form) }
         val dialog = ThemedDialogBuilder(activity).setTitle("Настройки подключения").setView(scroll).setNeutralButton("Исходные", null).setPositiveButton("Готово", null).create()
+        editorDialog=dialog
+        dialog.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         dialog.setOnShowListener {
             watch(form); watching = true
+            if(entry.protocol=="csqtt"&&entry.routingRules==null)changed()
             if(focusCaptcha)captchaControl?.let {control->scroll.post {
+                ServerEditorLayout.reveal(control,form)
                 val rect=android.graphics.Rect();control.getDrawingRect(rect);scroll.offsetDescendantRectToMyCoords(control,rect)
                 scroll.smoothScrollTo(0,(rect.top-activity.dp(48)).coerceAtLeast(0));control.requestFocus()
             }}
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { save(); dialog.dismiss() }
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                closeAfterSave=true
+                if(!dirty&&pendingWrites.get()==0)dialog.dismiss()else save()
+            }
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
                 watching = false; revision.incrementAndGet(); handler.removeCallbacks(saveLater)
-                worker.execute { try { activity.catalogue.edit(entry.id, null); handler.post { if (!activity.isDestroyed && !activity.isFinishing) onCommitted?.run(); dialog.dismiss() } } catch (_: Exception) { handler.post { status.text = "Не удалось восстановить исходные настройки."; watching = true } } }
+                worker.execute { try { ServerEditorCommit.save(activity,entry.id,JSONObject(lastCommitted),null); handler.post { if (!activity.isDestroyed && !activity.isFinishing) onCommitted?.run(); dialog.dismiss() } } catch (_: Exception) { handler.post { status.text = "Не удалось восстановить исходные настройки. Сервер мог быть изменён в другом окне."; watching = true } } }
             }
         }
-        dialog.setOnDismissListener { handler.removeCallbacks(saveLater); if (watching) save(); watching = false; worker.shutdown() }
+        dialog.setOnDismissListener { routingPopup?.dismiss();routingPopup=null;editorDialog=null;handler.removeCallbacks(saveLater); if (watching) save(); watching = false; worker.shutdown() }
         dialog.show(); return dialog
     }
 }

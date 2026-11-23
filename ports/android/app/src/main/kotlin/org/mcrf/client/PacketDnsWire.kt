@@ -100,6 +100,52 @@ object PacketDnsWire {
         }
         return addresses.distinct().take(8)
     }
+    /** Follow only the answer's bound CNAME chain. Unrelated answer/glue records
+     * must not make a diagnostic lookup succeed. Existing cache rules unchanged. */
+    fun resolvedAddresses(query:ByteArray,reply:ByteArray):List<InetAddress> {
+        val validated=response(query,reply);val q=question(reply,true)
+        if(validated.truncated||q.flags and 15!=0)return emptyList()
+        val aliases=mutableMapOf<String,String>()
+        val values=mutableMapOf<String,MutableList<InetAddress>>()
+        var at=q.end
+        repeat(u16(reply,6)) {
+            val (owner,next)=name(reply,at);val kind=u16(reply,next);val size=u16(reply,next+8);val start=next+10
+            if(u16(reply,next+2)==1) {
+                if(kind==5) {
+                    val (target,end)=name(reply,start)
+                    require(end==start+size&&aliases.put(owner,target)==null){"PACKET_DNS_CNAME"}
+                } else if(kind==q.type) {
+                    require(size==(if(kind==1)4 else if(kind==28)16 else 0)){"PACKET_DNS_ADDRESS_SIZE"}
+                    values.getOrPut(owner){mutableListOf()}.add(InetAddress.getByAddress(reply.copyOfRange(start,start+size)))
+                }
+            }
+            at=start+size
+        }
+        var owner=q.name;val seen=hashSetOf<String>()
+        while(true) {
+            require(seen.add(owner)&&seen.size<=16){"PACKET_DNS_CNAME_CYCLE"}
+            val target=aliases[owner]?:return values[owner].orEmpty().distinct().take(8)
+            require(values[owner].isNullOrEmpty()){"PACKET_DNS_CNAME_ADDRESS"}
+            owner=target
+        }
+    }
+    data class ObservedAddress(val domain:String,val ip:String,val ttlMs:Long)
+    /** Only exact question-owner A/AAAA answers. CNAME/glue are deliberately not inferred. */
+    fun observedAddresses(query:ByteArray,reply:ByteArray):List<ObservedAddress> {
+        val validated=response(query,reply);val q=question(reply,true)
+        if(validated.truncated||validated.cacheSeconds<=0||q.flags and 15!=0||q.type !in setOf(1,28))return emptyList()
+        var at=q.end;val found=mutableListOf<ObservedAddress>()
+        repeat(u16(reply,6)) {
+            val (owner,next)=name(reply,at);val kind=u16(reply,next);val size=u16(reply,next+8);val start=next+10
+            if(kind==5)return emptyList()
+            if(owner==q.name&&u16(reply,next+2)==1&&kind==q.type&&size==(if(kind==1)4 else 16)) {
+                val ttl=minOf(u32(reply,next+4)*1000,validated.cacheSeconds*1000L,5_000L)
+                if(ttl>0)found+=ObservedAddress(q.name,requireNotNull(InetAddress.getByAddress(reply.copyOfRange(start,start+size)).hostAddress),ttl)
+            }
+            at=start+size
+        }
+        return found.distinct().take(8)
+    }
     fun cached(reply:Reply,query:ByteArray,elapsedSeconds:Int):ByteArray {
         require(elapsedSeconds>=0&&elapsedSeconds<reply.cacheSeconds)
         val copy=reply.bytes.clone();copy[0]=query[0];copy[1]=query[1]

@@ -1,0 +1,10 @@
+--- a/route/route.go
++++ b/route/route.go
+@@ -191,4 +191,6 @@
+ 	} else {
+-		r.connection.NewConnection(ctx, selectedOutbound, conn, metadata, onClose)
++		// lx:begin mcrf-direct-family
++		r.connection.NewConnection(ctx, r.mcrfDirectFamilyDialer(selectedOutbound, selectedRule, metadata), conn, metadata, onClose)
++		// lx:end mcrf-direct-family
+ 	}
+ 	return nil

@@ -1,6 +1,25 @@
 param([ValidateSet('build','test','native-build','native-package')][string]$Operation='build')
 $ErrorActionPreference='Stop'
 $taskCurrent=Get-Content -LiteralPath (Join-Path $PSScriptRoot '../coordination/current.json') -Raw|ConvertFrom-Json
+if($taskCurrent.release08Batch){
+    if($taskCurrent.release08Batch -cne 'release08.json'){throw 'Unexpected release 2.0 batch'}
+    $taskRelease08=Get-Content -LiteralPath (Join-Path $PSScriptRoot '../coordination/release08.json') -Raw|ConvertFrom-Json
+    if($taskRelease08.authority -cne 'human-20261029-local-test-then-release08' -or
+       $taskRelease08.versionName -cne '2.0' -or [int]$taskRelease08.versionCode -ne 10065 -or
+       !$taskRelease08.groupedAffectedBuild -or $taskRelease08.replayUnchangedEngines){
+        throw 'Exact grouped release 2.0 authority required'
+    }
+    . "$PSScriptRoot/Release08.Common.ps1"
+    Sets08 $taskRelease08.requiredNative @('csqtt','csqtt25','qwdtt','steer','wdtt')
+    Sets08 $taskRelease08.requiredHistoricalPackages @('csqtt20','csqtt215')
+    Sets08 $taskRelease08.requiredCsqttPackages @('csqtt20','csqtt215','csqtt','csqtt25')
+    Sets08 $taskRelease08.requiredPackages (Kinds08)
+    if(!$taskRelease08.sourceReady -or !$taskRelease08.nativeGraphReady){throw 'Release 2.0 grouped source/native graph is not ready'}
+    if($Operation -eq 'test' -and !$taskRelease08.allowCommonVerification){throw 'Release 2.0 verification gate closed'}
+    if($Operation -eq 'build' -and !$taskRelease08.allowApkBuild){throw 'Release 2.0 APK gate closed'}
+    if($Operation -in @('native-build','native-package') -and !$taskRelease08.allowNativeCandidateBuild){throw 'Release 2.0 native gate closed'}
+    return
+}
 if($taskCurrent.p3p4Batch){
     if($taskCurrent.p3p4Batch -cne 'p3-p4-2026-10-23.json'){throw 'Unexpected P3/P4 batch'}
     $taskNext=Get-Content -LiteralPath (Join-Path $PSScriptRoot '../coordination/p3-p4-2026-10-23.json') -Raw|ConvertFrom-Json

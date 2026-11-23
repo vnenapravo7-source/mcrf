@@ -5,6 +5,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class BackupRetiredSettingsTest {
+    @Test fun retiredAppearanceFlagsAreAcceptedWithoutRestoringThemAsLiveSettings() {
+        for (key in listOf("sakugaComponents", "appearanceGooPanel", "dynamicIsland")) {
+            AndroidBackup.validatePreferences(JSONObject().put(key, true))
+            assertFalse(key in AndroidBackup.preferenceKeys())
+            assertThrows(IllegalArgumentException::class.java) {
+                AndroidBackup.validatePreferences(JSONObject().put(key, "true"))
+            }
+        }
+    }
+
     private fun preferences() = JSONObject().put("theme", "dark").put("webDavBackup", JSONObject()
         .put("url", "opaque-retired-address").put("password", "synthetic-retired-secret")
         .put("unknownLegacyField", JSONObject().put("versions", org.json.JSONArray().put(1).put("old"))))

@@ -9,7 +9,7 @@ object GeoDataPresets {
     val targetLabels=arrayOf("VPN / прокси","Напрямую","Блокировать")
     data class Item(val kind:String,val code:String,val name:String,val target:String)
     // Category identifiers checked against upstream domain-list-community's full git tree.
-    val items=listOf(Item("geoip","ru","Россия · IP-сети","direct")) + listOf(
+    val items=listOf(Item("geoip","ru","Россия · IP-сети","direct"), Item("geosite","ru","Россия · домены","direct")) + listOf(
         "google" to "Google", "yandex" to "Яндекс", "category-ads-all" to "Реклама",
         "youtube" to "YouTube", "telegram" to "Telegram", "whatsapp" to "WhatsApp",
         "discord" to "Discord", "facebook" to "Facebook", "instagram" to "Instagram",
@@ -35,28 +35,32 @@ object GeoDataPresets {
         require(target in targets)
         if(chosen.isEmpty())return
         val geo=JSONObject(GeoDataConfig.value(state).toString())
+        val next=JSONObject(state.toString())
         val selectors=geo.getJSONArray("selectors")
         chosen.distinctBy {it.kind+":"+it.code}.forEach {item ->
             require(item.kind=="geosite" || item.kind=="geoip"&&item.code=="ru")
-            var index=(0 until selectors.length()).firstOrNull {i->val r=selectors.getJSONObject(i);r.getString("kind")==item.kind&&r.getString("code")==item.code&&!r.optBoolean("bound")}
-            if(index==null){index=selectors.length();selectors.put(JSONObject().put("kind",item.kind).put("code",item.code).put("target",target))}
-            selectors.getJSONObject(index).put("managedRule",true).put("target",target)
+            val code=GeoDataConfig.categoryCode(geo,item.kind,item.code)
+            var index=(0 until selectors.length()).firstOrNull {i->val r=selectors.getJSONObject(i);r.getString("kind")==item.kind&&GeoDataConfig.categoryCode(geo,item.kind,r.getString("code")).equals(code,true)&&!r.optBoolean("bound")}
+            if(index==null){index=selectors.length();selectors.put(JSONObject().put("kind",item.kind).put("code",code).put("target",target))}
+            selectors.getJSONObject(index).put("code",code).put("managedRule",true).put("target",target)
             val identity="${item.kind}:${item.code}"
-            val rules=state.getJSONArray("rules")
+            val rules=next.getJSONArray("rules")
             val existing=(0 until rules.length()).map {rules.getJSONObject(it)}.firstOrNull {it.optString("geoPreset")==identity}
             if(existing!=null)existing.put("target",target).put("enabled",true)
-            else RouteRules.insert(state,JSONObject().put("id",java.util.UUID.randomUUID().toString().replace("-",""))
+            else RouteRules.insert(next,JSONObject().put("id",java.util.UUID.randomUUID().toString().replace("-",""))
                 .put("name","${item.name} · ${item.kind}").put("text","").put("mode","addresses")
                 .put("target",target).put("enabled",true).put("geoPreset",identity)
                 .put("nativeMatch",JSONObject().put("rule_set",JSONArray().put("mcrf-geo-$index"))))
         }
-        GeoDataConfig.validate(geo);state.put("geoData",geo)
+        GeoDataConfig.validate(geo);state.put("geoData",geo).put("rules",next.getJSONArray("rules"))
     }
     fun selectors(state:JSONObject,desired:JSONArray):JSONObject {
         val next=JSONObject(state.toString());val geo=JSONObject(GeoDataConfig.value(next).toString())
         require(!geo.has("providerRules")){"Геокатегории связаны с импортированным профилем. Измени их повторным импортом профиля."}
-        val identities=(0 until desired.length()).map {desired.getJSONObject(it).let {r->r.getString("kind")+":"+r.getString("code")}}
+        val selected=JSONArray(desired.toString())
+        repeat(selected.length()){i->val r=selected.getJSONObject(i);r.put("code",GeoDataConfig.categoryCode(geo,r.getString("kind"),r.getString("code")))}
+        val identities=(0 until selected.length()).map {selected.getJSONObject(it).let {r->r.getString("kind")+":"+r.getString("code").lowercase(java.util.Locale.ROOT)}}
         require(identities.distinct().size==identities.size){"Геокатегория выбрана несколько раз."}
-        geo.put("selectors",JSONArray(desired.toString()));GeoDataConfig.validate(geo);next.put("geoData",geo);return next
+        geo.put("selectors",selected);GeoDataConfig.validate(geo);next.put("geoData",geo);return next
     }
 }

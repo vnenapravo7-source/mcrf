@@ -1,0 +1,6 @@
+Kotlin standard library 2.2.10 and JetBrains Java annotations 13.0.
+Copyright JetBrains s.r.o. and Kotlin Programming Language contributors.
+Licensed under the Apache License, Version 2.0; see kotlin-stdlib-LICENSE.txt.
+Kotlin source: https://github.com/JetBrains/kotlin/tree/v2.2.10
+Annotations source: https://github.com/JetBrains/java-annotations
+These runtime classes are bundled for the separately compiled sing-box adapter.

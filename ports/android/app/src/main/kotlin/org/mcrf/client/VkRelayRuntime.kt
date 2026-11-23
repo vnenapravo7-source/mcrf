@@ -15,7 +15,9 @@ object VkRelayRuntime {
         return out
     }
     fun withManualSupplements(raw:JSONObject,account:VkRelayAccount):JSONObject {
-        val out=JSONObject(raw.toString())
+        // Subnet selection is independent of the manual supplement checkbox.
+        // The helper only handles modern CSQTT and preserves explicit server IPs.
+        val out=if(Csqtt25Profile.isProfile(raw))account.withTurnSubnets(raw)else JSONObject(raw.toString())
         if(out.optString("type") !in SwgProfile.TYPES||!account.supplementAll())return out
         // These modes own paired account credentials/calls inside the native
         // client; arbitrary guest hashes cannot be mixed into that session.

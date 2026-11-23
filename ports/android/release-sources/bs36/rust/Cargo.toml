@@ -1,0 +1,40 @@
+[package]
+name = "mcrf-csqtt-multicall-boundary"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "lib.rs"
+
+[[bin]]
+name = "mcrf-csqtt-transport"
+path = "main.rs"
+
+[profile.release]
+lto = "fat"
+opt-level = "z"
+panic = "abort"
+codegen-units = 1
+strip = true
+
+[[bin]]
+name = "mcrf-native-router"
+path = "native_router_entry.rs"
+required-features = ["ported", "native-routing"]
+
+[workspace]
+resolver = "3"
+members = ["adapters/g251/rust-client", "adapters/g253/rust-client"]
+exclude = ["adapters/g20/rust-client", "adapters/g215/rust-client", "adapters/g219/rust-client", "adapters/g20/rust-client/vendor/primp", "adapters/g20/rust-client/vendor/netstack-smoltcp", "adapters/g215/rust-client/vendor/primp", "adapters/g215/rust-client/vendor/netstack-smoltcp", "adapters/g219/rust-client/vendor/primp", "adapters/g219/rust-client/vendor/netstack-smoltcp", "adapters/g251/rust-client/vendor/primp", "adapters/g251/rust-client/vendor/netstack-smoltcp", "adapters/g253/rust-client/vendor/primp", "adapters/g253/rust-client/vendor/netstack-smoltcp", "crypto/aws-lc-rs-1.17.3", "admission-tests", "gooby_builtin"]
+
+[features]
+native-routing = []
+ported = ["dep:mcrf-adapter-g20", "dep:mcrf-adapter-g215", "dep:mcrf-adapter-g219", "dep:mcrf-adapter-g251", "dep:mcrf-adapter-g253"]
+
+[dependencies]
+mcrf-adapter-g20 = { path = "adapters/g20/rust-client", optional = true }
+mcrf-adapter-g215 = { path = "adapters/g215/rust-client", optional = true }
+mcrf-adapter-g219 = { path = "adapters/g219/rust-client", optional = true }
+mcrf-adapter-g251 = { path = "adapters/g251/rust-client", optional = true }
+mcrf-adapter-g253 = { path = "adapters/g253/rust-client", optional = true }

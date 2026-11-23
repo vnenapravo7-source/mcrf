@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string]$Upstream)
+param([Parameter(Mandatory)][string]$Upstream,[switch]$AndroidUnderlay)
 $ErrorActionPreference='Stop'
 $taskRoot='D:/MCRF/Projects/MCRF'
 $taskCommit='7de506b222c83ae97a19a618e33fe26899af1bd5'
@@ -74,8 +74,22 @@ $taskSocks="$taskRoot/ports/android/transports/vaydns/overlay/mcrf_socks.go"
 $taskText=[IO.File]::ReadAllText($taskSocks)
 if(!$taskText.StartsWith('package client')){throw 'Shared SOCKS package anchor changed'}
 [IO.File]::WriteAllText("$taskStage/bridge/mcrf_socks.go",$taskText.Replace('package client','package main'),[Text.UTF8Encoding]::new($false))
+$taskUnderlayPatch=$null
+if($AndroidUnderlay){
+ $taskUnderlayPatch=Join-Path $PSScriptRoot 'android-underlay.patch'
+ $taskUnderlayPatchSha=(Get-FileHash -LiteralPath $taskUnderlayPatch).Hash.ToLowerInvariant()
+ & git -C $taskStage apply --check $taskUnderlayPatch
+ if($LASTEXITCODE){throw 'Pinned Slipstream underlay patch does not match prepared sources'}
+ & git -C $taskStage apply $taskUnderlayPatch
+ if($LASTEXITCODE){throw 'Slipstream underlay patch failed'}
+ if((Get-FileHash -LiteralPath $taskUnderlayPatch).Hash.ToLowerInvariant() -cne $taskUnderlayPatchSha){throw 'Slipstream underlay patch changed during preparation'}
+}
 $taskFiles=@(Get-ChildItem -LiteralPath $taskStage -Recurse -File|ForEach-Object{@{path=[IO.Path]::GetRelativePath($taskStage,$_.FullName).Replace('\','/');sha256=(Get-FileHash -LiteralPath $_.FullName).Hash.ToLowerInvariant()}})
 [IO.File]::WriteAllText("$taskStage/SOURCE_MANIFEST.json",($taskFiles|Sort-Object path|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
 $taskReceipt=@{state='SOURCE_PREPARED_NOT_COMPILED';repository='Mygod/slipstream-rust';commit=$taskCommit;upstreamArchived=$true;upstream=$taskRows;sharedSocksSha256=(Get-FileHash -LiteralPath $taskSocks).Hash.ToLowerInvariant();manifestSha256=(Get-FileHash -LiteralPath "$taskStage/SOURCE_MANIFEST.json").Hash.ToLowerInvariant();privateUds=$true;mandatoryLeafPin=$true;compiled=$false;executed=$false;androidIntegrated=$false}
+if($AndroidUnderlay){
+ $taskReceipt.androidPhysicalSocketBinding=$true
+ $taskReceipt.underlayPatchSha256=$taskUnderlayPatchSha
+}
 [IO.File]::WriteAllText("$taskStage/receipt.json",($taskReceipt|ConvertTo-Json -Depth 7),[Text.UTF8Encoding]::new($false))
 Write-Output "P3_SLIPSTREAM_SOURCE=$taskStage"

@@ -1,6 +1,244 @@
 import java.security.MessageDigest
+import java.io.File
+import java.nio.file.Files
 
 plugins { id("com.android.application") }
+abstract class OnlineRoutingAssets @javax.inject.Inject constructor(
+    private val fileSystem: org.gradle.api.file.FileSystemOperations
+) : DefaultTask() {
+    @get:InputDirectory @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val sourceAssets: DirectoryProperty
+    @get:OutputDirectory abstract val outputAssets: DirectoryProperty
+
+    @TaskAction fun copyAssets() {
+        val source = sourceAssets.get().asFile
+        val manifest = groovy.json.JsonSlurper().parse(source.resolve("presets/release-ranges.json")) as Map<*, *>
+        val catalogue = groovy.json.JsonSlurper().parse(source.resolve("presets/catalogue.json")) as Map<*, *>
+        val rows = (catalogue["presets"] as List<*>).map { it as Map<*, *> }.associateBy { it["id"] }
+        val omitted = (manifest["presets"] as Map<*, *>).map { (key, value) ->
+            val id = key.toString()
+            require(id.matches(Regex("[0-9a-f]{16}")))
+            val relative = "presets/$id.srs"
+            val local = source.resolve(relative)
+            val hash = (value as List<*>)[2]
+            require(rows[id]?.get("sha256") == hash && local.length() == (rows[id]?.get("bytes") as Number).toLong() &&
+                MessageDigest.getInstance("SHA-256").digest(local.readBytes()).joinToString("") { "%02x".format(it.toInt() and 255) } == hash) {
+                "Update the published routing range for $id, or keep the asset bundled."
+            }
+            relative
+        }
+        fileSystem.sync {
+            from(source) { exclude(omitted) }
+            into(outputAssets.get().asFile)
+        }
+    }
+}
+val onlineRoutingAssets = if (providers.gradleProperty("offlineAssets").isPresent) null else
+    tasks.register<OnlineRoutingAssets>("prepareOnlineRoutingAssets") {
+        sourceAssets.set(layout.projectDirectory.dir("src/main/assets"))
+        outputAssets.set(layout.buildDirectory.dir("generated/onlineRoutingAssets"))
+    }
+// Explicit local previews have a distinguishable upgrade code. They cannot
+// inherit a historical/release receipt or produce a release artifact.
+val intermediateBuildCode=providers.gradleProperty("intermediateBuildCode").orNull?.let {value->
+    require(value.matches(Regex("[0-9]{5,9}"))){"Invalid intermediate build code"}
+    value.toInt().also {require(it in 10066..999999999){"Intermediate build must upgrade 2.0"}}
+}
+val mobileBetaBuild=providers.gradleProperty("mobileBetaBuild").orNull=="true"
+require(!mobileBetaBuild||intermediateBuildCode==null)
+val publishedMobileBetaCode=10178
+val mobileBetaBuildCode=providers.gradleProperty("mobileBetaBuildCode").orNull?.let {code->
+    require(mobileBetaBuild)
+    requireNotNull(code.toIntOrNull()).also {require(it in (publishedMobileBetaCode+1)..999999999)}
+}?:publishedMobileBetaCode
+val mobileStableBuildCode=providers.gradleProperty("mobileStableBuildCode").orNull?.let {code->
+    require(!mobileBetaBuild&&intermediateBuildCode==null)
+    val betaFloor=requireNotNull(providers.gradleProperty("mobileLatestPublishedBetaCode").orNull?.toIntOrNull()) {
+        "Pass the highest published Android beta versionCode as mobileLatestPublishedBetaCode."
+    }
+    require(betaFloor in publishedMobileBetaCode..999999999)
+    requireNotNull(code.toIntOrNull()).also {require(it in betaFloor..999999999){"Stable Android must not downgrade the published beta."}}
+}
+val mobileStableVersionName = providers.gradleProperty("mobileStableVersionName").orNull?.also {
+    require(mobileStableBuildCode != null && it.matches(Regex("[0-9]+[.][0-9]+[.][0-9]+")))
+} ?: "2.0.0"
+if(intermediateBuildCode!=null) {
+    require(listOf("release08Receipt","release073Receipt","release072Receipt","openflux016PublicReceipt",
+        "openflux016Receipt","release07Receipt","p3p4CandidateReceipt","nextIndependentReceipt",
+        "p2UiCorrectionReceipt","p2ExpansionSourceReadyReceipt","p2SourceReadyReceipt").none {providers.gradleProperty(it).isPresent})
+    gradle.taskGraph.whenReady {
+        require(allTasks.none {it.project==project && it.name.contains("release",ignoreCase=true)}){"Intermediate build is debug-only"}
+    }
+}
+val supportedClientAbis=listOf("arm64-v8a","armeabi-v7a","x86_64")
+val anubisPairingInputs=providers.gradleProperty("anubisPairingInputs").orNull?.let {location->
+    fun digest(file:File)=MessageDigest.getInstance("SHA-256").digest(file.readBytes())
+        .joinToString(""){"%02x".format(it.toInt() and 255)}
+    val stage=file(location).canonicalFile
+    val receipt=File(stage,"receipt.json")
+    require(receipt.isFile&&receipt.canonicalFile==receipt.absoluteFile&&receipt.length() in 1..16384&&
+        digest(receipt)==providers.gradleProperty("anubisPairingInputsSha256").orNull){"Unverified Anubis pairing receipt"}
+    val doc=groovy.json.JsonSlurper().parse(receipt) as Map<*,*>
+    val artifacts=(doc["artifacts"] as List<*>).map {it as Map<*,*>}
+    require(artifacts.map {it["abi"].toString()}.sorted()==supportedClientAbis.sorted())
+    val jni=File(stage,"jni")
+    val binaries=artifacts.map {row->
+        val relative="jni/${row["abi"]}/libmcrf_anubis_pairing.so"
+        require(relative==row["file"])
+        File(stage,relative).also { binary->
+            require(binary.isFile&&binary.canonicalFile==binary.absoluteFile&&binary.length() in 1..16_000_000&&
+                digest(binary)==row["sha256"]){"Unverified Anubis pairing binary"}
+        }
+    }
+    require(jni.walkTopDown().filter {it.isFile}.toSet()==binaries.toSet()){"Unexpected Anubis pairing assets"}
+    jni
+}
+require(mobileStableBuildCode == null || mobileStableVersionName != "2.0.1" || anubisPairingInputs != null) {
+    "Android 2.0.1 requires verified on-device Anubis pairing libraries for all supported ABIs."
+}
+// An ABI-specific offline edition carries only its own two signed module APKs.
+// Never emit a universal APK when its asset index covers fewer than all ABIs.
+val offlineClientAbis=providers.gradleProperty("offlineAssets").orNull?.let {location->
+    val index=File(file(location),"bundled-engines/index.json")
+    require(index.isFile&&index.length() in 1..16384){"Bounded offline engine index required"}
+    val doc=groovy.json.JsonSlurper().parse(index) as Map<*,*>
+    require(doc["schema"].toString()=="1")
+    val rows=(doc["packages"] as List<*>).map {it as Map<*,*>}
+    require(rows.size in 2..6&&rows.map {it["kind"] to it["abi"]}.distinct().size==rows.size)
+    val groups=rows.groupBy {it["abi"].toString()}
+    require(groups.keys.all {it in supportedClientAbis})
+    require(groups.size==1||groups.size==supportedClientAbis.size){"Offline assets must cover one ABI or all supported ABIs"}
+    groups.forEach {(_,pair)->require(pair.map {it["kind"]}.toSet()==setOf("bs","sing-box"))}
+    supportedClientAbis.filter {it in groups}
+}?:supportedClientAbis
+val nativeRouterInput=providers.gradleProperty("nativeRouterInputs").orNull?.let {location->
+    fun digest(binary:File)=MessageDigest.getInstance("SHA-256").digest(binary.readBytes())
+        .joinToString(""){"%02x".format(it.toInt() and 255)}
+    val receipt=file(location).canonicalFile
+    require(receipt.isFile&&receipt.length() in 1..4_000_000&&digest(receipt)==providers.gradleProperty("nativeRouterInputsSha256").orNull)
+    val doc=groovy.json.JsonSlurper().parse(receipt) as Map<*,*>
+    require(doc["state"]=="COMPILED_MULTICALL_PROOF_NOT_PACKAGED"&&doc["sourceStable"]==true)
+    val root=File(receipt.parentFile,"router-artifacts").canonicalFile
+    val rows=(doc["routerArtifacts"] as List<*>).map {it as Map<*,*>}
+    require(rows.map {it["abi"].toString()}.sorted()==supportedClientAbis.sorted())
+    val pins=rows.associate {row->
+        val abi=row["abi"].toString()
+        val binary=File(root,"$abi/libmcrf_router.so")
+        require(binary.isFile&&binary.canonicalFile==binary.absoluteFile&&binary.length()==row["bytes"].toString().toLong())
+        require(binary.canonicalFile==file(row["path"].toString()).canonicalFile&&digest(binary)==row["sha256"])
+        abi to row["sha256"].toString()
+    }
+    require(root.walkTopDown().filter {it.isFile}.map {it.canonicalFile}.toSet()==
+        supportedClientAbis.map {File(root,"$it/libmcrf_router.so").canonicalFile}.toSet())
+    root to pins
+}
+require(mobileStableBuildCode == null || nativeRouterInput != null) {
+    "Stable Android releases require the verified standalone router inputs for all supported ABIs."
+}
+// An executable owned Go peer belongs only to the instrumentation APK.
+val originalPacketFixtureRoot=providers.gradleProperty("originalPacketFixtureStage").orNull?.let {location->
+    val root=file(location).canonicalFile
+    val receipt=groovy.json.JsonSlurper().parse(File(root,"receipt.json")) as Map<*,*>
+    val abi=receipt["abi"].toString()
+    require(receipt["stage"]=="debug-only-original-packet-peer"&&abi in setOf("x86_64","arm64-v8a"))
+    val binary=File(root,"fixtures/$abi/libmcrf_original_packet_fixture.so")
+    require(binary.isFile&&binary.length()==receipt["bytes"].toString().toLong())
+    require(MessageDigest.getInstance("SHA-256").digest(binary.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}==receipt["sha256"])
+    root
+}
+val bsOwnedPhysicalFixtureRoot = providers.gradleProperty("bsOwnedPhysicalFixtureStage").orNull?.let { location ->
+    val root = file(location).canonicalFile
+    require(!Files.isSymbolicLink(file(location).toPath()) && providers.gradleProperty("releaseSmoke").orNull != "true")
+    val receipt = groovy.json.JsonSlurper().parse(File(root, "receipt.json")) as Map<*, *>
+    val native = File(root, "fixtures/arm64-v8a/libmcrf_owned_native_udp_fixture.so")
+    val metadataFile = File(root, "test-assets/bs-owned-native-udp-fixture.json")
+    val rules = File(root, "test-assets/bs-owned-bootstrap-routes.srs")
+    val files = listOf(File(root, "receipt.json"), native, metadataFile, rules)
+    val contents = root.walkTopDown().onEnter { directory ->
+        require(directory.canonicalFile == directory && !Files.isSymbolicLink(directory.toPath()))
+        true
+    }
+    require(files.all { it.isFile && it.canonicalFile == it } && contents.filter { it.isFile }.toSet() == files.toSet())
+    fun digest(input: File): String = input.inputStream().use { stream ->
+        val hash = MessageDigest.getInstance("SHA-256")
+        val buffer = ByteArray(65536)
+        while (true) {
+            val count = stream.read(buffer)
+            if (count < 0) break
+            hash.update(buffer, 0, count)
+        }
+        hash.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
+    }
+    val metadata = groovy.json.JsonSlurper().parse(metadataFile) as Map<*, *>
+    require(receipt["stage"] == "debug-only-bs-physical-native-bootstrap" && receipt["providerTraffic"] == false &&
+        receipt["productionActivated"] == false && receipt["abi"] == "arm64-v8a" &&
+        receipt["generation"] in setOf("2.5.1", "2.5.3"))
+    require(receipt["metadataSha256"] == digest(metadataFile) && receipt["sha256"] == digest(native) &&
+        receipt["srsSha256"] == digest(rules) && receipt["bytes"].toString().toLong() == native.length())
+    require(metadata["bootstrap"] == true &&
+        listOf("abi", "generation", "sha256", "srsSha256", "bytes").all { metadata[it].toString() == receipt[it].toString() })
+    root
+}
+val bsOwnedTestManifest = bsOwnedPhysicalFixtureRoot?.let {
+    val source = layout.projectDirectory.file("src/androidTest/AndroidManifest.xml")
+    val output = layout.buildDirectory.file("generated/bs-owned-test/AndroidManifest.xml")
+    val prepare = tasks.register("prepareBsOwnedTestManifest") {
+        inputs.file(source)
+        outputs.file(output)
+        doLast {
+            val text = source.asFile.readText(Charsets.UTF_8)
+            require(text.split("<application>").size == 2)
+            val generated = output.get().asFile
+            generated.parentFile.mkdirs()
+            generated.writeText(text.replace("<application>", "<application android:testOnly=\"true\">"), Charsets.UTF_8)
+        }
+    }
+    tasks.matching { it.name == "processDebugAndroidTestManifest" }.configureEach { dependsOn(prepare) }
+    output
+}
+providers.gradleProperty("release08Receipt").orNull?.let {path->
+    require(listOf("release073Receipt","release072Receipt","openflux016PublicReceipt","openflux016Receipt","release07Receipt","p3p4CandidateReceipt","nextIndependentReceipt","p2UiCorrectionReceipt","p2ExpansionSourceReadyReceipt","p2SourceReadyReceipt").none {providers.gradleProperty(it).isPresent}) {"2.0 cannot inherit historical candidate authority"}
+    fun digest(input:java.io.File):String {
+        require(input.isFile&&!Files.isSymbolicLink(input.toPath()))
+        return MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString(""){"%02x".format(it.toInt()and 255)}
+    }
+    val input=file(path)
+    require(digest(input)==providers.gradleProperty("release08Sha256").orNull)
+    val proof=groovy.json.JsonSlurper().parse(input) as Map<*,*>
+    require(proof["authority"]=="human-20261029-local-test-then-release08"&&proof["state"]=="SOURCE_READY")
+    require(proof["versionCode"].toString()=="10065"&&proof["versionName"]=="2.0"&&proof["releaseType"]=="release"&&proof["publish"]==false)
+    require(proof["groupedAffectedBuild"]==true)
+    val manifest=file(proof["sourceManifest"].toString())
+    require(digest(manifest)==proof["sourceManifestSha256"])
+    val rows=(groovy.json.JsonSlurper().parse(manifest) as List<*>).map {it as Map<*,*>}
+    require(rows.isNotEmpty()&&rows.map {it["path"]}.distinct().size==rows.size)
+    rows.forEach {require(digest(file(it["path"].toString()))==it["sha256"])}
+    val native=file(proof["nativeReceipt"].toString())
+    require(digest(native)==proof["nativeReceiptSha256"])
+    val rebuilt=groovy.json.JsonSlurper().parse(native) as Map<*,*>
+    require(rebuilt["state"]=="AFFECTED_NATIVE_REBUILT"&&rebuilt["sourceManifestSha256"]==proof["sourceManifestSha256"])
+    val engines=(rebuilt["engines"] as List<*>).map {it as Map<*,*>}
+    require(engines.map {it["kind"].toString()}.sorted()==listOf("csqtt","csqtt25","qwdtt","steer","wdtt"))
+    engines.forEach {engine->
+        require(engine["rebuilt"]==true&&engine["sourceStable"]==true)
+        val source=engine["sourceManifest"] as Map<*,*>
+        require(digest(file(source["path"].toString()))==source["sha256"])
+        val sourceRows=(groovy.json.JsonSlurper().parse(file(source["path"].toString())) as List<*>).map {it as Map<*,*>}
+        require(sourceRows.isNotEmpty()&&sourceRows.map {it["path"]}.distinct().size==sourceRows.size)
+        sourceRows.forEach {require(digest(file(it["path"].toString()))==it["sha256"])}
+        val outputs=(engine["outputs"] as List<*>).map {it as Map<*,*>}
+        require(outputs.isNotEmpty());outputs.forEach {require(digest(file(it["path"].toString()))==it["sha256"])}
+    }
+    val historical=(rebuilt["historicalPackages"] as List<*>).map {it as Map<*,*>}
+    require(historical.map {it["kind"].toString()}.sorted()==listOf("csqtt20","csqtt215"))
+    historical.forEach {engine->
+        require(engine["rebuilt"]==false&&engine["sourceStable"]==true)
+        val bound=engine["packageReceipt"] as Map<*,*>
+        require(digest(file(bound["path"].toString()))==bound["sha256"])
+        val outputs=(engine["outputs"] as List<*>).map {it as Map<*,*>}
+        require(outputs.size==6);outputs.forEach {require(digest(file(it["path"].toString()))==it["sha256"])}
+    }
+}
 providers.gradleProperty("release073Receipt").orNull?.let {path->
     val proof=groovy.json.JsonSlurper().parse(file(path)) as Map<*,*>
     require(proof["authority"]=="human-20261029-publish-0.7.3"&&proof["state"]=="SOURCE_READY")
@@ -168,9 +406,17 @@ providers.gradleProperty("p2SourceReadyReceipt").orNull?.let { receiptPath ->
 }
 val isolatedFirstLaunchFixture=providers.gradleProperty("isolatedFirstLaunchFixture").orNull=="true"
 val isolatedAnimationFixture=providers.gradleProperty("isolatedAnimationFixture").orNull=="true"
+val isolatedAnubisPairingFixture=providers.gradleProperty("isolatedAnubisPairingFixture").orNull=="true"
 require(!isolatedAnimationFixture||providers.gradleProperty("isolatedAnimationFixtureGate").orNull=="true") {"Animation APK requires explicit fresh-UID fixture gate"}
 require(!(isolatedFirstLaunchFixture&&isolatedAnimationFixture)) {"Fixture identities must stay separate"}
 require(!isolatedFirstLaunchFixture||providers.gradleProperty("isolatedFirstLaunchFixtureGate").orNull=="true") {"Isolated first-launch APK requires explicit fixture gate"}
+require(!isolatedAnubisPairingFixture||(!isolatedFirstLaunchFixture&&!isolatedAnimationFixture&&
+    anubisPairingInputs!=null&&providers.gradleProperty("isolatedAnubisPairingFixtureGate").orNull=="true")) {
+    "Anubis pairing fixture requires an isolated identity and verified native inputs"
+}
+if(isolatedAnubisPairingFixture)gradle.taskGraph.whenReady {
+    require(allTasks.none {it.project==project&&it.name.contains("release",ignoreCase=true)}){"Anubis pairing fixture is debug-only"}
+}
 // Coordinator-only, hash-verified peer. It is never a main/release source directory.
 val optionalDebugFixtureRoot=providers.gradleProperty("optionalDebugFixtureStage").orNull?.let {file(it)}
 optionalDebugFixtureRoot?.let {root ->
@@ -206,12 +452,27 @@ dnsttDebugFixtureRoot?.let {root ->
 }
 android {
     namespace = "org.mcrf.client"
-    compileSdk = 34
+    compileSdk { version = release(37) { minorApiLevel = 0 } }
     defaultConfig {
+        buildConfigField("boolean", "FORCE_TV_UI", (providers.gradleProperty("forceTvUi").orNull == "true").toString())
+        // Enable only after the first-party TLS service has been deployed and checked.
+        buildConfigField("boolean", "DOWNLOAD_SOURCE_REPORTING", (providers.gradleProperty("downloadSourceReporting").orNull == "true").toString())
+        buildConfigField("boolean", "OFFLINE_EDITION", providers.gradleProperty("offlineAssets").isPresent.toString())
+        buildConfigField("boolean", "ANUBIS_WIRELESS_PAIRING", (anubisPairingInputs!=null).toString())
+        val routerPins=nativeRouterInput?.second.orEmpty().entries.joinToString(",") {"${it.key}=${it.value}"}
+        buildConfigField("String","NATIVE_ROUTER_PINS","\"$routerPins\"")
+        val nativeRouterProxy=nativeRouterInput?.first?.let {root->supportedClientAbis.all {abi->
+            File(root,"$abi/libmcrf_router.so").readBytes().toString(Charsets.ISO_8859_1).contains("MCRF_BS_PROXY_READY ")
+        }}==true
+        buildConfigField("boolean","NATIVE_ROUTER_PROXY",nativeRouterProxy.toString())
         applicationId = "org.mcrf.client"
         minSdk = 29
         targetSdk = 34
         versionCode = when {
+            mobileBetaBuild -> mobileBetaBuildCode
+            mobileStableBuildCode!=null -> mobileStableBuildCode
+            intermediateBuildCode!=null -> intermediateBuildCode
+            providers.gradleProperty("release08Receipt").isPresent -> 10065
             providers.gradleProperty("release073Receipt").isPresent -> 10063
             providers.gradleProperty("release072Receipt").isPresent -> 10062
             providers.gradleProperty("openflux016PublicReceipt").isPresent -> 10061
@@ -222,9 +483,13 @@ android {
             providers.gradleProperty("p2UiCorrectionReceipt").isPresent -> 10027
         providers.gradleProperty("p2ExpansionSourceReadyReceipt").isPresent -> 10043
             providers.gradleProperty("p2SourceReadyReceipt").isPresent -> 10025
-            else -> 10047
+            else -> 10065
         }
         versionName = when {
+            mobileBetaBuild -> "2.0.0-beta.$mobileBetaBuildCode"
+            mobileStableBuildCode!=null -> mobileStableVersionName
+            intermediateBuildCode!=null -> "2.0-preview.$intermediateBuildCode"
+            providers.gradleProperty("release08Receipt").isPresent -> "2.0"
             providers.gradleProperty("release073Receipt").isPresent -> "0.7.3"
             providers.gradleProperty("release072Receipt").isPresent -> "0.7.2"
             providers.gradleProperty("openflux016PublicReceipt").isPresent -> "0.7.1"
@@ -235,14 +500,16 @@ android {
             providers.gradleProperty("p2UiCorrectionReceipt").isPresent -> "0.6-p2-candidate.3"
         providers.gradleProperty("p2ExpansionSourceReadyReceipt").isPresent -> "0.6"
             providers.gradleProperty("p2SourceReadyReceipt").isPresent -> "0.6-p2-candidate.1"
-            else -> "0.6.1"
+            else -> "2.0"
         }
         manifestPlaceholders["debugApplicationLabel"] = if (isolatedFirstLaunchFixture) "MCRF · UI-стенд" else "MCRF"
         if(isolatedFirstLaunchFixture)testApplicationId="org.mcrf.client.onboardingfixture.test"
         if(isolatedAnimationFixture)testApplicationId="org.mcrf.client.animationfixture10.test"
+        if(isolatedAnubisPairingFixture)testApplicationId="org.mcrf.client.anubispairingfixture.test"
         testInstrumentationRunner = if(project.findProperty("releaseSmoke")=="true") "org.mcrf.client.ReleaseSmokeInstrumentation" else "org.mcrf.client.DeviceSmokeInstrumentation"
         if(isolatedAnimationFixture)testInstrumentationRunner="org.mcrf.client.ConnectionAnimationInstrumentation"
-        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
+        if(isolatedAnubisPairingFixture)testInstrumentationRunner="org.mcrf.client.AnubisPairingFixtureInstrumentation"
+        ndk { abiFilters += offlineClientAbis }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -257,28 +524,61 @@ android {
     } }
     if(isolatedFirstLaunchFixture)buildTypes.getByName("debug").applicationIdSuffix=".onboardingfixture"
     if(isolatedAnimationFixture)buildTypes.getByName("debug").applicationIdSuffix=".animationfixture10"
+    if(isolatedAnubisPairingFixture){
+        buildTypes.getByName("debug").applicationIdSuffix=".anubispairingfixture"
+        sourceSets.getByName("debug").manifest.srcFile("src/anubisPairingFixture/AndroidManifest.xml")
+    }
     splits { abi {
-        isEnable = true
+        isEnable = offlineClientAbis==supportedClientAbis
         reset()
-        include("arm64-v8a", "armeabi-v7a", "x86_64")
-        isUniversalApk = true
+        if(offlineClientAbis==supportedClientAbis)include(*supportedClientAbis.toTypedArray())
+        isUniversalApk = offlineClientAbis==supportedClientAbis
     } }
     // Compress .so in the APK. Android extracts only the device ABI at installation.
     packaging { jniLibs { useLegacyPackaging = true } }
     sourceSets.getByName("test").resources.srcDir("../../fixtures")
     sourceSets.getByName("test").resources.srcDir("src/main/assets")
     sourceSets.getByName("main").java.srcDir("../../../work/steer-android-port/android-vpn/integration-helper/src/main/java")
-    // Native payloads remain packaging inputs for separate engines, never base APK content.
+    // The common dispatcher can be bundled. Protocol engines remain separate.
     sourceSets.getByName("main").jniLibs.setSrcDirs(emptyList<String>())
-    sourceSets.getByName("main").assets.srcDir("../../catalogue")
+    anubisPairingInputs?.let {sourceSets.getByName("main").jniLibs.srcDir(it)}
+    nativeRouterInput?.first?.let {sourceSets.getByName("main").jniLibs.srcDir(it)}
+    packaging.jniLibs.keepDebugSymbols += "**/libmcrf_router.so"
+    if (onlineRoutingAssets != null) sourceSets.getByName("main").assets.setSrcDirs(listOf("../../catalogue"))
+    else sourceSets.getByName("main").assets.srcDir("../../catalogue")
+    providers.gradleProperty("offlineAssets").orNull?.let {sourceSets.getByName("main").assets.srcDir(it)}
     sourceSets.getByName("androidTest").assets.srcDir("../../fixtures")
     project.findProperty("liveFixtures")?.let { sourceSets.getByName("androidTest").assets.srcDir(it.toString()) }
     sourceSets.getByName("debug").assets.srcDir("../../fixtures")
     optionalDebugFixtureRoot?.let {sourceSets.getByName("androidTest").jniLibs.srcDir(it.resolve("fixtures"))}
     dnsttDebugFixtureRoot?.let {sourceSets.getByName("androidTest").jniLibs.srcDir(it.resolve("fixtures"))}
+    originalPacketFixtureRoot?.let {
+        sourceSets.getByName("androidTest").jniLibs.srcDir(it.resolve("fixtures"))
+        sourceSets.getByName("androidTest").assets.srcDir(it.resolve("test-assets"))
+    }
+    bsOwnedPhysicalFixtureRoot?.let {
+        sourceSets.getByName("androidTest").jniLibs.srcDir(it.resolve("fixtures"))
+        sourceSets.getByName("androidTest").assets.srcDir(it.resolve("test-assets"))
+        sourceSets.getByName("androidTest").manifest.srcFile(requireNotNull(bsOwnedTestManifest).get().asFile)
+    }
     packaging.jniLibs.keepDebugSymbols += "**/liboptional_fixture.so"
     packaging.jniLibs.keepDebugSymbols += "**/libdnstt_testserver.so"
+    packaging.jniLibs.keepDebugSymbols += "**/libmcrf_original_packet_fixture.so"
+    packaging.jniLibs.keepDebugSymbols += "**/libmcrf_bs_net_fixture.so"
+    packaging.jniLibs.keepDebugSymbols += "**/libmcrf_bs_dns_fixture.so"
+    packaging.jniLibs.keepDebugSymbols += "**/libmcrf_owned_native_dns_fixture.so"
+    packaging.jniLibs.keepDebugSymbols += "**/libmcrf_owned_native_tcp_fixture.so"
+    packaging.jniLibs.keepDebugSymbols += "**/libmcrf_owned_native_udp_fixture.so"
     buildFeatures { buildConfig = true }
+}
+androidComponents {
+    onVariants { variant ->
+        onlineRoutingAssets?.let { variant.sources.assets?.addGeneratedSourceDirectory(it, OnlineRoutingAssets::outputAssets) }
+    }
+    onVariants(selector().withBuildType("debug")) { variant ->
+        // Keep local preview downloads smaller without changing the DEX contents.
+        if (intermediateBuildCode != null) variant.packaging.dex.useLegacyPackaging.set(true)
+    }
 }
 dependencies {
     implementation(project(":primary-spi"))
@@ -287,12 +587,46 @@ dependencies {
     compileOnly(files("libs/libbox.aar"))
     androidTestCompileOnly(files("libs/libbox.aar"))
     implementation("com.google.zxing:core:3.5.3")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.80.2")
+    if(anubisPairingInputs!=null)runtimeOnly("org.conscrypt:conscrypt-android:2.6.0")
+    implementation("dev.rikka.shizuku:api:13.1.5")
+    implementation("dev.rikka.shizuku:provider:13.1.5")
+    implementation("org.yaml:snakeyaml:2.5")
+    implementation("com.github.luben:zstd-jni:1.5.7-25@aar")
+    testImplementation("com.github.luben:zstd-jni:1.5.7-25")
     implementation("com.github.mwiede:jsch:0.2.24")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20250517")
     // SDK stubs only; the test APK requests the device's framework test library.
     // Never package these classes or add the library to the application APK.
     androidTestCompileOnly(files(androidComponents.sdkComponents.sdkDirectory.map {
-        it.file("platforms/android-${android.compileSdk}/optional/android.test.mock.jar")
+        it.file("platforms/android-37.0/optional/android.test.mock.jar")
     }))
+}
+
+// Offline edition inputs are complete signed module APKs, not extracted JNI or downloaded code.
+providers.gradleProperty("offlineAssets").orNull?.let {location ->
+    val verifyOffline=tasks.register("verifyOfflineEngines") {
+        inputs.dir(location)
+        doLast {
+            val root=file(location).canonicalFile
+            val folder=File(root,"bundled-engines").canonicalFile
+            require(folder.parentFile==root)
+            val index=File(folder,"index.json")
+            require(index.isFile&&index.length() in 1..16384)
+            val doc=groovy.json.JsonSlurper().parse(index) as Map<*,*>
+            require(doc["schema"].toString()=="1")
+            val rows=(doc["packages"] as List<*>).map {it as Map<*,*>}
+            require(rows.size in 2..6&&rows.map {it["kind"] to it["abi"]}.distinct().size==rows.size)
+            rows.groupBy {it["abi"]}.forEach {(_,pair)->require(pair.map {it["kind"]}.toSet()==setOf("bs","sing-box"))}
+            rows.forEach {row ->
+                val kind=row["kind"].toString();val abi=row["abi"].toString()
+                require(kind in setOf("bs","sing-box")&&abi in setOf("arm64-v8a","armeabi-v7a","x86_64"))
+                val apk=File(folder,"$kind-$abi.apk").canonicalFile
+                require(apk.parentFile==folder&&apk.isFile&&apk.length()==row["bytes"].toString().toLong())
+                require(MessageDigest.getInstance("SHA-256").digest(apk.readBytes()).joinToString(""){"%02x".format(it.toInt() and 255)}==row["sha256"])
+            }
+        }
+    }
+    tasks.named("preBuild").configure {dependsOn(verifyOffline)}
 }

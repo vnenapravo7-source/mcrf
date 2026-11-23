@@ -1,0 +1,2246 @@
+[
+  {
+    "domain": "example.org",
+    "matches": true,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": true,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "badexample.org",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "a.b.example",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "ab.example",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "acb.example",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "aZZb",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "prefix",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "prefixx",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "prefix.example",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "example.ORG",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "тест.пример",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "a\nb",
+    "matches": false,
+    "original": "||example.org^",
+    "pattern": "||example.org^"
+  },
+  {
+    "domain": "example.org",
+    "matches": true,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "badexample.org",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "a.b.example",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "ab.example",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "acb.example",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "aZZb",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "prefix",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "prefixx",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "prefix.example",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "example.ORG",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "тест.пример",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "a\nb",
+    "matches": false,
+    "original": "|example.org^",
+    "pattern": "|example.org^"
+  },
+  {
+    "domain": "example.org",
+    "matches": true,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": true,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "badexample.org",
+    "matches": true,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": true,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": true,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "a.b.example",
+    "matches": true,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "ab.example",
+    "matches": true,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "acb.example",
+    "matches": true,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "aZZb",
+    "matches": false,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": false,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "prefix",
+    "matches": false,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "prefixx",
+    "matches": false,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "prefix.example",
+    "matches": true,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": false,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": false,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": false,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "example.ORG",
+    "matches": true,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "тест.пример",
+    "matches": false,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": false,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": false,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "",
+    "matches": true,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "a\nb",
+    "matches": false,
+    "original": "example",
+    "pattern": "example"
+  },
+  {
+    "domain": "example.org",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "badexample.org",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "a.b.example",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "ab.example",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "acb.example",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "aZZb",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "prefix",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "prefixx",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "prefix.example",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "example.ORG",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "тест.пример",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "a\nb",
+    "matches": false,
+    "original": "||ads.*^",
+    "pattern": "||ads.*^"
+  },
+  {
+    "domain": "example.org",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "badexample.org",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "a.b.example",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "ab.example",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "acb.example",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "aZZb",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "prefix",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "prefixx",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "prefix.example",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "example.ORG",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "тест.пример",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "a\nb",
+    "matches": true,
+    "original": "*",
+    "pattern": "*"
+  },
+  {
+    "domain": "example.org",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "badexample.org",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "a.b.example",
+    "matches": true,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "ab.example",
+    "matches": true,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "acb.example",
+    "matches": true,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "aZZb",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "prefix",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "prefixx",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "prefix.example",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "example.ORG",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "тест.пример",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "a\nb",
+    "matches": false,
+    "original": "||a*b.example^",
+    "pattern": "||a*b.example^"
+  },
+  {
+    "domain": "example.org",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "badexample.org",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "a.b.example",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "ab.example",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "acb.example",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "aZZb",
+    "matches": true,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "prefix",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "prefixx",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "prefix.example",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "example.ORG",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "тест.пример",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "",
+    "matches": false,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "a\nb",
+    "matches": true,
+    "original": "|a*b^",
+    "pattern": "|a*b^"
+  },
+  {
+    "domain": "example.org",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "badexample.org",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "a.b.example",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "ab.example",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "acb.example",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "aZZb",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "prefix",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "prefixx",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "prefix.example",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": true,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "example.ORG",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "тест.пример",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "",
+    "matches": true,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "a\nb",
+    "matches": false,
+    "original": "EXAMPLE",
+    "pattern": "EXAMPLE"
+  },
+  {
+    "domain": "example.org",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "badexample.org",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "a.b.example",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "ab.example",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "acb.example",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "aZZb",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "prefix",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "prefixx",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "prefix.example",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": true,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "example.ORG",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "тест.пример",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "a\nb",
+    "matches": false,
+    "original": "||EXAMPLE.org^",
+    "pattern": "||EXAMPLE.org^"
+  },
+  {
+    "domain": "example.org",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "badexample.org",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "a.b.example",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "ab.example",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "acb.example",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "aZZb",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "prefix",
+    "matches": true,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "prefixx",
+    "matches": true,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "prefix.example",
+    "matches": true,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": true,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "example.ORG",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "тест.пример",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "",
+    "matches": true,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "a\nb",
+    "matches": false,
+    "original": "|prefix",
+    "pattern": "|prefix"
+  },
+  {
+    "domain": "example.org",
+    "matches": false,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": false,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "badexample.org",
+    "matches": false,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": false,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": false,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "a.b.example",
+    "matches": false,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "ab.example",
+    "matches": false,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "acb.example",
+    "matches": false,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "aZZb",
+    "matches": false,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": false,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "prefix",
+    "matches": true,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "prefixx",
+    "matches": true,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "prefix.example",
+    "matches": true,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": true,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": true,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": false,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "example.ORG",
+    "matches": false,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "тест.пример",
+    "matches": false,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": false,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": false,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "",
+    "matches": true,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "a\nb",
+    "matches": false,
+    "original": "prefix.",
+    "pattern": "prefix"
+  },
+  {
+    "domain": "example.org",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "badexample.org",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "a.b.example",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "ab.example",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "acb.example",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "aZZb",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "prefix",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "prefixx",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "prefix.example",
+    "matches": true,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": true,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": true,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "example.ORG",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "тест.пример",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "",
+    "matches": true,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "a\nb",
+    "matches": false,
+    "original": "prefix..",
+    "pattern": "prefix."
+  },
+  {
+    "domain": "example.org",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "badexample.org",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "a.b.example",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "ab.example",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "acb.example",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "aZZb",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": true,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "prefix",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "prefixx",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "prefix.example",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": true,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "example.ORG",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "тест.пример",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "",
+    "matches": true,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "a\nb",
+    "matches": false,
+    "original": "a*b*c",
+    "pattern": "a*b*c"
+  },
+  {
+    "domain": "example.org",
+    "matches": true,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": true,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "badexample.org",
+    "matches": true,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": true,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": true,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "a.b.example",
+    "matches": true,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "ab.example",
+    "matches": true,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "acb.example",
+    "matches": true,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "aZZb",
+    "matches": false,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": false,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "prefix",
+    "matches": false,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "prefixx",
+    "matches": false,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "prefix.example",
+    "matches": true,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": false,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": false,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": false,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "example.ORG",
+    "matches": true,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "тест.пример",
+    "matches": false,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": false,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": false,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "",
+    "matches": false,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "a\nb",
+    "matches": false,
+    "original": "||*example*^",
+    "pattern": "||*example*^"
+  },
+  {
+    "domain": "example.org",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "badexample.org",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "a.b.example",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "ab.example",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "acb.example",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "aZZb",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "prefix",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "prefixx",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "prefix.example",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "example.ORG",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "тест.пример",
+    "matches": true,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "",
+    "matches": true,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "a\nb",
+    "matches": false,
+    "original": "тест",
+    "pattern": "тест"
+  },
+  {
+    "domain": "example.org",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "badexample.org",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "a.b.example",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "ab.example",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "acb.example",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "aZZb",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "prefix",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "prefixx",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "prefix.example",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "example.ORG",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "тест.пример",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": true,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "a\nb",
+    "matches": false,
+    "original": "||пример.рф^",
+    "pattern": "||пример.рф^"
+  },
+  {
+    "domain": "example.org",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "sub.example.org",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "badexample.org",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "example.org.evil",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "myexamplekeyword.invalid",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "a.b.example",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "ab.example",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "acb.example",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "aZZb",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "aZZbZZc",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "prefix",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "prefixx",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "prefix.example",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "abc-prefix.foo",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "prefix..foo",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "EXAMPLE.org",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "example.ORG",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "тест.пример",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "под.пример.рф",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "badпример.рф",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  },
+  {
+    "domain": "a\nb",
+    "matches": true,
+    "original": "",
+    "pattern": ""
+  }
+]

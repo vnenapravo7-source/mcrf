@@ -1,0 +1,113 @@
+package client
+
+import (
+	"bytes"
+	"context"
+	"io"
+	"net"
+	"testing"
+	"time"
+
+	"masterdnsvpn-go/internal/config"
+	"masterdnsvpn-go/internal/dnscache"
+	"masterdnsvpn-go/internal/dnsparser"
+	"masterdnsvpn-go/internal/logger"
+)
+
+func TestMcrfMasterSocksUdpSourcePinAndControlEOF(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	loop := net.IPv4(127, 0, 0, 1)
+	listener, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: loop})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	c := &Client{
+		cfg: config.ClientConfig{SOCKS5Auth: true, SOCKSUDPAssociateReadTimeoutSeconds: 20},
+		log: logger.McrfQuiet(),
+		localDNSCache: dnscache.New(16, time.Minute, time.Second),
+		sessionReady: true,
+	}
+	query := []byte{0x12, 0x34, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 4, 't', 'e', 's', 't', 0, 0, 1, 0, 1}
+	parsed, err := dnsparser.ParseDNSRequestLite(query)
+	if err != nil || !parsed.HasQuestion {
+		t.Fatal("DNS fixture query invalid", err)
+	}
+	q := parsed.FirstQuestion
+	answer := append([]byte(nil), query...)
+	answer[2] = 0x81
+	answer[3] = 0x80
+	c.localDNSCache.SetReady(dnscache.BuildKey(q.Name, q.Type, q.Class), q.Name, q.Type, q.Class, answer, time.Now())
+	associate := func(port uint16) (*net.TCPConn, <-chan struct{}) {
+		t.Helper()
+		client, err := net.DialTCP("tcp4", nil, listener.Addr().(*net.TCPAddr))
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { client.Close() })
+		_ = client.SetDeadline(time.Now().Add(3 * time.Second))
+		control, err := listener.AcceptTCP()
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { control.Close() })
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			defer control.Close()
+			c.handleSocksUDPAssociate(ctx, control, "127.0.0.1", port, SOCKS5_ATYP_IPV4)
+		}()
+		return client, done
+	}
+	control, _ := associate(0)
+	var reply [10]byte
+	if _, err := io.ReadFull(control, reply[:]); err != nil || reply[1] != SOCKS5_REPLY_RULESET_DENIED {
+		t.Fatal("unbound UDP request was admitted", err)
+	}
+	control.Close()
+	listenUDP := func() *net.UDPConn {
+		t.Helper()
+		socket, err := net.ListenUDP("udp4", &net.UDPAddr{IP: loop})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { socket.Close() })
+		return socket
+	}
+	owned, other := listenUDP(), listenUDP()
+	control, closed := associate(uint16(owned.LocalAddr().(*net.UDPAddr).Port))
+	if _, err := io.ReadFull(control, reply[:]); err != nil || reply[1] != SOCKS5_REPLY_SUCCESS ||
+		!net.IP(reply[4:8]).Equal(loop) {
+		t.Fatal("DNS relay was not bound to loopback", err)
+	}
+	relay := &net.UDPAddr{IP: loop, Port: int(reply[8])<<8 | int(reply[9])}
+	packet := append([]byte{0, 0, 0, 1, 192, 0, 2, 53, 0, 53}, query...)
+	var response [128]byte
+	checkAnswer := func() {
+		t.Helper()
+		owned.WriteToUDP(packet, relay)
+		owned.SetReadDeadline(time.Now().Add(2 * time.Second))
+		if n, _, err := owned.ReadFromUDP(response[:]); err != nil || n < 10 || !bytes.Equal(response[10:n], answer) {
+			t.Fatal("bound DNS fixture did not receive the cached answer", err)
+		}
+	}
+	checkAnswer()
+	other.WriteToUDP(packet, relay)
+	other.SetReadDeadline(time.Now().Add(150 * time.Millisecond))
+	if _, _, err = other.ReadFromUDP(response[:]); err == nil {
+		t.Fatal("wrong UDP source received DNS response")
+	}
+	checkAnswer()
+	control.Close()
+	select {
+	case <-closed:
+	case <-time.After(2 * time.Second):
+		t.Fatal("DNS relay survived its control connection")
+	}
+	owned.WriteToUDP(packet, relay)
+	owned.SetReadDeadline(time.Now().Add(150 * time.Millisecond))
+	if _, _, err = owned.ReadFromUDP(response[:]); err == nil {
+		t.Fatal("retired association sent a DNS answer")
+	}
+}

@@ -25,7 +25,7 @@ try{
  }
 }finally{$taskZip.Dispose()}
 & "$PSScriptRoot/Apply-Adapter.ps1" -Module $taskTarget
-foreach($taskName in @('mcrf_config_test.go','mcrf_lifecycle_test.go')){Copy-Item -LiteralPath "$PSScriptRoot/$taskName" -Destination "$taskTarget/dnstt-client/$taskName"}
+foreach($taskName in @('mcrf_config_test.go','mcrf_lifecycle_test.go','mcrf_underlay_test.go')){Copy-Item -LiteralPath "$PSScriptRoot/$taskName" -Destination "$taskTarget/dnstt-client/$taskName"}
 $taskRows=@(Get-ChildItem -LiteralPath $taskTarget -File -Recurse|ForEach-Object {@{path=[IO.Path]::GetRelativePath($taskTarget,$_.FullName).Replace([char]92,[char]47);sha256=(Get-FileHash -LiteralPath $_.FullName).Hash.ToLowerInvariant()}}|Sort-Object path)
 [IO.File]::WriteAllText("$taskStage/SOURCE_MANIFEST.json",($taskRows|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
 $taskReceipt=@{state='SOURCE_PREPARED_NOT_COMPILED';module=$taskTarget;commit=$taskLock.commit;upstream=$taskLock;manifestSha256=(Get-FileHash "$taskStage/SOURCE_MANIFEST.json").Hash.ToLowerInvariant();compiled=$false;executed=$false;androidIntegrated=$false}

@@ -16,10 +16,15 @@ foreach($name in @('process_linux_test.go','wire_linux_test.go')){
  if($name -ceq 'process_linux_test.go'){
   $pattern='(?ms)^func ownedCore\(.*?(?=^func waitCoreStopped\()'
   if([regex]::Matches($taskBefore,$pattern).Count -ne 1 -or [regex]::Matches($taskAfter,$pattern).Count -ne 1 -or [regex]::Replace($taskBefore,$pattern,'') -cne [regex]::Replace($taskAfter,$pattern,'')){throw 'Only owned-PID discovery may change'}
- }elseif($taskBefore.Replace('t.Fatal("owned CONNECT")','t.Fatalf("owned CONNECT: error=%v reply=%x",err,connected)') -cne $taskAfter){throw 'Only CONNECT failure diagnostics may change'}
+ }else{
+  $taskBefore=$taskBefore.Replace('t.Fatal("owned CONNECT")','t.Fatalf("owned CONNECT: error=%v reply=%x",err,connected)')
+  $taskBefore=$taskBefore.Replace('func wireBackend(t *testing.T)', 'func wireBackend(t *testing.T, originalC bool)').Replace('backend, count := wireBackend(t)', 'backend, count := wireBackend(t, originalC)')
+  $taskEchoPattern='(?m)^\t{5}(?:mcrfWrite\(conn, payload\[:\]\)|if mcrfWrite\(conn, payload\[:\]\) == nil && originalC \{\n\t{6}// The original C peer resets QUIC on target EOF\. Keep the\n\t{6}// target open until the client has received the echo\.\n\t{6}_, _ = io\.Copy\(io\.Discard, conn\)\n\t{5}\})$'
+  if([regex]::Matches($taskBefore,$taskEchoPattern).Count -ne 1 -or [regex]::Matches($taskAfter,$taskEchoPattern).Count -ne 1 -or [regex]::Replace($taskBefore,$taskEchoPattern,'') -cne [regex]::Replace($taskAfter,$taskEchoPattern,'')){throw 'Only CONNECT failure diagnostics and owned echo target lifetime may change'}
+ }
  Copy-Item -LiteralPath "$PSScriptRoot/bridge/$name" -Destination "$taskStage/bridge/$name" -Force
 }
-Save @{original=$taskRows;derived=@(Get-ChildItem "$taskStage/bridge" -File|ForEach-Object {@{file=$_.Name;sha256=Hash $_.FullName}});scope='owned child PID discovery Android kernel fallback; failure-only CONNECT details; assertions and transport unchanged'} "$taskStage/source-manifest.json"
+Save @{original=$taskRows;derived=@(Get-ChildItem "$taskStage/bridge" -File|ForEach-Object {@{file=$_.Name;sha256=Hash $_.FullName}});scope='owned child PID discovery Android kernel fallback; failure-only CONNECT details; owned echo target lifetime; assertions and transport unchanged'} "$taskStage/source-manifest.json"
 $taskKeys=@('PATH','GOOS','GOARCH','CGO_ENABLED','CC','GOROOT','GOTOOLCHAIN','GOENV','GOWORK','GOFLAGS','GOPROXY','GOPATH','GOMODCACHE','GOCACHE','GOTMPDIR','TEMP','TMP');$taskOld=@{}
 foreach($key in $taskKeys){$taskOld[$key]=[Environment]::GetEnvironmentVariable($key,'Process')}
 try{

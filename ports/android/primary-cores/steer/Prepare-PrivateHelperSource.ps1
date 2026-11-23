@@ -42,5 +42,5 @@ $taskTls=[IO.File]::ReadAllText("$taskRoot/tls.json").Replace($taskParent,$taskR
 [IO.File]::WriteAllText("$taskRoot/tls.json",$taskTls,[Text.UTF8Encoding]::new($false))
 $taskRows=@(Get-ChildItem $taskRoot -Recurse -File|ForEach-Object {@{path=[IO.Path]::GetRelativePath($taskRoot,$_.FullName).Replace([char]92,[char]47);sha256=Hash $_.FullName;bytes=$_.Length}}|Sort-Object path)
 Save $taskRows "$taskRoot/SOURCE_MANIFEST.json"
-$taskPrior.newVersion=16;$taskPrior.source="$taskRoot/source";$taskPrior.parentPreparedSource=$taskParent;$taskPrior.privateHelperProfile=1;$taskPrior.manifestSha256=Hash "$taskRoot/SOURCE_MANIFEST.json";$taskPrior.compiled=$false;$taskPrior.executed=$false
+$taskPrior.newVersion=[int]$taskPrior.baselineDescriptorVersion+1;$taskPrior.source="$taskRoot/source";$taskPrior.parentPreparedSource=$taskParent;$taskPrior.privateHelperProfile=1;$taskPrior.manifestSha256=Hash "$taskRoot/SOURCE_MANIFEST.json";$taskPrior.compiled=$false;$taskPrior.executed=$false
 Save $taskPrior "$taskRoot/receipt.json";Write-Output "P3_STEER_PRIVATE_SOURCE=$taskRoot"

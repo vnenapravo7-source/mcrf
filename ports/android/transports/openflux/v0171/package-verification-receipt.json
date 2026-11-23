@@ -1,0 +1,104 @@
+{
+  "state": "OFFICIAL_PACKAGE_BYTES_AND_SIGNATURES_VERIFIED",
+  "checkedAt": "2026-10-31T16:46:33.644Z",
+  "indexCommit": "9349c01a4f2dd707f33f5a316beb9b56b77e56bd",
+  "packages": [
+    {
+      "id": "yandex",
+      "version": "1.1.0",
+      "bytes": 8618,
+      "sha256": "fe71e62d235edbc3c6f94d66e22ddbdbe37e011e126724a8e4d38625d2f92b22",
+      "signatureVerified": true,
+      "negativeControlsPassed": true,
+      "hostAPI": 1
+    },
+    {
+      "id": "vyandex",
+      "version": "1.1.0",
+      "bytes": 9078,
+      "sha256": "98febe3eb6ce988b02b8267f5e029b8c61939551ff859981e045f451f0babfa5",
+      "signatureVerified": true,
+      "negativeControlsPassed": true,
+      "hostAPI": 1
+    },
+    {
+      "id": "boards",
+      "version": "1.1.0",
+      "bytes": 9251,
+      "sha256": "7c687bca83ad1d9aa5154081e385c55a1d10af91d444f038f6bbb018de5260f4",
+      "signatureVerified": true,
+      "negativeControlsPassed": true,
+      "hostAPI": 1
+    },
+    {
+      "id": "mailru",
+      "version": "1.1.2",
+      "bytes": 6587,
+      "sha256": "faa3774ea691fa37c5991b798bc969e9391c653765def3ebc47911abe77c8563",
+      "signatureVerified": true,
+      "negativeControlsPassed": true,
+      "hostAPI": 1
+    },
+    {
+      "id": "cupsonline",
+      "version": "1.1.0",
+      "bytes": 9088,
+      "sha256": "b9feab761df9d2c0acdf77db78a33d624b3525f25c483ad4628be7ddf6b355fb",
+      "signatureVerified": true,
+      "negativeControlsPassed": true,
+      "hostAPI": 1
+    },
+    {
+      "id": "oneme-iceinject",
+      "version": "1.1.0",
+      "bytes": 6157,
+      "sha256": "cc9f492bec9cb8f07f1125bcb645f4e74bd4997a373e311ba1bd0e1576f73dc9",
+      "signatureVerified": true,
+      "negativeControlsPassed": true,
+      "hostAPI": 1
+    },
+    {
+      "id": "oneme-webrtc",
+      "version": "1.1.0",
+      "bytes": 6128,
+      "sha256": "e61dc4a7d45d777a6431b1adbbf919be84c68de85bdf301ae1282aa3a3bf2ed3",
+      "signatureVerified": true,
+      "negativeControlsPassed": true,
+      "hostAPI": 1
+    },
+    {
+      "id": "mtslink",
+      "version": "1.0.0",
+      "bytes": 4367,
+      "sha256": "a68315d73e97dd74c137285debe635e9ba46d1e194416beb5eb9c412d6f46b79",
+      "signatureVerified": true,
+      "negativeControlsPassed": true,
+      "hostAPI": 1
+    },
+    {
+      "id": "bitrix",
+      "version": "1.0.0",
+      "bytes": 3641,
+      "sha256": "8c83e3562bd366994385ba70dbaa53d1bb019fbb8ef3efaf7634ab2904a01c49",
+      "signatureVerified": true,
+      "negativeControlsPassed": true,
+      "hostAPI": 1
+    },
+    {
+      "id": "pruffme",
+      "version": "1.0.0",
+      "bytes": 7129,
+      "sha256": "4208936d124658bbc1b98b6836106eaceaf945b688ed694fee965bd22b871e7e",
+      "signatureVerified": true,
+      "negativeControlsPassed": true,
+      "hostAPI": 1
+    }
+  ],
+  "pending": [
+    "mtslink-webrtc",
+    "vkteams"
+  ],
+  "jsExecuted": false,
+  "nativeBuilt": false,
+  "runtimeAccepted": false
+}

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +16,41 @@ import (
 	"github.com/openlibrecommunity/olcrtc/internal/handshake"
 	"github.com/openlibrecommunity/olcrtc/pkg/olcrtc/client"
 )
+
+func TestMcrfOlcPhysicalNetworkAdmission(t *testing.T) {
+	oldBind := bindUnderlay
+	t.Cleanup(func() { bindUnderlay = oldBind })
+	var handles []uint64
+	rejected := errors.New("fixture network binding failed")
+	bindUnderlay = func(handle uint64) error {
+		handles = append(handles, handle)
+		return rejected
+	}
+	t.Setenv(underlayEnvironment, "")
+	if err := os.Unsetenv(underlayEnvironment); err != nil {
+		t.Fatal(err)
+	}
+	if err := configureUnderlay(); err != nil {
+		t.Fatalf("ordinary startup: %v", err)
+	}
+	for _, value := range []string{"", "0", "01", "+1", "-1", " 1", "9223372036854775808"} {
+		t.Setenv(underlayEnvironment, value)
+		if err := configureUnderlay(); err == nil {
+			t.Fatalf("accepted invalid host selection %q", value)
+		}
+	}
+	if len(handles) != 0 {
+		t.Fatal("attempted to bind without a valid host selection")
+	}
+	const physical = 4295037282
+	t.Setenv(underlayEnvironment, "4295037282")
+	if err := configureUnderlay(); !errors.Is(err, rejected) {
+		t.Fatalf("binding error changed: %v", err)
+	}
+	if len(handles) != 1 || handles[0] != physical {
+		t.Fatalf("unexpected network handles: %v", handles)
+	}
+}
 
 func mcrfOlcFixture() map[string]any {
 	return map[string]any{"provider": "jitsi", "transport": "datachannel", "room": "https://meet.example.test/owned", "key": strings.Repeat("ab", 32), "device_id": "owned-private-id", "dns": "127.0.0.1:5353", "socks": "127.0.0.1:12345", "socks_user": "local", "socks_pass": "private"}

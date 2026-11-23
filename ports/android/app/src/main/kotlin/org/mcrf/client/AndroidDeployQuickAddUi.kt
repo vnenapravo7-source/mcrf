@@ -33,9 +33,10 @@ internal class AndroidDeployQuickAddUi(private val activity:MainActivity,private
             return
         }
         val base=19000+SecureRandom().nextInt(19000)
-        val body=EditorLayout.body(activity).apply {tag="androidDeploy.quickAdd"}
+        val body=EditorLayout.body(activity).apply {tag="androidDeploy.quickAdd";setPadding(activity.dp(16),activity.dp(16),activity.dp(16),activity.dp(16))}
         body.addView(activity.text(choice.label,14,Loft.MUTED),activity.space(0,12))
         fun editor(title:String,value:String,numeric:Boolean=false)=activity.editor(title).apply {
+            AndroidDeployUiStyle.field(this)
             setSingleLine();gravity=Gravity.CENTER_VERTICAL;setText(value)
             if(numeric)inputType=InputType.TYPE_CLASS_NUMBER
         }
@@ -62,9 +63,10 @@ internal class AndroidDeployQuickAddUi(private val activity:MainActivity,private
             manualButton?.let {body.addView(it,activity.space(0,8))}
             if(account.linked()){
                 val amounts=listOf(1,2,3,5,6,10,15,20,30,50)
-                val amount=HomeUiControls.selector(activity,amounts.map {"$it звонков"},amounts.indexOf(count)){index->count=amounts[index]}.apply {visibility=View.GONE}
+                val amount=HomeUiControls.selector(activity,amounts.map {"$it звонков"},amounts.indexOf(count)){index->count=amounts[index]}.apply {AndroidDeployUiStyle.field(this);visibility=View.GONE}
                 body.addView(CheckBox(activity).apply {
                     text="Создать звонки из VK";textSize=14f;setTextColor(Loft.INK)
+                    AndroidDeployUiStyle.field(this);minHeight=activity.dp(48);setPadding(activity.dp(12),activity.dp(8),activity.dp(12),activity.dp(8))
                     buttonTintList=android.content.res.ColorStateList.valueOf(Loft.ACCENT)
                     setOnCheckedChangeListener {_,checked->automatic=checked;slots.visibility=if(checked)View.GONE else View.VISIBLE;manualButton?.visibility=slots.visibility;amount.visibility=if(checked)View.VISIBLE else View.GONE}
                 },activity.space(0,8))

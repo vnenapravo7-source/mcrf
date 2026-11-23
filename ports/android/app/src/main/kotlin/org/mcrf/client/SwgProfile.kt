@@ -64,6 +64,21 @@ object SwgProfile {
             require(value in setOf("true","false")) {"Некорректный переключатель дополнительных потоков."}
             data.put("extra_streams",value=="true")
         }
+        if(type=="csqtt") {
+            uri.rawQuery.split('&').firstOrNull {it.substringBefore('=')=="hashes"}?.substringAfter('=')?.let {
+                data.put("hashes",JSONArray(it.split('+').filter(String::isNotEmpty).map(::decode)))
+            }
+        }
+        if(Csqtt25Profile.isProfile(data)) {
+            q["token"]?.let {data.put("vk_token",it);data.remove("token")}
+            listOf("v","host","peer").forEach(data::remove)
+            for(key in listOf("workers","link_workers"))q[key]?.let {data.put(key,it.toInt())}
+            q["allow_hash_redistribution"]?.let {require(it in setOf("true","false"));data.put("allow_hash_redistribution",it=="true")}
+            q["gooby_enabled"]?.let {require(it in setOf("true","false"));data.put("gooby_enabled",it=="true")}
+            val wire=uri.rawQuery.split('&').associate {part->val pair=part.split('=',limit=2);decode(pair[0]) to pair[1]}
+            wire["hashes"]?.let {data.put("hashes",JSONArray(it.split('+').map(::decode)))}
+            for(key in listOf("custom_turn_ips","client_ids"))q[key]?.takeIf {it.startsWith("[") }?.let {data.put(key,JSONArray(it))}
+        }
         return fromJson(source, data)
     }
     fun fromJson(source: String, input: JSONObject): ServerImport.Server {
@@ -152,6 +167,7 @@ object SwgProfile {
             require(customId.isEmpty()&&customSecret.isEmpty()||customId.matches(Regex("[0-9]{1,20}"))&&customSecret.isNotBlank()&&customSecret.toByteArray(Charsets.UTF_8).size<=4096&&customSecret.none(Char::isISOControl)) {"Собственные реквизиты VK: укажите числовой Client ID и Client secret вместе либо оставьте оба поля пустыми."}
             data.put("custom_vk_client_id",customId).put("custom_vk_client_secret",customSecret)
         }
+        if(type=="csqtt")CsqttGenerations.copySelection(raw,data)
         return ServerImport.Server(source,names,type,host,peer.port,null,null,null,data)
     }
     fun privateConfig(profile: JSONObject, udpPort: Int, socksPort: Int, username: String, password: String, installation: String): JSONObject {
@@ -168,6 +184,7 @@ object SwgProfile {
                 remove("vk_call_count") // Host-only call creation policy, not a native transport option.
                 remove("extra_streams") // Editor limit; native receives the explicit worker count.
                 remove(CarrierStreamDefaults.OVERRIDE)
+                remove(CsqttGenerations.SELECTION);remove(CsqttGenerations.EPOCH)
                 if(accountMode) {
                     val token=profile.optString("vk_runtime_token")
                     require(token.isNotBlank()&&token.length<=8192&&token.none(Char::isISOControl)) {"Войдите в VK Turn перед подключением Авто VK."}
@@ -181,7 +198,7 @@ object SwgProfile {
         // which carries no unambiguous transport generation or TURN options.
         if(Csqtt25Profile.isProfile(profile))return Csqtt25Profile.fromJson("share-csqtt25",profile).carrier!!.toString()
         val data = fromJson(profile.toString(), profile).carrier!!; val type=data.getString("type")
-        if(type=="csqtt"&&data.has("csqtt_generation"))return data.toString() // A legacy v2 URI has no unambiguous wire-family field.
+        if(type=="csqtt"&&(data.has("csqtt_generation")||data.has(CsqttGenerations.SELECTION)))return data.toString() // Keep generation/Auto in standalone exports.
         if(data.has(CarrierStreamDefaults.OVERRIDE))return data.toString() // Preserve explicit local count without inventing a provider URI parameter.
         val fields = linkedMapOf<String,String>()
         if(type=="qwdtt") fields["peer"]=address(data.getString("server"),data.getInt("server_port"))

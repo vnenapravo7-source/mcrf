@@ -12,7 +12,12 @@ object AndroidDeployBackupSettings {
         value.optJSONObject(AndroidDeployInventory.SECTION)?.let(AndroidDeployInventory::validate)
         value.optJSONObject(AndroidDeployWorkspace.SECTION)?.let(AndroidDeployWorkspace::validate)
         value.optJSONObject("vkSettings")?.let { settings ->
-            require(settings.keys().asSequence().all { it in setOf("source","manual","callCount","manualSupplementAll") })
+            require(settings.keys().asSequence().all { it in setOf("source","manual","callCount","manualSupplementAll",VkTurnSubnets.SELECTED,VkTurnSubnets.IP_LIMIT,VkTurnSubnets.CUSTOM_IPS) })
+            val subnet=VkTurnSubnets.read(settings)
+            if(settings.has(VkTurnSubnets.CUSTOM_IPS)) {
+                val ips=settings.getJSONArray(VkTurnSubnets.CUSTOM_IPS)
+                require((0 until ips.length()).map(ips::getString)==VkTurnSubnets.ips(subnet)) {"Список IP подсети TURN не соответствует настройке."}
+            }
             if(settings.has("manualSupplementAll"))require(settings.get("manualSupplementAll") is Boolean)
             if(settings.has("callCount")) { require(settings.get("callCount") is Int);VkRelayProtocol.count(settings.getInt("callCount"),"qwdtt") }
             if(settings.has("source")) VkRelayProtocol.HashSource.valueOf(settings.getString("source"))

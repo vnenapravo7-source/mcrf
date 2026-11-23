@@ -9,7 +9,7 @@ import android.widget.Spinner
 import org.json.JSONArray
 import java.util.concurrent.atomic.AtomicReference
 
-/** All63 presentation combinations via explicit view inputs. No preference edits, installs or network actions. */
+/** All presentation combinations via explicit view inputs. No preference edits, installs or network actions. */
 object UsageMinimalismReadOnlyChecks {
     @JvmStatic fun run(test:Instrumentation):String {
         val activity=test.startActivitySync(Intent().setClassName("org.mcrf.client","org.mcrf.client.MainActivity")
@@ -37,7 +37,8 @@ object UsageMinimalismReadOnlyChecks {
                 val vpn=UsageFeatures.Feature.VPN in features
                 val warp=UsageFeatures.Feature.WARP in features
                 val turn=UsageFeatures.Feature.WHITELIST in features
-                val usesTun=features.any {it!=UsageFeatures.Feature.PROXY}
+                val tgws=UsageFeatures.Feature.TGWS in features
+                val usesTun=features.any {it!=UsageFeatures.Feature.PROXY&&it!=UsageFeatures.Feature.TGWS}
                 main {
                     val tun=ClientTunUi(activity,features).advancedView()
                     check((tun.findViewWithTag<View>("setting.httpProxy")!=null)==(savedHttpProxy||proxy&&usesTun)){"System VPN proxy leaked or repair hidden: $mask"}
@@ -49,7 +50,7 @@ object UsageMinimalismReadOnlyChecks {
                     check(dns.findViewWithTag<View>("dns-setting.cache")!=null){"Shared DNS cache hidden"}
                     val extra=ProtocolsSheet.visibleAdditional(activity,features)
                     check(extra.none {it in EngineModules.primaryCores}){"Primary cores counted as additional"}
-                    check(("tgws" in extra)==(proxy||turn)){"Telegram engine/catalogue disagree: $mask"}
+                    check(("tgws" in extra)==tgws){"Telegram engine/catalogue disagree: $mask"}
                     check(("openflux" in extra)==(UsageFeatures.Feature.OPENFLUX in features)){"OpenFlux independence lost: $mask"}
                     check((S3BypassProfile.KIND in extra)==(UsageFeatures.Feature.S3_BYPASS in features)){"S3 independence lost: $mask"}
                     check(ProtocolsSheet.installed(activity,extra) in 0..extra.size){"Invalid installed additional count"}
@@ -59,7 +60,7 @@ object UsageMinimalismReadOnlyChecks {
                         val item=catalogue.getJSONObject(index)
                         val expected=when {
                             item.getString("engine")=="sing-box-lx"->vpn||proxy||warp&&item.getString("name")=="WireGuard / AmneziaWG"
-                            item.getString("name")=="Telegram WS"->proxy||turn
+                            item.getString("name")=="Telegram WS"->tgws
                             item.getString("name").equals("OpenFlux",true)->UsageFeatures.Feature.OPENFLUX in features
                             item.getString("name").equals("S3 Bypass",true)->UsageFeatures.Feature.S3_BYPASS in features
                             else->turn
@@ -100,7 +101,7 @@ object UsageMinimalismReadOnlyChecks {
             main {check(confirmations==1){"Global-policy confirmation not exactly once"};dialog=null}
             check(activity.prefs.all==preferences){"Read-only presentation checks edited preferences"}
             check(ProfileStore.snapshot(activity)==protected){"Read-only presentation checks edited encrypted stores"}
-            return "PASS63combinations: six independent features; TUN-only FakeIP/system HTTP proxy hidden in proxy-only; shared DNS/local proxy retained; protocol catalogue filtered; preferences/encrypted stores unchanged; no installs/network/actions"
+            return "PASS: independent feature combinations; TUN-only FakeIP/system HTTP proxy hidden in proxy-only; shared DNS/local proxy retained; protocol catalogue filtered; preferences/encrypted stores unchanged; no installs/network/actions"
         }finally{main {dialog?.dismiss();activity.finish()}}
     }
 }

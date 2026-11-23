@@ -18,7 +18,8 @@ $taskStage="D:/MCRF/Builds/Android/p4-masterdnsvpn-host-$([guid]::NewGuid().ToSt
 $taskProof=@{state='RUNNING';sourceManifestSha256=$taskSource.manifestSha256;failures=0;skipped=0;cases=@();androidRuntimeAccepted=$false;retainedTestsReplayed=$false}
 $taskRequired=@('TestMcrfMasterStrictConfigDoesNotExposeCliPaths','TestMcrfMasterPrivateConfigForcesAuthAndNoPersistence','TestMcrfMasterRejectsAmbiguousOrUnspecifiedEncryption','TestMcrfMasterAdapterUsesTheOwnerContext','TestMcrfMasterServerCannotRaiseTheAndroidWorkerLimit','TestMcrfMasterConnectionReleasesItsSlotOnlyOnce','TestMcrfMasterOwnerCancellationClosesIdleHandshake','TestMcrfMasterOwnedEncryptedDNSAndSOCKSData','TestMcrfMasterLocalRejectionDoesNotOpenRemoteSOCKS')
 $taskNames=@('GOOS','GOARCH','GOARM','CGO_ENABLED','GOROOT','GOENV','GOWORK','GOFLAGS','GOTOOLCHAIN','GOPROXY','GOPATH','GOMODCACHE','GOCACHE','GOTMPDIR');$taskOld=@{}
-$taskRequired+='TestMcrfMaster512ClientsQueueInsteadOfReset'
+$taskRequired+=@('TestMcrfMaster512ClientsQueueInsteadOfReset','TestMcrfMasterUnderlayBeforeUDP')
+if($taskSource.socksUdpSource.masterdnsvpn -eq 1){$taskRequired+=@('TestMcrfMasterSocksUdpSourcePinAndControlEOF')}
 foreach($taskName in $taskNames){$taskOld[$taskName]=[Environment]::GetEnvironmentVariable($taskName,'Process')}
 try {
  [Environment]::SetEnvironmentVariable('GOROOT',$null,'Process');[Environment]::SetEnvironmentVariable('GOARM',$null,'Process')

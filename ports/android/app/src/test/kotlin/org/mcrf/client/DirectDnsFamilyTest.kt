@@ -58,24 +58,25 @@ class DirectDnsFamilyTest {
         val c=RouteRules.apply(generated(),settings,true,directIpv4Only=true)
         assertEquals("org.example.internetometer",c.getJSONArray("inbounds").getJSONObject(0).getJSONArray("exclude_package").getString(0))
     }
-    @Test fun firstDirectAppRuleGetsEarlyFailureWithoutBlockingOtherAppsVpnIpv6() {
+    @Test fun excludedDirectAppDoesNotGetAnEngineIpv6Guard() {
         val settings=RouteRules.defaults().apply {getJSONArray("rules").put(JSONObject().put("id","app").put("name","Direct app").put("mode","apps").put("text","app:org.example.internetometer").put("target","direct"))}
-        val route=RouteRules.apply(generated(),settings,true,directIpv4Only=true).getJSONObject("route").getJSONArray("rules")
-        val items=(0 until route.length()).map {route.getJSONObject(it)}
-        val guard=items.single {it.optString("method")=="reply"}
-        assertEquals("org.example.internetometer",guard.getJSONArray("package_name").getString(0))
-        assertEquals("2000::/3",guard.getJSONArray("ip_cidr").getString(0))
-        assertTrue(items.indexOf(guard)<items.indexOfFirst {it.optString("action")=="sniff"})
+        for(native in listOf(false,true)){
+            val config=RouteRules.apply(generated(),settings,true,directIpv4Only=true,nativeBs=native)
+            val route=config.getJSONObject("route").getJSONArray("rules")
+            assertTrue((0 until route.length()).none {route.getJSONObject(it).has("package_name")})
+            assertEquals("org.example.internetometer",config.getJSONArray("inbounds").getJSONObject(0)
+                .getJSONArray("exclude_package").getString(0))
+        }
     }
-    @Test fun directAppRuleUsesDirectDnsWithoutOsBypassOrSuppressingOtherAppsIpv6() {
+    @Test fun excludedDirectAppUsesAndroidDnsAndLeavesOtherAppsIpv6Alone() {
         val settings=RouteRules.defaults().apply {getJSONArray("rules").put(JSONObject().put("id","app").put("name","Direct app").put("mode","apps").put("text","app:org.example.internetometer").put("target","direct"))}
         for(no6 in listOf(false,true)) {
             val c=RouteRules.apply(generated(),settings,true,directIpv4Only=no6)
             val dns=rules(c.getJSONObject("dns"))
-            assertEquals("mcrf-dns-direct",dns.single {it.has("package_name")}.getString("server"))
+            assertFalse(dns.any {it.has("package_name")})
             assertFalse(dns.any {it.optString("action")=="predefined"})
             assertEquals("mcrf-dns-remote",dns.last().getString("server"))
-            assertFalse(c.getJSONArray("inbounds").getJSONObject(0).has("exclude_package"))
+            assertTrue(c.getJSONArray("inbounds").getJSONObject(0).has("exclude_package"))
         }
     }
     @Test fun forcedVpnAppRetainsAAAAOnIpv4PhysicalNetworkAndAppPriority() {

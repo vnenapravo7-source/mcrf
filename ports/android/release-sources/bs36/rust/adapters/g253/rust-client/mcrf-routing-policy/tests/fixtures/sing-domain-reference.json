@@ -1,0 +1,1010 @@
+[
+  {
+    "kind": "domain",
+    "pattern": "example.org",
+    "host": "example.org",
+    "match": true
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.org",
+    "host": "www.example.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.org",
+    "host": "EXAMPLE.ORG",
+    "match": true
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.org",
+    "host": "EXAMPLE.ORG.",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.org",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.org",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.org",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.org",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".example.org",
+    "host": "example.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".example.org",
+    "host": "www.example.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".example.org",
+    "host": "EXAMPLE.ORG",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".example.org",
+    "host": "EXAMPLE.ORG.",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".example.org",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".example.org",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".example.org",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".example.org",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.org.",
+    "host": "example.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.org.",
+    "host": "www.example.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.org.",
+    "host": "EXAMPLE.ORG",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.org.",
+    "host": "EXAMPLE.ORG.",
+    "match": true
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.org.",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.org.",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.org.",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.org.",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "EXAMPLE.ORG",
+    "host": "example.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "EXAMPLE.ORG",
+    "host": "www.example.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "EXAMPLE.ORG",
+    "host": "EXAMPLE.ORG",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "EXAMPLE.ORG",
+    "host": "EXAMPLE.ORG.",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "EXAMPLE.ORG",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "EXAMPLE.ORG",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "EXAMPLE.ORG",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "EXAMPLE.ORG",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".",
+    "host": "example.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".",
+    "host": "www.example.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".",
+    "host": "EXAMPLE.ORG",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".",
+    "host": "EXAMPLE.ORG.",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".example.",
+    "host": "example.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".example.",
+    "host": "www.example.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".example.",
+    "host": "EXAMPLE.ORG",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".example.",
+    "host": "EXAMPLE.ORG.",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".example.",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".example.",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".example.",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": ".example.",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.",
+    "host": "example.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.",
+    "host": "www.example.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.",
+    "host": "EXAMPLE.ORG",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.",
+    "host": "EXAMPLE.ORG.",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain",
+    "pattern": "example.",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.org",
+    "host": "example.org",
+    "match": true
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.org",
+    "host": "www.example.org",
+    "match": true
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.org",
+    "host": "EXAMPLE.ORG",
+    "match": true
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.org",
+    "host": "EXAMPLE.ORG.",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.org",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.org",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.org",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.org",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".example.org",
+    "host": "example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".example.org",
+    "host": "www.example.org",
+    "match": true
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".example.org",
+    "host": "EXAMPLE.ORG",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".example.org",
+    "host": "EXAMPLE.ORG.",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".example.org",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".example.org",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".example.org",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".example.org",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.org.",
+    "host": "example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.org.",
+    "host": "www.example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.org.",
+    "host": "EXAMPLE.ORG",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.org.",
+    "host": "EXAMPLE.ORG.",
+    "match": true
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.org.",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.org.",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.org.",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.org.",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "EXAMPLE.ORG",
+    "host": "example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "EXAMPLE.ORG",
+    "host": "www.example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "EXAMPLE.ORG",
+    "host": "EXAMPLE.ORG",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "EXAMPLE.ORG",
+    "host": "EXAMPLE.ORG.",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "EXAMPLE.ORG",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "EXAMPLE.ORG",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "EXAMPLE.ORG",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "EXAMPLE.ORG",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".",
+    "host": "example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".",
+    "host": "www.example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".",
+    "host": "EXAMPLE.ORG",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".",
+    "host": "EXAMPLE.ORG.",
+    "match": true
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".example.",
+    "host": "example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".example.",
+    "host": "www.example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".example.",
+    "host": "EXAMPLE.ORG",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".example.",
+    "host": "EXAMPLE.ORG.",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".example.",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".example.",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".example.",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": ".example.",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.",
+    "host": "example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.",
+    "host": "www.example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.",
+    "host": "EXAMPLE.ORG",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.",
+    "host": "EXAMPLE.ORG.",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain_suffix",
+    "pattern": "example.",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.org",
+    "host": "example.org",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.org",
+    "host": "www.example.org",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.org",
+    "host": "EXAMPLE.ORG",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.org",
+    "host": "EXAMPLE.ORG.",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.org",
+    "host": "notexample.org",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.org",
+    "host": "example.org.attacker.test",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.org",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.org",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".example.org",
+    "host": "example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".example.org",
+    "host": "www.example.org",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".example.org",
+    "host": "EXAMPLE.ORG",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".example.org",
+    "host": "EXAMPLE.ORG.",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".example.org",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".example.org",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".example.org",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".example.org",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.org.",
+    "host": "example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.org.",
+    "host": "www.example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.org.",
+    "host": "EXAMPLE.ORG",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.org.",
+    "host": "EXAMPLE.ORG.",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.org.",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.org.",
+    "host": "example.org.attacker.test",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.org.",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.org.",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "EXAMPLE.ORG",
+    "host": "example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "EXAMPLE.ORG",
+    "host": "www.example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "EXAMPLE.ORG",
+    "host": "EXAMPLE.ORG",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "EXAMPLE.ORG",
+    "host": "EXAMPLE.ORG.",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "EXAMPLE.ORG",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "EXAMPLE.ORG",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "EXAMPLE.ORG",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "EXAMPLE.ORG",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".",
+    "host": "example.org",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".",
+    "host": "www.example.org",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".",
+    "host": "EXAMPLE.ORG",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".",
+    "host": "EXAMPLE.ORG.",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".",
+    "host": "notexample.org",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".",
+    "host": "example.org.attacker.test",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".example.",
+    "host": "example.org",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".example.",
+    "host": "www.example.org",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".example.",
+    "host": "EXAMPLE.ORG",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".example.",
+    "host": "EXAMPLE.ORG.",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".example.",
+    "host": "notexample.org",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".example.",
+    "host": "example.org.attacker.test",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".example.",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": ".example.",
+    "host": "",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.",
+    "host": "example.org",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.",
+    "host": "www.example.org",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.",
+    "host": "EXAMPLE.ORG",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.",
+    "host": "EXAMPLE.ORG.",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.",
+    "host": "notexample.org",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.",
+    "host": "example.org.attacker.test",
+    "match": true
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.",
+    "host": "localhost",
+    "match": false
+  },
+  {
+    "kind": "domain_keyword",
+    "pattern": "example.",
+    "host": "",
+    "match": false
+  }
+]

@@ -1,0 +1,44 @@
+diff --git a/internal/client/socks.go b/internal/client/socks.go
+index 4c70eeb..e825ae5 100644
+--- a/internal/client/socks.go
++++ b/internal/client/socks.go
+@@ -7,6 +7,7 @@ import (
+ 	"fmt"
+ 	"io"
+ 	"net"
++	"slices"
+ 	"time"
+ 
+ 	"github.com/openlibrecommunity/olcrtc/internal/logger"
+@@ -123,14 +124,26 @@ func (c *Client) socks5Handshake(conn net.Conn) error {
+ 	if _, err := io.ReadFull(conn, methods); err != nil {
+ 		return fmt.Errorf("read socks5 methods: %w", err)
+ 	}
++	const (
++		noAuth       = 0
++		userPass     = 2
++		noAcceptable = 255
++	)
++	method := byte(noAuth)
+ 	if c.socksUser != "" {
+-		if _, err := conn.Write([]byte{socksVersion, 2}); err != nil {
+-			return fmt.Errorf("write socks5 auth method: %w", err)
++		method = userPass
++	}
++	if !slices.Contains(methods, method) {
++		if _, err := conn.Write([]byte{socksVersion, noAcceptable}); err != nil {
++			return fmt.Errorf("write socks5 authentication rejection: %w", err)
+ 		}
+-		return c.socks5UserPassAuth(conn)
++		return ErrSOCKSAuthFailed
+ 	}
+-	if _, err := conn.Write([]byte{socksVersion, 0}); err != nil {
+-		return fmt.Errorf("write socks5 auth: %w", err)
++	if _, err := conn.Write([]byte{socksVersion, method}); err != nil {
++		return fmt.Errorf("write socks5 auth method: %w", err)
++	}
++	if method == userPass {
++		return c.socks5UserPassAuth(conn)
+ 	}
+ 	return nil
+ }

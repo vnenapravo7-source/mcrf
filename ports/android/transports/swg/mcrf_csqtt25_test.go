@@ -25,6 +25,14 @@ func Test25BridgePreservesExactWorkersAndNewSettingsWithoutLegacyRounding(t *tes
 	if err != nil || c.Workers != 7 || c.Obfs != "unified" || c.CaptchaMode != "wv" || parsed.TurnTransport != "tcp" {
 		t.Fatal("new profile went through legacy normalization")
 	}
+	for _, implementation := range []string{"", "swg-panel-2.5.1", "swg-panel-2.5.2", "swg-panel-2.5.3"} {
+		p.Implementation = implementation
+		data, _ = json.Marshal(p)
+		_, c, err = readCSQTT25Bridge(strings.NewReader(string(data)))
+		if err != nil || !c.McrfSampleStreamStats {
+			t.Fatalf("%q lost real STATS ingress during canonical bridge replacement", implementation)
+		}
+	}
 	p.Version = ""
 	data, _ = json.Marshal(p)
 	if _, _, err = readCSQTT25Bridge(strings.NewReader(string(data))); err == nil {

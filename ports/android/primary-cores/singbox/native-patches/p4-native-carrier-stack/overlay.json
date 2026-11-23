@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "baseline": "3d3d3db3a2ccef3b1a8eb71b831ed2461c54b94d",
+  "state": "STAGED_NOT_PRODUCTION_INTEGRATED",
+  "published": false,
+  "productionIntegration": false,
+  "tags": [
+    "with_lx_raw_packet",
+    "with_lx_raw_packet_port",
+    "with_lx_carrier_stack"
+  ],
+  "parentOverlaySha256": "232bba16863df23a310dab2abf8d0541afa4032ff09f4fe57b172fed3d685636",
+  "scope": "Carrier TCP CUBIC and bounded reusable transmit storage; 15 fresh Android-kernel package cases. Existing TCP network buffers unchanged. No CSQTT provider or throughput acceptance.",
+  "files": [
+    {
+      "sha256": "65f8f50d9a67d8be2e79a8177e9b663fd95e4e72837846b4481859783f785925",
+      "baselineGitBlob": null,
+      "file": "adapter/mcrf_carrier_registry_lx_test.go"
+    },
+    {
+      "sha256": "884f23f1a2f15aa08518527943d4d2a6bc8d225afc3a87c0962ba778873da038",
+      "baselineGitBlob": null,
+      "file": "adapter/mcrf_raw_packet_ingress_lx_test.go"
+    },
+    {
+      "sha256": "f0216db5d00d720f9e8b54f65ea1c348660d17805f1031d2858e78a45c17a418",
+      "baselineGitBlob": null,
+      "file": "adapter/mcrf_raw_packet_ingress_lx.go"
+    },
+    {
+      "sha256": "7e4d5d2507e06a78b5931fa14531181b3ca357983e4036c8483f6b23cbf46a63",
+      "baselineGitBlob": null,
+      "file": "adapter/mcrf_raw_packet_nat_lx_test.go"
+    },
+    {
+      "sha256": "b73863d3c39a66db48a1bd8093d5093ba01fa3b2d298ee101401b9f4bd5c5f53",
+      "baselineGitBlob": null,
+      "file": "adapter/mcrf_raw_packet_nat_lx.go"
+    },
+    {
+      "sha256": "786c868f71e5ea38889374ae0d1dff2c1b77fce6f4415c14709ebf179b283bf3",
+      "baselineGitBlob": null,
+      "file": "adapter/mcrf_raw_packet_registry_lx_test.go"
+    },
+    {
+      "sha256": "441f080aaf04504e590439a15f2e99e4029e88e4508c625ff55118fc1ec52753",
+      "baselineGitBlob": null,
+      "file": "adapter/mcrf_raw_packet_registry_lx.go"
+    },
+    {
+      "sha256": "a494246dbdee17a9c9914ddd510c49338baa69557e3dc7690068df5d61ee142b",
+      "baselineGitBlob": "0d222f75e6ebdfc47007177866f9995845d145b4",
+      "file": "experimental/libbox/command_server.go"
+    },
+    {
+      "sha256": "f1dd6c6da77fea3341f4584e6b7269196814b53e1594dd924d358676c5cd6b56",
+      "baselineGitBlob": null,
+      "file": "experimental/libbox/mcrf_original_carrier_endpoint_lx_test.go"
+    },
+    {
+      "sha256": "04ef7e281c902a07e4b738f4f341b6c65f5f081511270c07b5cc30fd2504a6c0",
+      "baselineGitBlob": null,
+      "file": "experimental/libbox/mcrf_original_carrier_endpoint_lx.go"
+    },
+    {
+      "sha256": "0215d5cc480a01ab4cf06d40fa59fb2565945e96e174a1e88f71f149774e8219",
+      "baselineGitBlob": null,
+      "file": "experimental/libbox/mcrf_raw_packet_endpoint_lx_test.go"
+    },
+    {
+      "sha256": "5d4c0b2520e6b2d1402db80b898754cf93435851dd01d34eb077c0c48cf3f7d8",
+      "baselineGitBlob": null,
+      "file": "experimental/libbox/mcrf_raw_packet_endpoint_lx.go"
+    },
+    {
+      "sha256": "3d6a7ed962f2c90f3fb1b19f24f9e2797551a8a0c6c778ba5534b647e1925b5e",
+      "baselineGitBlob": null,
+      "file": "experimental/libbox/mcrf_raw_packet_server_lx.go"
+    },
+    {
+      "sha256": "7b1c802f538891c51931d739b3a3cd0cef9e7727aba30b37bf4823ad796e1b3a",
+      "baselineGitBlob": null,
+      "file": "experimental/libbox/mcrf_raw_packet_server_stub.go"
+    },
+    {
+      "sha256": "447d46f3d7f3a6ead17b452e1c5a4de4d6e3beacdf95d1fa1637c9babf5ff4f5",
+      "baselineGitBlob": null,
+      "file": "protocol/socks/mcrf_carrier_stack_lx_test.go"
+    },
+    {
+      "sha256": "70820ff33f31c190b7ebdca65f92e932c2134c09ed0c552b8023f0885873b16a",
+      "baselineGitBlob": null,
+      "file": "protocol/socks/mcrf_carrier_stack_lx.go"
+    },
+    {
+      "sha256": "ff9583b3062a717fd51b82c92c1ae67986ef6df04db4107de575661d1aeb0377",
+      "baselineGitBlob": null,
+      "file": "protocol/socks/mcrf_carrier_stack_stub.go"
+    },
+    {
+      "sha256": "4f6c6993efabc6398b8d167b0fe256c018410a09759cd5a7028d845bd16aef90",
+      "baselineGitBlob": null,
+      "file": "protocol/socks/mcrf_raw_packet_port_lx_test.go"
+    },
+    {
+      "sha256": "cf7227242faa4cf64ccd96a665de9dafa179fad49208e7120e131ac234b51273",
+      "baselineGitBlob": null,
+      "file": "protocol/socks/mcrf_raw_packet_port_lx.go"
+    },
+    {
+      "sha256": "ef91cba6fc36a7ca5befbf0887437ff85d246f06bac541937ab6adcf900bdf6a",
+      "baselineGitBlob": null,
+      "file": "protocol/socks/mcrf_raw_packet_port_stub.go"
+    },
+    {
+      "sha256": "4c558eea44f18b3a61ec4ebe66fbfcac4bd0adaecee106d0466789bacdcdeb10",
+      "baselineGitBlob": "d5872f6a6f7764ee806cd8d6f2123db034961057",
+      "file": "protocol/socks/outbound.go"
+    },
+    {
+      "sha256": "ff1012946673eac05a23307b8ae4d5d8a98778794ef962015c7dc24cb91ce15a",
+      "baselineGitBlob": "719edd812d85af7196a3596f0a7c4a1cfc2debd1",
+      "file": "protocol/tun/inbound.go"
+    },
+    {
+      "sha256": "c5de87d1e922c400bbf06a36b06faa115c5b8bdb568df5fc70ee0164d7effbe9",
+      "baselineGitBlob": null,
+      "file": "protocol/tun/mcrf_raw_packet_port_lx.go"
+    },
+    {
+      "sha256": "b8715f7ce4824c8c8b04b8c87788986ea5599bfdc2ce743135454e6cd984f379",
+      "baselineGitBlob": null,
+      "file": "protocol/tun/mcrf_raw_packet_tun_lx.go"
+    },
+    {
+      "sha256": "ca06b80c8af85d1ca9eeadc0f5da5ef3ac3aebe8a84bab5001fa3e9707306770",
+      "baselineGitBlob": null,
+      "file": "protocol/tun/mcrf_raw_packet_tun_stub.go"
+    },
+    {
+      "sha256": "893d6783f90fc24def75390523c163429ce513934085b98e6e819e9e57e12b9c",
+      "baselineGitBlob": null,
+      "file": "transport/wireguard/mcrf_carrier_stack_test.go"
+    },
+    {
+      "sha256": "e52d3f69e5cecaf723e789bee80c3859db6521b937dc2146a5c3c1231ce3ed98",
+      "baselineGitBlob": null,
+      "file": "transport/wireguard/mcrf_carrier_stack.go"
+    }
+  ],
+  "tests": [
+    {
+      "file": "wireguard-execution.log",
+      "sha256": "0c5442161f537e7ea855c9d99f0b90769a3ed0d08da6e57dc76cb26a738d7a96"
+    },
+    {
+      "file": "socks-execution.log",
+      "sha256": "0892be1c76419236412f093eb174da0d3f5649c66e7819ee253b99e0cb28c476"
+    },
+    {
+      "file": "adapter-execution.log",
+      "sha256": "119b00d3d5c48bcc47e6546bf4c120e5e6182f6ce59509a95062253aafb544b3"
+    },
+    {
+      "file": "libbox-execution.log",
+      "sha256": "2e9bd727ad77eb9aa986bb1330545e8ffe6a3af769e18701d8c573d73b65e208"
+    }
+  ]
+}

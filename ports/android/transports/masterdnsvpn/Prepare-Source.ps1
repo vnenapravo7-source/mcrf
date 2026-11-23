@@ -29,7 +29,22 @@ Copy-Item -LiteralPath "$PSScriptRoot/main.go" -Destination "$taskModule/cmd/mcr
 foreach($taskPair in @(@{name='mcrf_config.go';directory='config'},@{name='mcrf_logger.go';directory='logger'},@{name='mcrf_client.go';directory='client'},@{name='mcrf_listener.go';directory='client'})){
  Copy-Item -LiteralPath "$PSScriptRoot/overlay/$($taskPair.name)" -Destination "$taskModule/internal/$($taskPair.directory)/$($taskPair.name)"
 }
-Replace-Exact "$taskModule/internal/client/client.go" 'type Client struct {' "type Client struct {`n`tmcrfContext context.Context`n`tmcrfEvent func(string)`n`tmcrfWorkerLimit int"
+foreach($taskName in @('mcrf_underlay.go','mcrf_underlay_android.go','mcrf_underlay_other.go','mcrf_underlay_test.go')){
+ Copy-Item -LiteralPath "$PSScriptRoot/overlay/$taskName" -Destination "$taskModule/internal/client/$taskName"
+}
+Replace-Exact "$taskModule/internal/client/client.go" '"sync"' ("`"sync`"`n`t`"syscall`"")
+Replace-Exact "$taskModule/internal/client/async_runtime.go" 'net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4zero, Port: 0})' 'c.mcrfListenTunnelUDP()'
+Replace-Exact "$taskModule/internal/client/tunnel_runtime.go" 'return dialUDPResolver(resolverLabel)' 'return c.dialUDPResolver(resolverLabel)'
+Replace-Exact "$taskModule/internal/client/tunnel_runtime.go" 'func dialUDPResolver(' 'func (c *Client) dialUDPResolver('
+Replace-Exact "$taskModule/internal/client/tunnel_runtime.go" 'return net.DialUDP("udp", nil, addr)' 'return c.mcrfDialResolverUDP(addr)'
+Replace-Exact "$taskModule/internal/client/tunnel_runtime.go" 'func newUDPQueryTransport(' 'func (c *Client) newUDPQueryTransport('
+Replace-Exact "$taskModule/internal/client/tunnel_runtime.go" 'conn, err := dialUDPResolver(resolverLabel)' 'conn, err := c.dialUDPResolver(resolverLabel)'
+$taskMtu="$taskModule/internal/client/mtu.go"
+$taskMtuText=[IO.File]::ReadAllText($taskMtu)
+$taskMtuAnchor=':= newUDPQueryTransport(conn.ResolverLabel)'
+if(($taskMtuText.Split([string[]]@($taskMtuAnchor),[StringSplitOptions]::None).Count-1) -ne 3){throw 'MasterDnsVPN MTU resolver anchors changed'}
+[IO.File]::WriteAllText($taskMtu,$taskMtuText.Replace($taskMtuAnchor,':= c.newUDPQueryTransport(conn.ResolverLabel)'))
+Replace-Exact "$taskModule/internal/client/client.go" 'type Client struct {' "type Client struct {`n`tmcrfContext context.Context`n`tmcrfEvent func(string)`n`tmcrfWorkerLimit int`n`tmcrfSocketControl func(string,string,syscall.RawConn) error"
 Replace-Exact "$taskModule/internal/client/client.go" ("`t`"context`"") ("`t`"context`"`n`t`"errors`"")
 Copy-Item -LiteralPath "$PSScriptRoot/overlay/mcrf_config_test.go" -Destination "$taskModule/internal/config/mcrf_config_test.go"
 Copy-Item -LiteralPath "$PSScriptRoot/overlay/mcrf_client_test.go" -Destination "$taskModule/internal/client/mcrf_client_test.go"
@@ -55,8 +70,13 @@ if($taskEnd -lt 0 -or $taskText.IndexOf("`t`tgo func(activeListener net.Listener
 $taskText=$taskText.Substring(0,$taskStart)+"`t`tgo l.mcrfAccept(ctx, listener)"+$taskText.Substring($taskEnd+"`t`t}(listener)".Length)
 [IO.File]::WriteAllText($taskListener,$taskText,[Text.UTF8Encoding]::new($false))
 Replace-Exact $taskListener ("`t`"time`"`n") ''
+$taskSocksOverlay=Join-Path $PSScriptRoot '../socks-owner/overlay.py'
+$taskSocks=(& python -B $taskSocksOverlay masterdns $taskModule | ConvertFrom-Json)
+if($LASTEXITCODE -ne 0 -or $taskSocks.contract -ne 1){throw 'Pinned MasterDnsVPN SOCKS UDP source overlay failed'}
 $taskFiles=@(Get-ChildItem -LiteralPath $taskModule -Recurse -File|ForEach-Object{@{path=[IO.Path]::GetRelativePath($taskModule,$_.FullName).Replace('\','/');sha256=(Get-FileHash -LiteralPath $_.FullName).Hash.ToLowerInvariant()}})
 [IO.File]::WriteAllText("$taskStage/SOURCE_MANIFEST.json",($taskFiles|Sort-Object path|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
 $taskReceipt=@{state='SOURCE_PREPARED_NOT_COMPILED';kind='masterdnsvpn';repository=$taskLock.repository;commit=$taskCommit;module=$taskModule;upstream=$taskRows;manifestSha256=(Get-FileHash -LiteralPath "$taskStage/SOURCE_MANIFEST.json").Hash.ToLowerInvariant();compiled=$false;executed=$false;androidIntegrated=$false}
+$taskReceipt.socksUdpSource=@{masterdnsvpn=1}
+$taskReceipt.socksUdpSourceOverlay=$taskSocks
 [IO.File]::WriteAllText("$taskStage/receipt.json",($taskReceipt|ConvertTo-Json -Depth 7),[Text.UTF8Encoding]::new($false))
 Write-Output "P4_MASTERDNS_SOURCE=$taskStage"

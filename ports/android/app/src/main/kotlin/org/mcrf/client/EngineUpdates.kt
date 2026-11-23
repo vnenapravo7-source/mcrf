@@ -48,7 +48,13 @@ object EngineUpdates {
         check(context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE).edit().putBoolean(AUTOMATIC_PREFERENCE, enabled).commit())
         EngineUpdateSchedule.schedule(context)
     }
-    fun isBusy() = busy.get()
+    fun isBusy() = busy.get()||EngineUpdateOpenFluxScripts.isBusy()
+    internal fun scriptSnapshot()=EngineUpdateOpenFluxScripts.snapshot()
+    internal fun inspectScripts(context:Context)=EngineUpdateOpenFluxScripts.inspect(context)
+    internal fun checkScript(context:Context,id:String)=EngineUpdateOpenFluxScripts.check(context,id)
+    internal fun applyScript(context:Context,id:String,sha:String)=EngineUpdateOpenFluxScripts.mutate(context,id,"apply",sha)
+    internal fun rollbackScript(context:Context,id:String,sha:String)=EngineUpdateOpenFluxScripts.mutate(context,id,"rollback",sha)
+    internal fun recoverScripts(context:Context)=runCatching{EngineUpdateOpenFluxScripts.recover(context)}.getOrNull()
     /** Coordinator must also reject connection/probe starts while the installer is outstanding. */
     fun installationPending(context: Context) = EngineUpdateGate.blocksUsage(context) || snapshot(context).phase == EngineUpdatePolicy.Phase.INSTALLING
     private fun gateReceipt(context:Context,pending:EngineUpdateGate.Pending):Boolean {
@@ -88,6 +94,7 @@ object EngineUpdates {
                 synchronized(consentLock){forgetConsent(app,pending.token)}
         }
         recoverNow(app)
+        CsqttMigrationRuntime.request(app)
     }
     fun abortPreparedConsent(context:Context,expectedToken:String?=null) = synchronized(consentLock) {
         val pending=EngineUpdateGate.pending(context)?.takeIf{it.owner=="openflux_update"&&it.action=="apk"}?:return@synchronized
@@ -152,12 +159,15 @@ object EngineUpdates {
     fun installedSource(context: Context): String = try { metadata(context).let { "${it.version} · ${it.commit.take(12)}" } }
         catch (_: Exception) { "Источник установленного отдельного модуля не подтверждён" }
     private fun assetJson(asset: EnginePackage) = JSONObject().put("abi", asset.abi).put("version", asset.version)
-        .put("url", asset.url.toString()).put("bytes", asset.bytes).put("sha256", asset.sha256)
+        .put("url", asset.url.toString()).put("bytes", asset.bytes).put("sha256", asset.sha256).put("versionCode", asset.versionCode)
     private fun asset(context: Context): EnginePackage {
         val j = JSONObject(requireNotNull(prefs(context).getString("asset", null)))
-        val abi = EnginePackage.abi(Build.SUPPORTED_ABIS.toList(), Process.is64Bit())
-        require(j.getString("abi") == abi)
-        val a = EnginePackage(abi, j.getString("version"), URI(j.getString("url")), j.getLong("bytes"), j.getString("sha256"), "openflux")
+        val deviceAbi = EnginePackage.abi(Build.SUPPORTED_ABIS.toList(), Process.is64Bit())
+        val abi = j.getString("abi")
+        // Read legacy receipts to reconcile a system installer already launched before upgrade.
+        require(abi == deviceAbi || abi == "universal")
+        val versionCode = if (j.has("versionCode")) j.getLong("versionCode").also { require(it > 0) } else null
+        val a = EnginePackage(abi, j.getString("version"), URI(j.getString("url")), j.getLong("bytes"), j.getString("sha256"), "openflux", versionCode)
         require(a.bytes in 1..EnginePackage.MAX_BYTES && a.sha256.matches(Regex("[0-9a-f]{64}")) &&
             a.url.toString() == "https://github.com/${EnginePackage.REPOSITORY}/releases/download/${a.version}/${EngineModules.assetName("openflux", abi)}")
         return a
@@ -176,8 +186,12 @@ object EngineUpdates {
     }
     private fun verify(context: Context, file: File) {
         val expected = asset(context)
+        MobileBetaUpdates.requireAllowed(context,expected)
+        require(expected.abi!="universal" && EngineArchivePolicy.nativeAbis(file)==setOf(expected.abi)) {
+            "Нужен APK OpenFlux для архитектуры устройства. Повтори проверку обновления."
+        }
         require(expected.matchesInstalled(file.length()) { file.inputStream() }) { "Сохранённый APK изменён или удалён. Скачай его заново." }
-        EnginePackages.verifyArchive(context, file, "openflux"); EnginePackages.verifyRequirements(context, file, setOf("openflux"))
+        EnginePackages.verifyArchive(context, file, "openflux", expected.versionCode); EnginePackages.verifyRequirements(context, file, setOf("openflux"))
         if (metadata(context, file) != revision(context)) throw EngineUpdateUnavailable("Этот APK не собран из обнаруженного стабильного commit OpenFlux. Ожидаем публикацию совместимого модуля MCRF.")
     }
     fun check(context: Context, fetchAutomatically: Boolean = false): Boolean = run(context) {checkNow(it,fetchAutomatically)}
@@ -196,7 +210,8 @@ object EngineUpdates {
             save(app, EngineUpdatePolicy.Phase.CURRENT, "Установлен стабильный OpenFlux ${installed.version} · ${installed.commit.take(12)}."); return
         }
         if(cancelled())throw InterruptedException("Проверка обновления движка отменена.")
-        val candidate = try { EnginePackages.published("openflux") } catch (e: EnginePackage.Unpublished) {
+        val beta=app.getSharedPreferences("MainActivity",Context.MODE_PRIVATE).getBoolean(MobileBetaUpdates.KEY,false)
+        val candidate = try { EnginePackages.published("openflux",beta) } catch (e: EnginePackage.Unpublished) {
             save(app, EngineUpdatePolicy.Phase.UNPUBLISHED, "Оригинальный OpenFlux: $tag · ${latest.commit.take(12)}. Совместимый отдельный APK MCRF ещё не опубликован."); return
         }
         if (prefs(app).getString("rejectedDigest", null) == candidate.sha256 && prefs(app).getString("rejectedCommit", null) == latest.commit) {
@@ -241,6 +256,7 @@ object EngineUpdates {
     }
     fun rollbackFile(context: Context): File? = File(context.noBackupFilesDir, "engine-update-rollback/openflux.apk").takeIf { it.isFile }
     private fun recoverNow(app: Context) {
+        recoverScripts(app)
         val heldPreparation=synchronized(consentLock) {
             val pending=EngineUpdateGate.pending(app)
             if(pending?.owner=="openflux_update"&&pending.action=="apk") {
@@ -283,6 +299,11 @@ object EngineUpdates {
         if (file != null && EnginePackages.installed(app, asset(app))) {
             file.delete();cleanupInstallerCopy(app);check(prefs(app).edit().remove("file").remove("fileStore").commit())
             save(app, EngineUpdatePolicy.Phase.INSTALLED, "Установка подтверждена точным SHA-256 APK. Работоспособность соединения проверяется отдельным подключением.")
+        } else if (file != null && asset(app).let {it.abi=="universal"||!MobileBetaUpdates.allows(app,it)}) {
+            require(file.delete()||!file.exists())
+            cleanupInstallerCopy(app)
+            check(prefs(app).edit().remove("file").remove("fileStore").remove("asset").commit())
+            save(app,EngineUpdatePolicy.Phase.IDLE,"Повтори проверку обновления OpenFlux для архитектуры устройства.")
         } else if (file != null) {
             verify(app, file)
             save(app, EngineUpdatePolicy.Phase.QUEUED, "Проверенный APK ожидает подтверждения. Отмена установщика сохраняет очередь.")
@@ -332,6 +353,7 @@ object EngineUpdates {
     fun installing(context: Context,expectedToken:String):Int = synchronized(consentLock) {
         val pending=requireNotNull(EngineUpdateGate.pending(context));require(pending.owner=="openflux_update"&&pending.action=="apk"&&pending.token==expectedToken)
         require(EngineConsentJournal.mayAbort(expectedToken,consentJournal(context))&&livePreparedToken==expectedToken)
+        MobileBetaUpdates.requireAllowed(context,asset(context))
         // Commit BEFORE the external call; crashes after this point keep the durable barrier.
         check(prefs(context).edit().putString("consentJournal",EngineConsentJournal.Entry(expectedToken,EngineConsentJournal.Stage.LAUNCHING).encode()).commit())
         livePreparedToken=null

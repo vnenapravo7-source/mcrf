@@ -1,0 +1,184 @@
+package listener
+
+import (
+	"context"
+	"errors"
+	"net"
+	"net/netip"
+	"runtime"
+
+	"github.com/sagernet/sing-box/adapter"
+	M "github.com/sagernet/sing/common/metadata"
+	"github.com/sagernet/sing/service"
+)
+
+var errProxyOwnerRequired = errors.New("VPN_PROXY_OWNER_REQUIRED")
+var errProxyUDPLocalAddressRequired = errors.New("VPN_PROXY_UDP_LOCAL_ADDRESS_REQUIRED")
+
+type mcrfOwnerPolicy struct {
+	platform         adapter.PlatformInterface
+	authenticatedLAN bool
+}
+
+type mcrfAssociationKey struct{}
+type mcrfOwnerAssociation struct {
+	peer, local netip.Addr
+	uid         int32
+	lan         bool
+}
+
+func newMcrfOwnerPolicy(ctx context.Context, authenticatedLAN bool) (*mcrfOwnerPolicy, error) {
+	if runtime.GOOS != "android" {
+		return nil, nil
+	}
+	platform := service.FromContext[adapter.PlatformInterface](ctx)
+	ownerPlatform, ok := platform.(interface{ RequireVpnOwnerIsolation() (bool, error) })
+	if !ok {
+		return nil, nil
+	}
+	required, err := ownerPlatform.RequireVpnOwnerIsolation()
+	if err != nil || !required {
+		return nil, err
+	}
+	return &mcrfOwnerPolicy{platform: platform, authenticatedLAN: authenticatedLAN}, nil
+}
+
+func (p *mcrfOwnerPolicy) lookup(protocol int32, peer, local M.Socksaddr) (int32, bool) {
+	peer, local = peer.Unwrap(), local.Unwrap()
+	if !peer.Addr.IsValid() || peer.Addr.IsUnspecified() || !local.Addr.IsValid() ||
+		local.Addr.IsUnspecified() || peer.Port == 0 || local.Port == 0 {
+		return 0, false
+	}
+	owner, err := p.platform.FindConnectionOwner(&adapter.FindConnectionOwnerRequest{
+		IpProtocol: protocol, SourceAddress: peer.Addr.String(), SourcePort: int32(peer.Port),
+		DestinationAddress: local.Addr.String(), DestinationPort: int32(local.Port),
+	})
+	if err != nil || owner == nil || owner.UserId < 0 {
+		return 0, false
+	}
+	return owner.UserId, true
+}
+
+// The generated LAN listener binds IPv4 and has mandatory application-level
+// authentication. A connection sourced from ANY local interface still needs
+// Android owner admission, even if the client dials the phone's Wi-Fi address.
+func (p *mcrfOwnerPolicy) trustedLAN(peer, local netip.Addr) bool {
+	if !p.authenticatedLAN || !peer.Is4() || !local.Is4() || peer.IsLoopback() ||
+		!(local.IsPrivate() || local.IsLinkLocalUnicast()) || peer == local {
+		return false
+	}
+	tun := p.platform.MyInterfaceAddress()
+	if len(tun) == 0 {
+		return false
+	}
+	for _, address := range tun {
+		if address = address.Unmap(); address == local || address == peer {
+			return false
+		}
+	}
+	// Android's app sandbox can deny raw RTM_GETADDR to Go. The host already
+	// supplies current non-VPN LinkProperties through this platform interface.
+	interfaces, err := p.platform.NetworkInterfaces()
+	if err != nil {
+		return false
+	}
+	matched := false
+	for _, iface := range interfaces {
+		activeLAN := iface.Flags&net.FlagUp != 0 && iface.Flags&net.FlagLoopback == 0
+		for _, prefix := range iface.Addresses {
+			if prefix.Addr().Unmap() == peer {
+				return false
+			}
+			if activeLAN && prefix.Addr() == local && prefix.Contains(peer) {
+				matched = true
+			}
+		}
+	}
+	return matched
+}
+
+func (p *mcrfOwnerPolicy) TCP(ctx context.Context, peer, local M.Socksaddr) (context.Context, bool) {
+	if p == nil {
+		return ctx, true
+	}
+	peer, local = peer.Unwrap(), local.Unwrap()
+	if p.trustedLAN(peer.Addr, local.Addr) {
+		return context.WithValue(ctx, mcrfAssociationKey{}, mcrfOwnerAssociation{peer: peer.Addr, local: local.Addr, lan: true}), true
+	}
+	uid, ok := p.lookup(6, peer, local)
+	if !ok {
+		return nil, false
+	}
+	return context.WithValue(ctx, mcrfAssociationKey{}, mcrfOwnerAssociation{peer: peer.Addr, local: local.Addr, uid: uid}), true
+}
+
+func (p *mcrfOwnerPolicy) UDP(peer, local M.Socksaddr) bool {
+	if p == nil {
+		return true
+	}
+	_, allowed := p.lookup(17, peer, local)
+	return allowed
+}
+
+func (p *mcrfOwnerPolicy) associationBind(ctx context.Context, network, address string) (string, string, error) {
+	if p == nil {
+		return network, address, nil
+	}
+	identity, ok := ctx.Value(mcrfAssociationKey{}).(mcrfOwnerAssociation)
+	requested, err := netip.ParseAddrPort(address)
+	if !ok || err != nil || !identity.local.IsValid() || identity.local.IsUnspecified() {
+		return "", "", errProxyOwnerRequired
+	}
+	if host := requested.Addr().Unmap(); !host.IsUnspecified() && host != identity.local {
+		return "", "", errProxyOwnerRequired
+	}
+	// Bind to the real local endpoint of the authenticated control socket. The
+	// destination of a datagram received on a wildcard socket is unproven.
+	family := "udp6"
+	if identity.local.Is4() {
+		family = "udp4"
+	}
+	return family, netip.AddrPortFrom(identity.local, requested.Port()).String(), nil
+}
+
+func (p *mcrfOwnerPolicy) associate(ctx context.Context, conn net.PacketConn) (net.PacketConn, error) {
+	if p == nil {
+		return conn, nil
+	}
+	identity, ok := ctx.Value(mcrfAssociationKey{}).(mcrfOwnerAssociation)
+	local := M.SocksaddrFromNet(conn.LocalAddr()).Unwrap()
+	if !ok || local.Addr != identity.local || local.Port == 0 {
+		conn.Close()
+		return nil, errProxyOwnerRequired
+	}
+	return &mcrfOwnerPacketConn{PacketConn: conn, scope: p, identity: identity, local: local}, nil
+}
+
+type mcrfOwnerPacketConn struct {
+	net.PacketConn
+	scope    *mcrfOwnerPolicy
+	identity mcrfOwnerAssociation
+	local    M.Socksaddr
+}
+
+func (c *mcrfOwnerPacketConn) ReadFrom(data []byte) (int, net.Addr, error) {
+	for {
+		n, addr, err := c.PacketConn.ReadFrom(data)
+		if err != nil {
+			return n, addr, err
+		}
+		peer := M.SocksaddrFromNet(addr).Unwrap()
+		if peer.Addr != c.identity.peer {
+			continue
+		}
+		if c.identity.lan {
+			if c.scope.trustedLAN(peer.Addr, c.local.Addr) {
+				return n, addr, nil
+			}
+			continue
+		}
+		if uid, allowed := c.scope.lookup(17, peer, c.local); allowed && uid == c.identity.uid {
+			return n, addr, nil
+		}
+	}
+}

@@ -71,19 +71,37 @@ class AndroidDeployBackend(private val store: AndroidDeployStore,private val vk:
     private fun safe(text: String,t: AndroidDeployTarget): String {
         var s=text.replace(Regex("\u001b\\[[0-?]*[ -/]*[@-~]"),"")
         val swgSecrets=t.options.optJSONArray("swg_profiles")?.let { a ->(0 until a.length()).flatMap {i -> val calls=a.getJSONObject(i).optJSONArray("vk_calls") ?: JSONArray();(0 until calls.length()).map(calls::getString)}} ?: emptyList()
-        val secrets=swgSecrets+listOf(t.sshPassword,t.privateKey,t.keyPassword,t.panelPassword,t.options.optString("carrier_url"),t.options.optString("s3_access_key"),t.options.optString("s3_secret_key")) +
+        // Script envelopes are JSON, while installer output can print individual
+        // URLs/settings. Redacting only the serialized envelope leaks those values.
+        val scriptSecrets=if(t.options.optString("transport")=="script")runCatching {
+            val script=JSONObject(t.options.optString("carrier_url"))
+            listOf(script.optString("url"))+script.optJSONObject("settings")?.let { settings ->
+                settings.keys().asSequence().map { settings.optString(it) }.toList()
+            }.orEmpty()
+        }.getOrDefault(emptyList())else emptyList()
+        val secrets=swgSecrets+scriptSecrets+t.privateKey.lineSequence().filter {it.length>=16}.toList()+listOf(t.sshPassword,t.privateKey,t.keyPassword,t.panelPassword,t.options.optString("carrier_url"),t.options.optString("s3_access_key"),t.options.optString("s3_secret_key")) +
             (t.options.optJSONArray("vk_calls")?.let { a -> (0 until a.length()).map(a::getString) } ?: emptyList())
-        for(secret in secrets.filter { it.isNotEmpty() }) s=s.replace(secret,"[скрыто]")
+        for(secret in secrets.filter { it.isNotEmpty() }.distinct().sortedByDescending {it.length}) s=s.replace(secret,"[скрыто]")
         if(Regex("(?i)password|passwd|secret|token|private.?key|call/join|://.*[?&](pass|hash)").containsMatchIn(s)) return "Учётные данные обработаны; доступны в результате установки"
         return s.take(1000)
     }
     private fun log(line: String,t: AndroidDeployTarget) { publish(state.copy(logs=(state.logs+safe(line,t)+"\n").takeLast(100_000))) }
-    private fun install(recipe: AndroidDeployRecipe,initial: AndroidDeployTarget,trust: ((String,String) -> Boolean)?,saved:JSONObject?) {
+    private fun install(recoveryRecipe: AndroidDeployRecipe,initial: AndroidDeployTarget,trust: ((String,String) -> Boolean)?,saved:JSONObject?) {
         checkActive()
         AndroidDeploySshPreflight.verify()
         AndroidDeploySshPreflight.verifyPrivateKey(initial.privateKey,initial.keyPassword)
         var target=initial
-        val installer=if(saved==null&&recipe.id!=S3BypassProfile.KIND)AndroidDeployScripts.pin(recipe,download(recipe))else null
+        // Only NEW installs follow official main. Saved-panel provisioning never resolves or runs an installer.
+        val resolved=if(saved==null&&recoveryRecipe.id=="swg") {
+            phase("Проверка актуального SWG Panel")
+            SwgPanelReleaseResolver(checkActive=::checkActive).resolve()
+        } else null
+        val recipe=resolved?.recipe ?: recoveryRecipe
+        val installer=if(saved==null&&recipe.id!=S3BypassProfile.KIND)AndroidDeployScripts.pin(recipe,download(recipe,resolved?.bootstrap))else null
+        if(resolved!=null) {
+            phase("SWG Panel ${recipe.version} · ${recipe.commit.take(12)}")
+            log("SWG Panel ${recipe.version} · ${recipe.url} · SHA-256 ${recipe.sha256}",target)
+        }
         checkActive()
         if(recipe.id=="swg" && target.options.optBoolean("create",true)) {
             phase("Подготовка звонков VK")
@@ -177,6 +195,11 @@ class AndroidDeployBackend(private val store: AndroidDeployStore,private val vk:
             require(execution.first==0) { "Установщик завершился с кодом ${execution.first}; изменения VPS могут сохраниться" }
             val decoded=AndroidDeployOutput();require(decoded.accept(execution.second.trimEnd('\n'))) { "Нет подтверждения результата установки" }
             val result=AndroidDeployHistory.record(decoded.result(),t,recipe.id)
+            // core_commit is already allowed by encrypted history/backup validation. Do not invent a pin for old records.
+            if(recipe.id=="swg") {
+                if(resolved!=null)result.put("core_commit",recipe.commit)
+                else if(saved?.has("core_commit")==true)result.put("core_commit",saved.get("core_commit"))
+            }
             AndroidDeployPlan.validateResult(result,t)
             store.update("deployResults") { it.put(AndroidDeployHistory.resultKey(t,recipe.id),result) }
             if(!result.optBoolean("provision_requested")||result.optBoolean("provision_complete")){
@@ -195,15 +218,20 @@ class AndroidDeployBackend(private val store: AndroidDeployStore,private val vk:
             }
         }
     }
-    private fun download(recipe: AndroidDeployRecipe): String {
+    private fun download(recipe: AndroidDeployRecipe,resolvedBytes: ByteArray?=null): String {
+        // Fresh SWG bytes go through the same digest gate as the historical pinned installers.
+        if(resolvedBytes!=null)return verifiedInstaller(recipe,resolvedBytes)
         val http=URL(recipe.url).openConnection() as HttpURLConnection
         http.connectTimeout=15_000;http.readTimeout=30_000;http.instanceFollowRedirects=false
         try {
             require(http.responseCode==200) { "Установщик: HTTP ${http.responseCode}" }
             val bytes=http.inputStream.use { readBounded(it,2_000_000) }
-            val hash=MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) }
-            require(hash==recipe.sha256) { "SHA-256 установщика не совпал; SSH не изменён" };return String(bytes,Charsets.UTF_8)
+            return verifiedInstaller(recipe,bytes)
         } finally { http.disconnect() }
+    }
+    private fun verifiedInstaller(recipe: AndroidDeployRecipe,bytes: ByteArray): String {
+        val hash=MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) }
+        require(hash==recipe.sha256) { "SHA-256 установщика не совпал; SSH не изменён" };return String(bytes,Charsets.UTF_8)
     }
     private fun readBounded(input: java.io.InputStream,max: Int): ByteArray {
         val output=ByteArrayOutputStream();val b=ByteArray(8192)

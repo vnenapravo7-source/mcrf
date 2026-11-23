@@ -34,6 +34,18 @@ class ProbePlanTest {
         assertEquals(listOf(ordinary),ProbePlan.all(listOf(excluded,ordinary)))
         for(policy in listOf(AutoSelection.LATENCY,AutoSelection.BS_ENGINES))assertEquals(listOf(ordinary),ProbePlan.automatic(listOf(excluded,ordinary),policy))
     }
+    @Test fun explicitly_probed_carriers_are_independent_of_the_primary_engine(){
+        val entries=listOf("csqtt","qwdtt","wdtt","olcrtc","openflux").map {kind->
+            ServerImport.Server("$kind://fixture",kind,kind,"fixture.invalid",443,null,null,null,JSONObject().put("type",kind))
+        }
+        for(primary in listOf(null,"singbox","steer")){
+            assertEquals(entries,ProbePlan.all(entries,primary,explicit=true))
+            assertTrue(ProbePlan.independentBatch(ProbePlan.all(entries,primary)))
+            assertFalse(ProbePlan.all(entries,primary).any {it.protocol=="openflux"})
+        }
+        assertFalse(ProbePlan.independentBatch(entries+node(1)))
+        assertFalse(ProbePlan.independentBatch(emptyList()))
+    }
     @Test fun progressCountsEveryIdOnlyOnceIncludingZeroAndFailures() {
         val ids=(0 until 21).map(::node).map { it.id }.toSet()
         var progress=ProbeProgress(ids)

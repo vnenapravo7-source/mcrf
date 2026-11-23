@@ -18,12 +18,17 @@ object ConnectionEdits {
         entry.endpoint?.let { put("endpoint", JSONObject(it.toString())) }
         entry.configuration?.let { put("configuration", JSONObject(it.toString())) }
         entry.carrier?.let { put("carrier", JSONObject(it.toString())) }
+        entry.routingRules?.let {put(ServerRoutingMode.KEY,it)}
         if (entry.endpoint != null) put("profileDns", org.json.JSONArray(entry.profileDns))
     }
     @JvmStatic fun apply(entry: ServerImport.Server, options: JSONObject?): ServerImport.Server {
         if (options == null) return entry
         require(options.toString().toByteArray(Charsets.UTF_8).size <= ServerImport.MAX_BYTES) { "Настройки подключения больше 4 МБ." }
-        require(options.keys().asSequence().all { it in setOf("name", "outbound", "endpoint", "configuration", "carrier", "profileDns", "csqttVersion") }) { "Неизвестные настройки подключения." }
+        require(options.keys().asSequence().all { it in setOf("name", "outbound", "endpoint", "configuration", "carrier", "profileDns", "csqttVersion",ServerRoutingMode.KEY) }) { "Неизвестные настройки подключения." }
+        val routingRules=if(options.has(ServerRoutingMode.KEY)){
+            require(entry.protocol=="csqtt"&&options.get(ServerRoutingMode.KEY) is String&&ServerRoutingMode.valid(options.getString(ServerRoutingMode.KEY))){"Неизвестный режим правил сервера."}
+            options.getString(ServerRoutingMode.KEY)
+        }else entry.routingRules
         val name = options.optString("name", entry.name).trim()
         require(name.isNotEmpty() && name.length <= 256 && name.none(Char::isISOControl)) { "Укажите название до 256 символов." }
         fun node(kind: String, original: JSONObject?): JSONObject? {
@@ -37,13 +42,13 @@ object ConnectionEdits {
         val endpoint = node("endpoint", entry.endpoint)
         var carrier = node("carrier", entry.carrier)
         if(options.has("csqttVersion")){
-            require(options.get("csqttVersion") is String&&options.getString("csqttVersion") in CsqttGenerations.legacy.map {it.id}){"Неизвестная версия CSQTT."}
-            val version=options.getString("csqttVersion")
+            require(options.get("csqttVersion") is String&&options.getString("csqttVersion") in CsqttGenerations.generationChoices.keys+"2.1.9"){"Неизвестная версия CSQTT."}
+            val version=options.getString("csqttVersion").let {if(it=="2.1.9")"legacy"else it}
             val raw=requireNotNull(carrier){"Версия доступна только для CSQTT."}
-            require(raw.optString("type")=="csqtt"&&(!raw.has("csqtt_generation")||CsqttGenerations.family(raw).id==version)){
+            require(raw.optString("type")=="csqtt"&&(!raw.has("csqtt_generation")||version==CsqttGenerations.AUTO||CsqttGenerations.family(raw).id==version)){
                 "Поколение сервера в подписке изменилось. Перепроверьте его версию; другой движок автоматически не подставлен."
             }
-            carrier=JSONObject(raw.toString()).put("csqtt_generation",version)
+            carrier=CsqttGenerations.select(raw,version)
         }
         val config = if (options.has("configuration")) {
             require(entry.configuration != null) { "Нельзя заменить ссылку произвольным профилем." }
@@ -70,7 +75,7 @@ object ConnectionEdits {
             val tls = value.optJSONObject("tls")
             if (tls?.optBoolean("fragment") == true || tls?.optBoolean("record_fragment") == true) require(value.optString("type") !in setOf("hysteria", "hysteria2", "tuic") && tls.optBoolean("enabled")) { "Фрагментация TLS доступна только для TCP/TLS." }
         }
-        return ServerImport.Server(entry.original, name, entry.protocol, host, port, output, endpoint, config, carrier, profileDns)
+        return ServerImport.Server(entry.original, name, entry.protocol, host, port, output, endpoint, config, carrier, profileDns,entry.whitelists,routingRules)
     }
     /** Edits must not silently disappear from a share. Export a standard standalone core profile. */
     @JvmStatic fun share(entry: ServerImport.Server, edited: Boolean): String = if (!edited) entry.original

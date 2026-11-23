@@ -22,6 +22,22 @@ object UsageColorsDeviceChecks {
             failure.get()?.let {throw it}
         }
         val activity=test.startActivitySync(Intent(context,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as MainActivity
+        fun chooseAutomatically(wanted:Set<UsageFeatures.Feature>) {
+            check(wanted.isNotEmpty())
+            // Enable replacements first: autosave never admits an empty feature set.
+            val ordered=wanted.toList()+UsageFeatures.Feature.values().filter {it !in wanted}
+            for(feature in ordered) {
+                onMain {
+                    val root=activity.window.decorView
+                    check(root.findViewWithTag<View>("usage-features-save")==null)
+                    root.findViewWithTag<CheckBox>("usage-feature-${feature.id}").isChecked=feature in wanted
+                }
+                val deadline=SystemClock.elapsedRealtime()+10_000L
+                while(activity.working()&&SystemClock.elapsedRealtime()<deadline)SystemClock.sleep(20)
+                test.waitForIdleSync();check(!activity.working())
+            }
+            check(UsageFeaturesUi.selected(activity)==wanted)
+        }
         var usage:AlertDialog?=null
         val field=MainActivity::class.java.getDeclaredField("usageChooser").apply {isAccessible=true}
         val primary=MainActivity::class.java.getDeclaredField("primaryChooser").apply {isAccessible=true}
@@ -52,10 +68,8 @@ object UsageColorsDeviceChecks {
                 root.findViewWithTag<View>("settings-page-${ClientSettingsNavigation.APPEARANCE}").performClick()
                 root.findViewWithTag<View>("settings-page-${ClientSettingsNavigation.MINIMALISM}").performClick()
                 check(root.findViewWithTag<View>("settings-page-${ClientSettingsNavigation.VK}")==null)
-                root.findViewWithTag<CheckBox>("usage-feature-vpn").isChecked=false
-                root.findViewWithTag<CheckBox>("usage-feature-proxy").isChecked=true
-                root.findViewWithTag<View>("usage-features-save").performClick()
             };test.waitForIdleSync()
+            chooseAutomatically(setOf(UsageFeatures.Feature.PROXY))
             onMain {activity.navigate(ClientSettingsNavigation.VPN)};test.waitForIdleSync()
             onMain {
                 check(root.findViewWithTag<View>("setting.ipv6")==null)
@@ -67,9 +81,8 @@ object UsageColorsDeviceChecks {
             for(mask in 1..15){
                 onMain {
                     activity.navigate(ClientSettingsNavigation.MINIMALISM)
-                    features.forEachIndexed {index,feature->root.findViewWithTag<CheckBox>("usage-feature-${feature.id}").isChecked=(mask and (1 shl index))!=0}
-                    root.findViewWithTag<View>("usage-features-save").performClick()
                 };test.waitForIdleSync()
+                chooseAutomatically(features.filterIndexed {index,_->mask and (1 shl index)!=0}.toSet())
                 onMain {
                     activity.navigate(ClientSettingsNavigation.ROOT)
                     check(root.findViewWithTag<View>("usage-features-settings")==null)
@@ -86,16 +99,15 @@ object UsageColorsDeviceChecks {
                     activity.navigate("Главная")
                     check((root.findViewWithTag<View>("home-mode-switch").visibility==View.VISIBLE)==(mask and 2!=0&&mask!=2))
                     check((root.findViewWithTag<View>("warp-open")!=null)==(mask and 4!=0))
-                    check((root.findViewWithTag<View>("telegram-open")!=null)==(mask and 10!=0))
-                    check((root.findViewWithTag<View>("edge-telegram").visibility==View.VISIBLE)==(mask and 10!=0))
+                    check(root.findViewWithTag<View>("telegram-open")==null)
+                    check(root.findViewWithTag<View>("edge-telegram").visibility!=View.VISIBLE)
                 }
             }
             onMain {
                 activity.navigate(ClientSettingsNavigation.MINIMALISM)
-                features.forEach {feature->root.findViewWithTag<CheckBox>("usage-feature-${feature.id}").isChecked=feature==UsageFeatures.Feature.PROXY}
-                root.findViewWithTag<View>("usage-features-save").performClick()
-                activity.navigate(ClientSettingsNavigation.APPEARANCE)
             };test.waitForIdleSync()
+            chooseAutomatically(setOf(UsageFeatures.Feature.PROXY))
+            onMain {activity.navigate(ClientSettingsNavigation.APPEARANCE)};test.waitForIdleSync()
             val sourceBefore=ProfileStore.snapshot(activity)
             var managementCheckpoint=sourceBefore
             onMain {

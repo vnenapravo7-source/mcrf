@@ -118,7 +118,7 @@ object AdvancedDnsConfig {
             }
         }
         val selectors=GeoDataConfig.value(state).getJSONArray("selectors")
-        val ipTags=ipRuleSetTags+(0 until selectors.length()).filter {selectors.getJSONObject(it).optString("kind")=="geoip"}.map {"mcrf-geo-$it"}
+        val ipTags=ipRuleSetTags+ImportedRuleProviders.ipTags(GeoDataConfig.value(state))+(0 until selectors.length()).filter {selectors.getJSONObject(it).optString("kind")=="geoip"}.map {"mcrf-geo-$it"}
         GeoDataConfig.orderedRules(state).let { a -> repeat(a.length()) {
             val r = a.getJSONObject(it)
             if (!r.optBoolean("enabled", true) || r.has("dns")) return@repeat

@@ -24,7 +24,7 @@ object OptionalCoreProbe {
     }
     fun start(context: Context,config: JSONObject,settings: OptionalCoreSettings,core: CoreTuningSettings,cancelled: BooleanSupplier):Session {
         val plan=OptionalCorePlan(isolatedConfig(config),settings,core)
-        val native=OptionalCoreSession.start(context,plan,cancelled,false,false)
+        val native=OptionalCoreSession.start(context,plan,cancelled,false,false,strictIngress=false)
         return try {Session(native.config,plan.entries().map {it.request.kind}.toSet(),plan.notes,native)} catch(error:Throwable) {OptionalCoreRetirement.fail(error,native)}
     }
 }

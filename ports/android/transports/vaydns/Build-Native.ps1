@@ -19,13 +19,23 @@ function Assert-Source {
 Assert-Source
 $taskRequired=@('TestMcrfServeRejectsUnprotectedListener','TestMcrfServeRejectsWildcardListener','TestMcrfBackoffCancellation','TestMcrfRemoteAuthPreservesTerminalFailure','TestMcrfSOCKSRejectsInvalidCredentials','TestMcrfSOCKSLocalDoesNotConsumeConnectRequest','TestMcrfSOCKSLocalRejectsUnauthenticatedClient','TestMcrfSOCKSRemoteRefusalIsTerminal','TestMcrfSOCKSLocalRejectsWrongPassword','TestMcrfSOCKSRemoteWrongProtocolIsTerminal','TestMcrfVayConfigStrictBoundary','TestMcrfVayOwnedDNSNoiseSOCKSData','TestMcrfVayLocalRejectionDoesNotOpenDNSStream','TestMcrfVayRemoteRejectionStopsWithoutRetry','TestMcrfVayStdinEOFStopsDuringLostNetwork')
 $taskRequired+='TestMcrfVayCapacityQueuesAndCancels'
+$taskUnderlay=$taskPrepared.vaydnsUnderlayContract -eq 1
+if($taskUnderlay){
+ $taskRequired+=@('TestMcrfUnderlayAdmissionRejectsInvalidAndUnavailableNetwork','TestMcrfUnderlayFailedSocketBindBlocksDoHDoTAndUDP')
+}
 $taskHost=Get-Content -LiteralPath $HostEvidence -Raw|ConvertFrom-Json
 if($taskHost.state -cne 'PASS_P3_VAYDNS_HOST' -or $taskHost.sourceManifestSha256 -cne $taskPrepared.manifestSha256 -or $taskHost.failures -ne 0 -or $taskHost.skipped -ne 0 -or @($taskRequired|Where-Object {$_ -cnotin $taskHost.cases}).Count){throw 'All new real-peer/lifecycle/auth checks required'}
+if($taskUnderlay -and $taskHost.vaydnsUnderlayContract -ne 1){throw 'Source-bound VayDNS underlay host evidence required'}
 $taskLog=Join-Path (Split-Path $HostEvidence) 'vaydns-host-tests.jsonl'
 if(!$taskHost.logSha256 -or (Hash $taskLog) -cne $taskHost.logSha256){throw 'Source-bound VayDNS host log changed'}
 $taskStage="D:/MCRF/Builds/Android/p3-vaydns-native-$([guid]::NewGuid().ToString('N'))";New-Item -ItemType Directory -Path "$taskStage/licenses"|Out-Null
 $taskGo='D:/MCRF/Projects/MCRF/work/toolchains/go1.26.8/go/bin/go.exe';$taskTools="$Ndk/toolchains/llvm/prebuilt/windows-x86_64/bin"
 $taskReceipt=@{state='BUILDING';kind='vaydns';repository=$taskLock.repository;commit=$taskLock.commit;source=$taskPrepared.module;sourceStable=$false;sourceManifestSha256=$taskPrepared.manifestSha256;hostEvidenceSha256=Hash $HostEvidence;toolchainSha256=Hash $taskGo;artifacts=@();nativeExecuted=$false;apkBuilt=$false;producerComplete=$false;vaydnsContract=1;packageVersionCode=1;packageVersionName='0.2.8-mcrf.1'}
+if($taskUnderlay){
+ $taskReceipt.vaydnsUnderlayContract=1
+ $taskReceipt.packageVersionCode=2
+ $taskReceipt.packageVersionName='0.2.8-mcrf.2'
+}
 Copy-Item -LiteralPath "$PreparedSource/SOURCE_MANIFEST.json" -Destination "$taskStage/source-manifest.json"
 Copy-Item -LiteralPath "$PreparedSource/receipt.json" -Destination "$taskStage/prepared-source.json"
 Copy-Item -LiteralPath $HostEvidence -Destination "$taskStage/host-evidence.json";Copy-Item -LiteralPath $taskLog -Destination "$taskStage/vaydns-host-tests.jsonl"
@@ -58,7 +68,19 @@ try {
   $taskSegments=@(& "$taskTools/llvm-readelf.exe" --program-headers --wide $taskBinary);if($LASTEXITCODE){throw 'ELF read failed'};$taskLoads=@($taskSegments|Where-Object {$_ -match '^\s*LOAD\s'})
   if(!$taskLoads.Count){throw 'Missing ELF load segments'}
   foreach($taskLoad in $taskLoads){if($taskLoad -notmatch '^\s*LOAD\s+0x([0-9a-fA-F]+)\s+0x([0-9a-fA-F]+).*\s+0x([0-9a-fA-F]+)\s*$'){throw 'Unknown ELF format'};if([Convert]::ToUInt64($Matches[3],16) -lt 16384 -or [Convert]::ToUInt64($Matches[1],16)%16384 -ne [Convert]::ToUInt64($Matches[2],16)%16384){throw 'VayDNS ELF is not16KiB aligned'}}
-  $taskReceipt.artifacts+=@{abi=$taskAbi;file="$taskAbi/libvaydns.so";bytes=(Get-Item -LiteralPath $taskBinary).Length;sha256=Hash $taskBinary;elfChecked=$true;nativeExecuted=$false}
+  $taskArtifact=@{abi=$taskAbi;file="$taskAbi/libvaydns.so";bytes=$taskBytes.Length;sha256=Hash $taskBinary;elfChecked=$true;nativeExecuted=$false}
+  if($taskUnderlay){
+   $taskMarker='MCRF_VAYDNS_UNDERLAY'
+   $taskSymbols=@(& "$taskTools/llvm-readelf.exe" --wide --dyn-syms $taskBinary)
+   if($LASTEXITCODE -or ![Text.Encoding]::Latin1.GetString($taskBytes).Contains($taskMarker)){throw 'VayDNS underlay marker missing'}
+   $taskImports=@('android_setprocnetwork','android_setsocknetwork')
+   foreach($taskSymbol in $taskImports){
+    if(!($taskSymbols -match "\bUND\s+$taskSymbol(?:@|\s|$)")){throw "VayDNS underlay import missing: $taskSymbol"}
+   }
+   $taskArtifact.underlayMarker=$taskMarker
+   $taskArtifact.underlayImports=$taskImports
+  }
+  $taskReceipt.artifacts+=$taskArtifact
   # Build info is read, never execute a target ELF to discover dependencies.
   $taskInfo=@(& $taskGo version -m $taskBinary);if($LASTEXITCODE){throw 'Native build info unavailable'}
   foreach($taskLine in $taskInfo){if($taskLine -match '^\s+dep\s+(\S+)\s+(\S+)'){$taskLinked[$Matches[1]]=$Matches[2]}}
