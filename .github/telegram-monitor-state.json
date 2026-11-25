@@ -14,7 +14,7 @@
     },
     "644272764": {
       "category": "engines",
-      "count": 36
+      "count": 38
     },
     "644272766": {
       "category": "engines",
@@ -26,7 +26,7 @@
     },
     "644273459": {
       "category": "engines",
-      "count": 25
+      "count": 26
     },
     "644273525": {
       "category": "engines",
@@ -258,7 +258,7 @@
     },
     "670210520": {
       "category": "engines",
-      "count": 300
+      "count": 303
     },
     "676472314": {
       "category": "android",
@@ -546,7 +546,7 @@
     },
     "689482724": {
       "category": "android",
-      "count": 46
+      "count": 47
     },
     "747860791": {
       "category": "android",
@@ -894,7 +894,7 @@
     },
     "779547126": {
       "category": "android",
-      "count": 22
+      "count": 26
     },
     "779547147": {
       "category": "android",
@@ -938,7 +938,7 @@
     },
     "780075654": {
       "category": "android",
-      "count": 68
+      "count": 70
     },
     "780188213": {
       "category": "android",
@@ -962,15 +962,15 @@
     },
     "781033804": {
       "category": "android",
-      "count": 63
+      "count": 79
     },
     "784001060": {
       "category": "android",
-      "count": 14
+      "count": 15
     },
     "784001062": {
       "category": "android",
-      "count": 51
+      "count": 64
     },
     "784159022": {
       "category": "android",
@@ -982,11 +982,11 @@
     },
     "784159030": {
       "category": "android",
-      "count": 11
+      "count": 12
     },
     "784160643": {
       "category": "android",
-      "count": 14
+      "count": 19
     },
     "784160821": {
       "category": "android",
@@ -1215,8 +1215,8 @@
       "windows": 0
     },
     "2026-11-25": {
-      "android": 18,
-      "engines": 5,
+      "android": 61,
+      "engines": 11,
       "partial": false,
       "star_delta": 1,
       "stars": 17,
@@ -1224,8 +1224,8 @@
       "windows": 0
     }
   },
-  "last_daily_date": "2026-11-23",
-  "observed_at": "2026-11-25T05:38:07.894696+03:00",
+  "last_daily_date": "2026-11-24",
+  "observed_at": "2026-11-25T14:45:07.874845+03:00",
   "repository": "vnenapravo7-source/mcrf",
   "source_stats": {
     "coverage_start": "2026-11-01",
