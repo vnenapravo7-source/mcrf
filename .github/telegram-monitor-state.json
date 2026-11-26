@@ -26,7 +26,7 @@
     },
     "644273459": {
       "category": "engines",
-      "count": 28
+      "count": 29
     },
     "644273525": {
       "category": "engines",
@@ -178,7 +178,7 @@
     },
     "667135657": {
       "category": "engines",
-      "count": 120
+      "count": 121
     },
     "667135659": {
       "category": "engines",
@@ -318,7 +318,7 @@
     },
     "676475041": {
       "category": "engines",
-      "count": 9
+      "count": 10
     },
     "676475192": {
       "category": "engines",
@@ -334,7 +334,7 @@
     },
     "676475600": {
       "category": "engines",
-      "count": 8
+      "count": 9
     },
     "676475703": {
       "category": "engines",
@@ -446,7 +446,7 @@
     },
     "676479220": {
       "category": "engines",
-      "count": 29
+      "count": 32
     },
     "676479376": {
       "category": "engines",
@@ -714,7 +714,7 @@
     },
     "747874368": {
       "category": "android",
-      "count": 1
+      "count": 2
     },
     "747877045": {
       "category": "android",
@@ -894,47 +894,47 @@
     },
     "779547126": {
       "category": "android",
-      "count": 26
+      "count": 27
     },
     "779547147": {
       "category": "android",
-      "count": 1
+      "count": 2
     },
     "779632476": {
       "category": "android",
-      "count": 1
+      "count": 2
     },
     "779632479": {
       "category": "android",
-      "count": 13
+      "count": 14
     },
     "779632480": {
       "category": "android",
-      "count": 10
+      "count": 11
     },
     "779632482": {
       "category": "android",
-      "count": 1
+      "count": 2
     },
     "779632676": {
       "category": "android",
-      "count": 1
+      "count": 2
     },
     "779632688": {
       "category": "android",
-      "count": 1
+      "count": 2
     },
     "779632692": {
       "category": "android",
-      "count": 15
+      "count": 17
     },
     "779632694": {
       "category": "android",
-      "count": 1
+      "count": 2
     },
     "779632695": {
       "category": "android",
-      "count": 1
+      "count": 2
     },
     "780075654": {
       "category": "android",
@@ -954,47 +954,47 @@
     },
     "781033798": {
       "category": "android",
-      "count": 3
+      "count": 9
     },
     "781033799": {
       "category": "android",
-      "count": 2
+      "count": 3
     },
     "781033804": {
       "category": "android",
-      "count": 83
+      "count": 94
     },
     "784001060": {
       "category": "android",
-      "count": 16
+      "count": 18
     },
     "784001062": {
       "category": "android",
-      "count": 70
+      "count": 76
     },
     "784159022": {
       "category": "android",
-      "count": 2
+      "count": 3
     },
     "784159023": {
       "category": "android",
-      "count": 2
+      "count": 6
     },
     "784159030": {
       "category": "android",
-      "count": 13
+      "count": 15
     },
     "784160643": {
       "category": "android",
-      "count": 25
+      "count": 27
     },
     "784160821": {
       "category": "android",
-      "count": 2
+      "count": 3
     },
     "784161086": {
       "category": "android",
-      "count": 0
+      "count": 2
     }
   },
   "days": {
@@ -1222,10 +1222,19 @@
       "stars": 18,
       "uncertain": true,
       "windows": 0
+    },
+    "2026-11-26": {
+      "android": 51,
+      "engines": 7,
+      "partial": false,
+      "star_delta": 1,
+      "stars": 19,
+      "uncertain": true,
+      "windows": 0
     }
   },
   "last_daily_date": "2026-11-24",
-  "observed_at": "2026-11-25T23:43:07.230489+03:00",
+  "observed_at": "2026-11-26T06:13:34.576879+03:00",
   "repository": "vnenapravo7-source/mcrf",
   "source_stats": {
     "coverage_start": "2026-11-01",
@@ -1260,7 +1269,7 @@
     "started_at": "2026-11-01T18:13:14.386929+03:00"
   },
   "source_status": "unavailable",
-  "stars": 18,
+  "stars": 19,
   "started_at": "2026-11-01T18:08:48.973818+03:00",
   "version": 1
 }
