@@ -14,7 +14,7 @@
     },
     "644272764": {
       "category": "engines",
-      "count": 44
+      "count": 46
     },
     "644272766": {
       "category": "engines",
@@ -446,7 +446,7 @@
     },
     "676479220": {
       "category": "engines",
-      "count": 34
+      "count": 35
     },
     "676479376": {
       "category": "engines",
@@ -894,7 +894,7 @@
     },
     "779547126": {
       "category": "android",
-      "count": 33
+      "count": 36
     },
     "779547147": {
       "category": "android",
@@ -926,7 +926,7 @@
     },
     "779632692": {
       "category": "android",
-      "count": 18
+      "count": 20
     },
     "779632694": {
       "category": "android",
@@ -938,7 +938,7 @@
     },
     "780075654": {
       "category": "android",
-      "count": 78
+      "count": 79
     },
     "780188213": {
       "category": "android",
@@ -962,7 +962,7 @@
     },
     "781033804": {
       "category": "android",
-      "count": 110
+      "count": 115
     },
     "784001060": {
       "category": "android",
@@ -970,7 +970,7 @@
     },
     "784001062": {
       "category": "android",
-      "count": 95
+      "count": 102
     },
     "784159022": {
       "category": "android",
@@ -982,11 +982,11 @@
     },
     "784159030": {
       "category": "android",
-      "count": 16
+      "count": 17
     },
     "784160643": {
       "category": "android",
-      "count": 33
+      "count": 35
     },
     "784160821": {
       "category": "android",
@@ -1240,10 +1240,19 @@
       "stars": 20,
       "uncertain": true,
       "windows": 0
+    },
+    "2026-11-28": {
+      "android": 21,
+      "engines": 3,
+      "partial": false,
+      "star_delta": 0,
+      "stars": 20,
+      "uncertain": true,
+      "windows": 0
     }
   },
   "last_daily_date": "2026-11-26",
-  "observed_at": "2026-11-27T16:59:30.850285+03:00",
+  "observed_at": "2026-11-28T01:39:14.870300+03:00",
   "repository": "vnenapravo7-source/mcrf",
   "source_stats": {
     "coverage_start": "2026-11-01",
